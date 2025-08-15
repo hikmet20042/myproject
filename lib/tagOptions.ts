@@ -1,0 +1,36 @@
+// Tag options for articles and stories (shared, can be imported)
+export const RESEARCH_TAGS = [
+  'gender-equality-research',
+  'policy-analysis',
+  'historical-perspective',
+  'sociological-study',
+  'economic-analysis',
+  'legal-research',
+  'healthcare-studies',
+  'education-research',
+  'workplace-studies',
+  'media-analysis',
+  'cultural-studies',
+  'psychological-research',
+  'statistical-analysis',
+  'case-study',
+  'literature-review',
+];
+
+export const STORY_TAGS = [
+  'overcoming-challenges',
+  'activism-stories',
+  'survivor-experiences',
+  'personal-growth',
+  'community-support',
+  'breaking-silence',
+  'empowerment',
+  'healing-journey',
+  'advocacy',
+  'family-dynamics',
+  'workplace-experiences',
+  'education-stories',
+  'healthcare-experiences',
+  'legal-advocacy',
+  'cultural-challenges',
+];
