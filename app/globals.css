@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-color: #722f37;
+  --accent-color: #f2e8dc;
+  --text-color: #111111;
+  --button-hover: #3f3f3f;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  color: var(--text-color);
+  font-family: 'Inter', sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+
+.btn-primary {
+  @apply bg-primary text-white px-6 py-3 rounded-lg font-medium transition-all duration-300 hover:bg-buttonHover hover:shadow-lg;
+}
+
+.btn-secondary {
+  @apply border-2 border-primary text-primary px-6 py-3 rounded-lg font-medium transition-all duration-300 hover:bg-primary hover:text-white;
+}
+
+.card {
+  @apply bg-white rounded-lg shadow-md p-6 transition-all duration-300 hover:shadow-lg border-0;
+}
+
+.section-padding {
+  @apply px-4 md:px-8 lg:px-16 xl:px-32;
+}
+
+/* Line clamp utilities for text truncation */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* BlockNote: auto-grow canvas without internal scroll */
+.bn-autogrow { height: auto !important; max-height: none !important; }
+.bn-autogrow .bn-editor,
+.bn-autogrow .bn-container,
+.bn-autogrow .bn-root,
+.bn-autogrow .bn-content {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}

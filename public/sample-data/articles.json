@@ -1,0 +1,56 @@
+[
+  {
+    "id": 1,
+    "title": "A Study on Femicide Reporting Gaps in Azerbaijan",
+    "author": "Dr. Elnur Mammadov",
+    "date": "2024-01-20T11:00:00Z",
+    "excerpt": "This research examines the systematic underreporting of femicide cases in Azerbaijan and its implications for policy development and victim support services.",
+    "content": "This research examines the systematic underreporting of femicide cases in Azerbaijan and its implications for policy development and victim support services. Through analysis of official statistics, media reports, and interviews with law enforcement officials, this study reveals significant discrepancies between reported and actual cases of gender-based killings. The research methodology involved a comprehensive review of police records from 2019-2023, analysis of media coverage patterns, and interviews with 50 law enforcement officers across different regions. Key findings indicate that approximately 40% of femicide cases are not properly classified as gender-based violence, leading to inadequate policy responses and support services. The study also identifies cultural and institutional barriers that contribute to underreporting, including stigma, lack of training among law enforcement, and insufficient victim protection mechanisms. Recommendations include mandatory training for law enforcement on gender-based violence classification, improved data collection systems, and enhanced victim support services. This research contributes to the growing body of literature on femicide in post-Soviet countries and provides a foundation for evidence-based policy development in Azerbaijan.",
+    "abstract": "This study examines the systematic underreporting of femicide cases in Azerbaijan through analysis of official statistics, media reports, and law enforcement interviews. Findings reveal 40% underreporting due to classification errors and institutional barriers.",
+    "tags": ["gender-equality-research", "policy-analysis", "statistical-analysis", "legal-research"],
+    "status": "published",
+    "type": "research-article",
+    "references": [
+      "World Health Organization. (2021). Violence against women prevalence estimates, 2018. Geneva: WHO.",
+      "UN Women. (2020). Femicide: A Global Problem That Demands Action. New York: UN Women.",
+      "Azerbaijan State Statistical Committee. (2023). Crime Statistics Report 2022. Baku: SSC.",
+      "European Institute for Gender Equality. (2022). Gender-based violence against women in the EU. Vilnius: EIGE."
+    ]
+  },
+  {
+    "id": 2,
+    "title": "The Role of NGOs in Combating Domestic Violence",
+    "author": "Dr. Aysel Karimova",
+    "date": "2024-01-18T15:30:00Z",
+    "excerpt": "This analysis explores the effectiveness of non-governmental organizations in addressing domestic violence in Azerbaijan and their impact on policy development.",
+    "content": "This analysis explores the effectiveness of non-governmental organizations in addressing domestic violence in Azerbaijan and their impact on policy development. The study examines the work of 15 major NGOs operating in the field of women's rights and domestic violence prevention, analyzing their programs, outreach methods, and policy advocacy efforts. Research methods included surveys of NGO staff and beneficiaries, analysis of program outcomes, and interviews with government officials and policy makers. The findings demonstrate that NGOs play a crucial role in filling gaps in government services, particularly in rural areas where state support is limited. NGOs provide essential services including crisis hotlines, legal assistance, psychological counseling, and emergency shelter. However, the study also identifies challenges including limited funding, lack of coordination between organizations, and resistance from traditional community structures. The research highlights successful models of NGO-government collaboration and provides recommendations for strengthening partnerships and improving service delivery. Key recommendations include establishing formal coordination mechanisms, increasing government funding for NGO programs, and developing standardized training programs for service providers. This research contributes to understanding the role of civil society in addressing gender-based violence in transitional societies.",
+    "abstract": "Analysis of 15 NGOs in Azerbaijan reveals their crucial role in domestic violence prevention, particularly in rural areas. Study identifies challenges and successful collaboration models with government agencies.",
+    "tags": ["policy-analysis", "sociological-study", "case-study", "advocacy"],
+    "status": "published",
+    "type": "research-article",
+    "references": [
+      "Civil Society Development Center. (2023). NGO Directory and Impact Assessment. Baku: CSDC.",
+      "Ministry of Labor and Social Protection. (2022). Domestic Violence Prevention Programs. Baku: MLSP.",
+      "International Center for Not-for-Profit Law. (2021). Legal Framework for NGOs in Azerbaijan. Washington: ICNL.",
+      "European Commission. (2023). Civil Society Support in Eastern Partnership Countries. Brussels: EC."
+    ]
+  },
+  {
+    "id": 3,
+    "title": "Economic Empowerment of Rural Women: Challenges and Opportunities",
+    "author": "Dr. Sabina Aliyeva",
+    "date": "2024-01-15T13:45:00Z",
+    "excerpt": "This economic analysis examines the barriers to women's economic participation in rural Azerbaijan and identifies opportunities for sustainable development.",
+    "content": "This economic analysis examines the barriers to women's economic participation in rural Azerbaijan and identifies opportunities for sustainable development. The research focuses on five rural regions, analyzing economic data, conducting household surveys, and interviewing local business owners and community leaders. The study reveals that rural women face multiple barriers to economic participation including limited access to credit, lack of business training, transportation challenges, and cultural restrictions on women's mobility. However, the research also identifies significant opportunities for economic empowerment through agricultural cooperatives, home-based businesses, and digital entrepreneurship. The analysis shows that women who participate in economic activities report higher levels of decision-making power within their households and greater community involvement. The study examines successful programs that have helped rural women start businesses, including microfinance initiatives, skills training programs, and market access support. Key findings indicate that economic empowerment programs are most effective when they address both economic and social barriers, involve male family members in the process, and provide ongoing support and mentorship. The research provides specific recommendations for policymakers, development organizations, and community leaders on how to create enabling environments for women's economic participation. This study contributes to the literature on rural development and women's economic empowerment in post-Soviet contexts.",
+    "abstract": "Analysis of rural women's economic participation in Azerbaijan reveals barriers including limited credit access and cultural restrictions, but identifies opportunities through cooperatives and digital entrepreneurship.",
+    "tags": ["economic-analysis", "rural-development", "women-empowerment", "case-study"],
+    "status": "published",
+    "type": "research-article",
+    "references": [
+      "World Bank. (2023). Rural Development in Azerbaijan: Opportunities and Challenges. Washington: World Bank.",
+      "Azerbaijan Microfinance Association. (2022). Annual Report on Rural Lending. Baku: AMFA.",
+      "Food and Agriculture Organization. (2021). Women in Agriculture: Global Statistics. Rome: FAO.",
+      "United Nations Development Programme. (2023). Human Development Report: Azerbaijan. New York: UNDP."
+    ]
+  }
+]
