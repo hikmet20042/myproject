@@ -1,40 +1,116 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import BlocknoteEditor from '@/components/BlocknoteEditor'
 import { ArrowLeft, Save, Send, Eye, EyeOff } from 'lucide-react'
+import { BlockNoteEditor } from '@blocknote/core'
 
-interface Step2Props {
-  searchParams: { [key: string]: string | string[] | undefined }
+// Debounce utility function
+function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T & { cancel: () => void } {
+  let timeout: NodeJS.Timeout | null = null
+  const debounced = ((...args: any[]) => {
+    if (timeout) clearTimeout(timeout)
+    timeout = setTimeout(() => func(...args), wait)
+  }) as T & { cancel: () => void }
+
+  debounced.cancel = () => {
+    if (timeout) {
+      clearTimeout(timeout)
+      timeout = null
+    }
+  }
+
+  return debounced
 }
 
-
-export default function Step2Page({ searchParams }: Step2Props) {
-
+export default function Step2Page() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Get draft ID from localStorage instead of URL parameters
+  const [draftId, setDraftId] = useState<string | null>(null);
+  
   const [content, setContent] = useState<any>(null); // BlockNote JSON
-  const [contentHtml, setContentHtml] = useState('');
   const [characterCount, setCharacterCount] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const editorRef = useRef<BlockNoteEditor | null>(null)
+
+  // Cleanup function to clear localStorage when leaving the article submission flow
+  const cleanupLocalStorage = () => {
+    localStorage.removeItem('draftArticle')
+    localStorage.removeItem('currentDraftId')
+    localStorage.removeItem('currentEditId')
+  }
+
+  // Step 1 fields - initialize with empty values, will be populated from localStorage
+  const [title, setTitle] = useState('');
+  const [abstract, setAbstract] = useState('');
+  const [tags, setTags] = useState('');
+  const [references, setReferences] = useState('');
+  const [isAnonymous, setIsAnonymous] = useState(false);
+
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [isSubmittingArticle, setIsSubmittingArticle] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
-  // Step 1 fields
-  const [title, setTitle] = useState(searchParams.title as string || '');
-  const [abstract, setAbstract] = useState(searchParams.abstract as string || '');
-  const [tags, setTags] = useState(searchParams.tags as string || '');
-  const [references, setReferences] = useState(searchParams.references as string || '');
-  const [isAnonymous, setIsAnonymous] = useState(searchParams.isAnonymous === 'true');
+  const [loading, setLoading] = useState(false);
 
-  // Author name from step 1 or session
-  const [authorName, setAuthorName] = useState(isAnonymous ? '' : (searchParams.author as string || (session?.user?.name ?? '')));
+  // Cleanup localStorage when component unmounts (user navigates away)
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Only cleanup if not navigating within the article flow
+      const preserveData = sessionStorage.getItem('preserveArticleData')
+      if (!preserveData) {
+        cleanupLocalStorage()
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        // Save current state before potentially leaving
+        const currentData = {
+          title,
+          abstract,
+          tags,
+          references,
+          isAnonymous,
+          content,
+          characterCount,
+          lastEdited: new Date().toISOString()
+        }
+        localStorage.setItem('draftArticle', JSON.stringify(currentData))
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      // Clear the preserve flag when component unmounts
+      sessionStorage.removeItem('preserveArticleData')
+    }
+  }, [title, abstract, tags, references, isAnonymous, content, characterCount])
+
+  // Author name from session
+  const [authorName, setAuthorName] = useState(session?.user?.name ?? '');
 
   // Inline draft saved message (not full page)
   const [showDraftSaved, setShowDraftSaved] = useState(false);
+
+  // Validation state
+  const [showValidationErrors, setShowValidationErrors] = useState(false);
+
+  // Auto-save state
+  const [lastSavedData, setLastSavedData] = useState<any>(null);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'pending' | 'saving' | 'saved' | 'error'>('idle');
+  const [retryCount, setRetryCount] = useState(0);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   useEffect(() => {
     if (draftSaved) {
       setShowDraftSaved(true);
@@ -43,61 +119,462 @@ export default function Step2Page({ searchParams }: Step2Props) {
     }
   }, [draftSaved]);
 
-  // Debug log for content passed to BlocknoteEditor
-  useEffect(() => {
-    if (content) {
-      console.log('[BlocknoteEditor] initialJSON:', content);
-    }
-  }, [content]);
-
-  // Load draft from localStorage for non-logged-in users
+  // Load saved draft from database or localStorage when component mounts
   useEffect(() => {
     if (status === 'loading') return;
-    if (!session || !session.user) {
-      if (typeof window !== 'undefined') {
-        const saved = localStorage.getItem('draftArticle');
-        if (saved) {
-          try {
-            const d = JSON.parse(saved);
-            if (d.title) setTitle(d.title);
-            if (d.abstract) setAbstract(d.abstract);
-            if (d.tags) setTags(Array.isArray(d.tags) ? d.tags.join(',') : d.tags);
-            if (d.references) setReferences(Array.isArray(d.references) ? d.references.join('\n') : d.references);
-            if (typeof d.isAnonymous === 'boolean') setIsAnonymous(d.isAnonymous);
-            if (typeof d.authorName === 'string') setAuthorName(d.authorName);
-            if (d.content) {
-              let loadedContent = d.content;
-              // Blocknote expects an array of blocks, not an object
-              if (loadedContent && loadedContent.blocks && Array.isArray(loadedContent.blocks)) {
-                setContent(loadedContent.blocks);
-              } else if (Array.isArray(loadedContent)) {
-                setContent(loadedContent);
-              } else {
-                setContent([]);
-              }
-            }
-            if (d.contentHtml) setContentHtml(d.contentHtml);
-            if (d.contentText) setCharacterCount(d.contentText.length);
-          } catch (e) {
-            console.error('[Draft Load] Failed to parse draftArticle from localStorage:', e);
+
+    const loadDraft = async () => {
+      // First, check if we have a draft ID or edit ID in localStorage
+      const storedDraftId = localStorage.getItem('currentDraftId');
+      const storedEditId = localStorage.getItem('currentEditId');
+
+      // Prioritize edit ID if available (editing existing article)
+      if (storedEditId) {
+        setDraftId(storedEditId);
+      } else if (storedDraftId) {
+        setDraftId(storedDraftId);
+      }
+
+      // Always check localStorage first (prioritize recent edits from step1)
+      const savedDraft = localStorage.getItem('draftArticle');
+      if (savedDraft) {
+        try {
+          const parsedDraft = JSON.parse(savedDraft);
+          // Load all data from localStorage
+          if (parsedDraft.title) setTitle(parsedDraft.title);
+          if (parsedDraft.abstract) setAbstract(parsedDraft.abstract);
+          if (parsedDraft.tags) {
+            setTags(Array.isArray(parsedDraft.tags) ? parsedDraft.tags.join(',') : parsedDraft.tags);
           }
+          if (parsedDraft.references) {
+            setReferences(Array.isArray(parsedDraft.references) ? parsedDraft.references.join('\n') : parsedDraft.references);
+          }
+          if (parsedDraft.isAnonymous !== undefined) setIsAnonymous(parsedDraft.isAnonymous);
+          if (parsedDraft.content) {
+            setContent(parsedDraft.content);
+            // If characterCount is not saved, calculate it from content
+            if (parsedDraft.characterCount) {
+              setCharacterCount(parsedDraft.characterCount);
+            } else {
+              // Calculate character count from content
+              calculateCharacterCountFromContent(parsedDraft.content);
+            }
+          }
+          // Update author name based on anonymity setting
+          setAuthorName(parsedDraft.isAnonymous ? '' : (session?.user?.name ?? ''));
+
+          // Set lastSavedData for change detection
+          setLastSavedData(parsedDraft)
+
+
+          // If required fields are missing, do NOT redirect. Inline guidance will be shown in the UI.
+          // This prevents bounce-back to Step 1 and unintended localStorage cleanup.
+
+          return; // Exit early if localStorage has data
+        } catch (error) {
+          console.error('Error parsing saved draft:', error);
         }
       }
-    }
-  }, [session, status]);
 
+      // Only load from database if localStorage is empty and we have an ID
+      if ((storedDraftId || storedEditId) && session) {
+        setLoading(true);
+        try {
+          const isEditingArticle = !!storedEditId;
+          const idToLoad = storedEditId || storedDraftId;
+          const endpoint = isEditingArticle ? '/api/articles' : '/api/drafts';
+          const response = await fetch(`${endpoint}?id=${idToLoad}`);
+          if (response.ok) {
+            const data = await response.json();
+            const draft = isEditingArticle ? data.article : data.draft;
+
+            if (draft) {
+              setTitle(draft.title || '');
+              setAbstract(draft.abstract || '');
+              setTags(Array.isArray(draft.tags) ? draft.tags.join(',') : (draft.tags || ''));
+              setReferences(Array.isArray(draft.references) ? draft.references.join('\n') : (draft.references || ''));
+              setIsAnonymous(draft.anonymous || false);
+              setContent(draft.content || null);
+              setAuthorName(draft.anonymous ? '' : (session?.user?.name ?? ''));
+
+              // Calculate character count from loaded content
+              if (draft.content) {
+                calculateCharacterCountFromContent(draft.content);
+              }
+
+              // If required fields are missing, do NOT redirect. Inline guidance will be shown in the UI.
+
+              // Save to localStorage for consistency (character count will be updated after calculation)
+              const draftData = {
+                title: draft.title || '',
+                abstract: draft.abstract || '',
+                tags: Array.isArray(draft.tags) ? draft.tags : (draft.tags ? String(draft.tags).split(',').map((t: string) => t.trim()).filter(Boolean) : []),
+                references: Array.isArray(draft.references) ? draft.references : (draft.references || ''),
+                isAnonymous: draft.anonymous || false,
+                content: draft.content || null,
+                characterCount: 0, // Will be updated after character count calculation
+                lastEdited: new Date().toISOString()
+              }
+              localStorage.setItem('draftArticle', JSON.stringify(draftData));
+
+              // Set lastSavedData for change detection
+              setLastSavedData(draftData)
+
+              // Save the ID to localStorage for future auto-saves
+              const urlParams = new URLSearchParams(window.location.search)
+              const urlDraftId = urlParams.get('draft')
+              const urlEditId = urlParams.get('edit')
+
+              if (urlEditId) {
+                // If editing an existing article, save the edit ID
+                localStorage.setItem('currentEditId', urlEditId)
+              } else if (urlDraftId) {
+                // If working with a draft, save the draft ID
+                localStorage.setItem('currentDraftId', urlDraftId)
+                setDraftId(urlDraftId)
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error loading draft from database:', error);
+        } finally {
+          setLoading(false);
+        }
+      } else if (!savedDraft) {
+        // If no data in localStorage and no draft ID, stay on Step 2 and show the UI.
+        // User can choose to go back via the Back button; do not force redirect.
+      }
+    };
+
+    loadDraft();
+  }, [session, status, router]); // Removed isAnonymous from dependencies
+
+  // Cleanup localStorage when user navigates away from article submission flow
   useEffect(() => {
-    if (status === 'loading') return;
-    if (!title || !abstract) {
-      router.push('/submit/article/step1');
+    // Set a flag that we're currently in the article submission flow
+    sessionStorage.setItem('inArticleSubmissionFlow', 'true')
+    // Clear the preserve flag when we successfully reach step2
+    sessionStorage.removeItem('preserveArticleData')
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
     }
-  }, [status, title, abstract, router]);
+
+    // Add event listener
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    // Cleanup on component unmount
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+
+      const isNavigatingWithinFlow = sessionStorage.getItem('navigatingWithinArticleFlow') === 'true';
+
+      // Do NOT clear localStorage on unmount; preserve draft data.
+      // Only manage session flags.
+      if (!isNavigatingWithinFlow) {
+        sessionStorage.removeItem('inArticleSubmissionFlow');
+      } else {
+        // Reset the flag if we are navigating within the flow
+        sessionStorage.removeItem('navigatingWithinArticleFlow');
+      }
+    }
+  }, [])
+
+  // Debounced auto-save function for real-time changes
+  const debouncedAutoSave = useCallback(
+    debounce(async () => {
+      if (!session || autoSaveStatus === 'saving') return
+
+      // Only auto-save if there's an existing draft ID or edit ID
+      const existingDraftId = draftId || localStorage.getItem('currentDraftId')
+      const existingEditId = localStorage.getItem('currentEditId')
+      if (!existingDraftId && !existingEditId) {
+        // No existing draft, don't auto-save until user manually saves first
+        return
+      }
+
+      const currentData = {
+        title: (title || '').trim() || 'Untitled Article',
+        abstract: (abstract || '').trim(),
+        tags: tags ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
+        references: (references || '').trim(),
+        isAnonymous: isAnonymous || false,
+        content: content,
+        characterCount: characterCount || 0,
+        lastEdited: new Date().toISOString()
+      }
+
+      // Check if all fields are empty
+      const isEmpty = !currentData.abstract &&
+                     currentData.tags.length === 0 &&
+                     !currentData.references &&
+                     (!(title || '').trim() || (title || '').trim() === 'Untitled Article') &&
+                     (!content || (typeof content === 'string' && !(content || '').trim()) ||
+                      (typeof content !== 'string' && (!content || !JSON.stringify(content || {}).trim() || JSON.stringify(content || {}).trim() === '{}')))
+
+      if (isEmpty) {
+        setHasUnsavedChanges(false)
+        setAutoSaveStatus('idle')
+        return
+      }
+
+      // Check if data has changed
+      const hasChanged = !lastSavedData ||
+                        JSON.stringify(currentData) !== JSON.stringify({
+                          ...lastSavedData,
+                          lastEdited: currentData.lastEdited
+                        })
+
+      if (!hasChanged) {
+        setHasUnsavedChanges(false)
+        setAutoSaveStatus('saved')
+        return
+      }
+
+      setHasUnsavedChanges(true)
+      setAutoSaveStatus('pending')
+
+      // Wait a bit before actually saving to batch rapid changes
+      setTimeout(() => performAutoSave(currentData), 2000)
+    }, 1000),
+    [session, title, abstract, tags, references, isAnonymous, content, characterCount, lastSavedData, autoSaveStatus, draftId]
+  )
+
+  // Trigger debounced auto-save on field changes
+  useEffect(() => {
+    if (session && status === 'authenticated') {
+      debouncedAutoSave()
+    }
+  }, [title, abstract, tags, references, isAnonymous, content, characterCount, debouncedAutoSave, session, status])
+
+  // Auto-save functionality - save draft every 2 minutes with change detection (fallback)
+  useEffect(() => {
+    if (!session || status !== 'authenticated') return
+
+    // Set up auto-save interval (2 minutes as fallback)
+    const autoSaveInterval = setInterval(autoSaveToDatabaseIfChanged, 120000)
+
+    // Cleanup interval on unmount
+    return () => {
+      clearInterval(autoSaveInterval)
+    }
+  }, [title, abstract, tags, references, isAnonymous, content, characterCount, session, status, draftId, lastSavedData])
+
+  // Cleanup debounced function on unmount
+  useEffect(() => {
+    return () => {
+      debouncedAutoSave.cancel?.()
+    }
+  }, [debouncedAutoSave])
+
+  // Helper function to calculate character count from content
+  const calculateCharacterCountFromContent = async (content: any) => {
+    if (!content) {
+      setCharacterCount(0);
+      updateCharacterCountInLocalStorage(0);
+      return;
+    }
+
+    try {
+      // Create a temporary BlockNote editor to extract text from content
+      const { BlockNoteEditor } = await import('@blocknote/core');
+      const tempEditor = BlockNoteEditor.create();
+
+      // Convert content to HTML then extract text
+      const html = await tempEditor.blocksToFullHTML(content);
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      const text = tempDiv.textContent || tempDiv.innerText || '';
+      const count = text.length;
+      setCharacterCount(count);
+      updateCharacterCountInLocalStorage(count);
+    } catch (error) {
+      console.error('Error calculating character count:', error);
+      // Fallback: try to extract text from content structure
+      let text = '';
+      if (Array.isArray(content)) {
+        content.forEach((block: any) => {
+          if (block.content && Array.isArray(block.content)) {
+            block.content.forEach((item: any) => {
+              if (item.text) text += item.text;
+            });
+          }
+        });
+      }
+      const count = text.length;
+      setCharacterCount(count);
+      updateCharacterCountInLocalStorage(count);
+    }
+  };
+
+  // Helper function to update character count in localStorage
+  const updateCharacterCountInLocalStorage = (count: number) => {
+    const savedDraft = localStorage.getItem('draftArticle');
+    if (savedDraft) {
+      try {
+        const parsedDraft = JSON.parse(savedDraft);
+        parsedDraft.characterCount = count;
+        localStorage.setItem('draftArticle', JSON.stringify(parsedDraft));
+      } catch (error) {
+        console.error('Error updating character count in localStorage:', error);
+      }
+    }
+  };
 
   const handleEditorChange = (json: any, html: string, text: string) => {
     setContent(json)
-    setContentHtml(html)
     setCharacterCount(text.length)
   }
+
+  const saveToLocalStorage = () => {
+    const savedDraft = localStorage.getItem('draftArticle')
+    const base = savedDraft ? JSON.parse(savedDraft) : {}
+    localStorage.setItem('draftArticle', JSON.stringify({
+      ...base,
+      title,
+      abstract,
+      tags: tags ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
+      references,
+      isAnonymous,
+      content,
+      characterCount,
+      lastEdited: new Date().toISOString()
+    }))
+  }
+
+
+
+  // Actual auto-save function with retry logic
+  const performAutoSave = async (currentData: any, attempt = 0) => {
+    if (autoSaveStatus === 'saving') return
+
+    try {
+      setAutoSaveStatus('saving')
+
+      const existingDraftId = draftId || localStorage.getItem('currentDraftId')
+      const existingEditId = localStorage.getItem('currentEditId')
+      const isEditingArticle = !!existingEditId
+      const isUpdate = !!(existingDraftId || existingEditId)
+      const idToUse = existingEditId || existingDraftId
+
+      const requestBody = {
+        ...currentData,
+        anonymous: currentData.isAnonymous, // API expects 'anonymous'
+        ...(isUpdate && { id: idToUse })
+      }
+
+      // Use the correct API endpoint based on whether we're editing an article or a draft
+      const endpoint = isEditingArticle ? '/api/articles' : '/api/drafts'
+      const response = await fetch(endpoint, {
+        method: isUpdate ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+
+        // Store the appropriate ID if this is the first save
+        if (!isUpdate && result.id) {
+          if (isEditingArticle) {
+            localStorage.setItem('currentEditId', result.id)
+          } else {
+            setDraftId(result.id)
+            localStorage.setItem('currentDraftId', result.id)
+          }
+        }
+
+        // Update localStorage and state
+        saveToLocalStorage()
+        setLastSavedData(currentData)
+        setLastSaved(new Date())
+        setHasUnsavedChanges(false)
+        setAutoSaveStatus('saved')
+        setRetryCount(0)
+
+        // Show saved status briefly
+        setTimeout(() => {
+          if (autoSaveStatus === 'saved') setAutoSaveStatus('idle')
+        }, 3000)
+      } else {
+        throw new Error(`HTTP ${response.status}`)
+      }
+    } catch (error) {
+      console.error('Auto-save failed:', error)
+      setAutoSaveStatus('error')
+
+      // Retry logic with exponential backoff
+      if (attempt < 3) {
+        const delay = Math.pow(2, attempt) * 1000 // 1s, 2s, 4s
+        setTimeout(() => {
+          setRetryCount(attempt + 1)
+          performAutoSave(currentData, attempt + 1)
+        }, delay)
+      } else {
+        // Give up after 3 attempts
+        setTimeout(() => setAutoSaveStatus('idle'), 5000)
+      }
+    } finally {
+    }
+  }
+
+  // Auto-save function that checks for changes and saves to database (for interval-based saves)
+  const autoSaveToDatabaseIfChanged = async () => {
+    if (!session || autoSaveStatus === 'saving') return
+
+    const currentData = {
+      title: title.trim() || 'Untitled Article',
+      abstract: abstract.trim(),
+      tags: tags ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
+      references: references.trim(),
+      isAnonymous: isAnonymous,
+      content: content,
+      characterCount: characterCount,
+      lastEdited: new Date().toISOString()
+    }
+
+    // Check if all fields are empty
+    const isEmpty = !currentData.abstract &&
+                   currentData.tags.length === 0 &&
+                   !currentData.references &&
+                   (!title.trim() || title.trim() === 'Untitled Article') &&
+                   (!content || (typeof content === 'string' && !content.trim()) ||
+                    (typeof content !== 'string' && (!content || !JSON.stringify(content).trim() || JSON.stringify(content).trim() === '{}')))
+
+    if (isEmpty) return
+
+    // Check if data has changed
+    const hasChanged = !lastSavedData ||
+                      JSON.stringify(currentData) !== JSON.stringify({
+                        ...lastSavedData,
+                        lastEdited: currentData.lastEdited
+                      })
+
+    if (!hasChanged) return
+
+    await performAutoSave(currentData)
+  }
+
+  const handleBackClick = () => {
+    // Save to localStorage when user clicks back button
+    saveToLocalStorage()
+
+    // Mark that we're navigating within the article flow - set this BEFORE navigation
+    sessionStorage.setItem('navigatingWithinArticleFlow', 'true')
+    // Also set a more persistent flag
+    sessionStorage.setItem('preserveArticleData', 'true')
+
+    // Small delay to ensure sessionStorage is set before navigation
+    setTimeout(() => {
+      router.push('/submit/article/step1')
+    }, 10)
+  }
+
+  // Note: Removed cleanup useEffect as it was causing localStorage to be cleared inappropriately
+  // localStorage will be cleared only on successful submission or when user explicitly navigates away
 
 
   // Extract media from BlockNote JSON (images, embeds)
@@ -115,30 +592,55 @@ export default function Step2Page({ searchParams }: Step2Props) {
     return media;
   };
 
-  const handleSaveDraft = async () => {
-    setIsSubmitting(true);
+  const handleSaveDraft = async (e?: React.SyntheticEvent) => {
+    if (e) e.preventDefault();
+    setIsSavingDraft(true);
     setError('');
+
+    saveToLocalStorage();
+
     try {
-      const response = await fetch('/api/articles', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title,
-          content: contentHtml, // Save HTML for draft, backend expects string
-          contentHtml,
-          category: searchParams.category || 'other',
-          author: authorName,
-          anonymous: isAnonymous,
-          tags: tags ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
-        }),
+      const existingDraftId = draftId || localStorage.getItem('currentDraftId');
+      const existingEditId = localStorage.getItem('currentEditId');
+      const isEditingArticle = !!existingEditId;
+      const isUpdate = !!(existingDraftId || existingEditId);
+      const idToUse = existingEditId || existingDraftId;
+
+      const currentData = {
+        title: title.trim() || 'Untitled Article',
+        abstract: abstract.trim(),
+        tags: tags ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
+        references: references.trim(),
+        isAnonymous: isAnonymous,
+        content: content,
+        characterCount: characterCount,
+        lastEdited: new Date().toISOString(),
+        anonymous: isAnonymous, // API expects 'anonymous'
+        ...(isUpdate && { id: idToUse })
+      };
+
+      // Use the correct API endpoint based on whether we're editing an article or a draft
+      const endpoint = isEditingArticle ? '/api/articles' : '/api/drafts';
+      const response = await fetch(endpoint, {
+        method: isUpdate ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(currentData)
       });
+
       if (response.ok) {
+        const result = await response.json();
+        if (!isUpdate && result.id) {
+          if (isEditingArticle) {
+            localStorage.setItem('currentEditId', result.id);
+          } else {
+            setDraftId(result.id);
+            localStorage.setItem('currentDraftId', result.id);
+          }
+        }
         setDraftSaved(true);
-        setTimeout(() => {
-          router.push('/profile');
-        }, 2000);
+        setLastSavedData(currentData);
+        setLastSaved(new Date());
+        setHasUnsavedChanges(false);
       } else {
         const data = await response.json();
         setError(data.error || 'Failed to save draft');
@@ -147,11 +649,16 @@ export default function Step2Page({ searchParams }: Step2Props) {
       console.error('Error saving draft:', error);
       setError('An error occurred while saving');
     } finally {
-      setIsSubmitting(false);
+      setIsSavingDraft(false);
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e?: React.SyntheticEvent) => {
+    if (e) e.preventDefault();
+
+    // Show validation errors from now on
+    setShowValidationErrors(true);
+
     let isContentEmpty = false;
     if (typeof content === 'string') {
       isContentEmpty = !content.trim();
@@ -166,25 +673,37 @@ export default function Step2Page({ searchParams }: Step2Props) {
       setError('Your article must be at least 500 characters long');
       return;
     }
-    setIsSubmitting(true);
+    setIsSubmittingArticle(true);
     setError('');
     try {
+      // Determine if we're editing an existing article or working with a draft
+      const isEditingArticle = localStorage.getItem('currentEditId') !== null;
+      const idToUse = isEditingArticle ? localStorage.getItem('currentEditId') : draftId;
+      
       const response = await fetch('/api/articles', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          id: idToUse, // Use the appropriate ID based on context
           title,
-          content: contentHtml, // Backend expects string content
-          contentHtml,
-          category: searchParams.category || 'other',
+          content, // Backend expects content
+          abstract,
+          category: searchParams.get('category') || 'other',
           author: authorName,
           anonymous: isAnonymous,
           tags: tags ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
+          references: (references && typeof references === 'string') ? references.split('\n').filter(ref => ref.trim()) : [],
+          status: 'pending',
         }),
       });
       if (response.ok) {
+        // Clear localStorage draft and all IDs after successful submission
+        localStorage.removeItem('draftArticle');
+        localStorage.removeItem('currentDraftId');
+        localStorage.removeItem('currentEditId');
+        
         setSuccess(true);
         setTimeout(() => {
           router.push('/profile');
@@ -197,11 +716,11 @@ export default function Step2Page({ searchParams }: Step2Props) {
       console.error('Error submitting article:', error);
       setError('An error occurred while submitting');
     } finally {
-      setIsSubmitting(false);
+      setIsSubmittingArticle(false);
     }
   };
 
-  if (status === 'loading') {
+  if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600"></div>
@@ -255,7 +774,7 @@ export default function Step2Page({ searchParams }: Step2Props) {
                 </p>
               </div>
               <button
-                onClick={() => router.push('/submit/article/step1')}
+                onClick={handleBackClick}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -267,10 +786,43 @@ export default function Step2Page({ searchParams }: Step2Props) {
           {/* Article Details */}
           <div className="bg-white rounded-lg shadow p-6 mb-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Article Details</h2>
+
+            {/* Show helpful message if some required fields are missing */}
+            {(!title.trim() || !abstract.trim() || tags.length === 0) && (
+              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-blue-800">
+                      Some article details are missing
+                    </h3>
+                    <div className="mt-2 text-sm text-blue-700">
+                      <p>
+                        You can still write your article content below. You can go back to{' '}
+                        <button
+                          onClick={handleBackClick}
+                          className="font-medium underline hover:text-blue-600"
+                        >
+                          Step 1
+                        </button>
+                        {' '}anytime to complete the missing information.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Title</label>
-                <p className="mt-1 text-sm text-gray-900">{title}</p>
+                <p className="mt-1 text-sm text-gray-900">
+                  {title.trim() || <span className="text-gray-400 italic">No title provided</span>}
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Author</label>
@@ -280,22 +832,24 @@ export default function Step2Page({ searchParams }: Step2Props) {
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700">Abstract</label>
-                <p className="mt-1 text-sm text-gray-900">{abstract}</p>
+                <p className="mt-1 text-sm text-gray-900">
+                  {abstract.trim() || <span className="text-gray-400 italic">No abstract provided</span>}
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Tags</label>
                 <div className="mt-1 flex flex-wrap gap-2">
-                  {tags && tags.trim() ? (
-                    tags.split(',').filter(tag => tag.trim()).map((tag, index) => (
+                  {tags && Array.isArray(tags) && tags.length > 0 ? (
+                    tags.map((tag, index) => (
                       <span
                         key={index}
                         className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"
                       >
-                        {tag.trim()}
+                        {tag.label || tag}
                       </span>
                     ))
                   ) : (
-                    <span className="text-gray-400 italic">No tags</span>
+                    <span className="text-gray-400 italic">No tags provided</span>
                   )}
                 </div>
               </div>
@@ -303,9 +857,13 @@ export default function Step2Page({ searchParams }: Step2Props) {
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700">References</label>
                   <div className="mt-1 text-sm text-gray-900">
-                    {references.split('\n').map((ref, index) => (
-                      <p key={index} className="mb-1">{ref.trim()}</p>
-                    ))}
+                    {references && typeof references === 'string' ? (
+                      references.split('\n').map((ref, index) => (
+                        <p key={index} className="mb-1">{ref.trim()}</p>
+                      ))
+                    ) : (
+                      <p className="text-gray-500 italic">No references provided</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -334,14 +892,23 @@ export default function Step2Page({ searchParams }: Step2Props) {
 
             <div className="p-6">
               {showPreview ? (
-                <div className="prose max-w-none">
-                  <div dangerouslySetInnerHTML={{ __html: contentHtml }} />
-                </div>
-              ) : (
+                  <div className="prose max-w-none">
+                    <div dangerouslySetInnerHTML={{ __html: editorRef.current?.domElement?.innerHTML || '' }} />
+                  </div>
+                ) : (
                 <BlocknoteEditor
                   key={title || 'empty'}
                   initialJSON={content}
-                  onChange={handleEditorChange}
+                  onChange={(json, html, text) => {
+                    handleEditorChange(json, html, text);
+                    // Get the editor instance from the DOM for preview
+                    const editorElement = document.querySelector('.bn-container');
+                    if (editorElement) {
+                      editorRef.current = {
+                        domElement: editorElement as HTMLElement
+                      } as BlockNoteEditor;
+                    }
+                  }}
                 />
               )}
             </div>
@@ -363,12 +930,61 @@ export default function Step2Page({ searchParams }: Step2Props) {
             </div>
           )}
 
+          {/* Auto-save status */}
+          <div className="mt-6 flex justify-between items-center">
+            <div className="text-sm">
+              {autoSaveStatus === 'pending' && (
+                <span className="inline-flex items-center text-yellow-600">
+                  <svg className="animate-pulse -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Changes detected, preparing to save...
+                </span>
+              )}
+              {autoSaveStatus === 'saving' && (
+                <span className="inline-flex items-center text-blue-600">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Auto-saving draft...
+                  {retryCount > 0 && ` (attempt ${retryCount + 1})`}
+                </span>
+              )}
+              {autoSaveStatus === 'saved' && lastSaved && (
+                <span className="inline-flex items-center text-green-600">
+                  <svg className="-ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Auto-saved at {lastSaved.toLocaleTimeString()}
+                </span>
+              )}
+              {autoSaveStatus === 'error' && (
+                <span className="inline-flex items-center text-red-600">
+                  <svg className="-ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                  Auto-save failed{retryCount > 0 && `, retrying... (${retryCount}/3)`}
+                </span>
+              )}
+              {hasUnsavedChanges && autoSaveStatus === 'idle' && (
+                <span className="inline-flex items-center text-gray-500">
+                  <svg className="-ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                  Unsaved changes
+                </span>
+              )}
+            </div>
+          </div>
+
           {/* Action Buttons */}
-          <div className="mt-8 flex justify-end space-x-4">
+          <div className="mt-4 flex justify-end space-x-4">
             <button
+              type="button"
               onClick={handleSaveDraft}
               disabled={
-                isSubmitting ||
+                isSavingDraft ||
                 (
                   (typeof content === 'string' && (!content || !content.trim())) ||
                   (typeof content !== 'string' && (!content || !JSON.stringify(content).trim() || JSON.stringify(content).trim() === '{}'))
@@ -377,22 +993,23 @@ export default function Step2Page({ searchParams }: Step2Props) {
               className="inline-flex items-center px-6 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="w-4 h-4 mr-2" />
-              Save Draft
+              {isSavingDraft ? 'Saving...' : 'Save Draft'}
             </button>
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={
-                isSubmitting ||
-                (
+                isSubmittingArticle ||
+                (showValidationErrors && (
                   (typeof content === 'string' && (!content || !content.trim())) ||
-                  (typeof content !== 'string' && (!content || !JSON.stringify(content).trim() || JSON.stringify(content).trim() === '{}'))
-                ) ||
-                characterCount < 500
+                  (typeof content !== 'string' && (!content || !JSON.stringify(content).trim() || JSON.stringify(content).trim() === '{}')) ||
+                  characterCount < 500
+                ))
               }
               className="inline-flex items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send className="w-4 h-4 mr-2" />
-              {isSubmitting ? 'Submitting...' : 'Submit Article'}
+              {isSubmittingArticle ? 'Submitting...' : 'Submit Article'}
             </button>
           </div>
 
@@ -400,7 +1017,7 @@ export default function Step2Page({ searchParams }: Step2Props) {
           <div className="mt-8 bg-blue-50 border border-blue-200 rounded-md p-4">
             <h3 className="text-sm font-medium text-blue-800 mb-2">Article Guidelines</h3>
             <ul className="text-sm text-blue-700 space-y-1">
-              <li>• Share research, analysis, or academic insights about gender equality</li>
+              <li>• Share research, analysis, or academic insights about social justice and equality</li>
               <li>• Include proper citations and references</li>
               <li>• Minimum 500 characters required</li>
               <li>• Your article will be reviewed before publication</li>

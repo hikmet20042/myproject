@@ -3,8 +3,10 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import dbConnect from '@/lib/mongoose';
 import Story from '@/lib/models/Story';
-import Notification from '@/lib/models/Notification';
 import User from '@/lib/models/User';
+import Notification from '@/lib/models/Notification';
+// Removed import of isAdmin - using local function instead
+import { cache, invalidateUserCache } from '@/lib/cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,13 +23,60 @@ export async function GET(request: NextRequest) {
     }
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const limit = parseInt(searchParams.get('limit') || '50');
     const status = searchParams.get('status');
+    const search = searchParams.get('search');
+    const author = searchParams.get('author');
+    const tags = searchParams.get('tags');
+    const dateFrom = searchParams.get('dateFrom');
+    const dateTo = searchParams.get('dateTo');
+    const sortBy = searchParams.get('sortBy') || 'createdAt';
+    const sortOrder = searchParams.get('sortOrder') || 'desc';
     const skip = (page - 1) * limit;
-    const query: any = status ? { status } : {};
+
+    // Build query object
+    const query: any = {};
+    if (status) query.status = status;
+    if (author) query.author = { $regex: author, $options: 'i' };
+    if (tags) {
+      const tagArray = tags.split(',').map(tag => tag.trim());
+      query.tags = { $in: tagArray };
+    }
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { abstract: { $regex: search, $options: 'i' } },
+        { content: { $regex: search, $options: 'i' } },
+        { tags: { $in: [new RegExp(search, 'i')] } }
+      ];
+    }
+    if (dateFrom || dateTo) {
+      query.createdAt = {};
+      if (dateFrom) query.createdAt.$gte = new Date(dateFrom);
+      if (dateTo) query.createdAt.$lte = new Date(dateTo);
+    }
+
+    // Build sort object
+    const sort: any = {};
+    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+
     const total = await Story.countDocuments(query);
-    const stories = await Story.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean();
-    return NextResponse.json({ total, page, limit, results: stories });
+    const stories = await Story.find(query).sort(sort).skip(skip).limit(limit).lean();
+    
+    // Get unique tags and authors for filtering
+    const allTags = await Story.distinct('tags');
+    const allAuthors = await Story.distinct('author');
+    
+    return NextResponse.json({ 
+      total, 
+      page, 
+      limit, 
+      results: stories,
+      filters: {
+        tags: allTags.filter(tag => tag),
+        authors: allAuthors.filter(author => author)
+      }
+    });
   } catch (error) {
     console.error('GET /api/admin/stories error:', error);
     return NextResponse.json({ error: 'Failed to fetch stories' }, { status: 500 });
@@ -56,10 +105,16 @@ export async function PUT(request: NextRequest) {
     story.status = status;
     story.adminComment = adminComment || null;
     await story.save();
+    
+    // Invalidate caches
+    cache.stories.invalidateAll();
+    if (story.author) {
+      invalidateUserCache(story.author.toString());
+    }
 
     // Send notification to author
-    if (story.author) {
-      const user = await User.findById(story.author);
+    if (story.userId) {
+      const user = await User.findById(story.userId);
       if (user) {
         await Notification.create({
           userId: user._id,
@@ -76,5 +131,104 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.error('PUT /api/admin/stories error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    await dbConnect();
+    const session = await getServerSession(authOptions);
+    if (!session || !(await isAdmin(session))) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { action, storyIds, status, adminComment } = body;
+
+    if (!action || !storyIds || !Array.isArray(storyIds)) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    let updateData: any = {};
+    let results: any[] = [];
+
+    switch (action) {
+      case 'bulk_approve':
+        updateData = { status: 'approved', adminComment: adminComment || '' };
+        break;
+      case 'bulk_reject':
+        updateData = { status: 'rejected', adminComment: adminComment || 'Bulk rejected' };
+        break;
+      case 'bulk_delete':
+        // Soft delete by setting a deleted flag or actually delete
+        await Story.deleteMany({ _id: { $in: storyIds } });
+        return NextResponse.json({ 
+          success: true, 
+          message: `${storyIds.length} stories deleted successfully`,
+          deletedCount: storyIds.length
+        });
+      case 'bulk_status_change':
+        if (!status || !['pending', 'approved', 'rejected'].includes(status)) {
+          return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+        }
+        updateData = { status, adminComment: adminComment || '' };
+        break;
+      default:
+        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    }
+
+    // Update stories and collect results
+    for (const storyId of storyIds) {
+      try {
+        const story = await Story.findByIdAndUpdate(
+          storyId,
+          updateData,
+          { new: true }
+        );
+        
+        if (story) {
+          results.push({ id: storyId, success: true, story });
+          
+          // Send notification to author if status changed
+          if (updateData.status && story.author) {
+            const user = await User.findOne({ 
+              $or: [
+                { email: story.author },
+                { name: story.author }
+              ]
+            });
+            
+            if (user) {
+              await Notification.create({
+                userId: user._id,
+                type: 'story_status',
+                title: `Story ${updateData.status}`,
+                message: `Your story "${story.title}" has been ${updateData.status}.${updateData.adminComment ? ` Admin comment: ${updateData.adminComment}` : ''}`,
+                read: false
+              });
+            }
+          }
+        } else {
+          results.push({ id: storyId, success: false, error: 'Story not found' });
+        }
+      } catch (error) {
+        results.push({ id: storyId, success: false, error: 'Update failed' });
+      }
+    }
+
+    const successCount = results.filter(r => r.success).length;
+    const failureCount = results.filter(r => !r.success).length;
+
+    return NextResponse.json({
+      success: true,
+      message: `Bulk operation completed. ${successCount} successful, ${failureCount} failed.`,
+      results,
+      successCount,
+      failureCount
+    });
+
+  } catch (error) {
+    console.error('PATCH /api/admin/stories error:', error);
+    return NextResponse.json({ error: 'Failed to perform bulk operation' }, { status: 500 });
   }
 }

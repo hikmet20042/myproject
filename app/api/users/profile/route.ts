@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import dbConnect from '@/lib/mongoose'
 import User from '@/lib/models/User'
 import UserProfile from '@/lib/models/UserProfile'
+import mongoose from 'mongoose'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,19 +15,24 @@ export async function GET(request: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
     const user = await User.findById(session.user.id).lean();
     if (!user || Array.isArray(user)) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-    const profile = await UserProfile.findOne({ userId: (user as any).userId }).lean();
+
+    // Use the user's _id for profile lookup, not a non-existent userId field
+    const profile = await UserProfile.findOne({ userId: user._id }).lean();
+
     return NextResponse.json({
       user: {
-        id: (user as any).userId,
+        id: user._id.toString(),
         email: user.email,
         name: user.name,
         image: user.image,
         role: user.role,
-        emailVerified: user.emailVerified
+        emailVerified: user.emailVerified,
+        createdAt: user.createdAt
       },
       profile: profile || null
     });
@@ -43,31 +49,60 @@ export async function PUT(request: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
     const body = await request.json();
     const { name, bio, location, website, phone, dateOfBirth, gender, occupation, organization, interests, avatar, socialLinks } = body;
+
     // Update user basic info
     if (name) {
       await User.findByIdAndUpdate(session.user.id, { name });
     }
-    // Upsert profile
-    await UserProfile.findOneAndUpdate(
+
+    // Handle avatar - extract blob ID if it's a blob URL
+    let avatarBlobId = undefined;
+    let avatarPath = avatar;
+
+    if (avatar && avatar.startsWith('/api/images/')) {
+      // Extract blob ID from URL
+      const blobId = avatar.replace('/api/images/', '');
+      if (mongoose.Types.ObjectId.isValid(blobId)) {
+        avatarBlobId = new mongoose.Types.ObjectId(blobId);
+        avatarPath = undefined; // Clear legacy path when using blob
+      }
+    }
+
+    // Upsert profile - use the user's _id as userId
+    const updateData: any = {
+      bio,
+      location,
+      website,
+      phone,
+      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+      gender,
+      occupation,
+      organization,
+      interests,
+      socialLinks: typeof socialLinks === 'string' ? JSON.parse(socialLinks) : socialLinks,
+    };
+
+    // Only update avatar fields if provided
+    if (avatarBlobId) {
+      updateData.avatarBlobId = avatarBlobId;
+      updateData.avatar = undefined; // Clear legacy field
+    } else if (avatarPath) {
+      updateData.avatar = avatarPath;
+    }
+
+    const updatedProfile = await UserProfile.findOneAndUpdate(
       { userId: session.user.id },
-      {
-        bio,
-        location,
-        website,
-        phone,
-        dateOfBirth,
-        gender,
-        occupation,
-        organization,
-        interests,
-        avatar,
-        socialLinks,
-      },
+      updateData,
       { upsert: true, new: true }
     );
-    return NextResponse.json({ message: 'Profile updated successfully' });
+
+    return NextResponse.json({
+      message: 'Profile updated successfully',
+      profile: updatedProfile
+    });
   } catch (error) {
     console.error('Profile update error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

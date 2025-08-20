@@ -7,7 +7,22 @@ interface IUser extends mongoose.Document {
   image?: string
   emailVerified?: Date | null
   verificationToken?: string
-  role: 'user' | 'admin'
+  role: 'user' | 'admin' | 'ngo'
+  // NGO-specific fields
+  ngoProfile?: {
+    organizationName: string
+    description: string
+    website?: string
+    contactPhone?: string
+    address?: string
+    registrationNumber?: string
+    focusAreas: string[]
+    isApproved: boolean
+    approvedAt?: Date
+    approvedBy?: mongoose.Types.ObjectId
+    rejectedAt?: Date
+    rejectionReason?: string
+  }
 }
 
 const UserSchema = new mongoose.Schema({
@@ -43,9 +58,59 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'admin'],
+    enum: ['user', 'admin', 'ngo'],
     default: 'user',
   },
+  // NGO-specific profile
+  ngoProfile: {
+    organizationName: {
+      type: String,
+      required: function(this: IUser) {
+        return this.role === 'ngo';
+      }
+    },
+    description: {
+      type: String,
+      required: function(this: IUser) {
+        return this.role === 'ngo';
+      }
+    },
+    website: String,
+    contactPhone: String,
+    address: String,
+    registrationNumber: String,
+    focusAreas: [{
+      type: String,
+      enum: [
+        'Human Rights',
+        'Women Rights',
+        'Children Rights',
+        'Education',
+        'Healthcare',
+        'Environment',
+        'Poverty Alleviation',
+        'Legal Aid',
+        'Community Development',
+        'Youth Development',
+        'Elderly Care',
+        'Disability Rights',
+        'LGBTQ+ Rights',
+        'Mental Health',
+        'Other'
+      ]
+    }],
+    isApproved: {
+      type: Boolean,
+      default: false
+    },
+    approvedAt: Date,
+    approvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    rejectedAt: Date,
+    rejectionReason: String
+  }
 }, {
   timestamps: true,
 })

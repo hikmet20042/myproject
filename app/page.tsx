@@ -252,10 +252,10 @@ export default function HomePage() {
         <div className="section-padding py-20 lg:py-32">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl lg:text-6xl font-bold mb-6 leading-tight">
-              Promoting Gender Equality in Azerbaijan
+              Advancing Social Justice in Azerbaijan
             </h1>
             <p className="text-xl lg:text-2xl mb-8 text-gray-100 leading-relaxed">
-              A public service platform dedicated to combating gender-based violence through 
+              A public service platform dedicated to promoting social justice and equality through 
               education, awareness, and transparent data analysis.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -290,8 +290,8 @@ export default function HomePage() {
               Our Mission
             </h2>
             <p className="text-lg text-gray-700 leading-relaxed mb-8">
-              Gender-based violence remains a critical issue that affects countless lives. 
-              Our platform aims to shed light on this problem through data-driven insights, 
+              Social injustice and inequality remain critical issues that affect countless lives. 
+              Our platform aims to shed light on these problems through data-driven insights, 
               educational resources, and community engagement. We believe that transparency 
               and education are key to creating meaningful change.
             </p>
@@ -304,7 +304,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="text-xl font-semibold mb-3">Data Transparency</h3>
                 <p className="text-gray-600">
-                  AI-powered analysis of news sources to track and categorize incidents of gender-based violence.
+                  AI-powered analysis of news sources to track and categorize social justice issues and inequalities.
                 </p>
               </div>
               
@@ -316,7 +316,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="text-xl font-semibold mb-3">Education</h3>
                 <p className="text-gray-600">
-                  Free resources, training materials, and courses to promote gender equality awareness.
+                  Free resources, training materials, and courses to promote social justice and equality awareness.
                 </p>
               </div>
               
@@ -338,7 +338,7 @@ export default function HomePage() {
 
       
 
-  {/* Recent community stories and research articles */}
+  {/* Recent community stories and articles */}
   {mounted && <RecentCommunityContent />}
 
       {/* Call to Action */}
@@ -349,13 +349,13 @@ export default function HomePage() {
               Get Involved
             </h2>
             <p className="text-lg text-gray-700 mb-8">
-              Join us in the fight for gender equality. Whether you want to share your story, 
+              Join us in the fight for social justice and equality. Whether you want to share your story, 
               access educational resources, or analyze the latest data, we provide the tools 
               you need to make a difference.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/submit/article/step1" className="btn-primary">
-                Share Your Research
+                Share Your Article
               </Link>
               <Link href="/submit/story/step1" className="btn-secondary">
                 Share Your Story

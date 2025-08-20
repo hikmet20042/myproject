@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function Footer() {
   const currentYear = new Date().getFullYear()
@@ -11,13 +12,19 @@ export default function Footer() {
           <div className="md:col-span-2">
             <div className="flex items-center space-x-3 mb-4">
               <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-                <span className="text-primary font-bold text-xl">GE</span>
+                <Image
+                  src="/logo.png"
+                  alt="Social Justice Platform Logo"
+                  width={32}
+                  height={32}
+                  className="rounded"
+                />
               </div>
-              <span className="text-xl font-bold">Gender Equality Azerbaijan</span>
+              <span className="text-xl font-bold">Social Justice Platform</span>
             </div>
             <p className="text-gray-200 text-sm leading-relaxed mb-4">
-              A public service platform dedicated to promoting gender equality and combating 
-              gender-based violence in Azerbaijan through education, awareness, and data transparency.
+              A public service platform dedicated to promoting social justice and combating 
+              social inequality in Azerbaijan through education, awareness, and data transparency.
             </p>
             <p className="text-gray-300 text-xs">
               This website is for educational purposes and public awareness. Data is collected 
@@ -79,7 +86,7 @@ export default function Footer() {
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="text-center md:text-left">
               <p className="text-gray-200 text-sm">
-                © {currentYear} Gender Equality Azerbaijan. All rights reserved.
+                © {currentYear} Social Justice Platform. All rights reserved.
               </p>
               <p className="text-gray-300 text-xs mt-1">
                 Built with Next.js for public service and awareness.
@@ -89,7 +96,7 @@ export default function Footer() {
             <div className="flex items-center space-x-6">
               {/* GitHub Link */}
               <a
-                href="https://github.com/yourusername/gender-equality-az"
+                href="https://github.com/yourusername/social-justice-platform"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center space-x-2 text-gray-200 hover:text-white transition-colors duration-200"

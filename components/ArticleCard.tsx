@@ -1,6 +1,6 @@
 'use client'
 
-interface ResearchArticle {
+interface Article {
   id: string;
   title: string;
   author: string;
@@ -9,22 +9,22 @@ interface ResearchArticle {
   content: string;
   tags: string[];
   status: string;
-  type: 'research-article';
+  type: 'article';
   references?: string[];
   abstract?: string;
 }
 
 interface ArticleCardProps {
-  article: ResearchArticle;
+  article: Article;
 }
 
 export default function ArticleCard({ article }: ArticleCardProps) {
   return (
   <article className="group relative bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200">
-      {/* Research Badge */}
+      {/* Article Badge */}
       <div className="absolute top-4 left-4 z-10">
   <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-          Research
+          Article
         </span>
       </div>
 
@@ -71,7 +71,7 @@ export default function ArticleCard({ article }: ArticleCardProps) {
           </div>
         )}
 
-        {/* Research Indicators */}
+        {/* Article Indicators */}
   <div className="flex items-center gap-4 mb-4 text-xs text-gray-500">
           {article.references && article.references.length > 0 && (
             <div className="flex items-center">
@@ -97,7 +97,7 @@ export default function ArticleCard({ article }: ArticleCardProps) {
             href={`/articles/${article.id}`} 
             className="inline-flex items-center text-sm font-medium text-primary hover:text-red-800 transition-colors duration-200"
           >
-            Read Research
+            Read Article
             <svg className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>

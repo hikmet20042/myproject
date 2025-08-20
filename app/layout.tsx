@@ -4,11 +4,12 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import AuthProvider from '@/components/AuthProvider'
 import { NotificationProvider } from '@/components/NotificationContext'
+import ArticleSubmissionCleanup from '@/components/ArticleSubmissionCleanup'
 
 export const metadata: Metadata = {
-  title: 'Gender Equality Azerbaijan',
-  description: 'Public service website promoting gender equality and fighting gender-based violence in Azerbaijan',
-  keywords: 'gender equality, Azerbaijan, women rights, gender-based violence, public service',
+  title: 'Social Justice Platform',
+  description: 'Public service website promoting social justice and equality for all communities',
+  keywords: 'social justice, equality, human rights, community advocacy, public service',
 }
 
 export default function RootLayout({
@@ -21,6 +22,7 @@ export default function RootLayout({
   <body className="min-h-screen bg-gray-50 text-gray-900 transition-colors duration-200" suppressHydrationWarning={true}>
         <AuthProvider>
           <NotificationProvider>
+            <ArticleSubmissionCleanup />
             <Header />
             <main className="min-h-screen">
               {children}

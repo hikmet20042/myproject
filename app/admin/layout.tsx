@@ -60,7 +60,7 @@ export default function AdminLayout({
           <div className="flex justify-between items-center py-6">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-gray-600">Manage your Gender Equality Azerbaijan platform</p>
+              <p className="text-gray-600">Manage your Social Justice Platform</p>
             </div>
             <div className="flex items-center space-x-3">
               <div className="text-sm text-gray-600">

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Select from 'react-select'
-import { RESEARCH_TAGS } from '@/lib/tagOptions'
+import { ARTICLE_TAGS } from '@/lib/tagOptions'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
@@ -27,7 +27,7 @@ export default function SubmitArticlePage() {
     isAnonymous: false
   })
 
-  const tagOptions = RESEARCH_TAGS.map(tag => ({ value: tag, label: tag.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) }))
+  const tagOptions = ARTICLE_TAGS.map(tag => ({ value: tag, label: tag.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) }))
 
   // Autosave draft
   useEffect(() => {
@@ -40,13 +40,7 @@ export default function SubmitArticlePage() {
     }
   }, [])
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      const { title, abstract, content, contentHtml, contentBlocksJson, tags, references, isAnonymous } = formData
-      localStorage.setItem('draftArticle', JSON.stringify({ title, abstract, content, contentHtml, contentBlocksJson, tags, references, isAnonymous }))
-    }, 400)
-    return () => clearTimeout(timeout)
-  }, [formData])
+  // Removed auto-save - localStorage will only be saved on form submission
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -61,7 +55,7 @@ export default function SubmitArticlePage() {
     }
 
     if (!formData.abstract.trim()) {
-      setMessage({ type: 'error', text: 'Abstract is required for research articles' })
+      setMessage({ type: 'error', text: 'Abstract is required for articles' })
       setLoading(false)
       return
     }
@@ -73,7 +67,7 @@ export default function SubmitArticlePage() {
     }
 
     if (formData.content.trim().length < 200) {
-      setMessage({ type: 'error', text: 'Research articles should be at least 200 characters long' })
+      setMessage({ type: 'error', text: 'Articles should be at least 200 characters long' })
       setLoading(false)
       return
     }
@@ -87,11 +81,11 @@ export default function SubmitArticlePage() {
         content: formData.content.trim(),
         contentBlocksJson: formData.contentBlocksJson || '',
         contentHtml: formData.contentHtml || '',
-        author: formData.isAnonymous ? 'Anonymous Researcher' : (session?.user?.name || 'Researcher'),
+        author: formData.isAnonymous ? 'Anonymous Author' : (session?.user?.name || 'Author'),
         tags: Array.isArray(formData.tags) ? formData.tags : [],
         references: formData.references ? formData.references.split('\n').filter(ref => ref.trim()) : [],
-        status: 'submitted',
-        type: 'research-article',
+        status: 'pending',
+        type: 'article',
         submittedAt: new Date().toISOString()
       }
 
@@ -103,7 +97,7 @@ export default function SubmitArticlePage() {
       articles.push(articleData)
       localStorage.setItem('submittedArticles', JSON.stringify(articles))
 
-      setMessage({ type: 'success', text: 'Your research article has been submitted successfully! Thank you for contributing to the academic discourse.' })
+      setMessage({ type: 'success', text: 'Your article has been submitted successfully! Thank you for contributing to the academic discourse.' })
       setFormData({
         title: '',
         abstract: '',
@@ -162,7 +156,7 @@ export default function SubmitArticlePage() {
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h2>
             <p className="text-gray-600 mb-6">
-              You need to be logged in to submit research articles. This helps us maintain academic integrity.
+              You need to be logged in to submit articles. This helps us maintain academic integrity.
             </p>
             <div className="space-y-3">
               <a

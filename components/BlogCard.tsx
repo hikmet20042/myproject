@@ -30,7 +30,7 @@ export default function BlogCard({ post }: BlogCardProps) {
           <h2 className="text-xl font-bold text-primary line-clamp-2 flex-1">
             {post.title}
           </h2>
-          {post.status === 'submitted' && (
+          {post.status === 'pending' && (
             <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full ml-2 whitespace-nowrap">
               Your Submission
             </span>

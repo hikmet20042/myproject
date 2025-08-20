@@ -1,19 +1,27 @@
 'use client'
 
-
-
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, User, Mail, Lock } from 'lucide-react'
-
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Eye, EyeOff, User, Mail, Lock, Building, Globe, Phone, MapPin, FileText, Tag } from 'lucide-react'
 
 export default function RegisterPage() {
+  const searchParams = useSearchParams()
+  const isNGORegistration = searchParams.get('type') === 'ngo'
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    // NGO-specific fields
+    organizationName: '',
+    description: '',
+    website: '',
+    contactPhone: '',
+    address: '',
+    registrationNumber: '',
+    focusAreas: [] as string[]
   })
   const [errors, setErrors] = useState<{[key: string]: string}>({})
   const [loading, setLoading] = useState(false)
@@ -22,7 +30,7 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const router = useRouter()
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
@@ -35,6 +43,15 @@ export default function RegisterPage() {
         [name]: ''
       }))
     }
+  }
+
+  const handleFocusAreaChange = (area: string) => {
+    setFormData(prev => ({
+      ...prev,
+      focusAreas: prev.focusAreas.includes(area)
+        ? prev.focusAreas.filter(a => a !== area)
+        : [...prev.focusAreas, area]
+    }))
   }
 
   const validateForm = () => {
@@ -60,6 +77,22 @@ export default function RegisterPage() {
       newErrors.confirmPassword = 'Please confirm your password'
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match'
+    }
+
+    // NGO-specific validation
+    if (isNGORegistration) {
+      if (!formData.organizationName.trim()) {
+        newErrors.organizationName = 'Organization name is required'
+      }
+      if (!formData.description.trim()) {
+        newErrors.description = 'Organization description is required'
+      }
+      if (formData.focusAreas.length === 0) {
+        newErrors.focusAreas = 'Please select at least one focus area'
+      }
+      if (formData.website && !/^https?:\/\/.+/.test(formData.website)) {
+        newErrors.website = 'Please enter a valid website URL'
+      }
     }
 
     setErrors(newErrors)
@@ -89,6 +122,16 @@ export default function RegisterPage() {
           name: formData.name,
           email: formData.email,
           password: formData.password,
+          type: isNGORegistration ? 'ngo' : 'user',
+          ngoProfile: isNGORegistration ? {
+            organizationName: formData.organizationName,
+            description: formData.description,
+            website: formData.website || undefined,
+            contactPhone: formData.contactPhone || undefined,
+            address: formData.address || undefined,
+            registrationNumber: formData.registrationNumber || undefined,
+            focusAreas: formData.focusAreas
+          } : undefined
         }),
       })
 
@@ -145,9 +188,14 @@ export default function RegisterPage() {
               <span className="text-white font-bold text-lg">GE</span>
             </div>
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">Create your account</h2>
+          <h2 className="text-3xl font-bold text-gray-900">
+              {isNGORegistration ? 'Register Your NGO' : 'Create your account'}
+            </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Access your Gender Equality Azerbaijan dashboard
+            {isNGORegistration 
+              ? 'Join our network of social justice organizations'
+              : 'Access your Social Justice Platform dashboard'
+            }
           </p>
         </div>
       </div>
@@ -249,6 +297,156 @@ export default function RegisterPage() {
               </div>
               {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
             </div>
+
+            {/* NGO-specific fields */}
+            {isNGORegistration && (
+              <>
+                <div className="border-t pt-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Organization Information</h3>
+                </div>
+                
+                <div>
+                  <label htmlFor="organizationName" className="block text-sm font-medium text-gray-700">Organization Name *</label>
+                  <div className="mt-1 relative">
+                    <span className="absolute left-3 top-2.5 text-gray-400"><Building size={18} /></span>
+                    <input
+                      id="organizationName"
+                      name="organizationName"
+                      type="text"
+                      required
+                      className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      placeholder="Enter your organization name"
+                      value={formData.organizationName}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  {errors.organizationName && <p className="mt-1 text-sm text-red-600">{errors.organizationName}</p>}
+                </div>
+
+                <div>
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-700">Organization Description *</label>
+                  <div className="mt-1">
+                    <textarea
+                      id="description"
+                      name="description"
+                      rows={4}
+                      required
+                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      placeholder="Describe your organization's mission and activities"
+                      value={formData.description}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="website" className="block text-sm font-medium text-gray-700">Website</label>
+                    <div className="mt-1 relative">
+                      <span className="absolute left-3 top-2.5 text-gray-400"><Globe size={18} /></span>
+                      <input
+                        id="website"
+                        name="website"
+                        type="url"
+                        className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        placeholder="https://yourorganization.org"
+                        value={formData.website}
+                        onChange={handleChange}
+                      />
+                    </div>
+                    {errors.website && <p className="mt-1 text-sm text-red-600">{errors.website}</p>}
+                  </div>
+
+                  <div>
+                    <label htmlFor="contactPhone" className="block text-sm font-medium text-gray-700">Contact Phone</label>
+                    <div className="mt-1 relative">
+                      <span className="absolute left-3 top-2.5 text-gray-400"><Phone size={18} /></span>
+                      <input
+                        id="contactPhone"
+                        name="contactPhone"
+                        type="tel"
+                        className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        placeholder="+1 (555) 123-4567"
+                        value={formData.contactPhone}
+                        onChange={handleChange}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="address" className="block text-sm font-medium text-gray-700">Address</label>
+                  <div className="mt-1 relative">
+                    <span className="absolute left-3 top-2.5 text-gray-400"><MapPin size={18} /></span>
+                    <input
+                      id="address"
+                      name="address"
+                      type="text"
+                      className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      placeholder="Organization address"
+                      value={formData.address}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="registrationNumber" className="block text-sm font-medium text-gray-700">Registration Number</label>
+                  <div className="mt-1 relative">
+                    <span className="absolute left-3 top-2.5 text-gray-400"><FileText size={18} /></span>
+                    <input
+                      id="registrationNumber"
+                      name="registrationNumber"
+                      type="text"
+                      className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      placeholder="Official registration number"
+                      value={formData.registrationNumber}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Focus Areas *</label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {[
+                      'Human Rights', 'Women Rights', 'Children Rights', 'Education',
+                      'Healthcare', 'Environment', 'Poverty Alleviation', 'Legal Aid',
+                      'Community Development', 'Youth Development', 'Elderly Care',
+                      'Disability Rights', 'LGBTQ+ Rights', 'Mental Health', 'Other'
+                    ].map((area) => (
+                      <label key={area} className="flex items-center space-x-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={formData.focusAreas.includes(area)}
+                          onChange={() => handleFocusAreaChange(area)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-gray-700">{area}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {errors.focusAreas && <p className="mt-1 text-sm text-red-600">{errors.focusAreas}</p>}
+                </div>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-yellow-800">Approval Required</h3>
+                      <div className="mt-2 text-sm text-yellow-700">
+                        <p>Your NGO registration will be reviewed by our admin team. You'll receive an email notification once approved.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
             <div>
               <button
                 type="submit"

@@ -11,7 +11,8 @@ export interface IUserProfile extends mongoose.Document {
   occupation?: string;
   organization?: string;
   interests?: string;
-  avatar?: string;
+  avatar?: string; // This can be either a blob URL (/api/images/id) or legacy file path
+  avatarBlobId?: mongoose.Types.ObjectId; // Reference to ImageBlob
   socialLinks?: Record<string, string>;
 }
 
@@ -26,8 +27,21 @@ const UserProfileSchema = new mongoose.Schema<IUserProfile>({
   occupation: String,
   organization: String,
   interests: String,
-  avatar: String,
+  avatar: String, // Legacy field for backward compatibility
+  avatarBlobId: { type: mongoose.Schema.Types.ObjectId, ref: 'ImageBlob' },
   socialLinks: { type: Object },
 }, { timestamps: true });
+
+// Virtual to get avatar URL (prioritize blob over legacy)
+UserProfileSchema.virtual('avatarUrl').get(function() {
+  if (this.avatarBlobId) {
+    return `/api/images/${this.avatarBlobId}`;
+  }
+  return this.avatar || null;
+});
+
+// Ensure virtual fields are serialized
+UserProfileSchema.set('toJSON', { virtuals: true });
+UserProfileSchema.set('toObject', { virtuals: true });
 
 export default mongoose.models.UserProfile || mongoose.model<IUserProfile>('UserProfile', UserProfileSchema);

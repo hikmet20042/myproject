@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import ArticleCard from '@/components/ArticleCard'
 
-interface ResearchArticle {
+interface Article {
   id: string;
   title: string;
   author: string;
@@ -14,14 +14,14 @@ interface ResearchArticle {
   content: string;
   tags: string[];
   status: string;
-  type: 'research-article';
+  type: 'article';
   references?: string[];
   abstract?: string;
 }
 
-export default function ResearchArticles() {
+export default function Articles() {
   const { data: session } = useSession()
-  const [articles, setArticles] = useState<ResearchArticle[]>([])
+  const [articles, setArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedTag, setSelectedTag] = useState<string>('')
 
@@ -31,7 +31,7 @@ export default function ResearchArticles() {
       const response = await fetch('/api/articles?page=1&limit=100&status=approved');
       if (response.ok) {
         const data = await response.json();
-        // Map MongoDB articles to ResearchArticle interface, only approved
+        // Map MongoDB articles to Article interface, only approved
         const approvedArticles = (data.results || []).filter((article: any) => article.status === 'approved');
         setArticles(approvedArticles.map((article: any) => ({
           id: article._id?.toString() || article.id?.toString() || '',
@@ -42,7 +42,7 @@ export default function ResearchArticles() {
           content: typeof article.content === 'string' ? article.content : '',
           tags: Array.isArray(article.tags) ? article.tags : [],
           status: article.status,
-          type: 'research-article',
+          type: 'article',
           references: Array.isArray(article.references) ? article.references : [],
           abstract: article.abstract || ''
         })));
@@ -50,7 +50,7 @@ export default function ResearchArticles() {
         setArticles([]);
       }
     } catch (error) {
-      console.error('Failed to load research articles:', error);
+      console.error('Failed to load articles:', error);
       setArticles([]);
     } finally {
       setLoading(false);
@@ -79,7 +79,7 @@ export default function ResearchArticles() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading research articles...</p>
+          <p className="text-gray-600">Loading articles...</p>
         </div>
       </div>
     )
@@ -92,10 +92,10 @@ export default function ResearchArticles() {
         <div className="section-padding">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl lg:text-5xl font-bold mb-6">
-              Articles & Research
+              Articles
             </h1>
             <p className="text-xl text-gray-100 leading-relaxed">
-              Academic-style writing, opinion essays, and research studies on gender equality. 
+              Academic-style writing, opinion essays, and research studies on social justice and equality. 
               Evidence-based insights and policy analysis from experts and researchers.
             </p>
           </div>
@@ -114,10 +114,10 @@ export default function ResearchArticles() {
                   </svg>
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                  Contribute Research
+                  Submit Article
                 </h3>
                 <p className="text-gray-600 mb-6 text-lg leading-relaxed">
-                  Share your research, analysis, or expert opinion on gender equality issues. 
+                  Share your article, analysis, or expert opinion on social justice and equality issues. 
                   Help advance knowledge and inform policy through evidence-based writing.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -153,16 +153,16 @@ export default function ResearchArticles() {
             {/* Articles Source Info */}
             {articles.length > 0 && (
               <div className="mb-8">
-                {articles.some(article => article.status === 'submitted') ? (
+                {articles.some(article => article.status === 'pending') ? (
                   <div className="bg-gray-50 border-l-4 border-gray-300 p-4 rounded-r-lg">
                     <div className="flex items-start">
                       <svg className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       <div className="ml-3">
-                        <h3 className="text-sm font-medium text-gray-800">Showing Your Research</h3>
+                        <h3 className="text-sm font-medium text-gray-800">Showing Your Article</h3>
                         <div className="mt-1 text-sm text-gray-700">
-                          <p>These are research articles you've submitted. They are stored locally in your browser.</p>
+                          <p>These are articles you've submitted. They are stored locally in your browser.</p>
                         </div>
                       </div>
                     </div>
@@ -174,9 +174,9 @@ export default function ResearchArticles() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       <div className="ml-3">
-                        <h3 className="text-sm font-medium text-gray-800">Published Research</h3>
+                        <h3 className="text-sm font-medium text-gray-800">Published Articles</h3>
                         <div className="mt-1 text-sm text-gray-700">
-                          <p>These are published research articles and academic papers.</p>
+                          <p>These are published articles and academic papers.</p>
                         </div>
                       </div>
                     </div>
@@ -188,7 +188,7 @@ export default function ResearchArticles() {
             {/* Filter Section */}
             <div className="mb-12">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-                <h2 className="text-2xl font-bold text-primary mb-4 sm:mb-0">Filter by Research Area</h2>
+                <h2 className="text-2xl font-bold text-primary mb-4 sm:mb-0">Filter by Area</h2>
                 <button
                   onClick={loadArticles}
                   disabled={loading}
@@ -257,7 +257,7 @@ export default function ResearchArticles() {
                 <p className="text-gray-500 mb-6">
                   {selectedTag 
                     ? `No articles found with the tag "${selectedTag}".` 
-                    : "No research articles available at the moment."
+                    : "No articles available at the moment."
                   }
                 </p>
                 {selectedTag && (
@@ -275,14 +275,14 @@ export default function ResearchArticles() {
             <div className="mt-16 text-center">
               <div className="card max-w-2xl mx-auto">
                 <h3 className="text-2xl font-bold text-primary mb-4">
-                  Submit Research
+                  Submit Article
                 </h3>
                 <p className="text-gray-700 mb-6">
                   Have research findings, policy analysis, or expert insights to share? 
-                  Contribute to the academic discourse on gender equality.
+                  Contribute to the academic discourse on social justice and equality.
                 </p>
                 <Link href="/submit/article" className="btn-primary inline-block">
-                  Submit Research Article
+                  Submit Article
                 </Link>
               </div>
             </div>

@@ -15,7 +15,7 @@ interface CommunityStory {
 	type: 'community-story'
 }
 
-interface ResearchArticle {
+interface Article {
 	id: number
 	title: string
 	author: string
@@ -24,14 +24,14 @@ interface ResearchArticle {
 	content: string
 	tags: string[]
 	status: string
-	type: 'research-article'
+	type: 'article'
 	references?: string[]
 	abstract?: string
 }
 
 export default function RecentCommunityContent() {
 	const [stories, setStories] = useState<CommunityStory[]>([])
-	const [articles, setArticles] = useState<ResearchArticle[]>([])
+	const [articles, setArticles] = useState<Article[]>([])
 	const [loading, setLoading] = useState(true)
 
 	useEffect(() => {
@@ -43,7 +43,7 @@ export default function RecentCommunityContent() {
 				const storiesRes = await fetch('/api/stories?page=1&limit=3');
 				if (storiesRes.ok) {
 					const data = await storiesRes.json();
-					const publishedStories = (data.results || []).filter((story: any) => story.status === 'published');
+					const publishedStories = (data.results || []).filter((story: any) => story.status === 'approved');
 					if (mounted) {
 						setStories(publishedStories.map((story: any) => ({
 							id: story._id || story.id,
@@ -62,7 +62,7 @@ export default function RecentCommunityContent() {
 				const articlesRes = await fetch('/api/articles?page=1&limit=3');
 				if (articlesRes.ok) {
 					const data = await articlesRes.json();
-					const publishedArticles = (data.results || []).filter((article: any) => article.status === 'published');
+					const publishedArticles = (data.results || []).filter((article: any) => article.status === 'approved');
 					if (mounted) {
 						setArticles(publishedArticles.map((article: any) => ({
 							id: article._id || article.id,
@@ -73,7 +73,7 @@ export default function RecentCommunityContent() {
 							content: article.content,
 							tags: article.tags || [],
 							status: article.status,
-							type: 'research-article',
+							type: 'article',
 							references: article.references || [],
 							abstract: article.abstract || ''
 						})));
@@ -99,7 +99,7 @@ export default function RecentCommunityContent() {
 				<div className="max-w-6xl mx-auto">
 					<div className="text-center mb-8">
 						   <h2 className="text-3xl lg:text-4xl font-bold text-primary">Recent Community Content</h2>
-						   <p className="text-gray-600 mt-2">Stories and research from our community</p>
+						   <p className="text-gray-600 mt-2">Stories and articles from our community</p>
 					</div>
 					{loading && (
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -133,7 +133,7 @@ export default function RecentCommunityContent() {
 														? 'bg-red-100 text-red-800'
 														: 'bg-red-100 text-red-800'
                                                 }`}>
-											{item.type === 'community-story' ? 'Personal Story' : 'Research'}
+											{item.type === 'community-story' ? 'Personal Story' : 'Article'}
 										</span>
 									</div>
 
@@ -141,7 +141,7 @@ export default function RecentCommunityContent() {
 									{item.status && (
 										<div className="absolute top-4 right-4 z-10">
 											<span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-												item.status === 'published' 
+												item.status === 'approved' 
 													   ? 'bg-green-100 text-green-800'
 													   : 'bg-yellow-100 text-yellow-800'
 											}`}>
@@ -205,7 +205,7 @@ export default function RecentCommunityContent() {
                                                         : 'text-primary hover:text-red-800'
 												}`}
 											>
-												{item.type === 'community-story' ? 'Read Story' : 'Read Research'}
+												{item.type === 'community-story' ? 'Read Story' : 'Read Article'}
 												<svg className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
 												</svg>
@@ -227,7 +227,7 @@ export default function RecentCommunityContent() {
 									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C20.832 18.477 19.246 18 17.5 18c-1.746 0-3.332.477-4.5 1.253" />
 								</svg>
 								   <p className="text-gray-600 text-lg font-medium mb-2">No recent community content</p>
-								   <p className="text-gray-500 text-sm">Be the first to share your story or research with our community.</p>
+								   <p className="text-gray-500 text-sm">Be the first to share your story or article with our community.</p>
 							</div>
 						</div>
 					)}
@@ -238,7 +238,7 @@ export default function RecentCommunityContent() {
 								View Community Stories
 							</Link>
 							<Link href="/articles" className="btn-secondary border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white">
-								View Research Articles
+								View Articles
 							</Link>
 						</div>
 					</div>

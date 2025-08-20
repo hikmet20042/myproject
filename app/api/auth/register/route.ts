@@ -8,7 +8,7 @@ import NotificationModel from '@/lib/models/Notification'
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
-    const { name, email, password } = await request.json();
+    const { name, email, password, type, ngoProfile } = await request.json();
     if (!name || !email || !password) {
       return NextResponse.json(
         { error: 'Name, email, and password are required' },
@@ -41,21 +41,54 @@ export async function POST(request: NextRequest) {
     // Generate verification token
     const verificationToken = Math.random().toString(36).substring(2, 15);
     // Create user
-    const user = await User.create({
+    const userData: any = {
       name,
       email,
       password: hashedPassword,
       verificationToken,
       emailVerified: null,
-    });
+      role: type === 'ngo' ? 'ngo' : 'user'
+    };
+
+    // Add NGO profile if registering as NGO
+    if (type === 'ngo' && ngoProfile) {
+      userData.ngoProfile = {
+        ...ngoProfile,
+        isApproved: false // NGOs need admin approval
+      };
+    }
+
+    const user = await User.create(userData);
     // Create welcome notification
+    const welcomeMessage = type === 'ngo' 
+      ? 'Thank you for registering your NGO. Please verify your email and wait for admin approval to access NGO features.'
+      : 'Thank you for joining our community. Please verify your email to get started.';
+    
     await NotificationModel.create({
       userId: user._id,
       type: 'welcome',
-      title: 'Welcome to Gender Equality Azerbaijan!',
-      message: 'Thank you for joining our community. Please verify your email to get started.',
-      data: { type: 'welcome' },
+      title: type === 'ngo' ? 'NGO Registration Received!' : 'Welcome to Social Justice Platform!',
+      message: welcomeMessage,
+      data: { type: 'welcome', userType: type },
     });
+
+    // Notify admins about new NGO registration
+    if (type === 'ngo') {
+      const adminUsers = await User.find({ role: 'admin' });
+      for (const admin of adminUsers) {
+        await NotificationModel.create({
+          userId: admin._id,
+          type: 'admin_action_required',
+          title: 'New NGO Registration Pending',
+          message: `${ngoProfile?.organizationName || name} has registered as an NGO and requires approval.`,
+          data: { 
+            type: 'ngo_approval_required', 
+            userId: user._id,
+            organizationName: ngoProfile?.organizationName 
+          },
+        });
+      }
+    }
     // ...existing code...
     console.log('Email config debug:', {
       host: process.env.EMAIL_SERVER_HOST,
@@ -89,9 +122,12 @@ export async function POST(request: NextRequest) {
         subject: 'Verify your email address',
         html: `
           <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
-            <h2 style="color: #333; text-align: center;">Welcome to Gender Equality Azerbaijan!</h2>
+            <h2 style="color: #333; text-align: center;">Welcome to Social Justice Platform!</h2>
             <p>Hello ${name},</p>
-            <p>Thank you for registering with us. Please click the button below to verify your email address:</p>
+            <p>${type === 'ngo' 
+              ? `Thank you for registering your NGO "${ngoProfile?.organizationName || 'your organization'}". Please click the button below to verify your email address. After verification, your NGO registration will be reviewed by our admin team.`
+              : 'Thank you for registering with us. Please click the button below to verify your email address:'
+            }</p>
             <div style="text-align: center; margin: 30px 0;">
               <a href="${verificationUrl}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">Verify Email Address</a>
             </div>
@@ -101,7 +137,7 @@ export async function POST(request: NextRequest) {
             <p>If you didn't create this account, please ignore this email.</p>
             <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
             <p style="font-size: 12px; color: #666; text-align: center;">
-              This email was sent from Gender Equality Azerbaijan<br>
+              This email was sent from Social Justice Platform<br>
               If you have any questions, please contact us at hikmat.mammadlii@gmail.com
             </p>
           </div>

@@ -119,7 +119,7 @@ export default function SubmitPage() {
               Submit Your Story
             </h1>
             <p className="text-gray-600">
-              Share your experience or knowledge about gender equality in Azerbaijan. 
+              Share your experience or knowledge about social justice and equality in Azerbaijan. 
               Your submission will be reviewed before publication.
             </p>
           </div>

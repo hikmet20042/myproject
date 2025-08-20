@@ -10,7 +10,27 @@ interface IStory extends mongoose.Document {
   status: 'pending' | 'approved' | 'rejected';
   adminComment?: string;
   isAnonymous?: boolean;
-  media?: Array<{ type: string; url: string; alt?: string }>;
+  media?: Array<{
+    type: string;
+    url: string;
+    alt?: string;
+    blobId?: mongoose.Types.ObjectId; // Reference to ImageBlob
+  }>;
+
+  // Analytics and engagement fields
+  views: number;
+  uniqueViews: number;
+  viewedBy: mongoose.Types.ObjectId[];
+  likes: number;
+  likedBy: mongoose.Types.ObjectId[];
+  shares: number;
+  readTime: number;
+  engagementScore: number;
+  slug?: string;
+  metaDescription?: string;
+  featuredImage?: string; // Legacy field
+  featuredImageBlobId?: mongoose.Types.ObjectId; // Reference to ImageBlob
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,8 +56,76 @@ const StorySchema = new mongoose.Schema<IStory>({
         required: true,
       },
       alt: String,
+      blobId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'ImageBlob',
+        required: false
+      }
     }
   ],
+
+  // Analytics and engagement fields
+  views: {
+    type: Number,
+    default: 0,
+    // Removed index: true - using compound indexes instead
+  },
+  uniqueViews: {
+    type: Number,
+    default: 0,
+  },
+  viewedBy: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  }],
+  likes: {
+    type: Number,
+    default: 0,
+    // Removed index: true - using compound indexes instead
+  },
+  likedBy: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+  }],
+  shares: {
+    type: Number,
+    default: 0,
+  },
+  readTime: {
+    type: Number,
+    default: 0,
+  },
+  engagementScore: {
+    type: Number,
+    default: 0,
+    // Removed index: true - using compound indexes instead
+  },
+  slug: {
+    type: String,
+    unique: true,
+    sparse: true,
+    index: true,
+  },
+  metaDescription: {
+    type: String,
+    maxlength: 160,
+  },
+  featuredImage: {
+    type: String, // Legacy field
+  },
+  featuredImageBlobId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ImageBlob',
+    required: false
+  },
 }, { timestamps: true });
+
+// Add indexes for analytics
+StorySchema.index({ views: -1 });
+StorySchema.index({ likes: -1 });
+StorySchema.index({ engagementScore: -1 });
+StorySchema.index({ author: 1, views: -1 });
+StorySchema.index({ author: 1, likes: -1 });
+StorySchema.index({ status: 1, createdAt: -1 });
 
 export default mongoose.models.Story || mongoose.model<IStory>('Story', StorySchema);

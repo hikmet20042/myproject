@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import BlocknoteEditor from '@/components/BlocknoteEditor'
 import { ArrowLeft, Save, Send, Eye, EyeOff } from 'lucide-react'
+import { STORY_TAGS } from '@/lib/tagOptions'
 
 interface Step2Props {
   searchParams: { [key: string]: string | string[] | undefined }
@@ -13,6 +14,8 @@ interface Step2Props {
 export default function Step2Page({ searchParams }: Step2Props) {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const urlSearchParams = useSearchParams();
+  const editId = urlSearchParams.get('edit');
   const [content, setContent] = useState<any>(null); // BlockNote JSON
   const [contentHtml, setContentHtml] = useState('');
   const [characterCount, setCharacterCount] = useState(0);
@@ -31,26 +34,142 @@ export default function Step2Page({ searchParams }: Step2Props) {
     }
   }, [draftSaved]);
   const [title, setTitle] = useState<string>('');
-  const [tags, setTags] = useState<string>('');
+  const [tags, setTags] = useState<string[]>([]);
   const [isAnonymous, setIsAnonymous] = useState<boolean>(false);
   const [authorName, setAuthorName] = useState('');
   const [showAuthorNameInput, setShowAuthorNameInput] = useState(false);
   const [init, setInit] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Check if we're editing
+  useEffect(() => {
+    if (editId) {
+      setIsEditing(true);
+      loadStoryForEditing(editId);
+    }
+  }, [editId]);
+
+  const loadStoryForEditing = async (storyId: string) => {
+    if (!session || status !== 'authenticated') return;
+    
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/stories?id=${storyId}`);
+      if (response.ok) {
+        const data = await response.json();
+        const story = data.story;
+        
+        if (story) {
+          setTitle(story.title || '');
+          setTags(Array.isArray(story.tags) ? story.tags : []);
+          setIsAnonymous(story.authorName === 'Anonymous');
+          setAuthorName(story.authorName || session.user.name || '');
+          
+          // Set content
+          if (story.content) {
+            const loadedContent = Array.isArray(story.content) ? story.content : (story.content.blocks || []);
+            setContent(loadedContent);
+            calculateCharacterCountFromContent(loadedContent);
+          }
+          
+          setContentHtml(story.contentHtml || '');
+          
+          // Update localStorage
+          const storyData = {
+            title: story.title || '',
+            tags: Array.isArray(story.tags) ? story.tags.join(',') : '',
+            isAnonymous: story.authorName === 'Anonymous',
+            authorName: story.authorName || session.user.name || '',
+            content: story.content || null,
+            contentHtml: story.contentHtml || '',
+            characterCount: 0,
+            editId: storyId
+          };
+          localStorage.setItem('draftStory', JSON.stringify(storyData));
+        }
+      }
+    } catch (error) {
+      console.error('Error loading story for editing:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // On mount, get data from searchParams or localStorage
+  // Helper function to calculate character count from content
+  const calculateCharacterCountFromContent = async (content: any) => {
+    if (!content) {
+      setCharacterCount(0);
+      updateCharacterCountInLocalStorage(0);
+      return;
+    }
+
+    try {
+      // Create a temporary BlockNote editor to extract text from content
+      const { BlockNoteEditor } = await import('@blocknote/core');
+      const tempEditor = BlockNoteEditor.create();
+
+      // Convert content to HTML then extract text
+      const html = await tempEditor.blocksToFullHTML(content);
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      const text = tempDiv.textContent || tempDiv.innerText || '';
+      const count = text.length;
+      setCharacterCount(count);
+      updateCharacterCountInLocalStorage(count);
+    } catch (error) {
+      console.error('Error calculating character count:', error);
+      // Fallback: try to extract text from content structure
+      let text = '';
+      if (Array.isArray(content)) {
+        content.forEach((block: any) => {
+          if (block.content && Array.isArray(block.content)) {
+            block.content.forEach((item: any) => {
+              if (item.text) text += item.text;
+            });
+          }
+        });
+      }
+      const count = text.length;
+      setCharacterCount(count);
+      updateCharacterCountInLocalStorage(count);
+    }
+  };
+
+  // Helper function to update character count in localStorage
+  const updateCharacterCountInLocalStorage = (count: number) => {
+    const savedDraft = localStorage.getItem('draftStory');
+    if (savedDraft) {
+      try {
+        const parsedDraft = JSON.parse(savedDraft);
+        parsedDraft.characterCount = count;
+        localStorage.setItem('draftStory', JSON.stringify(parsedDraft));
+      } catch (error) {
+        console.error('Error updating character count in localStorage:', error);
+      }
+    }
+  };
+
   useEffect(() => {
-    let t = typeof searchParams?.title === 'string' ? searchParams.title : '';
-    let tg = typeof searchParams?.tags === 'string' ? searchParams.tags : '';
+    // Skip if we're editing (data will be loaded by loadStoryForEditing)
+    if (editId) {
+      setInit(true);
+      return;
+    }
+    
+    let t = searchParams?.title || '';
+    let tg: string[] = Array.isArray(searchParams?.tags) ? searchParams.tags : (typeof searchParams?.tags === 'string' ? searchParams.tags.split(',').filter(Boolean) : []);
     let anon = searchParams?.isAnonymous === 'true';
     let aName = '';
     let loadedContent = null;
-    if ((!t || !tg || typeof anon !== 'boolean') && typeof window !== 'undefined') {
+    if ((!t || tg.length === 0 || typeof anon !== 'boolean') && typeof window !== 'undefined') {
       const saved = localStorage.getItem('draftStory');
       if (saved) {
         try {
           const d = JSON.parse(saved);
           if (d.title) t = d.title;
-          if (d.tags) tg = Array.isArray(d.tags) ? d.tags.join(',') : d.tags;
+          if (d.tags) tg = Array.isArray(d.tags) ? d.tags as string[] : (typeof d.tags === 'string' ? d.tags.split(',').filter(Boolean) : []);
           if (typeof d.isAnonymous === 'boolean') anon = d.isAnonymous;
           if (typeof d.authorName === 'string') aName = d.authorName;
           if (d.content) {
@@ -59,7 +178,7 @@ export default function Step2Page({ searchParams }: Step2Props) {
         } catch {}
       }
     }
-    setTitle(t);
+    setTitle(typeof t === 'string' ? t : '');
     setTags(tg);
     setIsAnonymous(anon);
     setAuthorName(aName);
@@ -72,9 +191,11 @@ export default function Step2Page({ searchParams }: Step2Props) {
       } else {
         setContent([]);
       }
+      // Calculate character count from loaded content
+      calculateCharacterCountFromContent(loadedContent.blocks || loadedContent);
     }
     setInit(true);
-  }, [searchParams]);
+  }, [searchParams, editId]);
   // Show author name input if not anonymous and not logged in
   useEffect(() => {
     if (!isAnonymous) {
@@ -95,7 +216,27 @@ export default function Step2Page({ searchParams }: Step2Props) {
   const handleEditorChange = (json: any, html: string, text: string) => {
     setContent(json)
     setContentHtml(html)
-    setCharacterCount(text.length)
+    const count = text.length
+    setCharacterCount(count)
+    updateCharacterCountInLocalStorage(count)
+    
+    // Auto-save to localStorage when content changes
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('draftStory')
+      const base = saved ? JSON.parse(saved) : {}
+      const updatedDraft = {
+        ...base,
+        title,
+        tags,
+        isAnonymous,
+        authorName,
+        content: json,
+        contentHtml: html,
+        characterCount: count,
+        ...(editId && { editId })
+      }
+      localStorage.setItem('draftStory', JSON.stringify(updatedDraft))
+    }
   }
 
   // Extract media from BlockNote JSON (images, embeds)
@@ -154,21 +295,25 @@ export default function Step2Page({ searchParams }: Step2Props) {
     }
     // If logged in, save to database
     try {
+      const method = editId ? 'PUT' : 'POST';
+      const body = {
+        type: 'story',
+        title,
+        content, // BlockNote JSON
+        contentHtml,
+        tags: Array.isArray(tags) ? tags : [],
+        isAnonymous,
+        authorName: !isAnonymous && showAuthorNameInput ? authorName : undefined,
+        media: extractMedia(content),
+        ...(editId && { id: editId })
+      };
+      
       const response = await fetch('/api/stories', {
-        method: 'POST',
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          type: 'story',
-          title,
-          content, // BlockNote JSON
-          contentHtml,
-          tags: typeof tags === 'string' && tags.trim() !== '' ? tags.split(',').map(tag => tag.trim()) : [],
-          isAnonymous,
-          authorName: !isAnonymous && showAuthorNameInput ? authorName : undefined,
-          media: extractMedia(content)
-        }),
+        body: JSON.stringify(body),
       });
       if (response.ok) {
         setDraftSaved(true);
@@ -220,13 +365,17 @@ export default function Step2Page({ searchParams }: Step2Props) {
           title,
           content, // BlockNote JSON
           contentHtml,
-          tags: typeof tags === 'string' && tags.trim() !== '' ? tags.split(',').map(tag => tag.trim()) : [],
+          tags: Array.isArray(tags) ? tags : [],
           isAnonymous,
           authorName: !isAnonymous && showAuthorNameInput ? authorName : undefined,
           media: extractMedia(content)
         }),
       });
       if (response.ok) {
+        // Clear localStorage after successful submission
+        localStorage.removeItem('draftStory');
+        localStorage.removeItem('currentStoryEditId');
+        
         setSuccess(true);
         setTimeout(() => {
           router.push('/profile');
@@ -297,7 +446,27 @@ export default function Step2Page({ searchParams }: Step2Props) {
                 </p>
               </div>
               <button
-                onClick={() => router.push('/submit/story/step1')}
+                onClick={() => {
+                  // Save current state to localStorage before going back
+                  if (typeof window !== 'undefined') {
+                    const saved = localStorage.getItem('draftStory')
+                    const base = saved ? JSON.parse(saved) : {}
+                    const updatedDraft = {
+                      ...base,
+                      title,
+                      tags,
+                      isAnonymous,
+                      authorName,
+                      content,
+                      contentHtml,
+                      characterCount,
+                      ...(editId && { editId })
+                    }
+                    localStorage.setItem('draftStory', JSON.stringify(updatedDraft))
+                  }
+                  const backUrl = editId ? `/submit/story/step1?edit=${editId}` : '/submit/story/step1'
+                  router.push(backUrl)
+                }}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -317,10 +486,7 @@ export default function Step2Page({ searchParams }: Step2Props) {
               <div>
                 <label className="block text-sm font-medium text-gray-700">Tags</label>
                 <div className="mt-1 flex flex-wrap gap-2">
-                  {(typeof tags === 'string' && tags.trim() !== ''
-                    ? tags.split(',')
-                    : []
-                  ).map((tag, index) => (
+                  {(Array.isArray(tags) ? tags : []).map((tag, index) => (
                     <span
                       key={index}
                       className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"
@@ -438,7 +604,7 @@ export default function Step2Page({ searchParams }: Step2Props) {
           <div className="mt-8 bg-blue-50 border border-blue-200 rounded-md p-4">
             <h3 className="text-sm font-medium text-blue-800 mb-2">Story Guidelines</h3>
             <ul className="text-sm text-blue-700 space-y-1">
-              <li>• Share personal experiences, challenges, or victories related to gender equality</li>
+              <li>• Share personal experiences, challenges, or victories related to social justice and equality</li>
               <li>• Be respectful and constructive in your narrative</li>
               <li>• Minimum 100 characters required</li>
               <li>• Your story will be reviewed before publication</li>

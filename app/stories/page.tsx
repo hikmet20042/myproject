@@ -30,7 +30,7 @@ export default function CommunityStories() {
       if (response.ok) {
         const data = await response.json();
         // Map MongoDB stories to CommunityStory interface
-        const publishedStories = (data.results || []).filter((story: any) => story.status === 'published');
+        const publishedStories = (data.results || []).filter((story: any) => story.status === 'approved');
         setStories(publishedStories.map((story: any) => ({
           id: story._id || story.id,
           title: story.title,
@@ -134,7 +134,7 @@ export default function CommunityStories() {
             {/* Stories Source Info */}
             {stories.length > 0 && (
               <div className="mb-8">
-                {stories.some(story => story.status === 'submitted') ? (
+                {stories.some(story => story.status === 'pending') ? (
                   <div className="bg-gray-50 border-l-4 border-gray-300 p-4 rounded-r-lg">
                     <div className="flex items-start">
                       <svg className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

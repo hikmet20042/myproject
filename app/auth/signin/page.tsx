@@ -67,7 +67,7 @@ function SignInContent() {
           </div>
         </div>
         <h2 className="text-3xl font-bold text-gray-900">Sign in to your account</h2>
-        <p className="mt-2 text-sm text-gray-600">Access your Gender Equality Azerbaijan dashboard</p>
+        <p className="mt-2 text-sm text-gray-600">Access your Social Justice Platform dashboard</p>
       </div>
     </div>
 

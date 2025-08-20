@@ -9,7 +9,7 @@ export default function About() {
               Our Mission
             </h1>
             <p className="text-xl text-gray-100 leading-relaxed">
-              Bridging the data gap in gender equality through transparent technology, 
+              Bridging the data gap in social justice through transparent technology, 
               education, and community engagement in Azerbaijan.
             </p>
           </div>
@@ -28,7 +28,7 @@ export default function About() {
                   The Data Challenge in Azerbaijan
                 </h2>
                 <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-                  Understanding why reliable gender-based data is scarce and how we're working to address this critical gap.
+                  Understanding why reliable social justice data is scarce and how we're working to address this critical gap.
                 </p>
               </div>
               
@@ -54,7 +54,7 @@ export default function About() {
                     <div className="flex items-start">
                       <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
                       <p className="text-sm leading-relaxed">
-                        <strong className="text-gray-900">Institutional gaps</strong> in data collection systems result in inconsistent recording and classification of gender-based violence cases.
+                        <strong className="text-gray-900">Institutional gaps</strong> in data collection systems result in inconsistent recording and classification of social injustice cases.
                       </p>
                     </div>
                     <div className="flex items-start">
@@ -106,7 +106,7 @@ export default function About() {
                         <svg className="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
-                        Measure progress toward gender equality goals
+                        Measure progress toward social justice goals
                       </li>
                       <li className="flex items-center">
                         <svg className="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -127,7 +127,7 @@ export default function About() {
                   Our Technology-Driven Approach
                 </h2>
                 <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-                  How we use AI and news analysis to create transparent, accessible data about gender equality issues.
+                  How we use AI and news analysis to create transparent, accessible data about social justice issues.
                 </p>
               </div>
               
@@ -143,7 +143,7 @@ export default function About() {
                   </h3>
                   <p className="text-gray-600 text-sm leading-relaxed mb-4">
                     We systematically collect and analyze news reports from Azerbaijani media sources to identify 
-                    publicly reported incidents of gender-based violence and discrimination.
+                    publicly reported incidents of social injustice and discrimination.
                   </p>
                   <div className="bg-blue-50 rounded-lg p-4">
                     <div className="text-left space-y-2 text-xs text-blue-800">
@@ -205,7 +205,7 @@ export default function About() {
                   </h3>
                   <p className="text-gray-600 text-sm leading-relaxed mb-4">
                     We transform complex data into accessible charts, maps, and trends that help everyone 
-                    understand the scope and patterns of gender equality challenges.
+                    understand the scope and patterns of social justice challenges.
                   </p>
                   <div className="bg-purple-50 rounded-lg p-4">
                     <div className="text-left space-y-2 text-xs text-purple-800">

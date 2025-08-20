@@ -1,5 +1,5 @@
 // Tag options for articles and stories (shared, can be imported)
-export const RESEARCH_TAGS = [
+export const ARTICLE_TAGS = [
   'gender-equality-research',
   'policy-analysis',
   'historical-perspective',
