@@ -1,13 +1,12 @@
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
 
-export default function ArticleEditLayout({ children }: { children: React.ReactNode }) {
+export default function StoryEditLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <section className="bg-primary text-white py-10">
         <div className="section-padding">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl lg:text-4xl font-bold">Edit Article</h1>
+            <h1 className="text-3xl lg:text-4xl font-bold">Edit Your Story</h1>
             <p className="text-gray-100 mt-2">Two steps: details and content.</p>
             <div className="mt-6 flex items-center gap-3 text-sm">
               <span className="px-3 py-1 rounded-full bg-white/10">1. Details</span>

@@ -634,7 +634,7 @@ export default function ProfilePage() {
 
   const handleDraftEdit = (draftId: string) => {
     // Navigate directly to the edit page for the draft
-    router.push(`/edit/article/${draftId}`);
+    router.push(`/edit/article/${draftId}/step1`);
   };
 
 
@@ -723,7 +723,7 @@ export default function ProfilePage() {
         await loadUserStories();
 
         // Navigate to the edit page for the story
-        router.push(`/edit/story/${storyId}`);
+        router.push(`/edit/story/${storyId}/step1`);
       } else {
         alert(data.error || 'Failed to convert story to draft');
       }
@@ -1506,7 +1506,7 @@ export default function ProfilePage() {
                               {/* Allow editing for pending and rejected stories */}
                               {story.status === 'pending' && (
                                 <a
-                                  href={`/edit/story/${story._id}`}
+                                  href={`/edit/story/${story._id}/step1`}
                                   className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
                                 >
                                   Edit Story
