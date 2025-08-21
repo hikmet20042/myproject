@@ -1,30 +1,34 @@
-"use client";
-import '@blocknote/core/fonts/inter.css';
-import '@blocknote/mantine/style.css';
-import { BlockNoteView } from '@blocknote/mantine';
-import { useCreateBlockNote } from '@blocknote/react';
-import React from 'react';
+'use client'
 
-interface BlocknoteReadOnlyProps {
-  content: any;
-  className?: string;
+import '@blocknote/core/fonts/inter.css'
+import '@blocknote/mantine/style.css'
+import { BlockNoteView } from '@blocknote/mantine'
+import { useCreateBlockNote } from '@blocknote/react'
+import React from 'react'
+
+type Props = {
+  initialJSON?: any
+  className?: string
+  context?: string // Context for determining storage type (article, story, profile, etc.)
 }
 
-export default function BlocknoteReadOnly({ content, className }: BlocknoteReadOnlyProps) {
+export default function BlocknoteReadOnly({ initialJSON, className, context = 'general' }: Props) {
   const editor = useCreateBlockNote({
-    initialContent: content ?? undefined,
-  });
+    initialContent: initialJSON ?? undefined,
+  })
 
-  if (!content) return <div className="text-gray-400 italic">No content</div>;
+  if (!initialJSON) return <div className="text-gray-400 italic">No content</div>
 
   return (
-    <div className={className ?? ''} style={{ background: 'inherit' }}>
-      <style>{`
-        .bn-container, .bn-editor, .bn-root, .bn-root * {
-          background: transparent !important;
-        }
-      `}</style>
-      <BlockNoteView editor={editor} theme="light" editable={false} />
+    <div className={`${className ?? ''} relative rounded-xl border border-gray-200 bg-white px-3`}>
+      <div className="p-2 bn-autogrow min-h-[400px] relative">
+        <style>{`
+          .bn-container, .bn-editor, .bn-root, .bn-root * {
+            background: transparent !important;
+          }
+        `}</style>
+        <BlockNoteView editor={editor} theme="light" editable={false} />
+      </div>
     </div>
-  );
+  )
 }

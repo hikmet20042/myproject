@@ -19,7 +19,6 @@ interface DraftStats {
   avgWordCount: number
   avgCompletionPercentage: number
   totalWordCount: number
-  priorityDistribution: string[]
   folderDistribution: string[]
 }
 
@@ -85,11 +84,7 @@ export default function DraftAnalytics({ userId }: DraftAnalyticsProps) {
     )
   }
 
-  const priorityStats = {
-    high: stats.priorityDistribution.filter(p => p === 'high').length,
-    medium: stats.priorityDistribution.filter(p => p === 'medium').length,
-    low: stats.priorityDistribution.filter(p => p === 'low').length
-  }
+
 
   const getProductivityScore = () => {
     const completionScore = stats.avgCompletionPercentage || 0
@@ -178,60 +173,8 @@ export default function DraftAnalytics({ userId }: DraftAnalyticsProps) {
       </div>
 
       {/* Charts and Detailed Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Priority Distribution */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Priority Distribution</h3>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-                <span className="text-sm text-gray-600">High Priority</span>
-              </div>
-              <div className="flex items-center">
-                <span className="text-sm font-medium text-gray-900 mr-2">{priorityStats.high}</span>
-                <div className="w-20 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-red-500 h-2 rounded-full" 
-                    style={{ width: `${(priorityStats.high / stats.totalDrafts) * 100}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
-                <span className="text-sm text-gray-600">Medium Priority</span>
-              </div>
-              <div className="flex items-center">
-                <span className="text-sm font-medium text-gray-900 mr-2">{priorityStats.medium}</span>
-                <div className="w-20 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-yellow-500 h-2 rounded-full" 
-                    style={{ width: `${(priorityStats.medium / stats.totalDrafts) * 100}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                <span className="text-sm text-gray-600">Low Priority</span>
-              </div>
-              <div className="flex items-center">
-                <span className="text-sm font-medium text-gray-900 mr-2">{priorityStats.low}</span>
-                <div className="w-20 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-green-500 h-2 rounded-full" 
-                    style={{ width: `${(priorityStats.low / stats.totalDrafts) * 100}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 gap-6">
+
 
         {/* Folder Performance */}
         <div className="bg-white rounded-lg shadow p-6">

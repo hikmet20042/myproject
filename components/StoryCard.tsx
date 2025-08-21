@@ -3,7 +3,7 @@
 interface CommunityStory {
   id: number;
   title: string;
-  author: string;
+  authorName: string;
   date: string;
   excerpt: string;
   content: string;
@@ -83,7 +83,7 @@ export default function StoryCard({ story }: StoryCardProps) {
           
           {/* Author */}
           <span className="text-xs text-gray-500">
-            by {story.author}
+            by {story.authorName}
           </span>
         </div>
       </div>

@@ -10,7 +10,7 @@ export default async function UserProfilePage({ params }: { params: { id: string
   const user = await User.findById(params.id).lean();
   if (!user || Array.isArray(user)) return notFound();
   const profile = await UserProfile.findOne({ userId: user._id }).lean();
-  const articles = await Article.find({ author: user._id, status: 'approved' }).sort({ publishedAt: -1 }).lean();
+  const articles = await Article.find({ userId: user._id, status: 'approved' }).sort({ publishedAt: -1 }).lean();
 
   return (
     <div className="section-padding py-10">

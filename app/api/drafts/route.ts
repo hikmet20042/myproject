@@ -92,7 +92,13 @@ export async function POST(request: NextRequest) {
     };
 
     let draft;
+    let previousWordCount = 0;
+    
     if (draftId) {
+      // Get the previous draft to calculate word count difference
+      const previousDraft = await Article.findOne({ _id: draftId, userId: session.user.id });
+      previousWordCount = previousDraft?.draftMetadata?.wordCount || 0;
+      
       draft = await Article.findOneAndUpdate(
         { _id: draftId, userId: session.user.id },
         { $set: draftData },
@@ -103,11 +109,7 @@ export async function POST(request: NextRequest) {
         ...draftData,
         createdAt: new Date()
       });
-
-
     }
-
-
 
     // Update draft activity timestamp
     const activityResult = await updateDraftActivity(draft._id, session.user.id);
@@ -117,12 +119,15 @@ export async function POST(request: NextRequest) {
 
     // Update user analytics
     try {
+      const currentWordCount = draft.draftMetadata?.wordCount || 0;
+      const wordCountDifference = currentWordCount - previousWordCount;
+      
       await UserAnalytics.findOneAndUpdate(
         { userId: session.user.id },
         {
           $inc: {
             totalDrafts: draftId ? 0 : 1, // Only increment for new drafts
-            totalWordCount: draft.draftMetadata?.wordCount || 0
+            totalWordCount: wordCountDifference // Use the difference instead of the full count
           },
           $set: {
             lastActiveDate: new Date(),
@@ -169,7 +174,6 @@ export async function GET(request: NextRequest) {
 
     const search = searchParams.get('search');
     const folder = searchParams.get('folder');
-    const priority = searchParams.get('priority');
     const sortBy = searchParams.get('sortBy') || 'updatedAt';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
     const page = parseInt(searchParams.get('page') || '1');
@@ -206,10 +210,7 @@ export async function GET(request: NextRequest) {
       query['draftMetadata.folder'] = folder;
     }
 
-    // Filter by priority
-    if (priority && priority !== 'all') {
-      query['draftMetadata.priority'] = priority;
-    }
+
 
     // Template filtering
     if (onlyTemplates) {
@@ -224,7 +225,7 @@ export async function GET(request: NextRequest) {
 
     // Execute query with pagination
     const skip = (page - 1) * limit;
-    const [drafts, totalCount, folders, priorities] = await Promise.all([
+    const [drafts, totalCount, folders] = await Promise.all([
       Article.find(query)
         .sort(sortObj)
         .skip(skip)
@@ -236,12 +237,6 @@ export async function GET(request: NextRequest) {
         userId: session.user.id,
         status: 'draft',
         'draftMetadata.folder': { $exists: true, $ne: null }
-      }),
-      // Get unique priorities for filter options
-      Article.distinct('draftMetadata.priority', {
-        userId: session.user.id,
-        status: 'draft',
-        'draftMetadata.priority': { $exists: true, $ne: null }
       })
     ]);
 
@@ -270,8 +265,7 @@ export async function GET(request: NextRequest) {
         limit
       },
       filters: {
-        folders: folders.filter(f => f), // Remove null/undefined
-        priorities: priorities.filter(p => p)
+        folders: folders.filter(f => f) // Remove null/undefined
       }
     });
   } catch (error) {
@@ -386,6 +380,27 @@ export async function DELETE(request: NextRequest) {
 
     if (!result) {
       return NextResponse.json({ error: 'Draft not found or you do not have permission to delete it' }, { status: 404 });
+    }
+
+    // Update user analytics to subtract deleted word count
+    try {
+      const deletedWordCount = result.draftMetadata?.wordCount || 0;
+      await UserAnalytics.findOneAndUpdate(
+        { userId: session.user.id },
+        {
+          $inc: {
+            totalDrafts: -1,
+            totalWordCount: -deletedWordCount
+          },
+          $set: {
+            lastActiveDate: new Date(),
+            lastCalculated: new Date()
+          }
+        },
+        { upsert: true }
+      );
+    } catch (error) {
+      console.error('Failed to update user analytics after draft deletion:', error);
     }
 
     return NextResponse.json({ message: 'Draft deleted successfully' });

@@ -1,7 +1,7 @@
 interface BlogPost {
   id: number;
   title: string;
-  author: string;
+  authorName: string;
   date: string;
   excerpt: string;
   content: string;
@@ -37,7 +37,7 @@ export default function BlogCard({ post }: BlogCardProps) {
           )}
         </div>
         <div className="flex items-center text-sm text-gray-500 mb-3">
-          <span className="font-medium">{post.author}</span>
+          <span className="font-medium">{post.authorName}</span>
           <span className="mx-2">•</span>
           <time dateTime={post.date}>{formatDate(post.date)}</time>
         </div>

@@ -4,12 +4,12 @@ interface IArticle extends mongoose.Document {
   title: string
   content: any // BlockNote JSON
   abstract?: string
-  author?: string | null
+  authorName?: string | null
   userId?: mongoose.Types.ObjectId | string | null // Add userId for associating drafts with users
   category: string
   tags: string[]
   references?: string[]
-  anonymous?: boolean
+  isAnonymous?: boolean
   media?: Array<{
     type: string;
     url: string;
@@ -34,7 +34,6 @@ interface IArticle extends mongoose.Document {
   // Enhanced draft management fields
   draftMetadata?: {
     folder?: string
-    priority?: 'low' | 'medium' | 'high'
     completionPercentage?: number
     estimatedReadTime?: number
     wordCount?: number
@@ -83,12 +82,12 @@ const ArticleSchema = new mongoose.Schema({
     required: false,
     trim: true,
   },
-  author: {
+  authorName: {
     type: String, // Store as string to avoid ObjectId casting issues
     required: false,
     default: null,
   },
-  anonymous: {
+  isAnonymous: {
     type: Boolean,
     default: false,
   },
@@ -198,7 +197,6 @@ const ArticleSchema = new mongoose.Schema({
   // Enhanced draft management fields
   draftMetadata: {
     folder: { type: String, default: 'General' },
-    priority: { type: String, enum: ['low', 'medium', 'high'], default: 'medium' },
     completionPercentage: { type: Number, default: 0, min: 0, max: 100 },
     estimatedReadTime: { type: Number, default: 0 },
     wordCount: { type: Number, default: 0 },
@@ -231,7 +229,7 @@ ArticleSchema.index({ status: 1 })
 ArticleSchema.index({ publishedAt: -1 })
 ArticleSchema.index({ userId: 1, status: 1 })
 ArticleSchema.index({ 'draftMetadata.folder': 1 })
-ArticleSchema.index({ 'draftMetadata.priority': 1 })
+
 ArticleSchema.index({ 'draftMetadata.isTemplate': 1 })
 ArticleSchema.index({ 'draftMetadata.lastActivity': 1 })
 ArticleSchema.index({ 'draftMetadata.scheduledDeletionDate': 1 })

@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { CheckCircle, XCircle, Clock, Eye, Users, Search, Filter, Edit, Trash2, Shield, UserCheck, ChevronDown, Calendar, GraduationCap, Briefcase, Tag, SortAsc, SortDesc, MoreHorizontal, Bell, Send, MessageSquare, AlertCircle, Settings, Save, RotateCcw, History, BookOpen, Building } from 'lucide-react'
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
 const BlocknoteReadOnly = dynamic(() => import('@/components/BlocknoteReadOnly'), { ssr: false })
 
 
@@ -40,7 +41,7 @@ type User = {
   _id: string
   name: string
   email: string
-  role: 'user' | 'admin' | 'moderator'
+  role: 'user' | 'admin' | 'ngo'
   emailVerified: boolean
   createdAt: string
 
@@ -1569,13 +1570,13 @@ export default function AdminPage() {
                               )}
                             </div>
                             <div className="flex gap-2">
-                              <button
-                                onClick={() => handleReview(article)}
+                              <Link
+                                href={`/admin/preview/article/${article._id}`}
                                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                               >
                                 <Eye className="w-4 h-4" />
-                                Review
-                              </button>
+                                Preview
+                              </Link>
                             </div>
                           </div>
                         </div>
@@ -1869,13 +1870,13 @@ export default function AdminPage() {
                               )}
                             </div>
                             <div className="flex gap-2">
-                              <button
-                                onClick={() => handleReview(story)}
+                              <Link
+                                href={`/admin/preview/story/${story._id}`}
                                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                               >
                                 <Eye className="w-4 h-4" />
-                                Review
-                              </button>
+                                Preview
+                              </Link>
                             </div>
                           </div>
                         </div>
@@ -1980,7 +1981,7 @@ export default function AdminPage() {
                             <div className="flex flex-wrap items-center gap-2 mb-2">
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                                 user.role === 'admin' ? 'bg-red-100 text-red-800' :
-                                user.role === 'moderator' ? 'bg-yellow-100 text-yellow-800' :
+                                user.role === 'ngo' ? 'bg-yellow-100 text-yellow-800' :
                                 'bg-blue-100 text-blue-800'
                               }`}>
                                 <Shield className="w-3 h-3 mr-1" />
@@ -3423,7 +3424,7 @@ export default function AdminPage() {
                 )}
                 <div className="prose max-w-none max-h-96 overflow-y-auto">
                   {selectedItem.content && typeof selectedItem.content === 'object' ? (
-                    <BlocknoteReadOnly content={selectedItem.content} />
+                    <BlocknoteReadOnly initialJSON={selectedItem.content} />
                   ) : selectedItem.contentHtml && selectedItem.contentHtml.trim() ? (
                     <div dangerouslySetInnerHTML={{ __html: selectedItem.contentHtml }} />
                   ) : (
@@ -3506,7 +3507,7 @@ export default function AdminPage() {
                 <div className="flex flex-wrap gap-2">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                     selectedUser.role === 'admin' ? 'bg-red-100 text-red-800' :
-                    selectedUser.role === 'moderator' ? 'bg-yellow-100 text-yellow-800' :
+                    selectedUser.role === 'ngo' ? 'bg-yellow-100 text-yellow-800' :
                     'bg-blue-100 text-blue-800'
                   }`}>
                     <Shield className="w-3 h-3 mr-1" />
@@ -3524,12 +3525,12 @@ export default function AdminPage() {
                   <select
                     defaultValue={selectedUser.role}
                     onChange={(e) => {
-                      setSelectedUser({ ...selectedUser, role: e.target.value as 'user' | 'admin' | 'moderator' })
+                      setSelectedUser({ ...selectedUser, role: e.target.value as 'user' | 'admin' | 'ngo' })
                     }}
                     className="w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
                   >
                     <option value="user">User</option>
-                    <option value="moderator">Moderator</option>
+                    <option value="ngo">NGO</option>
                     <option value="admin">Admin</option>
                   </select>
                 </div>

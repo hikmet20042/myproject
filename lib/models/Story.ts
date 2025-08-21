@@ -124,8 +124,8 @@ const StorySchema = new mongoose.Schema<IStory>({
 StorySchema.index({ views: -1 });
 StorySchema.index({ likes: -1 });
 StorySchema.index({ engagementScore: -1 });
-StorySchema.index({ author: 1, views: -1 });
-StorySchema.index({ author: 1, likes: -1 });
+StorySchema.index({ userId: 1, views: -1 });
+StorySchema.index({ userId: 1, likes: -1 });
 StorySchema.index({ status: 1, createdAt: -1 });
 
 export default mongoose.models.Story || mongoose.model<IStory>('Story', StorySchema);

@@ -8,7 +8,7 @@ import StoryCard from '../../components/StoryCard'
 interface CommunityStory {
   id: number;
   title: string;
-  author: string;
+  authorName: string;
   date: string;
   excerpt: string;
   content: string;
@@ -34,7 +34,7 @@ export default function CommunityStories() {
         setStories(publishedStories.map((story: any) => ({
           id: story._id || story.id,
           title: story.title,
-          author: story.author,
+          authorName: story.authorName,
           date: story.submittedAt || story.date || new Date().toISOString(),
           excerpt: story.excerpt || generateExcerpt(story.content),
           content: story.content,

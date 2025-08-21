@@ -35,10 +35,8 @@ interface Draft {
   createdAt: string
   draftMetadata?: {
     folder?: string
-    priority?: 'low' | 'medium' | 'high'
     completionPercentage?: number
     estimatedReadTime?: number
-    wordCount?: number
     isTemplate?: boolean
     templateName?: string
     notes?: string
@@ -75,11 +73,10 @@ export default function EnhancedDraftManager({
   const [filteredDrafts, setFilteredDrafts] = useState<Draft[]>(initialDrafts)
   const [selectedDrafts, setSelectedDrafts] = useState<string[]>([])
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const [sortBy, setSortBy] = useState<'updatedAt' | 'createdAt' | 'title' | 'priority'>('updatedAt')
+  const [sortBy, setSortBy] = useState<'updatedAt' | 'createdAt' | 'title'>('updatedAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFolder, setSelectedFolder] = useState<string>('all')
-  const [selectedPriority, setSelectedPriority] = useState<string>('all')
   const [showFilters, setShowFilters] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -92,9 +89,8 @@ export default function EnhancedDraftManager({
       : [])
   }, [initialDrafts])
 
-  // Get unique folders and priorities for filters
+  // Get unique folders for filters
   const folders = Array.from(new Set(drafts.map(d => d.draftMetadata?.folder).filter(Boolean)))
-  const priorities = ['low', 'medium', 'high']
 
   // Filter and sort drafts
   useEffect(() => {
@@ -115,11 +111,6 @@ export default function EnhancedDraftManager({
       filtered = filtered.filter(draft => draft.draftMetadata?.folder === selectedFolder)
     }
 
-    // Priority filter
-    if (selectedPriority !== 'all') {
-      filtered = filtered.filter(draft => draft.draftMetadata?.priority === selectedPriority)
-    }
-
     // Sort
     filtered.sort((a, b) => {
       let aValue: any, bValue: any
@@ -128,11 +119,6 @@ export default function EnhancedDraftManager({
         case 'title':
           aValue = a.title.toLowerCase()
           bValue = b.title.toLowerCase()
-          break
-        case 'priority':
-          const priorityOrder = { high: 3, medium: 2, low: 1 }
-          aValue = priorityOrder[a.draftMetadata?.priority as keyof typeof priorityOrder] || 0
-          bValue = priorityOrder[b.draftMetadata?.priority as keyof typeof priorityOrder] || 0
           break
         case 'createdAt':
           aValue = new Date(a.createdAt).getTime()
@@ -151,7 +137,7 @@ export default function EnhancedDraftManager({
     })
 
     setFilteredDrafts(filtered)
-  }, [drafts, searchQuery, selectedFolder, selectedPriority, sortBy, sortOrder])
+  }, [drafts, searchQuery, selectedFolder, sortBy, sortOrder])
 
   const handleSelectDraft = (draftId: string) => {
     setSelectedDrafts(prev => 
@@ -200,14 +186,7 @@ export default function EnhancedDraftManager({
 
 
 
-  const getPriorityColor = (priority?: string) => {
-    switch (priority) {
-      case 'high': return 'text-red-600 bg-red-100'
-      case 'medium': return 'text-yellow-600 bg-yellow-100'
-      case 'low': return 'text-green-600 bg-green-100'
-      default: return 'text-gray-600 bg-gray-100'
-    }
-  }
+
 
 
 
@@ -278,7 +257,6 @@ export default function EnhancedDraftManager({
             <option value="updatedAt">Last Modified</option>
             <option value="createdAt">Date Created</option>
             <option value="title">Title</option>
-            <option value="priority">Priority</option>
           </select>
 
           <button
@@ -301,7 +279,7 @@ export default function EnhancedDraftManager({
       {/* Filters Panel */}
       {showFilters && (
         <div className="bg-gray-50 p-4 rounded-lg border">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Folder</label>
               <select
@@ -316,27 +294,10 @@ export default function EnhancedDraftManager({
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-              <select
-                value={selectedPriority}
-                onChange={(e) => setSelectedPriority(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              >
-                <option value="all">All Priorities</option>
-                {priorities.map(priority => (
-                  <option key={priority} value={priority}>
-                    {priority.charAt(0).toUpperCase() + priority.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             <div className="flex items-end">
               <button
                 onClick={() => {
                   setSelectedFolder('all')
-                  setSelectedPriority('all')
                   setSearchQuery('')
                 }}
                 className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
@@ -386,7 +347,6 @@ export default function EnhancedDraftManager({
             onSelect={() => handleSelectDraft(draft._id)}
             onEdit={() => onDraftEdit?.(draft._id)}
             onDelete={() => onDraftDelete?.(draft._id)}
-            getPriorityColor={getPriorityColor}
             formatDate={formatDate}
           />
         ))}
@@ -416,7 +376,6 @@ function DraftCard({
   onSelect,
   onEdit,
   onDelete,
-  getPriorityColor,
   formatDate
 }: any) {
   const [showMenu, setShowMenu] = useState(false)
@@ -453,9 +412,6 @@ function DraftCard({
           </div>
 
           <div className="flex items-center space-x-4">
-            <span className={`px-2 py-1 text-xs rounded-full ${getPriorityColor(draft.draftMetadata?.priority)}`}>
-              {draft.draftMetadata?.priority || 'medium'}
-            </span>
             
             <div className="text-xs text-gray-500">
               {formatDate(draft.updatedAt)}
@@ -578,16 +534,8 @@ function DraftCard({
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-          <span className={`px-2 py-1 text-xs rounded-full ${getPriorityColor(draft.draftMetadata?.priority)}`}>
-            {draft.draftMetadata?.priority || 'medium'}
-          </span>
-          
+        <div className="flex items-center justify-end pt-2 border-t border-gray-100">
           <div className="flex items-center space-x-2 text-xs text-gray-500">
-            {draft.draftMetadata?.wordCount && (
-              <span>{draft.draftMetadata.wordCount} words</span>
-            )}
-            <span>•</span>
             <span>{formatDate(draft.updatedAt)}</span>
           </div>
         </div>

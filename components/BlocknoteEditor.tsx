@@ -10,16 +10,17 @@ type Props = {
   initialJSON?: any
   onChange?: (json: any, html: string, text: string) => void
   className?: string
-  
+  context?: string // Context for determining storage type (article, story, profile, etc.)
 }
 
-export default function BlocknoteEditor({ initialJSON, onChange, className }: Props) {
+export default function BlocknoteEditor({ initialJSON, onChange, className, context = 'general' }: Props) {
   const [isEmpty, setIsEmpty] = useState(true)
   const editor = useCreateBlockNote({
     initialContent: initialJSON ?? undefined,
     uploadFile: async (file: File) => {
       const form = new FormData()
       form.append('file', file)
+      form.append('context', context) // Add context for storage determination
       try {
         const res = await fetch('/api/upload', { method: 'POST', body: form })
         const data = await res.json()

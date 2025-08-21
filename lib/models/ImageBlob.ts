@@ -5,7 +5,7 @@ interface IImageBlob extends mongoose.Document {
   originalName: string;
   mimetype: string;
   size: number;
-  data: Buffer;
+  data?: Buffer; // Optional for ImgBB images
   uploadedBy: mongoose.Types.ObjectId;
   uploadedAt: Date;
   description?: string;
@@ -33,6 +33,11 @@ interface IImageBlob extends mongoose.Document {
       medium?: string; // URL or ID of medium variant
       responsive?: Array<{ width: number; id: string }>; // Responsive variants
     };
+    // Storage information
+    storage?: 'blob' | 'imgbb'; // Storage type
+    imgbbUrl?: string; // ImgBB direct URL
+    deleteUrl?: string; // ImgBB delete URL
+    context?: string; // Usage context (article, story, profile, etc.)
     // Image characteristics
     format?: string; // Original format detected by Sharp
     space?: string; // Color space
@@ -80,7 +85,7 @@ const ImageBlobSchema = new mongoose.Schema<IImageBlob>({
   },
   data: {
     type: Buffer,
-    required: true
+    required: false // Optional for ImgBB images
   },
   uploadedBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -155,6 +160,15 @@ const ImageBlobSchema = new mongoose.Schema<IImageBlob>({
         id: String
       }]
     },
+    // Storage information
+    storage: {
+      type: String,
+      enum: ['blob', 'imgbb'],
+      default: 'blob'
+    },
+    imgbbUrl: String,
+    deleteUrl: String,
+    context: String,
     // Image characteristics
     format: String,
     space: String,

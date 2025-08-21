@@ -7,23 +7,7 @@ import BlocknoteEditor from '@/components/BlocknoteEditor'
 import { ArrowLeft, Save, Send, Eye, EyeOff } from 'lucide-react'
 import { BlockNoteEditor } from '@blocknote/core'
 
-// Debounce utility function
-function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T & { cancel: () => void } {
-  let timeout: NodeJS.Timeout | null = null
-  const debounced = ((...args: any[]) => {
-    if (timeout) clearTimeout(timeout)
-    timeout = setTimeout(() => func(...args), wait)
-  }) as T & { cancel: () => void }
 
-  debounced.cancel = () => {
-    if (timeout) {
-      clearTimeout(timeout)
-      timeout = null
-    }
-  }
-
-  return debounced
-}
 
 export default function Step2Page() {
   const { data: session, status } = useSession();
@@ -105,12 +89,9 @@ export default function Step2Page() {
   // Validation state
   const [showValidationErrors, setShowValidationErrors] = useState(false);
 
-  // Auto-save state
+  // Manual save state
   const [lastSavedData, setLastSavedData] = useState<any>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'pending' | 'saving' | 'saved' | 'error'>('idle');
-  const [retryCount, setRetryCount] = useState(0);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   useEffect(() => {
     if (draftSaved) {
       setShowDraftSaved(true);
@@ -257,10 +238,8 @@ export default function Step2Page() {
     sessionStorage.removeItem('preserveArticleData')
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
+      // Note: Auto-save has been removed. Users should manually save their drafts.
+      // We could add logic here to warn about unsaved changes if needed.
     }
 
     // Add event listener
@@ -283,92 +262,9 @@ export default function Step2Page() {
     }
   }, [])
 
-  // Debounced auto-save function for real-time changes
-  const debouncedAutoSave = useCallback(
-    debounce(async () => {
-      if (!session || autoSaveStatus === 'saving') return
 
-      // Only auto-save if there's an existing draft ID or edit ID
-      const existingDraftId = draftId || localStorage.getItem('currentDraftId')
-      const existingEditId = localStorage.getItem('currentEditId')
-      if (!existingDraftId && !existingEditId) {
-        // No existing draft, don't auto-save until user manually saves first
-        return
-      }
 
-      const currentData = {
-        title: (title || '').trim() || 'Untitled Article',
-        abstract: (abstract || '').trim(),
-        tags: tags ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
-        references: (references || '').trim(),
-        isAnonymous: isAnonymous || false,
-        content: content,
-        characterCount: characterCount || 0,
-        lastEdited: new Date().toISOString()
-      }
 
-      // Check if all fields are empty
-      const isEmpty = !currentData.abstract &&
-                     currentData.tags.length === 0 &&
-                     !currentData.references &&
-                     (!(title || '').trim() || (title || '').trim() === 'Untitled Article') &&
-                     (!content || (typeof content === 'string' && !(content || '').trim()) ||
-                      (typeof content !== 'string' && (!content || !JSON.stringify(content || {}).trim() || JSON.stringify(content || {}).trim() === '{}')))
-
-      if (isEmpty) {
-        setHasUnsavedChanges(false)
-        setAutoSaveStatus('idle')
-        return
-      }
-
-      // Check if data has changed
-      const hasChanged = !lastSavedData ||
-                        JSON.stringify(currentData) !== JSON.stringify({
-                          ...lastSavedData,
-                          lastEdited: currentData.lastEdited
-                        })
-
-      if (!hasChanged) {
-        setHasUnsavedChanges(false)
-        setAutoSaveStatus('saved')
-        return
-      }
-
-      setHasUnsavedChanges(true)
-      setAutoSaveStatus('pending')
-
-      // Wait a bit before actually saving to batch rapid changes
-      setTimeout(() => performAutoSave(currentData), 2000)
-    }, 1000),
-    [session, title, abstract, tags, references, isAnonymous, content, characterCount, lastSavedData, autoSaveStatus, draftId]
-  )
-
-  // Trigger debounced auto-save on field changes
-  useEffect(() => {
-    if (session && status === 'authenticated') {
-      debouncedAutoSave()
-    }
-  }, [title, abstract, tags, references, isAnonymous, content, characterCount, debouncedAutoSave, session, status])
-
-  // Auto-save functionality - save draft every 2 minutes with change detection (fallback)
-  useEffect(() => {
-    if (!session || status !== 'authenticated') return
-
-    // Set up auto-save interval (2 minutes as fallback)
-    const autoSaveInterval = setInterval(autoSaveToDatabaseIfChanged, 120000)
-
-    // Cleanup interval on unmount
-    return () => {
-      clearInterval(autoSaveInterval)
-    }
-  }, [title, abstract, tags, references, isAnonymous, content, characterCount, session, status, draftId, lastSavedData])
-
-  // Cleanup debounced function on unmount
-  useEffect(() => {
-    return () => {
-      debouncedAutoSave.cancel?.()
-    }
-  }, [debouncedAutoSave])
 
   // Helper function to calculate character count from content
   const calculateCharacterCountFromContent = async (content: any) => {
@@ -447,116 +343,7 @@ export default function Step2Page() {
 
 
 
-  // Actual auto-save function with retry logic
-  const performAutoSave = async (currentData: any, attempt = 0) => {
-    if (autoSaveStatus === 'saving') return
 
-    try {
-      setAutoSaveStatus('saving')
-
-      const existingDraftId = draftId || localStorage.getItem('currentDraftId')
-      const existingEditId = localStorage.getItem('currentEditId')
-      const isEditingArticle = !!existingEditId
-      const isUpdate = !!(existingDraftId || existingEditId)
-      const idToUse = existingEditId || existingDraftId
-
-      const requestBody = {
-        ...currentData,
-        anonymous: currentData.isAnonymous, // API expects 'anonymous'
-        ...(isUpdate && { id: idToUse })
-      }
-
-      // Use the correct API endpoint based on whether we're editing an article or a draft
-      const endpoint = isEditingArticle ? '/api/articles' : '/api/drafts'
-      const response = await fetch(endpoint, {
-        method: isUpdate ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-
-        // Store the appropriate ID if this is the first save
-        if (!isUpdate && result.id) {
-          if (isEditingArticle) {
-            localStorage.setItem('currentEditId', result.id)
-          } else {
-            setDraftId(result.id)
-            localStorage.setItem('currentDraftId', result.id)
-          }
-        }
-
-        // Update localStorage and state
-        saveToLocalStorage()
-        setLastSavedData(currentData)
-        setLastSaved(new Date())
-        setHasUnsavedChanges(false)
-        setAutoSaveStatus('saved')
-        setRetryCount(0)
-
-        // Show saved status briefly
-        setTimeout(() => {
-          if (autoSaveStatus === 'saved') setAutoSaveStatus('idle')
-        }, 3000)
-      } else {
-        throw new Error(`HTTP ${response.status}`)
-      }
-    } catch (error) {
-      console.error('Auto-save failed:', error)
-      setAutoSaveStatus('error')
-
-      // Retry logic with exponential backoff
-      if (attempt < 3) {
-        const delay = Math.pow(2, attempt) * 1000 // 1s, 2s, 4s
-        setTimeout(() => {
-          setRetryCount(attempt + 1)
-          performAutoSave(currentData, attempt + 1)
-        }, delay)
-      } else {
-        // Give up after 3 attempts
-        setTimeout(() => setAutoSaveStatus('idle'), 5000)
-      }
-    } finally {
-    }
-  }
-
-  // Auto-save function that checks for changes and saves to database (for interval-based saves)
-  const autoSaveToDatabaseIfChanged = async () => {
-    if (!session || autoSaveStatus === 'saving') return
-
-    const currentData = {
-      title: title.trim() || 'Untitled Article',
-      abstract: abstract.trim(),
-      tags: tags ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
-      references: references.trim(),
-      isAnonymous: isAnonymous,
-      content: content,
-      characterCount: characterCount,
-      lastEdited: new Date().toISOString()
-    }
-
-    // Check if all fields are empty
-    const isEmpty = !currentData.abstract &&
-                   currentData.tags.length === 0 &&
-                   !currentData.references &&
-                   (!title.trim() || title.trim() === 'Untitled Article') &&
-                   (!content || (typeof content === 'string' && !content.trim()) ||
-                    (typeof content !== 'string' && (!content || !JSON.stringify(content).trim() || JSON.stringify(content).trim() === '{}')))
-
-    if (isEmpty) return
-
-    // Check if data has changed
-    const hasChanged = !lastSavedData ||
-                      JSON.stringify(currentData) !== JSON.stringify({
-                        ...lastSavedData,
-                        lastEdited: currentData.lastEdited
-                      })
-
-    if (!hasChanged) return
-
-    await performAutoSave(currentData)
-  }
 
   const handleBackClick = () => {
     // Save to localStorage when user clicks back button
@@ -615,7 +402,6 @@ export default function Step2Page() {
         content: content,
         characterCount: characterCount,
         lastEdited: new Date().toISOString(),
-        anonymous: isAnonymous, // API expects 'anonymous'
         ...(isUpdate && { id: idToUse })
       };
 
@@ -640,7 +426,6 @@ export default function Step2Page() {
         setDraftSaved(true);
         setLastSavedData(currentData);
         setLastSaved(new Date());
-        setHasUnsavedChanges(false);
       } else {
         const data = await response.json();
         setError(data.error || 'Failed to save draft');
@@ -692,7 +477,7 @@ export default function Step2Page() {
           abstract,
           category: searchParams.get('category') || 'other',
           author: authorName,
-          anonymous: isAnonymous,
+          isAnonymous: isAnonymous,
           tags: tags ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
           references: (references && typeof references === 'string') ? references.split('\n').filter(ref => ref.trim()) : [],
           status: 'pending',
@@ -909,6 +694,7 @@ export default function Step2Page() {
                       } as BlockNoteEditor;
                     }
                   }}
+                  context="article"
                 />
               )}
             </div>
@@ -930,51 +716,15 @@ export default function Step2Page() {
             </div>
           )}
 
-          {/* Auto-save status */}
+          {/* Manual save reminder */}
           <div className="mt-6 flex justify-between items-center">
             <div className="text-sm">
-              {autoSaveStatus === 'pending' && (
-                <span className="inline-flex items-center text-yellow-600">
-                  <svg className="animate-pulse -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Changes detected, preparing to save...
-                </span>
-              )}
-              {autoSaveStatus === 'saving' && (
-                <span className="inline-flex items-center text-blue-600">
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Auto-saving draft...
-                  {retryCount > 0 && ` (attempt ${retryCount + 1})`}
-                </span>
-              )}
-              {autoSaveStatus === 'saved' && lastSaved && (
-                <span className="inline-flex items-center text-green-600">
-                  <svg className="-ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  Auto-saved at {lastSaved.toLocaleTimeString()}
-                </span>
-              )}
-              {autoSaveStatus === 'error' && (
-                <span className="inline-flex items-center text-red-600">
-                  <svg className="-ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                  Auto-save failed{retryCount > 0 && `, retrying... (${retryCount}/3)`}
-                </span>
-              )}
-              {hasUnsavedChanges && autoSaveStatus === 'idle' && (
-                <span className="inline-flex items-center text-gray-500">
-                  <svg className="-ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                  Unsaved changes
-                </span>
-              )}
+              <span className="inline-flex items-center text-amber-600">
+                <svg className="-ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                Remember to save your draft manually before leaving this page
+              </span>
             </div>
           </div>
 

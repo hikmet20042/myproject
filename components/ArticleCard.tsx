@@ -3,7 +3,7 @@
 interface Article {
   id: string;
   title: string;
-  author: string;
+  authorName: string;
   date: string;
   excerpt: string;
   content: string;
@@ -105,7 +105,7 @@ export default function ArticleCard({ article }: ArticleCardProps) {
           
           {/* Author */}
           <span className="text-xs text-gray-500">
-            by {article.author}
+            by {article.authorName}
           </span>
         </div>
       </div>

@@ -170,12 +170,12 @@ export default function ProfilePage() {
 
     setLoadingTab(tab)
 
-    // Update URL immediately - this becomes the source of truth
-    const newUrl = tab === 'profile' ? '/profile' : `/profile?tab=${tab}`
-    router.push(newUrl)
-
-    // Load data for the new tab
+    // Load data for the new tab first
     loadTabData(tab).finally(() => {
+      // Update URL and active tab only after data is loaded
+      const newUrl = tab === 'profile' ? '/profile' : `/profile?tab=${tab}`
+      router.push(newUrl)
+      setActiveTab(tab)
       setLoadingTab(null)
     })
   }
@@ -268,7 +268,6 @@ export default function ProfilePage() {
             inApp: { enabled: true }
           },
           writing: {
-            autoSave: true,
             defaultPrivacy: 'public'
           },
           interface: {
@@ -292,7 +291,6 @@ export default function ProfilePage() {
           inApp: { enabled: true }
         },
         writing: {
-          autoSave: true,
           defaultPrivacy: 'public'
         },
         interface: {
@@ -422,14 +420,12 @@ export default function ProfilePage() {
   // Update active tab when URL changes (browser navigation or direct URL access)
   useEffect(() => {
     const newTab = getActiveTabFromUrl()
-    if (newTab !== activeTab) {
+    if (newTab !== activeTab && !loadingTab) {
       setActiveTab(newTab)
-      // Load data for the new tab if we're not currently switching
-      if (!loadingTab) {
-        loadTabData(newTab)
-      }
+      // Load data for the new tab
+      loadTabData(newTab)
     }
-  }, [searchParams])
+  }, [searchParams, activeTab, loadingTab])
 
   // Handle notification parameter from URL (when coming from header dropdown)
   useEffect(() => {
@@ -637,18 +633,8 @@ export default function ProfilePage() {
   }
 
   const handleDraftEdit = (draftId: string) => {
-    // Clear any existing draft data from localStorage to ensure a clean start
-    localStorage.removeItem('draftArticle');
-    localStorage.removeItem('currentDraftId');
-    localStorage.removeItem('currentEditId');
-    localStorage.removeItem('articleStep1Data');
-    localStorage.removeItem('articleStep2Data');
-
-    // Set the ID of the draft to be edited
-    localStorage.setItem('currentEditId', draftId);
-
-    // Navigate to the first step of the article submission flow
-    router.push('/submit/article/step1');
+    // Navigate directly to the edit page for the draft
+    router.push(`/edit/article/${draftId}`);
   };
 
 
@@ -698,8 +684,8 @@ export default function ProfilePage() {
         // Refresh articles list to show updated status
         await loadUserArticles();
 
-        // Navigate to the first step of the article submission flow
-        router.push('/submit/article/step1');
+        // Navigate to the edit page for the article
+        router.push(`/edit/article/${articleId}`);
       } else {
         alert(data.error || 'Failed to convert article to draft');
       }
@@ -736,8 +722,8 @@ export default function ProfilePage() {
         // Refresh stories list to show updated status
         await loadUserStories();
 
-        // Navigate to the story submission flow
-        router.push('/submit/story');
+        // Navigate to the edit page for the story
+        router.push(`/edit/story/${storyId}`);
       } else {
         alert(data.error || 'Failed to convert story to draft');
       }
@@ -950,18 +936,8 @@ export default function ProfilePage() {
             </nav>
           </div>
 
-          {/* Tab Switching Loading Indicator */}
-          {loadingTab && (
-            <div className="flex items-center justify-center py-8">
-              <div className="flex items-center space-x-2 text-gray-600">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-600"></div>
-                <span>Loading {loadingTab}...</span>
-              </div>
-            </div>
-          )}
-
           {/* Profile Tab */}
-          {activeTab === 'profile' && !loadingTab && (
+          {activeTab === 'profile' && (
             <div className="bg-white shadow rounded-lg">
               <div className="px-6 py-4 border-b border-gray-200">
                 <div className="flex justify-between items-center">
@@ -1029,6 +1005,7 @@ export default function ProfilePage() {
                                 uploadFormData.append('file', file);
                                 uploadFormData.append('alt', 'Profile picture');
                                 uploadFormData.append('description', 'User profile avatar');
+                                uploadFormData.append('context', 'profile'); // Use blob storage for privacy
 
                                 try {
                                   const response = await fetch('/api/upload', {
@@ -1255,7 +1232,7 @@ export default function ProfilePage() {
           )}
 
           {/* Drafts Tab */}
-          {activeTab === 'drafts' && !loadingTab && (
+          {activeTab === 'drafts' && (
             <div className="space-y-6">
               <div className="bg-white shadow rounded-lg p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -1281,7 +1258,7 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                {false ? (
+                {loadingTab === 'drafts' ? (
                   <div className="animate-pulse space-y-4">
                     {[...Array(3)].map((_, i) => (
                       <div key={i} className="border border-gray-200 rounded-lg p-4">
@@ -1315,7 +1292,23 @@ export default function ProfilePage() {
           {/* Analytics Tab */}
           {activeTab === 'analytics' && (
             <div className="space-y-6">
-              <DraftAnalytics userId={session?.user?.id} />
+              {loadingTab === 'analytics' ? (
+                <div className="bg-white shadow rounded-lg p-6">
+                  <div className="animate-pulse space-y-4">
+                    <div className="h-6 bg-gray-200 rounded w-48"></div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {[...Array(3)].map((_, i) => (
+                        <div key={i} className="bg-gray-100 rounded-lg p-4">
+                          <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+                          <div className="h-8 bg-gray-200 rounded w-16"></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <DraftAnalytics userId={session?.user?.id} />
+              )}
             </div>
           )}
 
@@ -1327,7 +1320,23 @@ export default function ProfilePage() {
                 <p className="text-sm text-gray-600 mt-1">Track the status of your submitted articles</p>
               </div>
               <div className="px-6 py-4">
-                {articles.length === 0 ? (
+                {loadingTab === 'articles' ? (
+                  <div className="animate-pulse space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-2 flex-1">
+                            <div className="h-4 bg-gray-200 rounded w-32"></div>
+                            <div className="h-6 bg-gray-200 rounded w-64"></div>
+                            <div className="h-3 bg-gray-200 rounded w-48"></div>
+                          </div>
+                          <div className="h-8 bg-gray-200 rounded w-20"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                articles.length === 0 ? (
                   <div className="text-center py-8">
                     <FileText className="mx-auto h-12 w-12 text-gray-400" />
                     <h3 className="mt-2 text-sm font-medium text-gray-900">No submitted articles</h3>
@@ -1382,7 +1391,7 @@ export default function ProfilePage() {
                               {/* Allow editing for pending and rejected articles */}
                               {article.status === 'pending' && (
                                 <a
-                                  href={`/submit/article/step1?edit=${article._id}`}
+                                  href={`/edit/article/${article._id}`}
                                   className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
                                 >
                                   Edit Article
@@ -1414,7 +1423,8 @@ export default function ProfilePage() {
                       </div>
                     ))}
                   </div>
-                )}
+                ))}
+                
               </div>
             </div>
           )}
@@ -1427,7 +1437,21 @@ export default function ProfilePage() {
                 <h2 className="text-xl font-semibold text-gray-900">My Stories</h2>
               </div>
               <div className="px-6 py-4">
-                {stories.length === 0 ? (
+                {loadingTab === 'stories' ? (
+                  <div className="animate-pulse space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-2 flex-1">
+                            <div className="h-6 bg-gray-200 rounded w-64"></div>
+                            <div className="h-3 bg-gray-200 rounded w-48"></div>
+                          </div>
+                          <div className="h-8 bg-gray-200 rounded w-20"></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : stories.length === 0 ? (
                   <div className="text-center py-8">
                     <FileText className="mx-auto h-12 w-12 text-gray-400" />
                     <h3 className="mt-2 text-sm font-medium text-gray-900">No stories yet</h3>
@@ -1482,7 +1506,7 @@ export default function ProfilePage() {
                               {/* Allow editing for pending and rejected stories */}
                               {story.status === 'pending' && (
                                 <a
-                                  href={`/submit/story?edit=${story._id}`}
+                                  href={`/edit/story/${story._id}`}
                                   className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
                                 >
                                   Edit Story
@@ -1515,6 +1539,7 @@ export default function ProfilePage() {
                     ))}
                   </div>
                 )}
+                
               </div>
             </div>
           )}
@@ -1526,7 +1551,21 @@ export default function ProfilePage() {
                 <h2 className="text-xl font-semibold text-gray-900">Notifications</h2>
               </div>
               <div className="px-6 py-4">
-                {notifications.length === 0 ? (
+                {loadingTab === 'notifications' ? (
+                  <div className="animate-pulse space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-2 flex-1">
+                            <div className="h-5 bg-gray-200 rounded w-48"></div>
+                            <div className="h-4 bg-gray-200 rounded w-64"></div>
+                            <div className="h-3 bg-gray-200 rounded w-32"></div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : notifications.length === 0 ? (
                   <div className="text-center py-8">
                     <Bell className="mx-auto h-12 w-12 text-gray-400" />
                     <h3 className="mt-2 text-sm font-medium text-gray-900">No notifications</h3>
@@ -1566,6 +1605,7 @@ export default function ProfilePage() {
                     ))}
                   </div>
                 )}
+                
               </div>
               {/* Notification Modal */}
               <NotificationModal
@@ -1592,7 +1632,7 @@ export default function ProfilePage() {
           {/* Settings Tab */}
           {activeTab === 'settings' && (
             <div className="bg-white shadow rounded-lg">
-              {loadingTab ? (
+              {loadingTab === 'settings' ? (
                 <div className="p-6">
                   <div className="animate-pulse space-y-4">
                     <div className="h-6 bg-gray-200 rounded w-1/3"></div>
@@ -1763,27 +1803,6 @@ export default function ProfilePage() {
                   <div>
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Writing</h3>
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Auto-save</label>
-                          <p className="text-sm text-gray-500">Automatically save drafts while writing</p>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={preferences?.writing?.autoSave || false}
-                          onChange={(e) => {
-                            const newPrefs = {
-                              ...preferences,
-                              writing: {
-                                ...preferences.writing,
-                                autoSave: e.target.checked
-                              }
-                            }
-                            setPreferences(newPrefs)
-                          }}
-                          className="h-4 w-4 text-red-600 rounded"
-                        />
-                      </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Default Privacy</label>
                         <select

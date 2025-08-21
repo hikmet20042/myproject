@@ -23,23 +23,7 @@ interface SelectOption {
   label: string
 }
 
-// Debounce utility function
-function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T & { cancel: () => void } {
-  let timeout: NodeJS.Timeout | null = null
-  const debounced = ((...args: any[]) => {
-    if (timeout) clearTimeout(timeout)
-    timeout = setTimeout(() => func(...args), wait)
-  }) as T & { cancel: () => void }
 
-  debounced.cancel = () => {
-    if (timeout) {
-      clearTimeout(timeout)
-      timeout = null
-    }
-  }
-
-  return debounced
-}
 
 export default function ArticleStep1() {
   // Hooks
@@ -58,20 +42,11 @@ export default function ArticleStep1() {
   const [references, setReferences] = useState<string>('')
   const [isAnonymous, setIsAnonymous] = useState<boolean>(false)
   const [loading, setLoading] = useState<boolean>(Boolean(draftId || editId))
-  const [autoSaving, setAutoSaving] = useState<boolean>(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [isSavingDraft, setIsSavingDraft] = useState<boolean>(false)
   const [showValidationErrors, setShowValidationErrors] = useState<boolean>(false)
   const [lastSavedData, setLastSavedData] = useState<DraftData | null>(null)
-  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'pending' | 'saving' | 'saved' | 'error'>('idle')
-  const [retryCount, setRetryCount] = useState<number>(0)
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false)
   const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true)
-  
-  // Refs
-  const lastSaveTimeRef = useRef<number>(0)
-  const lastChangeTimeRef = useRef<number>(0)
-  const pendingSaveRef = useRef<NodeJS.Timeout | null>(null)
 
   // Initialize localStorage for new articles
   const initializeNewArticle = useCallback((): void => {
@@ -91,194 +66,11 @@ export default function ArticleStep1() {
 
   // Refs are now declared with the state variables
 
-  // Debounced auto-save function for real-time changes
-  const debouncedAutoSave = useCallback(
-    debounce(async () => {
-      if (!session || autoSaveStatus === 'saving' || loading) return
 
-      // Only auto-save if there's an existing draft ID or edit ID
-      const existingDraftId = draftId || localStorage.getItem('currentDraftId')
-      const existingEditId = editId || localStorage.getItem('currentEditId')
-      if (!existingDraftId && !existingEditId) {
-        // No existing draft, don't auto-save until user manually saves first
-        return
-      }
 
-      const now = Date.now()
-      
-      // Don't auto-save if we just saved recently (within last 10 seconds)
-      if (now - (lastSaveTimeRef.current || 0) < 10000) {
-        return
-      }
 
-      const currentData: DraftData = {
-        title: (title || '').trim() || 'Untitled Article',
-        abstract: (abstract || '').trim(),
-        tags: [...(tags || [])],
-        references: (references || '').trim(),
-        isAnonymous: isAnonymous || false,
-        content: null,
-        characterCount: 0,
-        lastEdited: new Date().toISOString()
-      }
 
-      // Check if all fields are empty
-      const isEmpty = !currentData.abstract &&
-                     currentData.tags.length === 0 &&
-                     !currentData.references &&
-                     (!(title || '').trim() || (title || '').trim() === 'Untitled Article')
 
-      if (isEmpty) {
-        setHasUnsavedChanges(false)
-        setAutoSaveStatus('idle')
-        return
-      }
-
-      // Check if data has changed
-      const hasChanged = !lastSavedData ||
-                        JSON.stringify(currentData) !== JSON.stringify({
-                          ...lastSavedData,
-                          lastEdited: currentData.lastEdited
-                        })
-
-      if (!hasChanged) {
-        setHasUnsavedChanges(false)
-        setAutoSaveStatus('saved')
-        return
-      }
-
-      // If we're still here, we have changes to save
-      setHasUnsavedChanges(true)
-      setAutoSaveStatus('pending')
-      
-      // Clear any pending save
-      if (pendingSaveRef.current) {
-        clearTimeout(pendingSaveRef.current)
-      }
-      
-      // Set a minimum delay before saving to batch rapid changes
-      const minTimeSinceLastChange = 3000 // 3 seconds
-      const timeSinceLastChange = now - lastChangeTimeRef.current
-      const timeToWait = Math.max(0, minTimeSinceLastChange - timeSinceLastChange)
-      
-      pendingSaveRef.current = setTimeout(() => {
-        performAutoSave(currentData)
-        lastSaveTimeRef.current = Date.now()
-      }, timeToWait)
-      
-    }, 3000), // Increased debounce time to 3 seconds
-    [session, title, abstract, tags, references, isAnonymous, lastSavedData, autoSaveStatus, draftId, editId]
-  )
-
-  // Actual auto-save function with retry logic
-  const performAutoSave = async (currentData: any, attempt = 0) => {
-    if (autoSaveStatus === 'saving') return
-
-    try {
-      setAutoSaveStatus('saving')
-      setAutoSaving(true)
-
-      const existingDraftId = draftId || localStorage.getItem('currentDraftId')
-      const existingEditId = editId || localStorage.getItem('currentEditId')
-      const isEditingArticle = !!existingEditId
-      const isUpdate = !!(existingDraftId || existingEditId)
-      const idToUse = existingEditId || existingDraftId
-      
-      const requestBody = {
-        ...currentData,
-        anonymous: currentData.isAnonymous, // API expects 'anonymous'
-        ...(isUpdate && { id: idToUse })
-      }
-
-      // Use the correct API endpoint based on whether we're editing an article or a draft
-      const endpoint = isEditingArticle ? '/api/articles' : '/api/drafts'
-      const response = await fetch(endpoint, {
-        method: isUpdate ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-
-        // Store the appropriate ID if this is the first save
-        if (!isUpdate && result.id) {
-          if (isEditingArticle) {
-            localStorage.setItem('currentEditId', result.id)
-          } else {
-            localStorage.setItem('currentDraftId', result.id)
-          }
-        }
-
-        // Update localStorage and state
-        localStorage.setItem('draftArticle', JSON.stringify(currentData))
-        setLastSavedData(currentData)
-        setLastSaved(new Date())
-        setHasUnsavedChanges(false)
-        setAutoSaveStatus('saved')
-        setRetryCount(0)
-
-        // Show saved status briefly
-        setTimeout(() => {
-          if (autoSaveStatus === 'saved') setAutoSaveStatus('idle')
-        }, 3000)
-      } else {
-        throw new Error(`HTTP ${response.status}`)
-      }
-    } catch (error) {
-      console.error('Auto-save failed:', error)
-      setAutoSaveStatus('error')
-
-      // Retry logic with exponential backoff
-      if (attempt < 3) {
-        const delay = Math.pow(2, attempt) * 1000 // 1s, 2s, 4s
-        setTimeout(() => {
-          setRetryCount(attempt + 1)
-          performAutoSave(currentData, attempt + 1)
-        }, delay)
-      } else {
-        // Give up after 3 attempts
-        setTimeout(() => setAutoSaveStatus('idle'), 5000)
-      }
-    } finally {
-      setAutoSaving(false)
-    }
-  }
-
-  // Auto-save function that checks for changes and saves to database (for interval-based saves)
-  const autoSaveToDatabaseIfChanged = async () => {
-    if (!session || autoSaveStatus === 'saving') return
-
-    const currentData = {
-      title: (title || '').trim() || 'Untitled Article',
-      abstract: (abstract || '').trim(),
-      tags: tags || [],
-      references: (references || '').trim(),
-      isAnonymous: isAnonymous || false,
-      content: null,
-      characterCount: 0,
-      lastEdited: new Date().toISOString()
-    }
-
-    // Check if all fields are empty
-    const isEmpty = !currentData.abstract &&
-                   currentData.tags.length === 0 &&
-                   !currentData.references &&
-                   (!(title || '').trim() || (title || '').trim() === 'Untitled Article')
-
-    if (isEmpty) return
-
-    // Check if data has changed
-    const hasChanged = !lastSavedData ||
-                      JSON.stringify(currentData) !== JSON.stringify({
-                        ...lastSavedData,
-                        lastEdited: currentData.lastEdited
-                      })
-
-    if (!hasChanged) return
-
-    await performAutoSave(currentData)
-  }
 
   // Cleanup function to clear localStorage when leaving the article submission flow
   const cleanupLocalStorage = useCallback((): void => {
@@ -316,12 +108,10 @@ export default function ArticleStep1() {
       
       setLastSavedData(dataToSave);
       setLastSaved(new Date());
-      setAutoSaveStatus('saved');
       
       return dataToSave;
     } catch (error) {
       console.error('Error saving to localStorage:', error);
-      setAutoSaveStatus('error');
       return null;
     }
   }, [title, abstract, tags, references, isAnonymous, editId, draftId]);
@@ -560,68 +350,11 @@ export default function ArticleStep1() {
     }
   }, [draftId, editId])
 
-  // Track field changes and trigger auto-save
-  useEffect(() => {
-    if (isInitialLoad || loading || !session || status !== 'authenticated') return;
-    
-    lastChangeTimeRef.current = Date.now();
-    
-    // Only trigger auto-save if there are actual changes
-    const currentData: DraftData = {
-      title: (title || '').trim(),
-      abstract: (abstract || '').trim(),
-      tags: [...(tags || [])],
-      references: (references || '').trim(),
-      isAnonymous: isAnonymous || false,
-      content: null,
-      characterCount: 0,
-      lastEdited: new Date().toISOString()
-    };
 
-    const hasChanges = !lastSavedData || 
-      JSON.stringify(currentData) !== JSON.stringify({
-        ...lastSavedData,
-        lastEdited: currentData.lastEdited
-      });
 
-    if (hasChanges) {
-      setHasUnsavedChanges(true);
-      debouncedAutoSave();
-    }
-    
-    // Cleanup
-    return () => {
-      if (pendingSaveRef.current) {
-        clearTimeout(pendingSaveRef.current);
-        pendingSaveRef.current = null;
-      }
-      debouncedAutoSave.cancel();
-    };
-  }, [title, abstract, tags, references, isAnonymous, debouncedAutoSave, session, status, loading, lastSavedData, setHasUnsavedChanges]);
 
-  // Periodic save as a fallback (every 5 minutes if there are unsaved changes)
-  useEffect(() => {
-    if (!session || status !== 'authenticated') return;
 
-    const interval = setInterval(() => {
-      if (hasUnsavedChanges) {
-        const now = Date.now();
-        // Only save if it's been at least 1 minute since last save
-        if (now - (lastSaveTimeRef.current || 0) > 60000) {
-          debouncedAutoSave()
-        }
-      }
-    }, 300000) // Check every 5 minutes if there are unsaved changes
 
-    return () => clearInterval(interval)
-  }, [session, status, hasUnsavedChanges, debouncedAutoSave])
-
-  // Cleanup debounced function on unmount
-  useEffect(() => {
-    return () => {
-      debouncedAutoSave.cancel?.()
-    }
-  }, [debouncedAutoSave])
 
   // Manual save draft function
   const handleSaveDraft = async () => {
@@ -641,13 +374,30 @@ export default function ArticleStep1() {
       const existingDraftId = draftId || editId || localStorage.getItem('currentDraftId') || localStorage.getItem('currentEditId');
       const isUpdate = !!existingDraftId;
 
+      // Get existing data from localStorage to include step2 content
+      const existingData = localStorage.getItem('draftArticle')
+      let step2Data = { content: null, characterCount: 0 }
+      
+      if (existingData) {
+        try {
+          const parsed = JSON.parse(existingData)
+          step2Data = {
+            content: parsed.content || null,
+            characterCount: parsed.characterCount || 0
+          }
+        } catch (error) {
+          console.error('Error parsing localStorage data:', error)
+        }
+      }
+
       const currentData = {
         title: (title || '').trim() || 'Untitled Article',
         abstract: (abstract || '').trim(),
         tags: tags || [],
         references: (references || '').trim(),
-        isAnonymous: isAnonymous || false,
-        anonymous: isAnonymous || false, // API expects 'anonymous'
+        isAnonymous: isAnonymous || false, // API expects 'isAnonymous'
+        content: step2Data.content,
+        characterCount: step2Data.characterCount,
         ...(existingDraftId && { id: existingDraftId })
       };
 
@@ -666,36 +416,19 @@ export default function ArticleStep1() {
         setLastSaved(new Date());
         saveToLocalStorage();
         alert('Draft updated successfully!');
-        setAutoSaveStatus('saved');
-
-        setTimeout(() => {
-          if (autoSaveStatus === 'saved') setAutoSaveStatus('idle');
-        }, 3000);
       } else {
         const data = await response.json();
         alert(`Failed to save draft: ${data.error || 'Unknown error'}`);
-        setAutoSaveStatus('error');
       }
     } catch (error) {
       console.error('Error saving draft:', error);
       alert('An error occurred while saving the draft.');
-      setAutoSaveStatus('error');
     } finally {
       setIsSavingDraft(false);
     }
   };
 
-  // Auto-save when form data changes
-  useEffect(() => {
-    if (hasUnsavedChanges) {
-      const timer = setTimeout(() => {
-        saveToLocalStorage();
-        setHasUnsavedChanges(false);
-      }, 2000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [hasUnsavedChanges, saveToLocalStorage]);
+
   
   // Sync URL IDs to localStorage safely (not during render)
   useEffect(() => {
@@ -852,50 +585,14 @@ export default function ArticleStep1() {
         </label>
       </div>
       <div className="flex justify-between items-center">
-        {/* Auto-save status */}
-        <div className="text-sm">
-          {autoSaveStatus === 'pending' && (
-            <span className="inline-flex items-center text-yellow-600">
-              <svg className="animate-pulse -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Changes detected, preparing to save...
-            </span>
-          )}
-          {autoSaveStatus === 'saving' && (
-            <span className="inline-flex items-center text-blue-600">
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Saving draft...
-              {retryCount > 0 && ` (attempt ${retryCount + 1})`}
-            </span>
-          )}
-          {autoSaveStatus === 'saved' && lastSaved && (
-            <span className="inline-flex items-center text-green-600">
-              <svg className="-ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
-              Saved at {lastSaved.toLocaleTimeString()}
-            </span>
-          )}
-          {autoSaveStatus === 'error' && (
-            <span className="inline-flex items-center text-red-600">
-              <svg className="-ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-              Auto-save failed{retryCount > 0 && `, retrying... (${retryCount}/3)`}
-            </span>
-          )}
-          {hasUnsavedChanges && autoSaveStatus === 'idle' && (
-            <span className="inline-flex items-center text-gray-500">
-              <svg className="-ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-              Unsaved changes
-            </span>
-          )}
+        {/* Manual save warning */}
+        <div className="text-sm text-amber-600">
+          <span className="inline-flex items-center">
+            <svg className="-ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            Remember to save your draft manually
+          </span>
         </div>
 
         <div className="flex space-x-4">

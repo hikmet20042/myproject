@@ -109,7 +109,6 @@ export async function POST(request: NextRequest) {
           templateDescription,
           isPublicTemplate,
           folder: 'Templates',
-          priority: 'medium',
           completionPercentage: 100
         }
       });
