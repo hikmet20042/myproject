@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import Select from 'react-select'
 import { STORY_TAGS } from '@/lib/tagOptions'
 import { useSession } from 'next-auth/react'
+import { Input, Button } from '@/components/ui'
 
 export default function EditStoryStep1() {
   const router = useRouter()
@@ -198,7 +199,7 @@ export default function EditStoryStep1() {
       <form onSubmit={next} className="space-y-6">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Story Title *</label>
-        <input value={title} onChange={(e)=>setTitle(e.target.value)} required className="w-full px-4 py-3 border border-gray-300 rounded-lg" placeholder="Give your story a compelling title..." />
+        <Input value={title} onChange={(e)=>setTitle(e.target.value)} required placeholder="Give your story a compelling title..." />
       </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
@@ -219,9 +220,8 @@ export default function EditStoryStep1() {
       </div>
       <div className="mb-4">
         <label className="block text-sm font-medium text-gray-700 mb-2">Your Name</label>
-        <input
+        <Input
           type="text"
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg"
           placeholder="Enter your name"
           value={authorName}
           onChange={e => setAuthorName(e.target.value)}
@@ -242,7 +242,7 @@ export default function EditStoryStep1() {
         <label htmlFor="anon" className="ml-2 text-sm text-gray-700">Submit anonymously</label>
       </div>
       <div className="flex justify-end">
-        <button type="submit" className="btn-primary">Continue to writing →</button>
+        <Button type="submit" variant="primary">Continue to writing →</Button>
       </div>
     </form>
     </div>

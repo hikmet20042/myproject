@@ -6,6 +6,7 @@ import Select from 'react-select'
 import { ARTICLE_TAGS } from '@/lib/tagOptions'
 import { useSession } from 'next-auth/react'
 import { Save, ArrowRight } from 'lucide-react'
+import { TextArea } from '@/components/ui'
 
 interface DraftData {
   title: string
@@ -403,7 +404,7 @@ export default function EditArticleStep1() {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">References</label>
-                <textarea value={references} onChange={(e) => setReferences(e.target.value)} rows={4} className="w-full px-4 py-3 border border-gray-300 rounded-lg" placeholder="One per line..." />
+                <TextArea value={references} onChange={(e) => setReferences(e.target.value)} rows={4} placeholder="One per line..." />
               </div>
               
               <div className="flex items-center gap-2">

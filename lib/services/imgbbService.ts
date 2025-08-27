@@ -137,7 +137,7 @@ export class ImgBBService {
    * @returns boolean indicating if image should use ImgBB
    */
   static shouldUseImgBB(context: string): boolean {
-    const publicContexts = ['article', 'story', 'news', 'event', 'training', 'vacancy'];
+    const publicContexts = ['article', 'story', 'news', 'event'];
     return publicContexts.includes(context.toLowerCase());
   }
 }

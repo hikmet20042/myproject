@@ -88,15 +88,15 @@ export async function GET(request: NextRequest) {
       totalBlobSize
     ] = await Promise.all([
       UserProfile.countDocuments({
-        avatar: { $exists: true, $ne: null, $ne: '' },
+        avatar: { $exists: true, $nin: [null, ''] },
         avatarBlobId: { $exists: false }
       }),
       Article.countDocuments({
-        featuredImage: { $exists: true, $ne: null, $ne: '' },
+        featuredImage: { $exists: true, $nin: [null, ''] },
         featuredImageBlobId: { $exists: false }
       }),
       Story.countDocuments({
-        featuredImage: { $exists: true, $ne: null, $ne: '' },
+        featuredImage: { $exists: true, $nin: [null, ''] },
         featuredImageBlobId: { $exists: false }
       }),
       ImageBlob.countDocuments(),

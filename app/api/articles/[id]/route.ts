@@ -32,7 +32,7 @@ export async function GET(
     
     // Check if user owns the article or is admin
     const isOwner = (article as any).userId?.toString() === session.user.id ||
-                   (article as any).author?.toString() === session.user.id
+                   (article as any).authorName === session.user.name
     const isAdmin = session.user.role === 'admin'
     
     if (!isOwner && !isAdmin) {

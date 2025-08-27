@@ -14,6 +14,14 @@ export interface IUserProfile extends mongoose.Document {
   avatar?: string; // This can be either a blob URL (/api/images/id) or legacy file path
   avatarBlobId?: mongoose.Types.ObjectId; // Reference to ImageBlob
   socialLinks?: Record<string, string>;
+  socialMedia?: {
+    facebook?: string;
+    twitter?: string;
+    instagram?: string;
+    linkedin?: string;
+    youtube?: string;
+    website?: string;
+  };
 }
 
 const UserProfileSchema = new mongoose.Schema<IUserProfile>({
@@ -30,6 +38,14 @@ const UserProfileSchema = new mongoose.Schema<IUserProfile>({
   avatar: String, // Legacy field for backward compatibility
   avatarBlobId: { type: mongoose.Schema.Types.ObjectId, ref: 'ImageBlob' },
   socialLinks: { type: Object },
+  socialMedia: {
+    facebook: String,
+    twitter: String,
+    instagram: String,
+    linkedin: String,
+    youtube: String,
+    website: String
+  },
 }, { timestamps: true });
 
 // Virtual to get avatar URL (prioritize blob over legacy)

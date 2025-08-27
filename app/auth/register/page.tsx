@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { Eye, EyeOff, User, Mail, Lock, Building, Globe, Phone, MapPin, FileText, Tag } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Eye, EyeOff, User, Mail, Lock, Building, Globe, Phone, MapPin, FileText, Tag, Users } from 'lucide-react'
+import { Input, Button, TextArea } from '@/components/ui'
 
 export default function RegisterPage() {
-  const searchParams = useSearchParams()
-  const isNGORegistration = searchParams.get('type') === 'ngo'
+  const router = useRouter()
+  const [registrationType, setRegistrationType] = useState<'user' | 'ngo'>('user')
   
   const [formData, setFormData] = useState({
     name: '',
@@ -28,7 +29,25 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const router = useRouter()
+
+  // Reset form when registration type changes
+  useEffect(() => {
+    setFormData({
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      // NGO-specific fields
+      organizationName: '',
+      description: '',
+      website: '',
+      contactPhone: '',
+      address: '',
+      registrationNumber: '',
+      focusAreas: []
+    })
+    setErrors({})
+  }, [registrationType])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -80,7 +99,7 @@ export default function RegisterPage() {
     }
 
     // NGO-specific validation
-    if (isNGORegistration) {
+    if (registrationType === 'ngo') {
       if (!formData.organizationName.trim()) {
         newErrors.organizationName = 'Organization name is required'
       }
@@ -122,8 +141,8 @@ export default function RegisterPage() {
           name: formData.name,
           email: formData.email,
           password: formData.password,
-          type: isNGORegistration ? 'ngo' : 'user',
-          ngoProfile: isNGORegistration ? {
+          type: registrationType,
+          ngoProfile: registrationType === 'ngo' ? {
             organizationName: formData.organizationName,
             description: formData.description,
             website: formData.website || undefined,
@@ -189,10 +208,10 @@ export default function RegisterPage() {
             </div>
           </div>
           <h2 className="text-3xl font-bold text-gray-900">
-              {isNGORegistration ? 'Register Your NGO' : 'Create your account'}
+              {registrationType === 'ngo' ? 'Register Your NGO' : 'Create your account'}
             </h2>
           <p className="mt-2 text-sm text-gray-600">
-            {isNGORegistration 
+            {registrationType === 'ngo' 
               ? 'Join our network of social justice organizations'
               : 'Access your Social Justice Platform dashboard'
             }
@@ -200,7 +219,39 @@ export default function RegisterPage() {
         </div>
       </div>
 
+      {/* Registration Type Tabs */}
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-1 mb-6">
+          <div className="grid grid-cols-2 gap-1">
+            <button
+              type="button"
+              onClick={() => setRegistrationType('user')}
+              className={`flex items-center justify-center px-4 py-3 text-sm font-medium rounded-md transition-all duration-200 ${
+                registrationType === 'user'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <User className="w-4 h-4 mr-2" />
+              Individual User
+            </button>
+            <button
+              type="button"
+              onClick={() => setRegistrationType('ngo')}
+              className={`flex items-center justify-center px-4 py-3 text-sm font-medium rounded-md transition-all duration-200 ${
+                registrationType === 'ngo'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <Building className="w-4 h-4 mr-2" />
+              NGO/Organization
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
   <div className="bg-white py-8 px-4 shadow-xl border border-gray-200 sm:rounded-lg sm:px-10 transition-all duration-500 animate-fadein">
           {errors.submit && (
             <div className="rounded-md bg-red-50 p-4 mb-4">
@@ -222,17 +273,16 @@ export default function RegisterPage() {
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700">Full Name</label>
               <div className="mt-1 relative">
-                <span className="absolute left-3 top-2.5 text-gray-400"><User size={18} /></span>
-                <input
+                <Input
                   id="name"
                   name="name"
                   type="text"
                   required
-                  className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="Enter your full name"
                   value={formData.name}
                   onChange={handleChange}
                   autoComplete="name"
+                  icon={User}
                 />
               </div>
               {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
@@ -240,17 +290,16 @@ export default function RegisterPage() {
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email address</label>
               <div className="mt-1 relative">
-                <span className="absolute left-3 top-2.5 text-gray-400"><Mail size={18} /></span>
-                <input
+                <Input
                   id="email"
                   name="email"
                   type="email"
                   required
-                  className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="Enter your email address"
                   value={formData.email}
                   onChange={handleChange}
                   autoComplete="email"
+                  icon={Mail}
                 />
               </div>
               {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
@@ -258,17 +307,16 @@ export default function RegisterPage() {
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
               <div className="mt-1 relative">
-                <span className="absolute left-3 top-2.5 text-gray-400"><Lock size={18} /></span>
-                <input
+                <Input
                   id="password"
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   required
-                  className="appearance-none block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="Password (min. 6 characters)"
                   value={formData.password}
                   onChange={handleChange}
                   autoComplete="new-password"
+                  icon={Lock}
                 />
                 <button type="button" tabIndex={-1} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600" onClick={() => setShowPassword(v => !v)}>
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -279,17 +327,16 @@ export default function RegisterPage() {
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">Confirm Password</label>
               <div className="mt-1 relative">
-                <span className="absolute left-3 top-2.5 text-gray-400"><Lock size={18} /></span>
-                <input
+                <Input
                   id="confirmPassword"
                   name="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
                   required
-                  className="appearance-none block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="Confirm Password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   autoComplete="new-password"
+                  icon={Lock}
                 />
                 <button type="button" tabIndex={-1} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600" onClick={() => setShowConfirmPassword(v => !v)}>
                   {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -299,7 +346,7 @@ export default function RegisterPage() {
             </div>
 
             {/* NGO-specific fields */}
-            {isNGORegistration && (
+            {registrationType === 'ngo' && (
               <>
                 <div className="border-t pt-6">
                   <h3 className="text-lg font-medium text-gray-900 mb-4">Organization Information</h3>
@@ -308,16 +355,15 @@ export default function RegisterPage() {
                 <div>
                   <label htmlFor="organizationName" className="block text-sm font-medium text-gray-700">Organization Name *</label>
                   <div className="mt-1 relative">
-                    <span className="absolute left-3 top-2.5 text-gray-400"><Building size={18} /></span>
-                    <input
+                    <Input
                       id="organizationName"
                       name="organizationName"
                       type="text"
                       required
-                      className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       placeholder="Enter your organization name"
                       value={formData.organizationName}
                       onChange={handleChange}
+                      icon={Building}
                     />
                   </div>
                   {errors.organizationName && <p className="mt-1 text-sm text-red-600">{errors.organizationName}</p>}
@@ -326,12 +372,11 @@ export default function RegisterPage() {
                 <div>
                   <label htmlFor="description" className="block text-sm font-medium text-gray-700">Organization Description *</label>
                   <div className="mt-1">
-                    <textarea
+                    <TextArea
                       id="description"
                       name="description"
                       rows={4}
                       required
-                      className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       placeholder="Describe your organization's mission and activities"
                       value={formData.description}
                       onChange={handleChange}
@@ -344,15 +389,14 @@ export default function RegisterPage() {
                   <div>
                     <label htmlFor="website" className="block text-sm font-medium text-gray-700">Website</label>
                     <div className="mt-1 relative">
-                      <span className="absolute left-3 top-2.5 text-gray-400"><Globe size={18} /></span>
-                      <input
+                      <Input
                         id="website"
                         name="website"
                         type="url"
-                        className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                         placeholder="https://yourorganization.org"
                         value={formData.website}
                         onChange={handleChange}
+                        icon={Globe}
                       />
                     </div>
                     {errors.website && <p className="mt-1 text-sm text-red-600">{errors.website}</p>}
@@ -361,15 +405,14 @@ export default function RegisterPage() {
                   <div>
                     <label htmlFor="contactPhone" className="block text-sm font-medium text-gray-700">Contact Phone</label>
                     <div className="mt-1 relative">
-                      <span className="absolute left-3 top-2.5 text-gray-400"><Phone size={18} /></span>
-                      <input
+                      <Input
                         id="contactPhone"
                         name="contactPhone"
                         type="tel"
-                        className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                         placeholder="+1 (555) 123-4567"
                         value={formData.contactPhone}
                         onChange={handleChange}
+                        icon={Phone}
                       />
                     </div>
                   </div>
@@ -378,15 +421,14 @@ export default function RegisterPage() {
                 <div>
                   <label htmlFor="address" className="block text-sm font-medium text-gray-700">Address</label>
                   <div className="mt-1 relative">
-                    <span className="absolute left-3 top-2.5 text-gray-400"><MapPin size={18} /></span>
-                    <input
+                    <Input
                       id="address"
                       name="address"
                       type="text"
-                      className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       placeholder="Organization address"
                       value={formData.address}
                       onChange={handleChange}
+                      icon={MapPin}
                     />
                   </div>
                 </div>
@@ -394,15 +436,14 @@ export default function RegisterPage() {
                 <div>
                   <label htmlFor="registrationNumber" className="block text-sm font-medium text-gray-700">Registration Number</label>
                   <div className="mt-1 relative">
-                    <span className="absolute left-3 top-2.5 text-gray-400"><FileText size={18} /></span>
-                    <input
+                    <Input
                       id="registrationNumber"
                       name="registrationNumber"
                       type="text"
-                      className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                       placeholder="Official registration number"
                       value={formData.registrationNumber}
                       onChange={handleChange}
+                      icon={FileText}
                     />
                   </div>
                 </div>
@@ -448,20 +489,15 @@ export default function RegisterPage() {
               </>
             )}
             <div>
-              <button
+              <Button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                variant="primary"
+                fullWidth
+                loading={loading}
               >
-                {loading ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Creating Account...
-                  </div>
-                ) : (
-                  'Create Account'
-                )}
-              </button>
+                {loading ? 'Creating Account...' : 'Create Account'}
+              </Button>
             </div>
           </form>
           <div className="mt-6 text-center">

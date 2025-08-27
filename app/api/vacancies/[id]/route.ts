@@ -23,7 +23,7 @@ export async function GET(
     }
     
     const vacancy = await Vacancy.findById(params.id)
-      .populate('organization', 'name email organizationName')
+      .populate('createdBy', 'name email organizationName')
       .lean()
     
     if (!vacancy) {
@@ -78,7 +78,7 @@ export async function PUT(
     const user = await User.findById(session.user.id)
     
     // Check permissions
-    const isOwner = vacancy.organization.toString() === session.user.id
+    const isOwner = vacancy.createdBy.toString() === session.user.id
     const isAdmin = user?.role === 'admin'
     
     if (!isOwner && !isAdmin) {
@@ -128,13 +128,17 @@ export async function PUT(
     
     // Reset approval status if content changed (except for admins)
     if (!isAdmin && isOwner) {
-      vacancy.status = 'pending'
+      vacancy.isApproved = false
+      vacancy.approvedAt = undefined
+      vacancy.approvedBy = undefined
+      vacancy.rejectedAt = undefined
+      vacancy.rejectionReason = undefined
     }
     
     await vacancy.save()
     
     const updatedVacancy = await Vacancy.findById(params.id)
-      .populate('organization', 'name email organizationName')
+      .populate('createdBy', 'name email organizationName')
       .lean()
     
     return NextResponse.json({
@@ -210,14 +214,14 @@ export async function PATCH(
     
     // Update vacancy status
     if (action === 'approve') {
-      vacancy.status = 'approved'
+      vacancy.isApproved = true
       vacancy.approvedAt = new Date()
       vacancy.approvedBy = session.user.id
       // Clear any previous rejection data
       vacancy.rejectedAt = undefined
       vacancy.rejectionReason = undefined
     } else if (action === 'reject') {
-      vacancy.status = 'rejected'
+      vacancy.isApproved = false
       vacancy.rejectedAt = new Date()
       vacancy.rejectionReason = rejectionReason.trim()
       // Clear any previous approval data
@@ -237,7 +241,7 @@ export async function PATCH(
       : `Your vacancy "${vacancy.title}" was rejected. Reason: ${rejectionReason}`
     
     await Notification.create({
-      recipient: vacancy.organization._id,
+      recipient: vacancy.createdBy._id,
       title: notificationTitle,
       message: notificationMessage,
       type: action === 'approve' ? 'vacancy_approved' : 'vacancy_rejected',
@@ -251,7 +255,7 @@ export async function PATCH(
     })
     
     const updatedVacancy = await Vacancy.findById(params.id)
-      .populate('organization', 'name email organizationName')
+      .populate('createdBy', 'name email organizationName')
       .populate('approvedBy', 'name')
       .lean()
     
@@ -303,7 +307,7 @@ export async function DELETE(
     const user = await User.findById(session.user.id)
     
     // Check permissions
-    const isOwner = vacancy.organization.toString() === session.user.id
+    const isOwner = vacancy.createdBy.toString() === session.user.id
     const isAdmin = user?.role === 'admin'
     
     if (!isOwner && !isAdmin) {

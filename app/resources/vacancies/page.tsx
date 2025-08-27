@@ -2,6 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+import { Card, CardContent } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 
 export default function VacanciesPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -27,7 +32,10 @@ export default function VacanciesPage() {
         "Fluency in Azerbaijani and English",
         "Strong research and writing skills"
       ],
-      applicationLink: "https://www.hrw.org/careers",
+      applicationProcess: {
+        applicationLink: "https://www.hrw.org/careers"
+      },
+      applicationLink: "https://www.hrw.org/careers", // Fallback for old structure
       postedDate: "2024-01-15",
       verified: true
     },
@@ -47,7 +55,10 @@ export default function VacanciesPage() {
         "Good organizational and communication skills",
         "Availability for 10-15 hours per week"
       ],
-      applicationLink: "mailto:volunteer@wrc.az",
+      applicationProcess: {
+        email: "volunteer@wrc.az"
+      },
+      applicationLink: "mailto:volunteer@wrc.az", // Fallback for old structure
       postedDate: "2024-01-20",
       verified: true
     },
@@ -67,7 +78,10 @@ export default function VacanciesPage() {
         "Basic graphic design skills preferred",
         "Passion for social justice causes"
       ],
-      applicationLink: "https://forms.google.com/intern-application",
+      applicationProcess: {
+        applicationLink: "https://forms.google.com/intern-application"
+      },
+      applicationLink: "https://forms.google.com/intern-application", // Fallback for old structure
       postedDate: "2024-01-10",
       verified: false
     }
@@ -139,13 +153,13 @@ export default function VacanciesPage() {
                 <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
                   Search Jobs
                 </label>
-                <input
+                <Input
                   type="text"
                   id="search"
                   placeholder="Search by title, organization..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full px-4 py-2"
                 />
               </div>
 
@@ -154,18 +168,16 @@ export default function VacanciesPage() {
                 <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-2">
                   Job Type
                 </label>
-                <select
-                  id="type"
+                <Select
                   value={selectedType}
                   onChange={(e) => setSelectedType(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  {types.map(type => (
-                    <option key={type} value={type}>
-                      {type === 'all' ? 'All Types' : type}
-                    </option>
-                  ))}
-                </select>
+                  options={types.map(type => ({
+                    value: type,
+                    label: type === 'all' ? 'All Types' : type
+                  }))}
+                  placeholder="All Types"
+                  selectSize="md"
+                />
               </div>
 
               {/* Location Filter */}
@@ -173,18 +185,16 @@ export default function VacanciesPage() {
                 <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
                   Location
                 </label>
-                <select
-                  id="location"
+                <Select
                   value={selectedLocation}
                   onChange={(e) => setSelectedLocation(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  {locations.map(location => (
-                    <option key={location} value={location}>
-                      {location === 'all' ? 'All Locations' : location}
-                    </option>
-                  ))}
-                </select>
+                  options={locations.map(location => ({
+                    value: location,
+                    label: location === 'all' ? 'All Locations' : location
+                  }))}
+                  placeholder="All Locations"
+                  selectSize="md"
+                />
               </div>
 
               {/* Experience Filter */}
@@ -192,18 +202,16 @@ export default function VacanciesPage() {
                 <label htmlFor="experience" className="block text-sm font-medium text-gray-700 mb-2">
                   Experience
                 </label>
-                <select
-                  id="experience"
+                <Select
                   value={selectedExperience}
                   onChange={(e) => setSelectedExperience(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  {experienceLevels.map(level => (
-                    <option key={level} value={level}>
-                      {level === 'all' ? 'All Levels' : level}
-                    </option>
-                  ))}
-                </select>
+                  options={experienceLevels.map(level => ({
+                    value: level,
+                    label: level === 'all' ? 'All Levels' : level
+                  }))}
+                  placeholder="All Levels"
+                  selectSize="md"
+                />
               </div>
             </div>
           </div>
@@ -300,17 +308,55 @@ export default function VacanciesPage() {
                         </div>
                         
                         {!isDeadlinePassed(vacancy.deadline) && (
-                          <a
-                            href={vacancy.applicationLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="btn-primary inline-flex items-center"
-                          >
-                            Apply Now
-                            <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                            </svg>
-                          </a>
+                          <div>
+                            {/* Application Process */}
+                            {vacancy.applicationProcess?.applicationLink && (
+                              <a
+                                href={vacancy.applicationLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <Button variant="primary" className="inline-flex items-center">
+                                  Apply Now
+                                  <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                  </svg>
+                                </Button>
+                              </a>
+                            )}
+                            {vacancy.applicationProcess?.email && (
+                              <div className="space-y-2">
+                                <p className="text-sm text-gray-600">
+                                  To apply, send your CV to:
+                                </p>
+                                <a
+                                  href={`mailto:${vacancy.applicationProcess.email}?subject=Application for ${vacancy.title}`}
+                                >
+                                  <Button variant="primary" className="inline-flex items-center">
+                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                    </svg>
+                                    {vacancy.applicationProcess.email}
+                                  </Button>
+                                </a>
+                              </div>
+                            )}
+                            {/* Fallback for old data structure */}
+                            {!vacancy.applicationProcess && vacancy.applicationLink && (
+                              <a
+                                href={vacancy.applicationLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <Button variant="primary" className="inline-flex items-center">
+                                  Apply Now
+                                  <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                  </svg>
+                                </Button>
+                              </a>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -330,17 +376,17 @@ export default function VacanciesPage() {
                 <p className="text-gray-600 mb-6">
                   Try adjusting your search criteria or filters to find more opportunities.
                 </p>
-                <button
+                <Button
                   onClick={() => {
                     setSearchTerm('');
                     setSelectedType('all');
                     setSelectedLocation('all');
                     setSelectedExperience('all');
                   }}
-                  className="btn-primary"
+                  variant="primary"
                 >
                   Clear Filters
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -358,23 +404,21 @@ export default function VacanciesPage() {
               If you're an approved NGO, you can post job opportunities, volunteer positions, and internships.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/auth/login"
-                className="btn-primary inline-flex items-center"
-              >
-                Login to Post
-                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+              <Link href="/auth/login">
+                <Button variant="primary" className="inline-flex items-center">
+                  Login to Post
+                  <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Button>
               </Link>
-              <Link
-                href="/auth/register?type=ngo"
-                className="btn-secondary inline-flex items-center"
-              >
-                Register as NGO
-                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                </svg>
+              <Link href="/auth/register?type=ngo">
+                <Button variant="secondary" className="inline-flex items-center">
+                  Register as NGO
+                  <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                  </svg>
+                </Button>
               </Link>
             </div>
           </div>

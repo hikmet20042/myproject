@@ -6,7 +6,7 @@ interface CommunityStory {
   authorName: string;
   date: string;
   excerpt: string;
-  content: string;
+  content: any; // Can be string or BlockNote array
   tags: string[];
   status: string;
   type: 'community-story';

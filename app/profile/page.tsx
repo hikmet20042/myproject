@@ -1,49 +1,30 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import NotificationModal from '@/components/NotificationModal'
 import EnhancedDraftManager from '@/components/EnhancedDraftManager'
 import DraftAnalytics from '@/components/DraftAnalytics'
 import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import {
-  Bell,
-  User,
-  Settings,
-  FileText,
+ 
   CheckCircle,
   XCircle,
   Clock,
   Trash2,
-  BarChart3,
+ 
   Shield,
-  Download,
-  Upload,
-  Eye,
-  Heart,
-  MessageCircle,
-  Share2,
-  Award,
-  Target,
-  TrendingUp,
-  Calendar,
-  Bookmark,
-  Archive,
-  Star,
-
-  Zap,
-  Globe,
-  Lock,
-  Camera,
-  Edit3,
-  Save,
-  X,
+ 
   Plus,
-  Filter,
-  Search,
-  Grid,
-  List
+  
 } from 'lucide-react'
+import Stats from '@/components/Profile/Stats'
+import TabNavigation from '@/components/Profile/TabNavigation'
+import Profile from '@/components/Profile/Profile'
+import Articles from '@/components/Profile/Articles'
+import Stories from '@/components/Profile/Stories'
+import Notifications from '@/components/Profile/Notifications'
+import SettingsTab from '@/components/Profile/SettingsTab'
+import { Button } from '@/components/ui/Button'
 
 interface UserProfile {
   user: {
@@ -68,6 +49,14 @@ interface UserProfile {
     avatar: string
     avatarUrl?: string // Virtual field from UserProfile model
     socialLinks: string
+    socialMedia?: {
+      facebook: string
+      twitter: string
+      instagram: string
+      linkedin: string
+      youtube: string
+      website: string
+    }
   } | null
 }
 
@@ -93,7 +82,6 @@ export default function ProfilePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const pathname = usePathname()
 
   // Get active tab from URL, default to 'profile'
   const getActiveTabFromUrl = () => {
@@ -199,7 +187,15 @@ export default function ProfilePage() {
     organization: '',
     interests: '',
     avatar: '',
-    socialLinks: ''
+    socialLinks: '',
+    socialMedia: {
+      facebook: '',
+      twitter: '',
+      instagram: '',
+      linkedin: '',
+      youtube: '',
+      website: ''
+    }
   })
 
   const loadDrafts = async () => {
@@ -482,7 +478,15 @@ export default function ProfilePage() {
           occupation: data.profile?.occupation || '',
           organization: data.profile?.organization || '',
           interests: data.profile?.interests || '',
-          avatar: data.profile?.avatar || '',
+          avatar: data.profile?.avatarUrl || data.profile?.avatar || '',
+          socialMedia: {
+            facebook: data.profile?.socialMedia?.facebook || '',
+            twitter: data.profile?.socialMedia?.twitter || '',
+            instagram: data.profile?.socialMedia?.instagram || '',
+            linkedin: data.profile?.socialMedia?.linkedin || '',
+            youtube: data.profile?.socialMedia?.youtube || '',
+            website: data.profile?.socialMedia?.website || ''
+          },
           socialLinks: data.profile?.socialLinks || ''
         })
       }
@@ -496,10 +500,10 @@ export default function ProfilePage() {
 
   const loadUserArticles = async () => {
     try {
-      const response = await fetch('/api/articles/user?status=submitted')
+      const response = await fetch('/api/articles/user')
       if (response.ok) {
         const data = await response.json()
-        // Only show articles with a status (submitted, approved, or rejected)
+        // Only show articles with a status (pending, approved, or rejected)
         const submittedArticles = (data.results || []).filter((article: any) =>
           ['pending', 'approved', 'rejected'].includes(article.status)
         )
@@ -540,18 +544,28 @@ export default function ProfilePage() {
 
   const handleSaveProfile = async () => {
     try {
+      console.log('Saving profile with data:', formData)
       const response = await fetch('/api/users/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       })
 
+      const result = await response.json()
+      console.log('Save response:', result)
+
       if (response.ok) {
         setEditing(false)
-        loadProfile()
+        await loadProfile()
+        // Show success message
+        alert('Profile updated successfully!')
+      } else {
+        console.error('Save failed:', result)
+        alert(`Failed to save profile: ${result.error || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('Error saving profile:', error)
+      alert('Failed to save profile. Please try again.')
     }
   }
 
@@ -775,28 +789,7 @@ export default function ProfilePage() {
               </div>
 
               {/* Quick Stats */}
-              <div className="mt-8 grid grid-cols-2 md:grid-cols-5 gap-6">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{profileStats.totalDrafts}</div>
-                  <div className="text-sm text-gray-500">Drafts</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{profileStats.totalArticles}</div>
-                  <div className="text-sm text-gray-500">Articles</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">{profileStats.totalStories}</div>
-                  <div className="text-sm text-gray-500">Stories</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-yellow-600">{profileStats.totalViews}</div>
-                  <div className="text-sm text-gray-500">Views</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">{profileStats.totalLikes}</div>
-                  <div className="text-sm text-gray-500">Likes</div>
-                </div>
-              </div>
+              <Stats profileStats={profileStats}/>
             </div>
           </div>
           {isUnverified && (
@@ -809,13 +802,13 @@ export default function ProfilePage() {
                   <strong>Your email is not verified.</strong> You cannot submit articles or stories until you verify your email.<br />
                   <span className="block mt-1">Please check your inbox (and spam folder) for a verification email.</span>
                 </div>
-                <button
+                <Button
                   onClick={handleResendVerification}
                   disabled={resendLoading}
-                  className="mt-3 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:opacity-50"
+                  className="mt-3 bg-yellow-500 hover:bg-yellow-600 focus:ring-yellow-500"
                 >
                   {resendLoading ? 'Sending...' : 'Resend Verification Email'}
-                </button>
+                </Button>
                 {resendSuccess && <div className="mt-2 text-green-700">{resendSuccess}</div>}
                 {resendError && <div className="mt-2 text-red-700">{resendError}</div>}
               </div>
@@ -823,412 +816,12 @@ export default function ProfilePage() {
           )}
 
           {/* Tab Navigation */}
-          <div className="border-b border-gray-200 mb-8">
-            <nav className="-mb-px flex space-x-8">
-              <button
-                onClick={() => handleTabChange('profile')}
-                disabled={loadingTab !== null}
-                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'profile'
-                  ? 'border-red-500 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  } ${loadingTab !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <User className="w-4 h-4 inline mr-2" />
-                Profile
-                {loadingTab === 'profile' && (
-                  <div className="inline-block ml-2 animate-spin rounded-full h-3 w-3 border-b-2 border-red-600"></div>
-                )}
-              </button>
-              <button
-                onClick={() => handleTabChange('drafts')}
-                disabled={loadingTab !== null}
-                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'drafts'
-                  ? 'border-red-500 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  } ${loadingTab !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <FileText className="w-4 h-4 inline mr-2" />
-                Drafts
-                {drafts.length > 0 && (
-                  <span className="ml-2 bg-yellow-500 text-white text-xs rounded-full px-2 py-1">
-                    {drafts.length}
-                  </span>
-                )}
-                {loadingTab === 'drafts' && (
-                  <div className="inline-block ml-2 animate-spin rounded-full h-3 w-3 border-b-2 border-red-600"></div>
-                )}
-              </button>
-              <button
-                onClick={() => handleTabChange('articles')}
-                disabled={loadingTab !== null}
-                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'articles'
-                  ? 'border-red-500 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  } ${loadingTab !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <FileText className="w-4 h-4 inline mr-2" />
-                My Articles
-                {loadingTab === 'articles' && (
-                  <div className="inline-block ml-2 animate-spin rounded-full h-3 w-3 border-b-2 border-red-600"></div>
-                )}
-              </button>
-              <button
-                onClick={() => handleTabChange('stories')}
-                disabled={loadingTab !== null}
-                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'stories'
-                  ? 'border-red-500 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  } ${loadingTab !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <FileText className="w-4 h-4 inline mr-2" />
-                My Stories
-                {loadingTab === 'stories' && (
-                  <div className="inline-block ml-2 animate-spin rounded-full h-3 w-3 border-b-2 border-red-600"></div>
-                )}
-              </button>
-              <button
-                onClick={() => handleTabChange('analytics')}
-                disabled={loadingTab !== null}
-                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'analytics'
-                  ? 'border-red-500 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  } ${loadingTab !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <BarChart3 className="w-4 h-4 inline mr-2" />
-                Analytics
-                {loadingTab === 'analytics' && (
-                  <div className="inline-block ml-2 animate-spin rounded-full h-3 w-3 border-b-2 border-red-600"></div>
-                )}
-              </button>
-              <button
-                onClick={() => handleTabChange('notifications')}
-                disabled={loadingTab !== null}
-                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'notifications'
-                  ? 'border-red-500 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  } ${loadingTab !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <Bell className="w-4 h-4 inline mr-2" />
-                Notifications
-                {notifications.filter(n => !n.isRead).length > 0 && (
-                  <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">
-                    {notifications.filter(n => !n.isRead).length}
-                  </span>
-                )}
-                {loadingTab === 'notifications' && (
-                  <div className="inline-block ml-2 animate-spin rounded-full h-3 w-3 border-b-2 border-red-600"></div>
-                )}
-              </button>
-              <button
-                onClick={() => handleTabChange('settings')}
-                disabled={loadingTab !== null}
-                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'settings'
-                  ? 'border-red-500 text-red-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  } ${loadingTab !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <Settings className="w-4 h-4 inline mr-2" />
-                Settings
-                {loadingTab === 'settings' && (
-                  <div className="inline-block ml-2 animate-spin rounded-full h-3 w-3 border-b-2 border-red-600"></div>
-                )}
-              </button>
-            </nav>
-          </div>
+          <TabNavigation handleTabChange={handleTabChange} loadingTab= {loadingTab } activeTab={activeTab} drafts={drafts} notifications={notifications}/>
 
           {/* Profile Tab */}
           {activeTab === 'profile' && (
-            <div className="bg-white shadow rounded-lg">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-xl font-semibold text-gray-900">Profile Information</h2>
-                  {!loading && (
-                    <button
-                      onClick={() => setEditing(!editing)}
-                      className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                    >
-                      <Settings className="w-4 h-4 mr-2" />
-                      {editing ? 'Cancel' : 'Edit Profile'}
-                    </button>
-                  )}
-                </div>
-              </div>
+           <Profile loading={loading} setEditing={setEditing} editing={editing} formData={formData}  profile={profile} setFormData={setFormData}  handleSaveProfile={handleSaveProfile}/>
 
-              <div className="px-6 py-4">
-                {loading ? (
-                  <div className="animate-pulse space-y-6">
-                    <div className="flex items-center space-x-6">
-                      <div className="h-20 w-20 bg-gray-200 rounded-full"></div>
-                      <div className="space-y-2">
-                        <div className="h-4 bg-gray-200 rounded w-32"></div>
-                        <div className="h-3 bg-gray-200 rounded w-48"></div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {[...Array(6)].map((_, i) => (
-                        <div key={i} className="space-y-2">
-                          <div className="h-4 bg-gray-200 rounded w-24"></div>
-                          <div className="h-8 bg-gray-200 rounded"></div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  editing ? (
-                    <div className="space-y-6">
-                      {/* Avatar Upload Section */}
-                      <div className="flex items-center space-x-6">
-                        <div className="shrink-0">
-                          <img
-                            className="h-20 w-20 rounded-full object-cover"
-                            src={
-                              formData.avatar ||
-                              profile.profile?.avatarUrl ||
-                              profile.profile?.avatar ||
-                              profile.user.image ||
-                              '/default-avatar.png'
-                            }
-                            alt="Profile"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Profile Picture
-                          </label>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={async (e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                const uploadFormData = new FormData();
-                                uploadFormData.append('file', file);
-                                uploadFormData.append('alt', 'Profile picture');
-                                uploadFormData.append('description', 'User profile avatar');
-                                uploadFormData.append('context', 'profile'); // Use blob storage for privacy
-
-                                try {
-                                  const response = await fetch('/api/upload', {
-                                    method: 'POST',
-                                    body: uploadFormData,
-                                  });
-                                  const data = await response.json();
-                                  if (data.url) {
-                                    // Store the blob URL instead of file path
-                                    setFormData(prev => ({ ...prev, avatar: data.url }));
-                                  } else {
-                                    console.error('Upload failed:', data.error);
-                                    alert('Upload failed: ' + (data.error || 'Unknown error'));
-                                  }
-                                } catch (error) {
-                                  console.error('Upload failed:', error);
-                                  alert('Upload failed. Please try again.');
-                                }
-                              }
-                            }}
-                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
-                          />
-                          <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 10MB. Images are stored securely in the database.</p>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Name</label>
-                          <input
-                            type="text"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Email</label>
-                          <input
-                            type="email"
-                            value={profile.user.email}
-                            disabled
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-50"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Location</label>
-                          <input
-                            type="text"
-                            value={formData.location}
-                            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Website</label>
-                          <input
-                            type="url"
-                            value={formData.website}
-                            onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Phone</label>
-                          <input
-                            type="tel"
-                            value={formData.phone}
-                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
-                          <input
-                            type="date"
-                            value={formData.dateOfBirth}
-                            onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Gender</label>
-                          <select
-                            value={formData.gender}
-                            onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
-                          >
-                            <option value="">Select gender</option>
-                            <option value="male">Male</option>
-                            <option value="female">Female</option>
-                            <option value="other">Other</option>
-                            <option value="prefer-not-to-say">Prefer not to say</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Occupation</label>
-                          <input
-                            type="text"
-                            value={formData.occupation}
-                            onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Organization</label>
-                          <input
-                            type="text"
-                            value={formData.organization}
-                            onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
-                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Bio</label>
-                        <textarea
-                          rows={4}
-                          value={formData.bio}
-                          onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Interests</label>
-                        <input
-                          type="text"
-                          value={formData.interests}
-                          onChange={(e) => setFormData({ ...formData, interests: e.target.value })}
-                          placeholder="e.g., Gender equality, Women's rights, Activism"
-                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Social Links</label>
-                        <input
-                          type="text"
-                          value={formData.socialLinks}
-                          onChange={(e) => setFormData({ ...formData, socialLinks: e.target.value })}
-                          placeholder="e.g., https://twitter.com/username, https://linkedin.com/in/username"
-                          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
-                        />
-                      </div>
-                      <div className="flex justify-end space-x-3">
-                        <button
-                          onClick={() => setEditing(false)}
-                          className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={handleSaveProfile}
-                          className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                        >
-                          Save Changes
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Name</label>
-                          <p className="mt-1 text-sm text-gray-900">{profile.user.name}</p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Email</label>
-                          <p className="mt-1 text-sm text-gray-900">{profile.user.email}</p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Location</label>
-                          <p className="mt-1 text-sm text-gray-900">{profile.profile?.location || 'Not specified'}</p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Website</label>
-                          <p className="mt-1 text-sm text-gray-900">
-                            {profile.profile?.website ? (
-                              <a href={profile.profile.website} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:text-red-500">
-                                {profile.profile.website}
-                              </a>
-                            ) : (
-                              'Not specified'
-                            )}
-                          </p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Phone</label>
-                          <p className="mt-1 text-sm text-gray-900">{profile.profile?.phone || 'Not specified'}</p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
-                          <p className="mt-1 text-sm text-gray-900">{profile.profile?.dateOfBirth || 'Not specified'}</p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Gender</label>
-                          <p className="mt-1 text-sm text-gray-900">{profile.profile?.gender || 'Not specified'}</p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Occupation</label>
-                          <p className="mt-1 text-sm text-gray-900">{profile.profile?.occupation || 'Not specified'}</p>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Organization</label>
-                          <p className="mt-1 text-sm text-gray-900">{profile.profile?.organization || 'Not specified'}</p>
-                        </div>
-                      </div>
-                      {profile.profile?.bio && (
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Bio</label>
-                          <p className="mt-1 text-sm text-gray-900">{profile.profile.bio}</p>
-                        </div>
-                      )}
-                      {profile.profile?.interests && (
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Interests</label>
-                          <p className="mt-1 text-sm text-gray-900">{profile.profile.interests}</p>
-                        </div>
-                      )}
-                    </div>
-                  )
-                )}
-              </div>
-            </div>
           )}
 
           {/* Drafts Tab */}
@@ -1314,541 +907,40 @@ export default function ProfilePage() {
 
           {/* Articles Tab */}
           {activeTab === 'articles' && (
-            <div className="bg-white shadow rounded-lg">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">My Submitted Articles</h2>
-                <p className="text-sm text-gray-600 mt-1">Track the status of your submitted articles</p>
-              </div>
-              <div className="px-6 py-4">
-                {loadingTab === 'articles' ? (
-                  <div className="animate-pulse space-y-4">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-2 flex-1">
-                            <div className="h-4 bg-gray-200 rounded w-32"></div>
-                            <div className="h-6 bg-gray-200 rounded w-64"></div>
-                            <div className="h-3 bg-gray-200 rounded w-48"></div>
-                          </div>
-                          <div className="h-8 bg-gray-200 rounded w-20"></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                articles.length === 0 ? (
-                  <div className="text-center py-8">
-                    <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">No submitted articles</h3>
-                    <p className="mt-1 text-sm text-gray-500">
-                      You haven't submitted any articles for review yet. Start by creating and submitting your first article.
-                    </p>
-                    <div className="mt-6">
-                      {isUnverified ? (
-                        <button
-                          type="button"
-                          disabled
-                          className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-gray-400 cursor-not-allowed"
-                          tabIndex={-1}
-                          aria-disabled="true"
-                        >
-                          Submit an Article
-                        </button>
-                      ) : (
-                        <a
-                          href="/submit/article"
-                          className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:ring-red-500"
-                        >
-                          Submit an Article
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {articles.map((article) => (
-                      <div key={article._id} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(article.status)}`}>
-                                {getStatusIcon(article.status)}
-                                <span className="ml-1 capitalize">{article.status}</span>
-                              </span>
-                            </div>
-                            <h3 className="text-lg font-medium text-gray-900">{article.title}</h3>
-                            <p className="text-sm text-gray-500">
-                              Submitted on {article.createdAt ? new Date(article.createdAt).toLocaleDateString() : ''}
-                            </p>
-                            {article.adminComment && (
-                              <div className="mt-2 p-3 bg-gray-50 rounded-md">
-                                <p className="text-sm text-gray-700">
-                                  <strong>Admin Comment:</strong> {article.adminComment}
-                                </p>
-                              </div>
-                            )}
-                            <div className="mt-2 flex space-x-2">
-                              {/* Allow editing for pending and rejected articles */}
-                              {article.status === 'pending' && (
-                                <a
-                                  href={`/edit/article/${article._id}`}
-                                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
-                                >
-                                  Edit Article
-                                </a>
-                              )}
-                              {article.status === 'rejected' && (
-                                <button
-                                  onClick={() => handleEditRejectedArticle(article._id)}
-                                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                >
-                                  Edit & Resubmit
-                                </button>
-                              )}
-                              {article.status === 'approved' && (
-                                <span className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-gray-100 rounded-md">
-                                  Published (Cannot Edit)
-                                </span>
-                              )}
-                              {/* Allow deletion for all user's articles */}
-                              <button
-                                onClick={() => setDeleteConfirm({ type: 'article', id: article._id, title: article.title })}
-                                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-                
-              </div>
-            </div>
+            <Articles loadingTab={loadingTab} articles={articles} isUnverified={isUnverified} getStatusIcon={getStatusIcon} handleEditRejectedArticle={handleEditRejectedArticle} getStatusColor={getStatusColor} setDeleteConfirm={setDeleteConfirm} />
+
           )}
 
 
           {/* Stories Tab */}
           {activeTab === 'stories' && (
-            <div className="bg-white shadow rounded-lg">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">My Stories</h2>
-              </div>
-              <div className="px-6 py-4">
-                {loadingTab === 'stories' ? (
-                  <div className="animate-pulse space-y-4">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-2 flex-1">
-                            <div className="h-6 bg-gray-200 rounded w-64"></div>
-                            <div className="h-3 bg-gray-200 rounded w-48"></div>
-                          </div>
-                          <div className="h-8 bg-gray-200 rounded w-20"></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : stories.length === 0 ? (
-                  <div className="text-center py-8">
-                    <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">No stories yet</h3>
-                    <p className="mt-1 text-sm text-gray-500">
-                      Start by submitting a story.
-                    </p>
-                    <div className="mt-6">
-                      {isUnverified ? (
-                        <button
-                          type="button"
-                          disabled
-                          className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-gray-400 cursor-not-allowed"
-                          tabIndex={-1}
-                          aria-disabled="true"
-                        >
-                          Submit a Story
-                        </button>
-                      ) : (
-                        <a
-                          href="/submit/story"
-                          className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:ring-red-500"
-                        >
-                          Submit a Story
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {stories.map((story) => (
-                      <div key={story._id} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(story.status)}`}>
-                                {getStatusIcon(story.status)}
-                                <span className="ml-1 capitalize">{story.status}</span>
-                              </span>
-                            </div>
-                            <h3 className="text-lg font-medium text-gray-900">{story.title}</h3>
-                            <p className="text-sm text-gray-500">
-                              Submitted on {story.createdAt ? new Date(story.createdAt).toLocaleDateString() : ''}
-                            </p>
-                            {story.adminComment && (
-                              <div className="mt-2 p-3 bg-gray-50 rounded-md">
-                                <p className="text-sm text-gray-700">
-                                  <strong>Admin Comment:</strong> {story.adminComment}
-                                </p>
-                              </div>
-                            )}
-                            <div className="mt-2 flex space-x-2">
-                              {/* Allow editing for pending and rejected stories */}
-                              {story.status === 'pending' && (
-                                <a
-                                  href={`/edit/story/${story._id}/step1`}
-                                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
-                                >
-                                  Edit Story
-                                </a>
-                              )}
-                              {story.status === 'rejected' && (
-                                <button
-                                  onClick={() => handleEditRejectedStory(story._id)}
-                                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                >
-                                  Edit & Resubmit
-                                </button>
-                              )}
-                              {story.status === 'approved' && (
-                                <span className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-gray-100 rounded-md">
-                                  Published (Cannot Edit)
-                                </span>
-                              )}
-                              {/* Allow deletion for all user's stories */}
-                              <button
-                                onClick={() => setDeleteConfirm({ type: 'story', id: story._id, title: story.title })}
-                                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                
-              </div>
-            </div>
+           <Stories loadingTab={loadingTab} stories={stories} isUnverified={isUnverified} getStatusIcon={getStatusIcon} handleEditRejectedStory={handleEditRejectedStory} getStatusColor={getStatusColor} setDeleteConfirm={setDeleteConfirm} />
+
           )}
 
           {/* Notifications Tab */}
           {activeTab === 'notifications' && (
-            <div className="bg-white shadow rounded-lg">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">Notifications</h2>
-              </div>
-              <div className="px-6 py-4">
-                {loadingTab === 'notifications' ? (
-                  <div className="animate-pulse space-y-4">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-2 flex-1">
-                            <div className="h-5 bg-gray-200 rounded w-48"></div>
-                            <div className="h-4 bg-gray-200 rounded w-64"></div>
-                            <div className="h-3 bg-gray-200 rounded w-32"></div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : notifications.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Bell className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">No notifications</h3>
-                    <p className="mt-1 text-sm text-gray-500">
-                      You're all caught up!
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {notifications.map((notification) => (
-                      <div
-                        key={notification.id}
-                        className={`border border-gray-200 rounded-lg p-4 ${!notification.isRead ? 'bg-blue-50' : ''
-                          } cursor-pointer`}
-                        onClick={() => { setModalNotification(notification); setModalOpen(true); }}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <h3 className="text-lg font-medium text-gray-900">{notification.title}</h3>
-                              {!notification.isRead && (
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                  New
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-sm text-gray-700 line-clamp-2">{notification.message}</p>
-                            <p className="text-xs text-gray-500 mt-2">
-                              {new Date(notification.createdAt).toLocaleString()}
-                            </p>
-                          </div>
-                          <div className="flex flex-col gap-2 ml-4">
-                            {/* Only show mark as read/unread in modal, not in list, to avoid double request */}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                
-              </div>
-              {/* Notification Modal */}
-              <NotificationModal
-                open={modalOpen && !!modalNotification}
-                onClose={() => setModalOpen(false)}
-                title={modalNotification?.title || ''}
-                message={modalNotification?.message || ''}
-                createdAt={modalNotification?.createdAt || ''}
-                isRead={modalNotification?.isRead}
-                onMarkRead={modalNotification && !modalNotification.isRead ? () => {
-                  const notifId = modalNotification.id || modalNotification._id;
-                  if (notifId) toggleNotificationRead(notifId, true);
-                  setModalOpen(false);
-                } : undefined}
-                onMarkUnread={modalNotification && modalNotification.isRead ? () => {
-                  const notifId = modalNotification.id || modalNotification._id;
-                  if (notifId) toggleNotificationRead(notifId, false);
-                  setModalOpen(false);
-                } : undefined}
-              />
-            </div>
+            <Notifications 
+            notifications={notifications}
+            setModalNotification={setModalNotification}
+            setModalOpen={setModalOpen}
+            modalNotification={modalNotification}
+            modalOpen={modalOpen}
+            toggleNotificationRead={toggleNotificationRead}
+            loadingTab={loadingTab}
+            />
           )}
 
           {/* Settings Tab */}
           {activeTab === 'settings' && (
-            <div className="bg-white shadow rounded-lg">
-              {loadingTab === 'settings' ? (
-                <div className="p-6">
-                  <div className="animate-pulse space-y-4">
-                    <div className="h-6 bg-gray-200 rounded w-1/3"></div>
-                    <div className="space-y-3">
-                      {[...Array(6)].map((_, i) => (
-                        <div key={i} className="h-4 bg-gray-200 rounded"></div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="px-6 py-4 border-b border-gray-200">
-                    <h2 className="text-xl font-semibold text-gray-900">Account Settings</h2>
-                    <p className="text-sm text-gray-600 mt-1">Manage your privacy, notifications, and writing preferences</p>
-                  </div>
-                  <div className="px-6 py-4 space-y-6">
-                  {/* Privacy Settings */}
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Privacy</h3>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Public Profile</label>
-                          <p className="text-sm text-gray-500">Allow others to view your profile</p>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={preferences?.privacy?.publicProfile || false}
-                          onChange={(e) => {
-                            const newPrefs = {
-                              ...preferences,
-                              privacy: {
-                                ...preferences.privacy,
-                                publicProfile: e.target.checked
-                              }
-                            }
-                            setPreferences(newPrefs)
-                          }}
-                          className="h-4 w-4 text-red-600 rounded"
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Show Email</label>
-                          <p className="text-sm text-gray-500">Display email on public profile</p>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={preferences?.privacy?.showEmail || false}
-                          onChange={(e) => {
-                            const newPrefs = {
-                              ...preferences,
-                              privacy: {
-                                ...preferences.privacy,
-                                showEmail: e.target.checked
-                              }
-                            }
-                            setPreferences(newPrefs)
-                          }}
-                          className="h-4 w-4 text-red-600 rounded"
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Show Statistics</label>
-                          <p className="text-sm text-gray-500">Display writing stats on profile</p>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={preferences?.privacy?.showStats || false}
-                          onChange={(e) => {
-                            const newPrefs = {
-                              ...preferences,
-                              privacy: {
-                                ...preferences.privacy,
-                                showStats: e.target.checked
-                              }
-                            }
-                            setPreferences(newPrefs)
-                          }}
-                          className="h-4 w-4 text-red-600 rounded"
-                        />
-                      </div>
-                    </div>
-                  </div>
+            <SettingsTab
+            loadingTab={loadingTab}
+            preferences={preferences}
+            setPreferences={setPreferences}
+            savePreferences={savePreferences}
+            
 
-                  {/* Notification Settings */}
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Notifications</h3>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Email Notifications</label>
-                          <p className="text-sm text-gray-500">Receive notifications via email</p>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={preferences?.notifications?.email?.enabled || false}
-                          onChange={(e) => {
-                            const newPrefs = {
-                              ...preferences,
-                              notifications: {
-                                ...preferences.notifications,
-                                email: {
-                                  ...preferences.notifications?.email,
-                                  enabled: e.target.checked
-                                }
-                              }
-                            }
-                            setPreferences(newPrefs)
-                          }}
-                          className="h-4 w-4 text-red-600 rounded"
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Push Notifications</label>
-                          <p className="text-sm text-gray-500">Receive browser notifications</p>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={preferences?.notifications?.push?.enabled || false}
-                          onChange={(e) => {
-                            const newPrefs = {
-                              ...preferences,
-                              notifications: {
-                                ...preferences.notifications,
-                                push: {
-                                  ...preferences.notifications?.push,
-                                  enabled: e.target.checked
-                                }
-                              }
-                            }
-                            setPreferences(newPrefs)
-                          }}
-                          className="h-4 w-4 text-red-600 rounded"
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">In-App Notifications</label>
-                          <p className="text-sm text-gray-500">Show notifications in the app</p>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={preferences?.notifications?.inApp?.enabled || false}
-                          onChange={(e) => {
-                            const newPrefs = {
-                              ...preferences,
-                              notifications: {
-                                ...preferences.notifications,
-                                inApp: {
-                                  ...preferences.notifications?.inApp,
-                                  enabled: e.target.checked
-                                }
-                              }
-                            }
-                            setPreferences(newPrefs)
-                          }}
-                          className="h-4 w-4 text-red-600 rounded"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Writing Settings */}
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Writing</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Default Privacy</label>
-                        <select
-                          value={preferences?.writing?.defaultPrivacy || 'public'}
-                          onChange={(e) => {
-                            const newPrefs = {
-                              ...preferences,
-                              writing: {
-                                ...preferences.writing,
-                                defaultPrivacy: e.target.value
-                              }
-                            }
-                            setPreferences(newPrefs)
-                          }}
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                        >
-                          <option value="public">Public</option>
-                          <option value="private">Private</option>
-                          <option value="anonymous">Anonymous</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Save Settings */}
-                  <div className="pt-4 border-t border-gray-200">
-                    <div className="flex items-center space-x-3">
-                      <button
-                        onClick={() => savePreferences()}
-                        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
-                      >
-                        <Save className="w-4 h-4 mr-2" />
-                        Save All Settings
-                      </button>
-                      <button
-                        onClick={() => savePreferences('privacy')}
-                        className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                      >
-                        Save Privacy Only
-                      </button>
-                    </div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
+            />
           )}
         </div>
       </div>
@@ -1870,13 +962,13 @@ export default function ProfilePage() {
                 </p>
               </div>
               <div className="flex justify-center space-x-4 mt-4">
-                <button
+                <Button
                   onClick={() => setDeleteConfirm(null)}
-                  className="px-4 py-2 bg-gray-300 text-gray-800 text-base font-medium rounded-md shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                  variant="secondary"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => {
                     if (deleteConfirm.type === 'draft') {
                       deleteDraft(deleteConfirm.id)
@@ -1887,10 +979,10 @@ export default function ProfilePage() {
                     }
                   }}
                   disabled={deleting}
-                  className="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  variant="danger"
                 >
                   {deleting ? 'Deleting...' : 'Delete'}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

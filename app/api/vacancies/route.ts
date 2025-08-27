@@ -20,11 +20,22 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search')
     const status = searchParams.get('status') || 'approved'
     const createdBy = searchParams.get('createdBy') // For NGO's own vacancies
+    const author = searchParams.get('author') // Handle 'author=me' parameter
     const adminView = searchParams.get('adminView') === 'true'
     const sortBy = searchParams.get('sortBy') || 'createdAt'
     const sortOrder = searchParams.get('sortOrder') || 'desc'
     
     const skip = (page - 1) * limit
+    
+    // Handle author=me parameter
+    let actualCreatedBy = createdBy
+    if (author === 'me') {
+      const session = await getServerSession(authOptions)
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+      actualCreatedBy = session.user.id
+    }
     
     // Build filter object
     const filter: any = {}
@@ -42,8 +53,8 @@ export async function GET(request: NextRequest) {
     }
     
     // Filter by creator if specified (for NGO dashboard)
-    if (createdBy) {
-      filter.createdBy = createdBy
+    if (actualCreatedBy) {
+      filter.createdBy = actualCreatedBy
     }
     
     // Type filter
@@ -71,7 +82,7 @@ export async function GET(request: NextRequest) {
     
     // Fetch vacancies with pagination
     const vacancies = await Vacancy.find(filter)
-      .populate('organization', 'name email')
+      .populate('createdBy', 'name email')
       .sort(sort)
       .skip(skip)
       .limit(limit)
@@ -144,7 +155,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Check if NGO is approved
-    if (user.role === 'ngo' && !user.isApproved) {
+    if (user.role === 'ngo' && !user.ngoProfile?.isApproved) {
       return NextResponse.json(
         { error: 'NGO must be approved to create vacancies' },
         { status: 403 }
@@ -155,7 +166,7 @@ export async function POST(request: NextRequest) {
     
     // Validate required fields
     const requiredFields = [
-      'title', 'description', 'type', 'location'
+      'title', 'description', 'type', 'category', 'workType', 'experienceLevel', 'applicationDeadline', 'applicationInstructions'
     ]
     
     for (const field of requiredFields) {
@@ -165,6 +176,21 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         )
       }
+    }
+
+    // Validate application method
+    if (body.applicationMethod === 'link' && !body.applicationLink) {
+      return NextResponse.json(
+        { error: 'Application link is required when using link method' },
+        { status: 400 }
+      )
+    }
+
+    if (body.applicationMethod === 'email' && !body.applicationEmail) {
+      return NextResponse.json(
+        { error: 'Application email is required when using email method' },
+        { status: 400 }
+      )
     }
     
     // Validate deadline if provided
@@ -178,17 +204,125 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Create vacancy
-    const vacancy = new Vacancy({
-      ...body,
-      organization: session.user.id,
-      status: user.role === 'admin' ? 'approved' : 'pending' // Auto-approve if created by admin
-    })
+    // Prepare application process data
+    const applicationProcess: any = {
+      instructions: body.applicationInstructions || ''
+    }
+    
+    if (body.applicationMethod === 'link' && body.applicationLink) {
+      applicationProcess.applicationLink = body.applicationLink
+    }
+    
+    if (body.applicationMethod === 'email' && body.applicationEmail) {
+      applicationProcess.email = body.applicationEmail
+    }
+
+    // Map compensation type from form values to database enum values
+    const mapCompensationType = (formType: string): string => {
+      switch (formType) {
+        case 'salary':
+        case 'hourly':
+        case 'negotiable':
+          return 'paid'
+        case 'volunteer':
+          return 'unpaid'
+        case 'stipend':
+          return 'stipend'
+        default:
+          return 'unpaid' // fallback
+      }
+    }
+
+    // Prepare compensation data
+    const compensation: any = {
+      type: mapCompensationType(body.compensationType || 'volunteer')
+    }
+    
+    if (body.compensationAmount && body.compensationType !== 'volunteer') {
+      compensation.amount = parseFloat(body.compensationAmount.replace(/[^0-9.]/g, ''))
+      compensation.currency = body.compensationCurrency || 'USD'
+    }
+    
+    // Set compensation period based on type
+    if (body.compensationType === 'salary') {
+      compensation.period = 'yearly'
+    } else if (body.compensationType === 'hourly') {
+      compensation.period = 'hourly'
+    }
+
+    // Map duration type from form values to database enum values
+    const mapDurationType = (formType: string): string => {
+      switch (formType) {
+        case 'permanent':
+          return 'permanent'
+        case 'fixed':
+        case 'project':
+          return 'contract'
+        case 'temporary':
+          return 'temporary'
+        default:
+          return 'temporary' // fallback
+      }
+    }
+
+    // Prepare duration data
+    const duration: any = {
+      type: mapDurationType(body.durationType || 'permanent')
+    }
+    
+    if (body.contractLength && body.contractUnit && body.durationType !== 'permanent') {
+      duration.contractLength = {
+        value: parseInt(body.contractLength),
+        unit: body.contractUnit
+      }
+    }
+
+    // Prepare location data
+    const location: any = {
+      isRemote: body.workType === 'remote'
+    }
+    
+    if (body.city) {
+      location.city = body.city
+    }
+    
+    if (body.country) {
+      location.country = body.country
+    }
+    
+    if (body.address) {
+      location.address = body.address
+    }
+
+    // Create vacancy with proper structure
+    const vacancyData = {
+      title: body.title,
+      description: body.description,
+      type: body.type,
+      category: body.category,
+      workType: body.workType,
+      experienceLevel: body.experienceLevel,
+      location,
+      compensation,
+      duration,
+      applicationProcess,
+      applicationDeadline: body.applicationDeadline,
+      responsibilities: body.responsibilities || [],
+      requirements: body.requirements || [],
+      qualifications: body.qualifications || [],
+      benefits: body.benefits || [],
+      tags: body.tags || [],
+      createdBy: session.user.id,
+      isApproved: user.role === 'admin',
+      isPublished: user.role === 'admin'
+    }
+
+    const vacancy = new Vacancy(vacancyData)
     
     await vacancy.save()
     
     const populatedVacancy = await Vacancy.findById(vacancy._id)
-      .populate('organization', 'name email')
+      .populate('createdBy', 'name email')
       .lean()
     
     return NextResponse.json({

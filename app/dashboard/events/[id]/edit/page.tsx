@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter, useParams } from 'next/navigation'
 import { Calendar, MapPin, Users, Link as LinkIcon, Clock, Tag, Image as ImageIcon } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
 
 const eventCategories = [
   'Workshop',
@@ -198,12 +199,12 @@ export default function EditEvent() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Event Not Found</h2>
-          <button
+          <Button
             onClick={() => router.push('/dashboard/events')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            variant="primary"
           >
             Back to Events
-          </button>
+          </Button>
         </div>
       </div>
     )
@@ -328,10 +329,10 @@ export default function EditEvent() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Start Date & Time *
+                  Start Date *
                 </label>
                 <input
-                  type="datetime-local"
+                  type="date"
                   name="eventDate"
                   value={formData.eventDate}
                   onChange={handleInputChange}
@@ -342,10 +343,10 @@ export default function EditEvent() {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  End Date & Time
+                  End Date
                 </label>
                 <input
-                  type="datetime-local"
+                  type="date"
                   name="endDate"
                   value={formData.endDate}
                   onChange={handleInputChange}
@@ -355,7 +356,7 @@ export default function EditEvent() {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Application Deadline
+                  Application Deadline (with time)
                 </label>
                 <input
                   type="datetime-local"
@@ -494,20 +495,20 @@ export default function EditEvent() {
 
           {/* Submit */}
           <div className="flex justify-end gap-4">
-            <button
+            <Button
               type="button"
               onClick={() => router.back()}
-              className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              variant="outline"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="primary"
             >
               {loading ? 'Updating...' : 'Update Event'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

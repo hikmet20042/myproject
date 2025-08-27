@@ -5,6 +5,7 @@ import { Eye, EyeOff, Mail, Lock } from 'lucide-react'
 import { signIn } from 'next-auth/react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Input, Button } from '@/components/ui'
 
 
 function SignInContent() {
@@ -101,9 +102,11 @@ function SignInContent() {
 
           {/* Google Sign In */}
           <div className="mb-6">
-            <button
+            <Button
               onClick={handleGoogleSignIn}
-              className="w-full flex justify-center items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+              variant="outline"
+              fullWidth
+              className="justify-center items-center"
             >
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -112,7 +115,7 @@ function SignInContent() {
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
               Continue with Google
-            </button>
+            </Button>
           </div>
 
           <div className="relative">
@@ -132,8 +135,7 @@ function SignInContent() {
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email address</label>
                 <div className="mt-1 relative">
-                  <span className="absolute left-3 top-2.5 text-gray-400"><Mail size={18} /></span>
-                  <input
+                  <Input
                     id="email"
                     name="email"
                     type="email"
@@ -141,16 +143,15 @@ function SignInContent() {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className="appearance-none block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     placeholder="Enter your email address"
+                    icon={Mail}
                   />
                 </div>
               </div>
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
                 <div className="mt-1 relative">
-                  <span className="absolute left-3 top-2.5 text-gray-400"><Lock size={18} /></span>
-                  <input
+                  <Input
                     id="password"
                     name="password"
                     type={showPassword ? 'text' : 'password'}
@@ -158,8 +159,8 @@ function SignInContent() {
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    className="appearance-none block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                     placeholder="Enter your password"
+                    icon={Lock}
                   />
                   <button type="button" tabIndex={-1} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600" onClick={() => setShowPassword(v => !v)}>
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -168,21 +169,25 @@ function SignInContent() {
               </div>
             </div>
 
+            <div className="flex items-center justify-end mt-4">
+              <Link
+                href="/auth/forgot-password"
+                className="text-sm text-blue-600 hover:text-blue-500"
+              >
+                Forgot your password?
+              </Link>
+            </div>
+
             <div className="mt-6">
-              <button
+              <Button
                 type="submit"
                 disabled={loading || !formData.email || !formData.password}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                variant="primary"
+                fullWidth
+                loading={loading}
               >
-                {loading ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Signing in...
-                  </div>
-                ) : (
-                  'Sign in'
-                )}
-              </button>
+                {loading ? 'Signing in...' : 'Sign in'}
+              </Button>
             </div>
           </form>
 

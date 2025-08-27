@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import ArticleCard from '@/components/ArticleCard'
+import { Button, Card, CardContent, SearchBar } from '@/components/ui'
 
 interface Article {
   id: string;
@@ -19,21 +20,37 @@ interface Article {
   abstract?: string;
 }
 
+const generateExcerpt = (content: string): string => {
+  const words = content.split(' ')
+  if (words.length <= 30) {
+    return content
+  }
+  return words.slice(0, 30).join(' ') + '...'
+}
+
 export default function Articles() {
   const { data: session } = useSession()
-  const [articles, setArticles] = useState<Article[]>([])
+  const [allArticles, setAllArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedTag, setSelectedTag] = useState<string>('')
+  const [searchQuery, setSearchQuery] = useState<string>('')
 
-  const loadArticles = useCallback(async () => {
+  // Load all articles once
+  const loadAllArticles = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/articles?page=1&limit=100&status=approved');
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '100',
+        status: 'approved'
+      });
+      
+      const response = await fetch(`/api/articles?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
         // Map MongoDB articles to Article interface, only approved
         const approvedArticles = (data.results || []).filter((article: any) => article.status === 'approved');
-        setArticles(approvedArticles.map((article: any) => ({
+        setAllArticles(approvedArticles.map((article: any) => ({
           id: article._id?.toString() || article.id?.toString() || '',
           title: article.title,
           authorName: article.authorName || 'Anonymous',
@@ -47,32 +64,48 @@ export default function Articles() {
           abstract: article.abstract || ''
         })));
       } else {
-        setArticles([]);
+        setAllArticles([]);
       }
     } catch (error) {
       console.error('Failed to load articles:', error);
-      setArticles([]);
+      setAllArticles([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // Load all articles on component mount
   useEffect(() => {
-    loadArticles()
-  }, [loadArticles])
+    loadAllArticles();
+  }, [loadAllArticles]);
 
-  const generateExcerpt = (content: string): string => {
-    const words = content.split(' ')
-    if (words.length <= 30) {
-      return content
-    }
-    return words.slice(0, 30).join(' ') + '...'
-  }
+  // Client-side filtering based on search and tags
+  const filteredArticles = allArticles.filter(article => {
+    const matchesSearch = !searchQuery || 
+      article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      article.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (article.abstract && article.abstract.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    const matchesTag = !selectedTag || article.tags.includes(selectedTag);
+    
+    return matchesSearch && matchesTag;
+  });
 
-  const allTags = Array.from(new Set(articles.flatMap(article => article.tags)))
-  const filteredArticles = selectedTag 
-    ? articles.filter(article => article.tags.includes(selectedTag))
-    : articles
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query)
+  }, [])
+
+  const handleTagFilter = useCallback((tag: string) => {
+    setSelectedTag(tag)
+  }, [])
+
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('')
+  }, [])
+
+
+
+  const allTags = Array.from(new Set(allArticles.flatMap(article => article.tags)))
 
   if (loading) {
     return (
@@ -88,7 +121,7 @@ export default function Articles() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header - match Resources page styling */}
-  <section className="bg-primary text-white py-20 transition-colors duration-200">
+      <section className="bg-primary text-white py-20 transition-colors duration-200">
         <div className="section-padding">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl lg:text-5xl font-bold mb-6">
@@ -107,40 +140,40 @@ export default function Articles() {
         <section className="py-8 bg-gray-50 border-b border-gray-200">
           <div className="section-padding">
             <div className="max-w-4xl mx-auto text-center">
-              <div className="bg-white rounded-lg shadow-sm p-8 border border-gray-200">
-                <div className="flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mx-auto mb-4">
-                  <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                  Submit Article
-                </h3>
-                <p className="text-gray-600 mb-6 text-lg leading-relaxed">
-                  Share your article, analysis, or expert opinion on social justice and equality issues. 
-                  Help advance knowledge and inform policy through evidence-based writing.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Link
-                    href="/auth/register"
-                    className="btn-secondary border-primary text-primary hover:bg-primary hover:text-white flex items-center justify-center"
-                  >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                    </svg>
-                    Create Account
-                  </Link>
-                  <Link
-                    href="/auth/signin"
-                    className="btn-secondary border-gray-500 text-gray-700 hover:bg-gray-100 flex items-center justify-center"
-                  >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                    </svg>
-                    Sign In
-                  </Link>
-                </div>
-              </div>
+              <Card>
+                  <CardContent className="p-8">
+                    <div className="flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mx-auto mb-4">
+                      <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                      Submit Article
+                    </h3>
+                    <p className="text-gray-600 mb-6 text-lg leading-relaxed">
+                      Share your article, analysis, or expert opinion on social justice and equality issues. 
+                      Help advance knowledge and inform policy through evidence-based writing.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                      <Link href="/auth/register">
+                         <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white flex items-center justify-center">
+                           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                           </svg>
+                           Join Community
+                         </Button>
+                       </Link>
+                      <Link href="/auth/signin">
+                         <Button variant="outline" className="border-gray-500 text-gray-700 hover:bg-gray-100 flex items-center justify-center">
+                           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013 3v1" />
+                           </svg>
+                           Sign In
+                         </Button>
+                       </Link>
+                    </div>
+                  </CardContent>
+                </Card>
             </div>
           </div>
         </section>
@@ -151,9 +184,9 @@ export default function Articles() {
         <div className="section-padding">
           <div className="max-w-6xl mx-auto">
             {/* Articles Source Info */}
-            {articles.length > 0 && (
+            {allArticles.length > 0 && (
               <div className="mb-8">
-                {articles.some(article => article.status === 'pending') ? (
+                {allArticles.some((article: Article) => article.status === 'pending') ? (
                   <div className="bg-gray-50 border-l-4 border-gray-300 p-4 rounded-r-lg">
                     <div className="flex items-start">
                       <svg className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -185,14 +218,26 @@ export default function Articles() {
               </div>
             )}
 
-            {/* Filter Section */}
+            {/* Search and Filter Section */}
             <div className="mb-12">
+              {/* Search Bar */}
+              <div className="mb-8">
+                <SearchBar
+                  placeholder="Search articles by title, content, or abstract..."
+                  onSearch={handleSearch}
+                  onClear={handleClearSearch}
+                  className="max-w-2xl mx-auto"
+                  storageKey="articles-search"
+                />
+              </div>
+              
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
                 <h2 className="text-2xl font-bold text-primary mb-4 sm:mb-0">Filter by Area</h2>
-                <button
-                  onClick={loadArticles}
+                <Button
+                  onClick={() => loadAllArticles()}
                   disabled={loading}
-                  className="btn-secondary text-sm flex items-center border-gray-400 text-gray-700 hover:bg-gray-100"
+                  variant="outline"
+                  size="sm"
                 >
                   {loading ? (
                     <>
@@ -207,33 +252,29 @@ export default function Articles() {
                       Refresh Articles
                     </>
                   )}
-                </button>
+                </Button>
               </div>
               <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => setSelectedTag('')}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors duration-300 ${
-                    selectedTag === '' 
-                      ? 'bg-gray-800 text-white' 
-                      : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-                  }`}
+                <Button
+                  onClick={() => handleTagFilter('')}
+                  variant={selectedTag === '' ? 'primary' : 'outline'}
+                  size="sm"
+                  className="rounded-full"
                 >
-                  All Articles ({articles.length})
-                </button>
+                  All Articles ({allArticles.length})
+                </Button>
                 {allTags.map((tag) => {
-                  const count = articles.filter(article => article.tags.includes(tag)).length
+                  const count = allArticles.filter(article => article.tags.includes(tag)).length
                   return (
-                    <button
+                    <Button
                       key={tag}
-                      onClick={() => setSelectedTag(tag)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors duration-300 ${
-                        selectedTag === tag 
-                          ? 'bg-gray-800 text-white' 
-                          : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-                      }`}
+                      onClick={() => handleTagFilter(tag)}
+                      variant={selectedTag === tag ? 'primary' : 'outline'}
+                      size="sm"
+                      className="rounded-full"
                     >
                       #{tag} ({count})
-                    </button>
+                    </Button>
                   )
                 })}
               </div>
@@ -255,36 +296,46 @@ export default function Articles() {
                 </div>
                 <h3 className="text-xl font-semibold text-gray-700 mb-2">No articles found</h3>
                 <p className="text-gray-500 mb-6">
-                  {selectedTag 
-                    ? `No articles found with the tag "${selectedTag}".` 
+                  {searchQuery && selectedTag
+                    ? `No articles found for "${searchQuery}" with the tag "${selectedTag}"`
+                    : searchQuery
+                    ? `No articles found for "${searchQuery}"`
+                    : selectedTag 
+                    ? `No articles found with the tag "${selectedTag}"` 
                     : "No articles available at the moment."
                   }
                 </p>
-                {selectedTag && (
-                  <button
-                    onClick={() => setSelectedTag('')}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200"
+                {(selectedTag || searchQuery) && (
+                  <Button
+                    onClick={() => {
+                      setSelectedTag('')
+                      setSearchQuery('')
+                    }}
                   >
                     View All Articles
-                  </button>
+                  </Button>
                 )}
               </div>
             )}
 
             {/* Call to Action */}
             <div className="mt-16 text-center">
-              <div className="card max-w-2xl mx-auto">
-                <h3 className="text-2xl font-bold text-primary mb-4">
-                  Submit Article
-                </h3>
-                <p className="text-gray-700 mb-6">
-                  Have research findings, policy analysis, or expert insights to share? 
-                  Contribute to the academic discourse on social justice and equality.
-                </p>
-                <Link href="/submit/article" className="btn-primary inline-block">
-                  Submit Article
-                </Link>
-              </div>
+              <Card className="max-w-2xl mx-auto">
+                <CardContent className="p-8 text-center">
+                  <h3 className="text-2xl font-bold text-primary mb-4">
+                    Submit Article
+                  </h3>
+                  <p className="text-gray-700 mb-6">
+                    Have research findings, policy analysis, or expert insights to share? 
+                    Contribute to the academic discourse on social justice and equality.
+                  </p>
+                  <Link href="/submit/article">
+                     <Button size="lg">
+                       Submit Article
+                     </Button>
+                   </Link>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>

@@ -1,161 +1,160 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { Calendar, MapPin, Users, ExternalLink, Clock, Tag, Search, Filter } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+import { Card, CardContent } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+
+interface Event {
+  _id: string
+  title: string
+  description: string
+  category: string
+  eventType: 'event' | 'training' | 'workshop' | 'conference' | 'seminar'
+  eventDate: string
+  endDate?: string
+  location: {
+    type: 'online' | 'physical' | 'hybrid'
+    address?: string
+    city?: string
+    country?: string
+    onlineLink?: string
+  }
+  applicationLink?: string
+  applicationDeadline?: string
+  maxParticipants?: number
+  currentParticipants: number
+  tags: string[]
+  imageUrl?: string
+  createdBy: {
+    _id: string
+    name: string
+    ngoProfile?: {
+      organizationName: string
+    }
+  }
+  organizationName?: string
+  isApproved: boolean
+  isPublished: boolean
+  createdAt: string
+  updatedAt: string
+  // Training-specific fields
+  duration?: string
+  schedule?: {
+    startTime: string
+    endTime: string
+    timezone?: string
+  }
+  prerequisites?: string[]
+  learningOutcomes?: string[]
+  certification?: {
+    provided: boolean
+    type?: string
+    accreditedBy?: string
+  }
+  cost?: {
+    isFree: boolean
+    amount?: number
+    currency?: string
+    scholarshipAvailable?: boolean
+  }
+  targetAudience?: string[]
+  syllabus?: {
+    modules: Array<{
+      title: string
+      description: string
+      duration: string
+    }>
+  }
+}
 
 export default function EventsPage() {
-  const [activeTab, setActiveTab] = useState('events');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLocation, setSelectedLocation] = useState('all');
   const [selectedMonth, setSelectedMonth] = useState('all');
+  const [selectedEventType, setSelectedEventType] = useState('all');
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Sample events data
-  const events = [
-    {
-      id: 1,
-      title: "International Women's Day Celebration",
-      organization: "Women's Rights Center",
-      category: "Celebration",
-      location: "Baku Cultural Center",
-      date: "2024-03-08",
-      time: "18:00",
-      description: "Join us for an evening celebrating women's achievements and discussing ongoing challenges in gender equality. The event will feature keynote speakers, cultural performances, and networking opportunities.",
-      applicationLink: "https://www.wrc.az/events/womens-day",
-      applicationDeadline: "2024-03-05",
-      capacity: 200,
-      registered: 150,
-      verified: true,
-      image: null
-    },
-    {
-      id: 2,
-      title: "Human Rights Film Festival",
-      organization: "Human Rights Watch Azerbaijan",
-      category: "Festival",
-      location: "Cinema Plus Ganjlik",
-      date: "2024-02-20",
-      time: "19:00",
-      description: "A three-day film festival showcasing documentaries and films that highlight human rights issues around the world. Each screening will be followed by panel discussions with filmmakers and activists.",
-      applicationLink: "https://www.hrw.org/film-festival",
-      applicationDeadline: "2024-02-18",
-      capacity: 300,
-      registered: 89,
-      verified: true,
-      image: null
-    },
-    {
-      id: 3,
-      title: "Youth Climate Action Summit",
-      organization: "Youth for Change",
-      category: "Summit",
-      location: "ADA University",
-      date: "2024-04-22",
-      time: "09:00",
-      description: "Young activists and environmental advocates will gather to discuss climate change impacts and develop action plans for sustainable development in Azerbaijan.",
-      applicationLink: "https://forms.google.com/climate-summit",
-      applicationDeadline: "2024-04-15",
-      capacity: 150,
-      registered: 45,
-      verified: false,
-      image: null
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const fetchEvents = async () => {
+    try {
+      setLoading(true);
+      const url = '/api/events?status=approved&limit=50';
+      
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        setEvents(data.events || []);
+      } else {
+        setError('Failed to fetch events');
+      }
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      setError('Error loading events');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
-  // Sample trainings data
-  const trainings = [
-    {
-      id: 1,
-      title: "Digital Advocacy Training",
-      organization: "Human Rights Watch Azerbaijan",
-      category: "Digital Skills",
-      location: "Online",
-      startDate: "2024-02-15",
-      endDate: "2024-02-17",
-      time: "14:00-17:00",
-      description: "Learn how to effectively use digital tools and social media for human rights advocacy. This three-day intensive training covers content creation, online campaign strategies, and digital security.",
-      applicationLink: "https://www.hrw.org/training/digital-advocacy",
-      applicationDeadline: "2024-02-10",
-      capacity: 50,
-      registered: 32,
-      verified: true,
-      requirements: [
-        "Basic computer skills",
-        "Access to internet and computer",
-        "Interest in human rights advocacy"
-      ],
-      certificate: true
-    },
-    {
-      id: 2,
-      title: "Legal Aid Workshop",
-      organization: "Women's Rights Center",
-      category: "Legal Training",
-      location: "WRC Training Center, Baku",
-      startDate: "2024-03-10",
-      endDate: "2024-03-12",
-      time: "10:00-16:00",
-      description: "Comprehensive training on providing legal aid to women facing discrimination and violence. Covers legal frameworks, counseling techniques, and case management.",
-      applicationLink: "mailto:training@wrc.az",
-      applicationDeadline: "2024-03-05",
-      capacity: 30,
-      registered: 18,
-      verified: true,
-      requirements: [
-        "Law degree or legal background preferred",
-        "Experience working with vulnerable populations",
-        "Fluency in Azerbaijani"
-      ],
-      certificate: true
-    },
-    {
-      id: 3,
-      title: "Community Organizing Bootcamp",
-      organization: "Youth for Change",
-      category: "Leadership",
-      location: "Ganja Youth Center",
-      startDate: "2024-05-01",
-      endDate: "2024-05-03",
-      time: "09:00-18:00",
-      description: "Intensive three-day bootcamp on community organizing, grassroots mobilization, and campaign planning. Perfect for emerging leaders and activists.",
-      applicationLink: "https://forms.google.com/organizing-bootcamp",
-      applicationDeadline: "2024-04-25",
-      capacity: 40,
-      registered: 12,
-      verified: false,
-      requirements: [
-        "Age 18-30",
-        "Commitment to attend all three days",
-        "Basic English proficiency"
-      ],
-      certificate: false
-    }
+  const categories = [
+    'all', 'Advocacy', 'Awareness', 'Capacity Building', 'Community Outreach', 
+    'Conference', 'Education', 'Emergency Response', 'Fundraising', 'Health', 
+    'Human Rights', 'Legal Aid', 'Networking', 'Policy', 'Research', 'Training', 
+    'Workshop', 'Youth Development', 'Other'
   ];
-
-  const categories = ['all', 'Celebration', 'Festival', 'Summit', 'Workshop', 'Conference', 'Digital Skills', 'Legal Training', 'Leadership'];
   const locations = ['all', 'Baku', 'Ganja', 'Sumgayit', 'Online', 'Other'];
   const months = [
     'all', 'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
+  const eventTypes = ['all', 'event', 'training', 'workshop', 'conference', 'seminar'];
 
-  const currentData = activeTab === 'events' ? events : trainings;
-
-  const filteredData = currentData.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.organization.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
-    const matchesLocation = selectedLocation === 'all' || item.location.includes(selectedLocation);
+  // Filter events based on search and filters
+  const filteredData = events.filter(event => {
+    const organizationName = event.organizationName || event.createdBy?.ngoProfile?.organizationName || event.createdBy?.name || 'Unknown Organization';
+    const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         event.description.toLowerCase().includes(searchTerm.toLowerCase());
     
-    let matchesMonth = true;
-    if (selectedMonth !== 'all') {
-      const itemDate = new Date('date' in item ? (item as any).date : (item as any).startDate);
-      const itemMonth = itemDate.toLocaleString('default', { month: 'long' });
-      matchesMonth = itemMonth === selectedMonth;
-    }
+    const matchesCategory = selectedCategory === 'all' || event.category === selectedCategory;
     
-    return matchesSearch && matchesCategory && matchesLocation && matchesMonth;
+    // Event type filter
+    const matchesEventType = selectedEventType === 'all' || event.eventType === selectedEventType;
+    
+    // Location filter - check location type and city
+    const locationString = event.location.type === 'online' ? 'online' : 
+                          event.location.city || event.location.address || 'unknown';
+    const matchesLocation = selectedLocation === 'all' || 
+                           locationString.toLowerCase().includes(selectedLocation.toLowerCase());
+    
+    // Month filter
+    const eventDate = new Date(event.eventDate);
+    const eventMonth = isNaN(eventDate.getTime()) ? -1 : eventDate.getMonth();
+    const matchesMonth = selectedMonth === 'all' || eventMonth === -1 ||
+                        (selectedMonth === 'January' && eventMonth === 0) ||
+                        (selectedMonth === 'February' && eventMonth === 1) ||
+                        (selectedMonth === 'March' && eventMonth === 2) ||
+                        (selectedMonth === 'April' && eventMonth === 3) ||
+                        (selectedMonth === 'May' && eventMonth === 4) ||
+                        (selectedMonth === 'June' && eventMonth === 5) ||
+                        (selectedMonth === 'July' && eventMonth === 6) ||
+                        (selectedMonth === 'August' && eventMonth === 7) ||
+                        (selectedMonth === 'September' && eventMonth === 8) ||
+                        (selectedMonth === 'October' && eventMonth === 9) ||
+                        (selectedMonth === 'November' && eventMonth === 10) ||
+                        (selectedMonth === 'December' && eventMonth === 11);
+    
+    return matchesSearch && matchesCategory && matchesEventType && matchesLocation && matchesMonth;
   });
 
   const getCategoryColor = (category: string) => {
@@ -187,7 +186,9 @@ export default function EventsPage() {
   };
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return 'Date TBD';
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Invalid Date';
     const day = date.getDate().toString().padStart(2, '0');
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const year = date.getFullYear();
@@ -212,306 +213,291 @@ export default function EventsPage() {
         <div className="section-padding">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl lg:text-5xl font-bold mb-6">
-              Events & Trainings
+              Events
             </h1>
             <p className="text-xl text-gray-100 leading-relaxed">
-              Discover upcoming events, workshops, and training programs to enhance your social justice advocacy skills.
+              Discover upcoming events, workshops, and programs to enhance your social justice advocacy skills.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Tabs */}
-      <section className="py-8 bg-white border-b">
-        <div className="section-padding">
-          <div className="max-w-6xl mx-auto">
-            <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg mb-8 max-w-md">
-              <button
-                onClick={() => setActiveTab('events')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors duration-200 ${
-                  activeTab === 'events'
-                    ? 'bg-white text-primary shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Events
-              </button>
-              <button
-                onClick={() => setActiveTab('trainings')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors duration-200 ${
-                  activeTab === 'trainings'
-                    ? 'bg-white text-primary shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                Trainings
-              </button>
-            </div>
-
-            {/* Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Main Content */}
+      <section className="section-padding py-16">
+        <div className="max-w-7xl mx-auto">
+          {/* Search and Filters */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
               {/* Search */}
-              <div>
-                <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
-                  Search
-                </label>
-                <input
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Input
                   type="text"
-                  id="search"
-                  placeholder={`Search ${activeTab}...`}
+                  placeholder="Search events..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2"
                 />
               </div>
 
               {/* Category Filter */}
-              <div>
-                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
-                  Category
-                </label>
-                <select
-                  id="category"
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  {categories.map(category => (
-                    <option key={category} value={category}>
-                      {category === 'all' ? 'All Categories' : category}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select 
+                value={selectedCategory} 
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                options={categories.map(category => ({
+                  value: category,
+                  label: category === 'all' ? 'All Categories' : category
+                }))}
+                placeholder="All Categories"
+                selectSize="md"
+              />
 
               {/* Location Filter */}
-              <div>
-                <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
-                  Location
-                </label>
-                <select
-                  id="location"
-                  value={selectedLocation}
-                  onChange={(e) => setSelectedLocation(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  {locations.map(location => (
-                    <option key={location} value={location}>
-                      {location === 'all' ? 'All Locations' : location}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select 
+                value={selectedLocation} 
+                onChange={(e) => setSelectedLocation(e.target.value)}
+                options={locations.map(location => ({
+                  value: location,
+                  label: location === 'all' ? 'All Locations' : location
+                }))}
+                placeholder="All Locations"
+                selectSize="md"
+              />
 
               {/* Month Filter */}
-              <div>
-                <label htmlFor="month" className="block text-sm font-medium text-gray-700 mb-2">
-                  Month
-                </label>
-                <select
-                  id="month"
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  {months.map(month => (
-                    <option key={month} value={month}>
-                      {month === 'all' ? 'All Months' : month}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select 
+                value={selectedMonth} 
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                options={months.map(month => ({
+                  value: month,
+                  label: month === 'all' ? 'All Months' : month
+                }))}
+                placeholder="All Months"
+                selectSize="md"
+              />
+
+              {/* Event Type Filter */}
+              <Select 
+                  value={selectedEventType} 
+                  onChange={(e) => setSelectedEventType(e.target.value)}
+                  options={eventTypes.map(type => ({
+                    value: type,
+                    label: type === 'all' ? 'All Types' : type
+                  }))}
+                  placeholder="All Types"
+                  selectSize="md"
+                />
+
+              {/* Clear Filters */}
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedCategory('all');
+                  setSelectedLocation('all');
+                  setSelectedMonth('all');
+                  setSelectedEventType('all');
+                }}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center gap-2"
+              >
+                <Filter className="w-4 h-4" />
+                Clear
+              </button>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Content */}
-      <section className="py-16">
-        <div className="section-padding">
-          <div className="max-w-6xl mx-auto">
-            {/* Results Count */}
-            <div className="mb-8">
-              <p className="text-gray-600">
-                Showing {filteredData.length} of {currentData.length} {activeTab}
-              </p>
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <p className="mt-4 text-gray-600">Loading events...</p>
             </div>
+          )}
 
-            {/* Timeline View */}
-            <div className="space-y-8">
-              {filteredData.map((item, index) => (
-                <div key={item.id} className="relative">
-                  {/* Timeline Line */}
-                  {index < filteredData.length - 1 && (
-                    <div className="absolute left-8 top-16 w-0.5 h-full bg-gray-200 z-0"></div>
-                  )}
-                  
-                  {/* Timeline Dot */}
-                  <div className="absolute left-6 top-8 w-4 h-4 bg-primary rounded-full border-4 border-white shadow-lg z-10"></div>
-                  
-                  {/* Content Card */}
-                  <div className="ml-16 card hover:shadow-xl transition-all duration-300">
-                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between mb-4">
-                          <div>
-                            <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                              {item.title}
-                            </h3>
-                            <p className="text-lg text-gray-700 mb-3">
-                              {item.organization}
-                            </p>
-                            <div className="flex flex-wrap items-center gap-2 mb-4">
-                              <span className={`inline-block text-xs px-3 py-1 rounded-full font-medium ${getCategoryColor(item.category)}`}>
-                                {item.category}
-                              </span>
-                              <span className="inline-block bg-gray-100 text-gray-800 text-xs px-3 py-1 rounded-full font-medium">
-                                📍 {item.location}
-                              </span>
-                              <span className="inline-block bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-medium">
-                                📅 {activeTab === 'events' ? formatDate((item as any).date) : formatDateRange((item as any).startDate, (item as any).endDate)}
-                              </span>
-                              <span className="inline-block bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-medium">
-                                🕐 {item.time}
-                              </span>
-                              {item.verified && (
-                                <span className="inline-block bg-green-100 text-green-800 text-xs px-3 py-1 rounded-full font-medium flex items-center">
-                                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                  Verified
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
+          {/* Error State */}
+          {error && (
+            <div className="text-center py-12">
+              <p className="text-red-600 mb-4">{error}</p>
+              <button
+                onClick={fetchEvents}
+                className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors duration-200"
+              >
+                Try Again
+              </button>
+            </div>
+          )}
 
-                        <p className="text-gray-600 mb-6 leading-relaxed">
-                          {item.description}
-                        </p>
+          {/* Events Grid */}
+          {!loading && !error && (
+            <>
+              {filteredData.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-600 text-lg mb-4">No events found matching your criteria.</p>
+                  <p className="text-gray-500">Try adjusting your search or filters.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {filteredData.map((event) => {
+                    const organizationName = event.organizationName || event.createdBy?.ngoProfile?.organizationName || event.createdBy?.name || 'Unknown Organization';
+                    const hasDeadline = event.applicationDeadline;
+                    const deadlinePassed = hasDeadline ? isDeadlinePassed(event.applicationDeadline!) : false;
+                    const deadlineNear = hasDeadline ? isDeadlineNear(event.applicationDeadline!) : false;
 
-                        {/* Training Requirements */}
-                        {activeTab === 'trainings' && (item as any).requirements && (item as any).requirements.length > 0 && (
-                          <div className="mb-6">
-                            <h4 className="text-lg font-semibold text-gray-900 mb-3">
-                              Requirements:
-                            </h4>
-                            <ul className="list-disc list-inside space-y-1 text-gray-600">
-                              {(item as any).requirements.map((req: string, index: number) => (
-                                <li key={index}>{req}</li>
-                              ))}
-                            </ul>
+                    return (
+                      <div key={event._id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+                        {/* Event Image */}
+                        {event.imageUrl && (
+                          <div className="h-48 bg-gray-200 overflow-hidden">
+                            <img
+                              src={event.imageUrl}
+                              alt={event.title}
+                              className="w-full h-full object-cover"
+                            />
                           </div>
                         )}
 
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
-                            <span>
-                              {item.registered}/{item.capacity} registered
+                        <div className="p-6">
+                          {/* Event Type Badge */}
+                          <div className="flex items-center justify-between mb-3">
+                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getCategoryColor(event.category)}`}>
+                              {event.category}
                             </span>
-                            <span className={`font-medium ${
-                              isDeadlinePassed(item.applicationDeadline) 
-                                ? 'text-red-600' 
-                                : isDeadlineNear(item.applicationDeadline) 
-                                  ? 'text-orange-600' 
-                                  : 'text-gray-600'
-                            }`}>
-                              Apply by: {formatDate(item.applicationDeadline)}
-                              {isDeadlineNear(item.applicationDeadline) && !isDeadlinePassed(item.applicationDeadline) && (
-                                <span className="ml-1 text-orange-600">⚠️ Soon</span>
-                              )}
-                              {isDeadlinePassed(item.applicationDeadline) && (
-                                <span className="ml-1 text-red-600">❌ Closed</span>
-                              )}
+                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                              {event.eventType ? event.eventType.charAt(0).toUpperCase() + event.eventType.slice(1) : 'Event'}
                             </span>
-                            {activeTab === 'trainings' && (item as any).certificate && (
-                              <span className="text-green-600 font-medium">🏆 Certificate provided</span>
+                          </div>
+
+                          {/* Title */}
+                          <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2">
+                            {event.title}
+                          </h3>
+
+                          {/* Description */}
+                          <p className="text-gray-600 mb-4 line-clamp-3">
+                            {event.description}
+                          </p>
+
+                          {/* Event Details */}
+                          <div className="space-y-2 mb-4">
+                            {/* Date */}
+                            <div className="flex items-center text-sm text-gray-600">
+                              <Calendar className="w-4 h-4 mr-2 text-primary" />
+                              <span>{formatDateRange(event.eventDate, event.endDate)}</span>
+                            </div>
+
+                            {/* Location */}
+                            <div className="flex items-center text-sm text-gray-600">
+                              <MapPin className="w-4 h-4 mr-2 text-primary" />
+                              <span>
+                                {event.location.type === 'online' ? 'Online' : 
+                                 event.location.city ? `${event.location.city}, ${event.location.country || 'Azerbaijan'}` :
+                                 event.location.address || 'Location TBD'}
+                              </span>
+                            </div>
+
+                            {/* Organization */}
+                            <div className="flex items-center text-sm text-gray-600">
+                              <Users className="w-4 h-4 mr-2 text-primary" />
+                              <span>{organizationName}</span>
+                            </div>
+
+                            {/* Participants */}
+                            {event.maxParticipants && (
+                              <div className="flex items-center text-sm text-gray-600">
+                                <Tag className="w-4 h-4 mr-2 text-primary" />
+                                <span>{event.currentParticipants}/{event.maxParticipants} participants</span>
+                              </div>
+                            )}
+
+                            {/* Application Deadline */}
+                            {hasDeadline && (
+                              <div className="flex items-center text-sm">
+                                <Clock className="w-4 h-4 mr-2 text-primary" />
+                                <span className={`${
+                                  deadlinePassed ? 'text-red-600' :
+                                  deadlineNear ? 'text-orange-600' :
+                                  'text-gray-600'
+                                }`}>
+                                  Deadline: {formatDate(event.applicationDeadline!)}
+                                  {deadlinePassed && ' (Passed)'}
+                                  {deadlineNear && ' (Soon)'}
+                                </span>
+                              </div>
                             )}
                           </div>
-                          
-                          {!isDeadlinePassed(item.applicationDeadline) && item.registered < item.capacity && (
-                            <a
-                              href={item.applicationLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="btn-primary inline-flex items-center"
-                            >
-                              {activeTab === 'events' ? 'Register' : 'Apply'}
-                              <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                              </svg>
-                            </a>
+
+                          {/* Tags */}
+                          {event.tags && event.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mb-4">
+                              {event.tags.slice(0, 3).map((tag, index) => (
+                                <span key={index} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
+                                  {tag}
+                                </span>
+                              ))}
+                              {event.tags.length > 3 && (
+                                <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
+                                  +{event.tags.length - 3} more
+                                </span>
+                              )}
+                            </div>
                           )}
-                          
-                          {item.registered >= item.capacity && (
-                            <span className="btn-secondary opacity-50 cursor-not-allowed">
-                              Full
-                            </span>
-                          )}
+
+                          {/* Action Buttons */}
+                          <div className="flex gap-2">
+                            <Link href={`/resources/events/${event._id}`} className="flex-1">
+                              <Button variant="primary" size="sm" className="w-full">
+                                View Details
+                              </Button>
+                            </Link>
+                            {event.applicationLink && !deadlinePassed && (
+                              <Link
+                                href={event.applicationLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <Button variant="outline" size="sm">
+                                  <ExternalLink className="w-4 h-4" />
+                                </Button>
+                              </Link>
+            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
+              )}
+            </>
+          )}
 
-            {filteredData.length === 0 && (
-              <div className="text-center py-16">
-                <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  No {activeTab} Found
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  Try adjusting your search criteria or filters to find more {activeTab}.
-                </p>
-                <button
-                  onClick={() => {
-                    setSearchTerm('');
-                    setSelectedCategory('all');
-                    setSelectedLocation('all');
-                    setSelectedMonth('all');
-                  }}
-                  className="btn-primary"
-                >
-                  Clear Filters
-                </button>
-              </div>
-            )}
-          </div>
+          {/* Results Count */}
+          {!loading && !error && filteredData.length > 0 && (
+            <div className="text-center mt-8 text-gray-600">
+              Showing {filteredData.length} of {events.length} events
+            </div>
+          )}
         </div>
       </section>
 
-      {/* Create Event/Training Section */}
-      <section className="py-16 bg-white">
+      {/* Call to Action */}
+      <section className="bg-primary text-white py-16">
         <div className="section-padding">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">
-              Want to Create an Event or Training?
-            </h2>
-            <p className="text-xl text-gray-600 mb-8">
-              If you're an approved NGO, you can create and manage events and training programs.
+            <h2 className="text-3xl font-bold mb-6">Want to Host an Event?</h2>
+            <p className="text-xl text-gray-100 mb-8 leading-relaxed">
+              Share your event with our community and help advance gender equality and social justice.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/auth/login"
-                className="btn-primary inline-flex items-center"
-              >
-                Login to Create
-                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+              <Link href="/dashboard/events/create">
+                <Button variant="secondary" size="lg">
+                  <Calendar className="w-5 h-5" />
+                  Create Event
+                </Button>
               </Link>
-              <Link
-                href="/auth/register?type=ngo"
-                className="btn-secondary inline-flex items-center"
-              >
-                Register as NGO
-                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                </svg>
+              <Link href="/submit">
+                <Button variant="outline" size="lg" className="border-2 border-white text-white hover:bg-white hover:text-primary">
+                  <ExternalLink className="w-5 h-5" />
+                  Submit Content
+                </Button>
               </Link>
             </div>
           </div>

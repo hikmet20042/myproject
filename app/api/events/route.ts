@@ -14,14 +14,29 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
     const category = searchParams.get('category')
+    const eventType = searchParams.get('eventType') // 'event', 'training', 'workshop', etc.
+    const trainingType = searchParams.get('trainingType') // For backward compatibility
     const location = searchParams.get('location')
     const month = searchParams.get('month')
     const search = searchParams.get('search')
     const status = searchParams.get('status') // 'approved', 'pending', 'all'
     const createdBy = searchParams.get('createdBy') // For NGO's own events
+    const author = searchParams.get('author') // Handle 'author=me' parameter
     const adminView = searchParams.get('adminView') === 'true'
+    const sortBy = searchParams.get('sortBy') || 'eventDate'
+    const sortOrder = searchParams.get('sortOrder') === 'desc' ? -1 : 1
     
     const skip = (page - 1) * limit
+    
+    // Handle author=me parameter
+    let actualCreatedBy = createdBy
+    if (author === 'me') {
+      const session = await getServerSession(authOptions)
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+      actualCreatedBy = session.user.id
+    }
     
     // Build filter query
     const filter: any = {}
@@ -46,8 +61,8 @@ export async function GET(request: NextRequest) {
     }
     
     // If viewing own events, filter by creator
-    if (createdBy) {
-      filter.createdBy = createdBy
+    if (actualCreatedBy) {
+      filter.createdBy = actualCreatedBy
       if (status === 'approved') {
         filter.isApproved = true
       } else if (status === 'pending') {
@@ -57,6 +72,21 @@ export async function GET(request: NextRequest) {
     
     if (category && category !== 'all') {
       filter.category = category
+    }
+    
+    // Event type filtering
+    if (eventType && eventType !== 'all') {
+      filter.eventType = eventType
+    }
+    
+    // Backward compatibility for trainingType parameter
+    if (trainingType && trainingType !== 'all') {
+      filter.eventType = 'training'
+      if (trainingType === 'online') {
+        filter['location.type'] = { $in: ['online', 'hybrid'] }
+      } else if (trainingType === 'in-person') {
+        filter['location.type'] = { $in: ['physical', 'hybrid'] }
+      }
     }
     
     if (location && location !== 'all') {
@@ -85,10 +115,14 @@ export async function GET(request: NextRequest) {
       ]
     }
     
+    // Build sort object
+    const sortObj: any = {}
+    sortObj[sortBy] = sortOrder
+    
     const events = await Event.find(filter)
-      .populate('createdBy', 'name organizationName')
+      .populate('createdBy', 'name ngoProfile')
       .populate('approvedBy', 'name')
-      .sort({ eventDate: 1 })
+      .sort(sortObj)
       .skip(skip)
       .limit(limit)
       .lean()
@@ -148,7 +182,7 @@ export async function POST(request: NextRequest) {
     
     // Check if user is an approved NGO
     const user = await User.findById(session.user.id)
-    if (!user || user.role !== 'ngo' || user.ngoStatus !== 'approved') {
+    if (!user || user.role !== 'ngo' || !user.ngoProfile?.isApproved) {
       return NextResponse.json(
         { error: 'Only approved NGOs can create events' },
         { status: 403 }
@@ -158,11 +192,37 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     
     // Validate required fields
-    const requiredFields = ['title', 'description', 'category', 'eventDate', 'location']
+    const requiredFields = ['title', 'description', 'category', 'eventDate', 'location', 'eventType']
     for (const field of requiredFields) {
       if (!body[field]) {
         return NextResponse.json(
           { error: `${field} is required` },
+          { status: 400 }
+        )
+      }
+    }
+    
+    // Validate eventType
+    const validEventTypes = ['event', 'training', 'workshop', 'conference', 'seminar']
+    if (!validEventTypes.includes(body.eventType)) {
+      return NextResponse.json(
+        { error: 'Invalid event type' },
+        { status: 400 }
+      )
+    }
+    
+    // Additional validation for training events
+    if (body.eventType === 'training') {
+      if (body.duration && (!body.duration.value || !body.duration.unit)) {
+        return NextResponse.json(
+          { error: 'Duration must include both value and unit for training events' },
+          { status: 400 }
+        )
+      }
+      
+      if (body.cost && !body.cost.hasOwnProperty('isFree')) {
+        return NextResponse.json(
+          { error: 'Cost information must specify if training is free' },
           { status: 400 }
         )
       }
@@ -179,7 +239,9 @@ export async function POST(request: NextRequest) {
     // Create event
     const event = new Event({
       ...body,
+      eventType: body.eventType || 'event', // Default to 'event' for backward compatibility
       createdBy: session.user.id,
+      organizationName: user.ngoProfile?.organizationName || 'Unknown Organization',
       isApproved: false, // Requires admin approval
       isPublished: false,
       currentParticipants: 0

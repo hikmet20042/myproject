@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 
 interface CommunityStory {
-	id: number
+	id: string
 	title: string
 	author: string
 	date: string
@@ -16,7 +16,7 @@ interface CommunityStory {
 }
 
 interface Article {
-	id: number
+	id: string
 	title: string
 	author: string
 	date: string
@@ -49,19 +49,38 @@ const RecentCommunityContent: React.FC = React.memo(function RecentCommunityCont
 											const storiesRes = await fetch(storiesUrl);
 				if (storiesRes.ok) {
 					const data = await storiesRes.json();
-					const publishedStories = (data.results || []).filter((story: any) => story.status === 'approved');
+					const publishedStories = (data.stories || data.results || []).filter((story: any) => story.status === 'approved');
 					if (mounted) {
-						setStories(publishedStories.map((story: any) => ({
-							id: story._id || story.id,
-							title: story.title,
-															author: typeof story.author === 'object' && story.author?.name ? story.author.name : (story.author?.toString?.() || 'Anonymous'),
-							date: story.submittedAt || story.date || new Date().toISOString(),
-							excerpt: story.excerpt || (story.content || '').split(' ').slice(0, 30).join(' ') + '...',
-							content: story.content,
-							tags: story.tags || [],
-							status: story.status,
-							type: 'community-story'
-						})));
+						const mappedStories = publishedStories.map((story: any) => {
+							// Extract text from BlockNote content for excerpt
+							let excerptText = '';
+							if (Array.isArray(story.content)) {
+								excerptText = story.content
+									.map((block: any) => {
+										if (block.content && Array.isArray(block.content)) {
+											return block.content.map((item: any) => item.text || '').join('');
+										}
+										return '';
+									})
+									.join(' ')
+									.trim();
+							} else if (typeof story.content === 'string') {
+								excerptText = story.content;
+							}
+							
+							return {
+								id: story._id || story.id,
+								title: story.title,
+								author: story.authorName || 'Anonymous',
+								date: story.submittedAt || story.createdAt || new Date().toISOString(),
+								excerpt: story.excerpt || excerptText.split(' ').slice(0, 30).join(' ') + '...',
+								content: story.content,
+								tags: story.tags || [],
+								status: story.status,
+								type: 'community-story'
+							};
+						});
+						setStories(mappedStories);
 					}
 				}
 											// Fetch recent articles from MongoDB
@@ -71,25 +90,43 @@ const RecentCommunityContent: React.FC = React.memo(function RecentCommunityCont
 											const articlesRes = await fetch(articlesUrl);
 				if (articlesRes.ok) {
 					const data = await articlesRes.json();
-					const publishedArticles = (data.results || []).filter((article: any) => article.status === 'approved');
+					const publishedArticles = (data.articles || data.results || []).filter((article: any) => article.status === 'approved');
 					if (mounted) {
-						setArticles(publishedArticles.map((article: any) => ({
-							id: article._id || article.id,
-							title: article.title,
-															author: typeof article.author === 'object' && article.author?.name ? article.author.name : (article.author?.toString?.() || 'Anonymous'),
-							date: article.publishedAt || article.date || new Date().toISOString(),
-															excerpt: article.excerpt || (typeof article.content === 'string' ? article.content : '').split(' ').slice(0, 30).join(' ') + '...',
-							content: article.content,
-							tags: article.tags || [],
+						const mappedArticles = publishedArticles.map((article: any) => {
+							// Extract text from content for excerpt
+							let excerptText = '';
+							if (typeof article.content === 'string') {
+								excerptText = article.content;
+							} else if (Array.isArray(article.content)) {
+								excerptText = article.content
+									.map((block: any) => {
+										if (block.content && Array.isArray(block.content)) {
+											return block.content.map((item: any) => item.text || '').join('');
+										}
+										return '';
+									})
+									.join(' ')
+									.trim();
+							}
 							
-							type: 'article',
-							references: article.references || [],
-							abstract: article.abstract || ''
-						})));
+							return {
+								id: article._id || article.id,
+								title: article.title,
+								author: article.author || 'Anonymous',
+								date: article.publishedAt || article.createdAt || new Date().toISOString(),
+								excerpt: article.excerpt || excerptText.split(' ').slice(0, 30).join(' ') + '...',
+								content: article.content,
+								tags: article.tags || [],
+								type: 'article',
+								references: article.references || [],
+								abstract: article.abstract || ''
+							};
+						});
+						setArticles(mappedArticles);
 					}
 				}
 			} catch (error) {
-				console.error('Failed to load content:', error);
+				// Error loading content
 			} finally {
 				if (mounted) setLoading(false);
 			}
@@ -102,6 +139,8 @@ const RecentCommunityContent: React.FC = React.memo(function RecentCommunityCont
 		new Date(b.date).getTime() - new Date(a.date).getTime()
 	).slice(0, 3)
 
+	// Debug info: Stories: {stories.length}, Articles: {articles.length}, Total: {allContent.length}
+
 	return (
 		<section className="bg-white py-16">
 			<div className="section-padding">
@@ -109,6 +148,7 @@ const RecentCommunityContent: React.FC = React.memo(function RecentCommunityCont
 					<div className="text-center mb-8">
 						<h2 className="text-3xl lg:text-4xl font-bold text-primary">Recent Community Content</h2>
 						<p className="text-gray-600 mt-2">Stories and articles from our community</p>
+						{/* Debug: {stories.length} stories, {articles.length} articles */}
 					</div>
 					{loading && (
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -142,7 +182,7 @@ const RecentCommunityContent: React.FC = React.memo(function RecentCommunityCont
 														? 'bg-red-100 text-red-800'
 														: 'bg-red-100 text-red-800'
                                                 }`}>
-											{item.type === 'community-story' ? 'Personal Story' : 'Article'}
+											{item.type === 'community-story' ? 'Story' : 'Article'}
 										</span>
 									</div>
 

@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react'
 import BlocknoteEditor from '@/components/BlocknoteEditor'
 import { ArrowLeft, Save, Send, Eye, EyeOff } from 'lucide-react'
 import { BlockNoteEditor } from '@blocknote/core'
+import { Button } from '@/components/ui'
 
 
 
@@ -546,7 +547,7 @@ export default function Step2Page() {
                 </div>
                 <span className="ml-3 text-sm text-blue-800 font-medium">Draft Saved! You can continue editing your article.</span>
               </div>
-              <button onClick={() => setShowDraftSaved(false)} className="ml-4 text-blue-600 hover:underline text-xs">Dismiss</button>
+              <Button onClick={() => setShowDraftSaved(false)} variant="ghost" size="sm" className="ml-4 text-blue-600 hover:underline text-xs">Dismiss</Button>
             </div>
           )}
           {/* Header */}
@@ -558,13 +559,13 @@ export default function Step2Page() {
                   Share your research, analysis, or academic insights
                 </p>
               </div>
-              <button
+              <Button
                 onClick={handleBackClick}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                variant="secondary"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -588,12 +589,13 @@ export default function Step2Page() {
                     <div className="mt-2 text-sm text-blue-700">
                       <p>
                         You can still write your article content below. You can go back to{' '}
-                        <button
+                        <Button
                           onClick={handleBackClick}
-                          className="font-medium underline hover:text-blue-600"
+                          variant="ghost"
+                          className="font-medium underline hover:text-blue-600 p-0 h-auto"
                         >
                           Step 1
-                        </button>
+                        </Button>
                         {' '}anytime to complete the missing information.
                       </p>
                     </div>
@@ -664,13 +666,14 @@ export default function Step2Page() {
                   <span className="text-sm text-gray-500">
                     {characterCount} characters
                   </span>
-                  <button
+                  <Button
                     onClick={() => setShowPreview(!showPreview)}
-                    className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                    variant="secondary"
+                    size="sm"
                   >
                     {showPreview ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
                     {showPreview ? 'Hide Preview' : 'Show Preview'}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -730,7 +733,7 @@ export default function Step2Page() {
 
           {/* Action Buttons */}
           <div className="mt-4 flex justify-end space-x-4">
-            <button
+            <Button
               type="button"
               onClick={handleSaveDraft}
               disabled={
@@ -740,12 +743,13 @@ export default function Step2Page() {
                   (typeof content !== 'string' && (!content || !JSON.stringify(content).trim() || JSON.stringify(content).trim() === '{}'))
                 )
               }
-              className="inline-flex items-center px-6 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="secondary"
+              loading={isSavingDraft}
             >
               <Save className="w-4 h-4 mr-2" />
               {isSavingDraft ? 'Saving...' : 'Save Draft'}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={handleSubmit}
               disabled={
@@ -756,11 +760,12 @@ export default function Step2Page() {
                   characterCount < 500
                 ))
               }
-              className="inline-flex items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="primary"
+              loading={isSubmittingArticle}
             >
               <Send className="w-4 h-4 mr-2" />
               {isSubmittingArticle ? 'Submitting...' : 'Submit Article'}
-            </button>
+            </Button>
           </div>
 
           {/* Guidelines */}

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { Input, Select, TextArea, Button } from '@/components/ui'
 
 export default function SubmitPage() {
   const { data: session, status } = useSession()
@@ -139,14 +140,13 @@ export default function SubmitPage() {
               <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
                 Title *
               </label>
-              <input
+              <Input
                 type="text"
                 id="title"
                 name="title"
                 required
                 value={formData.title}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 placeholder="Enter a descriptive title"
               />
             </div>
@@ -155,35 +155,33 @@ export default function SubmitPage() {
               <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
                 Category *
               </label>
-              <select
+              <Select
                 id="category"
                 name="category"
                 required
                 value={formData.category}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="">Select a category</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>
-                    {cat.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { value: '', label: 'Select a category' },
+                  ...categories.map(cat => ({
+                    value: cat,
+                    label: cat.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())
+                  }))
+                ]}
+              />
             </div>
 
             <div>
               <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
                 Content *
               </label>
-              <textarea
+              <TextArea
                 id="content"
                 name="content"
                 required
                 rows={12}
                 value={formData.content}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 placeholder="Share your story, experience, or insights..."
               />
             </div>
@@ -192,19 +190,18 @@ export default function SubmitPage() {
               <label htmlFor="tags" className="block text-sm font-medium text-gray-700 mb-2">
                 Tags (optional)
               </label>
-              <input
+              <Input
                 type="text"
                 id="tags"
                 name="tags"
                 value={formData.tags}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 placeholder="Enter tags separated by commas (e.g., workplace, discrimination, education)"
               />
             </div>
 
             <div className="flex items-center">
-              <input
+              <Input
                 type="checkbox"
                 id="isAnonymous"
                 name="isAnonymous"
@@ -230,13 +227,15 @@ export default function SubmitPage() {
                 </ul>
               </div>
 
-              <button
+              <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary hover:bg-primary-dark text-white font-medium py-3 px-4 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                loading={loading}
+                variant="primary"
+                fullWidth
               >
-                {loading ? 'Submitting...' : 'Submit Article'}
-              </button>
+                Submit Article
+              </Button>
             </div>
           </form>
         </div>

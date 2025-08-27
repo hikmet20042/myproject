@@ -1,52 +1,61 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+import { Card, CardContent } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+
+interface NGO {
+  _id: string
+  name: string
+  description: string
+  category: string
+  focusAreas: string[]
+  location: string
+  website: string
+  email: string
+  phone: string
+  verified: boolean
+  logo: string | null
+  address: {
+    city?: string
+    country?: string
+  }
+  createdAt: string
+}
 
 export default function NGOsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLocation, setSelectedLocation] = useState('all');
+  const [ngos, setNgos] = useState<NGO[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Sample NGO data - this will be replaced with real data from the database
-  const ngos = [
-    {
-      id: 1,
-      name: "Human Rights Watch Azerbaijan",
-      description: "Defending human rights and promoting justice through research, advocacy, and public education.",
-      category: "Human Rights",
-      location: "Baku",
-      website: "https://www.hrw.org",
-      email: "info@hrw.org",
-      phone: "+994 12 555 0001",
-      verified: true,
-      logo: null
-    },
-    {
-      id: 2,
-      name: "Women's Rights Center",
-      description: "Empowering women and promoting gender equality through legal aid, education, and advocacy programs.",
-      category: "Women's Rights",
-      location: "Baku",
-      website: "https://www.wrc.az",
-      email: "contact@wrc.az",
-      phone: "+994 12 555 0002",
-      verified: true,
-      logo: null
-    },
-    {
-      id: 3,
-      name: "Youth for Change",
-      description: "Mobilizing young people to create positive social change through community engagement and activism.",
-      category: "Youth Development",
-      location: "Ganja",
-      website: "https://www.youthforchange.az",
-      email: "info@youthforchange.az",
-      phone: "+994 22 555 0003",
-      verified: false,
-      logo: null
+  // Fetch NGOs from API
+  useEffect(() => {
+    const fetchNGOs = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/ngos')
+        if (!response.ok) {
+          throw new Error('Failed to fetch NGOs')
+        }
+        const data = await response.json()
+        setNgos(data.ngos || [])
+      } catch (err) {
+        console.error('Error fetching NGOs:', err)
+        setError('Failed to load NGOs. Please try again later.')
+      } finally {
+        setLoading(false)
+      }
     }
-  ];
+
+    fetchNGOs()
+  }, [])
 
   const categories = ['all', 'Human Rights', 'Women\'s Rights', 'Youth Development', 'Education', 'Environment', 'Healthcare'];
   const locations = ['all', 'Baku', 'Ganja', 'Sumgayit', 'Mingachevir', 'Other'];
@@ -59,6 +68,33 @@ export default function NGOsPage() {
     
     return matchesSearch && matchesCategory && matchesLocation;
   });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading NGOs...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 transition-colors duration-200">
@@ -86,13 +122,13 @@ export default function NGOsPage() {
                 <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
                   Search NGOs
                 </label>
-                <input
+                <Input
                   type="text"
                   id="search"
                   placeholder="Search by name or description..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full px-4 py-2"
                 />
               </div>
 
@@ -101,18 +137,16 @@ export default function NGOsPage() {
                 <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
                   Category
                 </label>
-                <select
-                  id="category"
+                <Select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  {categories.map(category => (
-                    <option key={category} value={category}>
-                      {category === 'all' ? 'All Categories' : category}
-                    </option>
-                  ))}
-                </select>
+                  options={categories.map(category => ({
+                    value: category,
+                    label: category === 'all' ? 'All Categories' : category
+                  }))}
+                  placeholder="All Categories"
+                  selectSize="md"
+                />
               </div>
 
               {/* Location Filter */}
@@ -120,18 +154,16 @@ export default function NGOsPage() {
                 <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
                   Location
                 </label>
-                <select
-                  id="location"
+                <Select
                   value={selectedLocation}
                   onChange={(e) => setSelectedLocation(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  {locations.map(location => (
-                    <option key={location} value={location}>
-                      {location === 'all' ? 'All Locations' : location}
-                    </option>
-                  ))}
-                </select>
+                  options={locations.map(location => ({
+                    value: location,
+                    label: location === 'all' ? 'All Locations' : location
+                  }))}
+                  placeholder="All Locations"
+                  selectSize="md"
+                />
               </div>
             </div>
           </div>
@@ -152,7 +184,8 @@ export default function NGOsPage() {
             {/* NGO Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {filteredNGOs.map(ngo => (
-                <div key={ngo.id} className="card hover:shadow-xl transition-all duration-300">
+                <Card key={ngo._id} className="hover:shadow-xl transition-all duration-300">
+                  <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-start">
                       <div className="w-16 h-16 bg-primary-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
@@ -169,19 +202,19 @@ export default function NGOsPage() {
                           {ngo.name}
                         </h3>
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="inline-block bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-medium">
+                          <Badge variant="secondary">
                             {ngo.category}
-                          </span>
-                          <span className="inline-block bg-gray-100 text-gray-800 text-xs px-3 py-1 rounded-full font-medium">
+                          </Badge>
+                          <Badge variant="secondary">
                             {ngo.location}
-                          </span>
+                          </Badge>
                           {ngo.verified && (
-                            <span className="inline-block bg-green-100 text-green-800 text-xs px-3 py-1 rounded-full font-medium flex items-center">
+                            <Badge variant="success" className="bg-green-100 text-green-800 hover:bg-green-200">
                               <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                               </svg>
                               Verified
-                            </span>
+                            </Badge>
                           )}
                         </div>
                       </div>
@@ -226,14 +259,17 @@ export default function NGOsPage() {
                   </div>
 
                   <div className="flex gap-3">
-                    <button className="btn-primary flex-1">
+                    <Button className="flex-1">
                       Contact NGO
-                    </button>
-                    <button className="btn-secondary">
-                      View Profile
-                    </button>
+                    </Button>
+                    <Link href={`/resources/ngos/${ngo._id}`}>
+                       <Button variant="secondary">
+                         View Profile
+                       </Button>
+                     </Link>
                   </div>
-                </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
 
@@ -248,16 +284,15 @@ export default function NGOsPage() {
                 <p className="text-gray-600 mb-6">
                   Try adjusting your search criteria or filters to find more organizations.
                 </p>
-                <button
+                <Button
                   onClick={() => {
                     setSearchTerm('');
                     setSelectedCategory('all');
                     setSelectedLocation('all');
                   }}
-                  className="btn-primary"
                 >
                   Clear Filters
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -274,14 +309,13 @@ export default function NGOsPage() {
             <p className="text-xl text-gray-600 mb-8">
               Join our platform to connect with the community, share your work, and access additional features.
             </p>
-            <Link
-              href="/auth/register?type=ngo"
-              className="btn-primary inline-flex items-center"
-            >
-              Register Your NGO
-              <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+            <Link href="/auth/register?type=ngo">
+              <Button className="inline-flex items-center">
+                Register Your NGO
+                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Button>
             </Link>
           </div>
         </div>

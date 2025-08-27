@@ -20,11 +20,11 @@ export default function BlocknoteReadOnly({ initialJSON, className, context = 'g
   if (!initialJSON) return <div className="text-gray-400 italic">No content</div>
 
   return (
-    <div className={`${className ?? ''} relative rounded-xl border border-gray-200 bg-white px-3`}>
+    <div className={`${className ?? ''} relative rounded-xl border border-0 bg-[#F9FAFB] px-3`}>
       <div className="p-2 bn-autogrow min-h-[400px] relative">
         <style>{`
           .bn-container, .bn-editor, .bn-root, .bn-root * {
-            background: transparent !important;
+            background: #F9FAFB !important;
           }
         `}</style>
         <BlockNoteView editor={editor} theme="light" editable={false} />

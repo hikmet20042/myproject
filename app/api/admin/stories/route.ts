@@ -11,7 +11,7 @@ import { cache, invalidateUserCache } from '@/lib/cache';
 export const dynamic = 'force-dynamic';
 
 async function isAdmin(session: any) {
-  return session?.user?.email === 'hikmat@mammadli.space' || session?.user?.role === 'admin';
+  return session?.user?.email === 'hikmat.mammadlii@gmail.com' || session?.user?.role === 'admin';
 }
 
 export async function GET(request: NextRequest) {

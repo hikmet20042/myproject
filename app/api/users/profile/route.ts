@@ -22,11 +22,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Use the user's _id for profile lookup, not a non-existent userId field
-    const profile = await UserProfile.findOne({ userId: user._id }).lean();
+    const profile = await UserProfile.findOne({ userId: user._id });
 
     return NextResponse.json({
       user: {
-        id: user._id.toString(),
+        id: (user._id as mongoose.Types.ObjectId).toString(),
         email: user.email,
         name: user.name,
         image: user.image,
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         emailVerified: user.emailVerified,
         createdAt: user.createdAt
       },
-      profile: profile || null
+      profile: profile ? profile.toJSON() : null
     });
   } catch (error) {
     console.error('Profile fetch error:', error);
@@ -51,7 +51,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, bio, location, website, phone, dateOfBirth, gender, occupation, organization, interests, avatar, socialLinks } = body;
+    const { name, bio, location, website, phone, dateOfBirth, gender, occupation, organization, interests, avatar, socialLinks, socialMedia } = body;
 
     // Update user basic info
     if (name) {
@@ -82,7 +82,8 @@ export async function PUT(request: NextRequest) {
       occupation,
       organization,
       interests,
-      socialLinks: typeof socialLinks === 'string' ? JSON.parse(socialLinks) : socialLinks,
+      socialLinks: socialLinks,
+      socialMedia: socialMedia || {},
     };
 
     // Only update avatar fields if provided

@@ -256,11 +256,7 @@ export default function DraftAnalytics({ userId }: DraftAnalyticsProps) {
               • Consider breaking down large drafts into smaller, manageable sections
             </p>
           )}
-          {priorityStats.high > stats.totalDrafts * 0.7 && (
-            <p className="text-sm text-gray-700">
-              • You have many high-priority drafts. Consider focusing on completing a few first
-            </p>
-          )}
+
           {folderStats.length < 3 && stats.totalDrafts > 5 && (
             <p className="text-sm text-gray-700">
               • Organize your drafts into folders for better management

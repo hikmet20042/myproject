@@ -6,6 +6,8 @@ import { useSession } from 'next-auth/react'
 import BlocknoteEditor from '@/components/BlocknoteEditor'
 import { ArrowLeft, Save, Send, Eye, EyeOff } from 'lucide-react'
 import { STORY_TAGS } from '@/lib/tagOptions'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
 
 interface Step2Props {
   searchParams: { [key: string]: string | string[] | undefined }
@@ -415,7 +417,7 @@ export default function Step2Page({ searchParams }: Step2Props) {
                 </div>
                 <span className="ml-3 text-sm text-blue-800 font-medium">Draft Saved! You can continue editing your story.</span>
               </div>
-              <button onClick={() => setShowDraftSaved(false)} className="ml-4 text-blue-600 hover:underline text-xs">Dismiss</button>
+              <Button onClick={() => setShowDraftSaved(false)} variant="ghost" size="sm" className="ml-4 text-blue-600 hover:underline text-xs">Dismiss</Button>
             </div>
           )}
           {/* Header */}
@@ -427,7 +429,8 @@ export default function Step2Page({ searchParams }: Step2Props) {
                   Share your personal experience or community story
                 </p>
               </div>
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => {
                   // Save current state to localStorage before going back
                   if (typeof window !== 'undefined') {
@@ -453,7 +456,7 @@ export default function Step2Page({ searchParams }: Step2Props) {
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
-              </button>
+              </Button>
             </div>
             
             {/* Manual save warning */}
@@ -499,9 +502,9 @@ export default function Step2Page({ searchParams }: Step2Props) {
                 {isAnonymous ? (
                   <p className="mt-1 text-sm text-gray-900">Anonymous</p>
                 ) : showAuthorNameInput ? (
-                  <input
+                  <Input
                     type="text"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm"
+                    className="mt-1 block w-full focus:border-red-500 focus:ring-red-500 sm:text-sm"
                     placeholder="Your name"
                     value={authorName}
                     onChange={e => setAuthorName(e.target.value)}
@@ -522,13 +525,14 @@ export default function Step2Page({ searchParams }: Step2Props) {
                   <span className="text-sm text-gray-500">
                     {characterCount} characters
                   </span>
-                  <button
+                  <Button
                     onClick={() => setShowPreview(!showPreview)}
-                    className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                    variant="secondary"
+                    size="sm"
                   >
                     {showPreview ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
                     {showPreview ? 'Hide Preview' : 'Show Preview'}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -567,7 +571,7 @@ export default function Step2Page({ searchParams }: Step2Props) {
 
           {/* Action Buttons */}
           <div className="mt-8 flex justify-end space-x-4">
-            <button
+            <Button
               type="button"
               onClick={handleSaveDraft}
               disabled={
@@ -577,12 +581,12 @@ export default function Step2Page({ searchParams }: Step2Props) {
                   (typeof content !== 'string' && (!content || !JSON.stringify(content).trim() || JSON.stringify(content).trim() === '{}'))
                 )
               }
-              className="inline-flex items-center px-6 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="secondary"
             >
               <Save className="w-4 h-4 mr-2" />
               Save Draft
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={handleSubmit}
               disabled={
                 isSubmitting ||
@@ -592,11 +596,12 @@ export default function Step2Page({ searchParams }: Step2Props) {
                 ) ||
                 characterCount < 100
               }
-              className="inline-flex items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              variant="primary"
+              loading={isSubmitting}
             >
               <Send className="w-4 h-4 mr-2" />
               {isSubmitting ? 'Submitting...' : 'Submit Story'}
-            </button>
+            </Button>
           </div>
 
           {/* Guidelines */}

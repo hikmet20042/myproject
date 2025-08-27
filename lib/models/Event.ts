@@ -4,8 +4,30 @@ interface IEvent extends mongoose.Document {
   title: string
   description: string
   category: string
+  eventType: 'event' | 'training' | 'workshop' | 'conference' | 'seminar'
   eventDate: Date
   endDate?: Date
+  // Training-specific fields
+  duration?: {
+    value: number
+    unit: 'hours' | 'days' | 'weeks' | 'months'
+  }
+  schedule?: string
+  prerequisites?: string[]
+  learningOutcomes?: string[]
+  certification?: {
+    provided: boolean
+    certifyingBody?: string
+    certificateName?: string
+  }
+  cost?: {
+    isFree: boolean
+    amount?: number
+    currency?: string
+    scholarshipAvailable?: boolean
+  }
+  targetAudience?: string[]
+  syllabus?: string
   location: {
     type: 'online' | 'physical' | 'hybrid'
     address?: string
@@ -20,6 +42,7 @@ interface IEvent extends mongoose.Document {
   tags: string[]
   imageUrl?: string
   createdBy: mongoose.Types.ObjectId
+  organizationName?: string
   isApproved: boolean
   approvedAt?: Date
   approvedBy?: mongoose.Types.ObjectId
@@ -45,6 +68,7 @@ const EventSchema = new mongoose.Schema<IEvent>({
     type: String,
     required: true,
     enum: [
+      // Event categories
       'Workshop',
       'Conference',
       'Seminar',
@@ -57,14 +81,90 @@ const EventSchema = new mongoose.Schema<IEvent>({
       'Educational Event',
       'Networking',
       'Celebration',
+      // Training categories
+      'Human Rights Training',
+      'Legal Training',
+      'Advocacy Skills',
+      'Leadership Development',
+      'Project Management',
+      'Communication Skills',
+      'Digital Literacy',
+      'Research Methods',
+      'Community Organizing',
+      'Conflict Resolution',
+      'Gender Equality',
+      'Child Protection',
+      'Mental Health',
+      'Environmental Justice',
+      'Technical Skills',
       'Other'
     ]
+  },
+  eventType: {
+    type: String,
+    enum: ['event', 'training', 'workshop', 'conference', 'seminar'],
+    required: true,
+    default: 'event'
   },
   eventDate: {
     type: Date,
     required: true
   },
   endDate: Date,
+  // Training-specific fields
+  duration: {
+    value: {
+      type: Number
+    },
+    unit: {
+      type: String,
+      enum: ['hours', 'days', 'weeks', 'months']
+    }
+  },
+  schedule: {
+    type: String
+  },
+  prerequisites: [{
+    type: String
+  }],
+  learningOutcomes: [{
+    type: String
+  }],
+  certification: {
+    provided: {
+      type: Boolean,
+      default: false
+    },
+    certifyingBody: {
+      type: String
+    },
+    certificateName: {
+      type: String
+    }
+  },
+  cost: {
+    isFree: {
+      type: Boolean,
+      default: true
+    },
+    amount: {
+      type: Number
+    },
+    currency: {
+      type: String,
+      default: 'USD'
+    },
+    scholarshipAvailable: {
+      type: Boolean,
+      default: false
+    }
+  },
+  targetAudience: [{
+    type: String
+  }],
+  syllabus: {
+    type: String
+  },
   location: {
     type: {
       type: String,
@@ -105,6 +205,10 @@ const EventSchema = new mongoose.Schema<IEvent>({
     ref: 'User',
     required: true
   },
+  organizationName: {
+    type: String,
+    trim: true
+  },
   isApproved: {
     type: Boolean,
     default: false
@@ -131,9 +235,15 @@ const EventSchema = new mongoose.Schema<IEvent>({
 // Indexes for better query performance
 EventSchema.index({ eventDate: 1 })
 EventSchema.index({ category: 1 })
+EventSchema.index({ eventType: 1 })
 EventSchema.index({ 'location.city': 1 })
 EventSchema.index({ isApproved: 1, isPublished: 1 })
 EventSchema.index({ createdBy: 1 })
+EventSchema.index({ tags: 1 })
+EventSchema.index({ isFeatured: 1 })
+EventSchema.index({ title: 'text', description: 'text' })
+EventSchema.index({ eventType: 1, category: 1 })
+EventSchema.index({ eventType: 1, eventDate: 1 })
 
 // Virtual for checking if event is upcoming
 EventSchema.virtual('isUpcoming').get(function() {

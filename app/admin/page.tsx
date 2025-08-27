@@ -6,6 +6,10 @@ import { useRouter } from 'next/navigation'
 import { CheckCircle, XCircle, Clock, Eye, Users, Search, Filter, Edit, Trash2, Shield, UserCheck, ChevronDown, Calendar, GraduationCap, Briefcase, Tag, SortAsc, SortDesc, MoreHorizontal, Bell, Send, MessageSquare, AlertCircle, Settings, Save, RotateCcw, History, BookOpen, Building } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
+import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/Select'
+import { Button } from '@/components/ui/Button'
+import { TextArea } from '@/components/ui/Textarea'
 const BlocknoteReadOnly = dynamic(() => import('@/components/BlocknoteReadOnly'), { ssr: false })
 
 
@@ -241,7 +245,7 @@ export default function AdminPage() {
   const [ngoAction, setNgoAction] = useState<'approve' | 'reject' | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
   
-  // Event management states
+  // Event management states (unified for all event types)
   const [events, setEvents] = useState<any[]>([])
   const [eventStats, setEventStats] = useState({ pending: 0, approved: 0, rejected: 0, total: 0 })
   const [eventPagination, setEventPagination] = useState({ page: 1, totalPages: 1 })
@@ -250,19 +254,10 @@ export default function AdminPage() {
   const [eventAction, setEventAction] = useState<'approve' | 'reject' | null>(null)
   const [eventRejectionReason, setEventRejectionReason] = useState('')
 
-  // Training management states
-  const [trainings, setTrainings] = useState<any[]>([])
-  const [trainingStats, setTrainingStats] = useState({ pending: 0, approved: 0, rejected: 0, total: 0 })
-  const [trainingPagination, setTrainingPagination] = useState({ page: 1, totalPages: 1 })
-  const [selectedTraining, setSelectedTraining] = useState<any | null>(null)
-  const [showTrainingModal, setShowTrainingModal] = useState(false)
-  const [trainingAction, setTrainingAction] = useState<'approve' | 'reject' | null>(null)
-  const [trainingRejectionReason, setTrainingRejectionReason] = useState('')
-
   // Vacancy management states
   const [vacancies, setVacancies] = useState<any[]>([])
   const [vacancyStats, setVacancyStats] = useState({ pending: 0, approved: 0, rejected: 0, total: 0 })
-  const [vacancyPagination, setVacancyPagination] = useState({ page: 1, totalPages: 1 })
+  const [vacancyPagination, setVacancyPagination] = useState({ page: 1, totalPages: 1, total: 0, limit: 10 })
   const [selectedVacancy, setSelectedVacancy] = useState<any | null>(null)
   const [showVacancyModal, setShowVacancyModal] = useState(false)
   const [vacancyAction, setVacancyAction] = useState<'approve' | 'reject' | null>(null)
@@ -336,6 +331,13 @@ export default function AdminPage() {
     }
   }, [userSearch, userRoleFilter, userPagination.page])
 
+  // Reload vacancies when vacancy filters change
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.role === 'admin' && activeTab === 'vacancies') {
+      loadVacancies();
+    }
+  }, [contentSearch, statusFilter, vacancyPagination.page])
+
   const loadSubmissions = async () => {
     setTabLoading(true);
     try {
@@ -349,8 +351,6 @@ export default function AdminPage() {
         await loadNgos();
       } else if (activeTab === 'events') {
         await loadEvents();
-      } else if (activeTab === 'trainings') {
-        await loadTrainings();
       } else if (activeTab === 'vacancies') {
         await loadVacancies();
       } else if (activeTab === 'notifications') {
@@ -473,18 +473,17 @@ export default function AdminPage() {
         ...(contentSearch && { search: contentSearch }),
         ...(statusFilter !== 'all' && { status: statusFilter }),
         sortBy: 'createdAt',
-        sortOrder: 'desc',
-        adminView: 'true'
+        sortOrder: 'desc'
       });
       
-      const response = await fetch(`/api/events?${params}`);
+      const response = await fetch(`/api/admin/events?${params}`);
       if (response.ok) {
         const data = await response.json();
         setEvents(data.events || []);
         setEventStats(data.stats || { pending: 0, approved: 0, rejected: 0, total: 0 });
         setEventPagination({
-          page: data.pagination.currentPage || data.pagination.page,
-          totalPages: data.pagination.totalPages
+          page: data.pagination.page,
+          totalPages: data.pagination.pages
         });
       }
     } catch (error) {
@@ -492,59 +491,7 @@ export default function AdminPage() {
     }
   }
 
-  const loadTrainings = async () => {
-    try {
-      const params = new URLSearchParams({
-        page: trainingPagination.page.toString(),
-        limit: '20',
-        ...(contentSearch && { search: contentSearch }),
-        ...(statusFilter !== 'all' && { status: statusFilter }),
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
-        adminView: 'true'
-      });
-      
-      const response = await fetch(`/api/trainings?${params}`);
-      if (response.ok) {
-        const data = await response.json();
-        setTrainings(data.trainings || []);
-        setTrainingStats(data.stats || { pending: 0, approved: 0, rejected: 0, total: 0 });
-        setTrainingPagination({
-          page: data.pagination.currentPage || data.pagination.page,
-          totalPages: data.pagination.totalPages
-        });
-      }
-    } catch (error) {
-      console.error('Error loading trainings:', error);
-    }
-  }
 
-  const loadVacancies = async () => {
-    try {
-      const params = new URLSearchParams({
-        page: vacancyPagination.page.toString(),
-        limit: '20',
-        ...(contentSearch && { search: contentSearch }),
-        ...(statusFilter !== 'all' && { status: statusFilter }),
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
-        adminView: 'true'
-      });
-      
-      const response = await fetch(`/api/vacancies?${params}`);
-      if (response.ok) {
-        const data = await response.json();
-        setVacancies(data.vacancies || []);
-        setVacancyStats(data.stats || { pending: 0, approved: 0, rejected: 0, total: 0 });
-        setVacancyPagination({
-          page: data.pagination.currentPage || data.pagination.page,
-          totalPages: data.pagination.totalPages
-        });
-      }
-    } catch (error) {
-      console.error('Error loading vacancies:', error);
-    }
-  }
 
   const loadNotifications = async () => {
     try {
@@ -983,8 +930,8 @@ export default function AdminPage() {
         body.rejectionReason = eventRejectionReason.trim()
       }
       
-      const response = await fetch(`/api/events/${selectedEvent._id}`, {
-        method: 'PUT',
+      const response = await fetch(`/api/admin/events/${selectedEvent._id}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       })
@@ -1006,6 +953,89 @@ export default function AdminPage() {
   const handleEventPageChange = async (page: number) => {
     setEventPagination(prev => ({ ...prev, page }))
     await loadEvents()
+  }
+
+  // Vacancy management functions
+  const handleVacancyAction = (vacancy: any, action: 'approve' | 'reject') => {
+    setSelectedVacancy(vacancy)
+    setVacancyAction(action)
+    setShowVacancyModal(true)
+  }
+
+  const executeVacancyAction = async () => {
+    if (!selectedVacancy || !vacancyAction) return
+    setIsProcessing(true)
+    
+    try {
+      const body: any = {
+        action: vacancyAction
+      }
+      
+      if (vacancyAction === 'reject' && vacancyRejectionReason.trim()) {
+        body.rejectionReason = vacancyRejectionReason.trim()
+      }
+      
+      const response = await fetch(`/api/vacancies/${selectedVacancy._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+      
+      if (response.ok) {
+        setShowVacancyModal(false)
+        setSelectedVacancy(null)
+        setVacancyAction(null)
+        setVacancyRejectionReason('')
+        await loadVacancies()
+      }
+    } catch (error) {
+      console.error('Error executing vacancy action:', error)
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const handleVacancyPageChange = async (page: number) => {
+    setVacancyPagination(prev => ({ ...prev, page }))
+    await loadVacancies()
+  }
+
+  const loadVacancies = async () => {
+    try {
+      const params = new URLSearchParams({
+        page: vacancyPagination.page.toString(),
+        limit: vacancyPagination.limit.toString(),
+        adminView: 'true'
+      })
+      
+      if (contentSearch.trim()) {
+        params.append('search', contentSearch.trim())
+      }
+      
+      if (statusFilter !== 'all') {
+        params.append('status', statusFilter)
+      }
+      
+      const response = await fetch(`/api/vacancies?${params}`)
+      if (response.ok) {
+        const data = await response.json()
+        setVacancies(data.vacancies || [])
+        setVacancyPagination({
+          page: data.page || 1,
+          totalPages: data.totalPages || 1,
+          total: data.total || 0,
+          limit: data.limit || 10
+        })
+        setVacancyStats({
+          pending: data.stats?.pending || 0,
+          approved: data.stats?.approved || 0,
+          rejected: data.stats?.rejected || 0,
+          total: data.stats?.total || 0
+        })
+      }
+    } catch (error) {
+      console.error('Error loading vacancies:', error)
+    }
   }
 
   // Bulk operations
@@ -1215,25 +1245,6 @@ export default function AdminPage() {
                 </div>
               </button>
               <button
-                onClick={() => handleTabChange('trainings')}
-                disabled={tabLoading}
-                className={`relative flex items-center px-2 sm:px-3 py-2 sm:py-3 font-medium text-xs transition-all duration-200 disabled:opacity-50 border-b-4 whitespace-nowrap ${
-                  activeTab === 'trainings'
-                    ? 'border-red-500 text-red-600 bg-red-50'
-                    : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                <GraduationCap className="w-4 h-4 mr-2" />
-                Trainings
-                <div className="ml-2 w-6 h-4 flex items-center justify-center">
-                  {trainingStats.pending > 0 && (
-                    <span className="bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full px-2 py-1 font-semibold shadow-sm">
-                      {trainingStats.pending}
-                    </span>
-                  )}
-                </div>
-              </button>
-              <button
                 onClick={() => handleTabChange('vacancies')}
                 disabled={tabLoading}
                 className={`relative flex items-center px-2 sm:px-3 py-2 sm:py-3 font-medium text-xs transition-all duration-200 disabled:opacity-50 border-b-4 whitespace-nowrap ${
@@ -1252,6 +1263,7 @@ export default function AdminPage() {
                   )}
                 </div>
               </button>
+
               <button
                 onClick={() => handleTabChange('notifications')}
                 disabled={tabLoading}
@@ -1338,25 +1350,26 @@ export default function AdminPage() {
                   <div className="flex-1">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <input
+                      <Input
                         type="text"
                         placeholder="Search articles by title, content, or tags..."
                         value={contentSearch}
                         onChange={(e) => setContentSearch(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        className="w-full pl-10 pr-4 py-2"
                       />
                     </div>
                   </div>
                   
                   {/* Filter Toggle */}
-                  <button
+                  <Button
                     onClick={() => setShowFilters(!showFilters)}
-                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    variant="outline"
+                    className="flex items-center gap-2"
                   >
                     <Filter className="w-4 h-4" />
                     Filters
                     <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
-                  </button>
+                  </Button>
                 </div>
 
                 {/* Advanced Filters */}
@@ -1365,67 +1378,71 @@ export default function AdminPage() {
                     {/* Status Filter */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                      <select
+                      <Select
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                      >
-                        <option value="all">All Status</option>
-                        <option value="pending">Pending</option>
-                        <option value="approved">Approved</option>
-                        <option value="rejected">Rejected</option>
-                      </select>
+                        options={[
+                          { value: 'all', label: 'All Status' },
+                          { value: 'pending', label: 'Pending' },
+                          { value: 'approved', label: 'Approved' },
+                          { value: 'rejected', label: 'Rejected' }
+                        ]}
+                      />
                     </div>
 
                     {/* Author Filter */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Author</label>
-                      <select
+                      <Select
                         value={authorFilter}
                         onChange={(e) => setAuthorFilter(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                      >
-                        <option value="">All Authors</option>
-                        {availableFilters.authors.map(author => (
-                          <option key={author} value={author}>{author}</option>
-                        ))}
-                      </select>
+                        options={[
+                          { value: '', label: 'All Authors' },
+                          ...availableFilters.authors.map(author => ({
+                            value: author,
+                            label: author
+                          }))
+                        ]}
+                      />
                     </div>
 
                     {/* Tag Filter */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Tag</label>
-                      <select
+                      <Select
                         value={tagFilter}
                         onChange={(e) => setTagFilter(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                      >
-                        <option value="">All Tags</option>
-                        {availableFilters.tags.map(tag => (
-                          <option key={tag} value={tag}>{tag}</option>
-                        ))}
-                      </select>
+                        options={[
+                          { value: '', label: 'All Tags' },
+                          ...availableFilters.tags.map(tag => ({
+                            value: tag,
+                            label: tag
+                          }))
+                        ]}
+                      />
                     </div>
 
                     {/* Sort Options */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
                       <div className="flex gap-2">
-                        <select
+                        <Select
                           value={sortBy}
                           onChange={(e) => setSortBy(e.target.value)}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                        >
-                          <option value="createdAt">Date</option>
-                          <option value="title">Title</option>
-                          <option value="author">Author</option>
-                        </select>
-                        <button
+                          className="flex-1"
+                          options={[
+                            { value: 'createdAt', label: 'Date' },
+                            { value: 'title', label: 'Title' },
+                            { value: 'author', label: 'Author' }
+                          ]}
+                        />
+                        <Button
                           onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                          className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                          variant="outline"
+                          className="px-3 py-2"
                         >
                           {sortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
-                        </button>
+                        </Button>
                       </div>
                     </div>
 
@@ -1433,30 +1450,31 @@ export default function AdminPage() {
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
                       <div className="flex gap-2">
-                        <input
+                        <Input
                           type="date"
                           value={dateFromFilter}
                           onChange={(e) => setDateFromFilter(e.target.value)}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                          className="flex-1"
                         />
                         <span className="self-center text-gray-500">to</span>
-                        <input
+                        <Input
                           type="date"
                           value={dateToFilter}
                           onChange={(e) => setDateToFilter(e.target.value)}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                          className="flex-1"
                         />
                       </div>
                     </div>
 
                     {/* Clear Filters */}
                     <div className="flex items-end">
-                      <button
+                      <Button
                         onClick={clearFilters}
-                        className="w-full px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        variant="outline"
+                        className="w-full"
                       >
                         Clear All
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -1468,24 +1486,24 @@ export default function AdminPage() {
                       {selectedItems.length} item(s) selected
                     </span>
                     <div className="flex gap-2">
-                      <button
+                      <Button
                         onClick={() => handleBulkAction('approve')}
-                        className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                        className="px-3 py-1 bg-green-600 text-white hover:bg-green-700 text-sm"
                       >
                         Approve
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         onClick={() => handleBulkAction('reject')}
-                        className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                        className="px-3 py-1 bg-red-600 text-white hover:bg-red-700 text-sm"
                       >
                         Reject
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         onClick={() => handleBulkAction('delete')}
-                        className="px-3 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
+                        className="px-3 py-1 bg-gray-600 text-white hover:bg-gray-700 text-sm"
                       >
                         Delete
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -1537,7 +1555,7 @@ export default function AdminPage() {
                                   {article.status}
                                 </span>
                                 <span className="text-sm text-gray-500">
-                                  by {article.isAnonymous ? 'Anonymous' : (article.author?.name || article.author || 'Unknown')}
+                                  by {article.isAnonymous ? 'Anonymous' : (article.userId?.name || article.authorName || 'Unknown')}
                                 </span>
                                 <span className="text-xs text-gray-400">
                                   {new Date(article.createdAt).toLocaleDateString()}
@@ -1649,14 +1667,16 @@ export default function AdminPage() {
                   </div>
                   
                   {/* Filter Toggle */}
-                  <button
+                  <Button
                     onClick={() => setShowFilters(!showFilters)}
-                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    variant="outline"
+                    size="md"
+                    className="flex items-center gap-2"
                   >
                     <Filter className="w-4 h-4" />
                     Filters
                     <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
-                  </button>
+                  </Button>
                 </div>
 
                 {/* Advanced Filters */}
@@ -1720,12 +1740,13 @@ export default function AdminPage() {
                           <option value="title">Title</option>
                           <option value="author">Author</option>
                         </select>
-                        <button
+                        <Button
                           onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                          className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                          variant="outline"
+                          size="sm"
                         >
                           {sortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
-                        </button>
+                        </Button>
                       </div>
                     </div>
 
@@ -1751,12 +1772,14 @@ export default function AdminPage() {
 
                     {/* Clear Filters */}
                     <div className="flex items-end">
-                      <button
+                      <Button
                         onClick={clearFilters}
-                        className="w-full px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        variant="outline"
+                        size="md"
+                        className="w-full text-gray-600"
                       >
                         Clear All
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -1768,24 +1791,27 @@ export default function AdminPage() {
                       {selectedItems.length} item(s) selected
                     </span>
                     <div className="flex gap-2">
-                      <button
+                      <Button
                         onClick={() => handleBulkAction('approve')}
-                        className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                        variant="primary"
+                        size="sm"
                       >
                         Approve
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         onClick={() => handleBulkAction('reject')}
-                        className="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                        variant="danger"
+                        size="sm"
                       >
                         Reject
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         onClick={() => handleBulkAction('delete')}
-                        className="px-3 py-1 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
+                        variant="secondary"
+                        size="sm"
                       >
                         Delete
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -1950,12 +1976,14 @@ export default function AdminPage() {
                       <option value="ngo">NGOs</option>
                       
                     </select>
-                    <button
+                    <Button
                       onClick={handleUserSearch}
-                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                      variant="primary"
+                      size="md"
+                      className="px-4 py-2"
                     >
                       <Filter className="w-5 h-5" />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -2013,21 +2041,25 @@ export default function AdminPage() {
                             )}
                           </div>
                           <div className="flex flex-col sm:flex-row gap-2">
-                            <button
+                            <Button
                               onClick={() => handleUserAction(user, 'role')}
-                              className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                              variant="secondary"
+                              size="sm"
+                              className="inline-flex items-center"
                             >
                               <Edit className="w-4 h-4 mr-2" />
                               Edit Role
-                            </button>
+                            </Button>
 
-                            <button
+                            <Button
                               onClick={() => handleUserAction(user, 'delete')}
-                              className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                              variant="danger"
+                              size="sm"
+                              className="inline-flex items-center"
                             >
                               <Trash2 className="w-4 h-4 mr-2" />
                               Delete
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       ))}
@@ -2043,20 +2075,22 @@ export default function AdminPage() {
                         Page {userPagination.page} of {userPagination.totalPages}
                       </div>
                       <div className="flex gap-2">
-                        <button
+                        <Button
                           onClick={() => handleUserPageChange(userPagination.page - 1)}
                           disabled={userPagination.page === 1}
-                          className="px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          variant="secondary"
+                          size="sm"
                         >
                           Previous
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           onClick={() => handleUserPageChange(userPagination.page + 1)}
                           disabled={userPagination.page === userPagination.totalPages}
-                          className="px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          variant="secondary"
+                          size="sm"
                         >
                           Next
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -2229,20 +2263,24 @@ export default function AdminPage() {
                             </div>
                             {status === 'pending' && (
                               <div className="flex flex-col gap-2 ml-4">
-                                <button
+                                <Button
                                   onClick={() => handleNgoAction(ngo, 'approve')}
-                                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                  variant="primary"
+                                  size="sm"
+                                  className="inline-flex items-center"
                                 >
                                   <CheckCircle className="w-4 h-4 mr-2" />
                                   Approve
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                   onClick={() => handleNgoAction(ngo, 'reject')}
-                                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                  variant="danger"
+                                  size="sm"
+                                  className="inline-flex items-center"
                                 >
                                   <XCircle className="w-4 h-4 mr-2" />
                                   Reject
-                                </button>
+                                </Button>
                               </div>
                             )}
                           </div>
@@ -2260,20 +2298,22 @@ export default function AdminPage() {
                         Page {ngoPagination.page} of {ngoPagination.totalPages}
                       </div>
                       <div className="flex gap-2">
-                        <button
+                        <Button
                           onClick={() => handleNgoPageChange(ngoPagination.page - 1)}
                           disabled={ngoPagination.page === 1}
-                          className="px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          variant="secondary"
+                          size="sm"
                         >
                           Previous
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           onClick={() => handleNgoPageChange(ngoPagination.page + 1)}
                           disabled={ngoPagination.page === ngoPagination.totalPages}
-                          className="px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          variant="secondary"
+                          size="sm"
                         >
                           Next
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -2393,9 +2433,9 @@ export default function AdminPage() {
                               <h4 className="text-lg font-semibold text-gray-900 mb-1">{event.title}</h4>
                               <p className="text-sm text-gray-600 mb-2">{event.description?.substring(0, 150)}...</p>
                               <div className="flex items-center gap-4 text-sm text-gray-500">
-                                <span>By: {event.creator?.name || 'Unknown'}</span>
+                                <span>By: {event.createdBy.ngoProfile.organizationName || 'Unknown'}</span>
                                 <span>•</span>
-                                <span>{new Date(event.startDate).toLocaleDateString()}</span>
+                                <span>{new Date(event.eventDate).toLocaleDateString()}</span>
                                 {event.endDate && (
                                   <>
                                     <span>-</span>
@@ -2414,29 +2454,44 @@ export default function AdminPage() {
                             <div className="flex items-center gap-2 ml-4">
                               {status === 'pending' && (
                                 <>
-                                  <button
+                                  <Button
                                     onClick={() => handleEventAction(event, 'approve')}
-                                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                    variant="primary"
+                                    size="sm"
+                                    className="inline-flex items-center text-xs"
                                   >
                                     <CheckCircle className="w-4 h-4 mr-1" />
                                     Approve
-                                  </button>
-                                  <button
+                                  </Button>
+                                  <Button
                                     onClick={() => handleEventAction(event, 'reject')}
-                                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                    variant="danger"
+                                    size="sm"
+                                    className="inline-flex items-center text-xs"
                                   >
                                     <XCircle className="w-4 h-4 mr-1" />
                                     Reject
-                                  </button>
+                                  </Button>
                                 </>
                               )}
-                              <button
-                                onClick={() => window.open(`/resources/events/${event._id}`, '_blank')}
-                                className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                              <Button
+                                onClick={() => window.open(`/admin/preview/events/${event._id}`, '_blank')}
+                                variant="outline"
+                                size="sm"
+                                className="inline-flex items-center text-xs mr-2 border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100"
                               >
                                 <Eye className="w-4 h-4 mr-1" />
-                                View
-                              </button>
+                                Preview
+                              </Button>
+                              <Button
+                                onClick={() => window.open(`/resources/events/${event._id}`, '_blank')}
+                                variant="outline"
+                                size="sm"
+                                className="inline-flex items-center text-xs"
+                              >
+                                <Eye className="w-4 h-4 mr-1" />
+                                View Public
+                              </Button>
                             </div>
                           </div>
                         </div>
@@ -2453,20 +2508,22 @@ export default function AdminPage() {
                         Page {eventPagination.page} of {eventPagination.totalPages}
                       </div>
                       <div className="flex gap-2">
-                        <button
+                        <Button
                           onClick={() => handleEventPageChange(eventPagination.page - 1)}
                           disabled={eventPagination.page === 1}
-                          className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                          variant="secondary"
+                          size="sm"
                         >
                           Previous
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           onClick={() => handleEventPageChange(eventPagination.page + 1)}
                           disabled={eventPagination.page === eventPagination.totalPages}
-                          className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                          variant="secondary"
+                          size="sm"
                         >
                           Next
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -2475,200 +2532,15 @@ export default function AdminPage() {
             </div>
           )}
 
-          {/* Trainings Tab */}
-          {activeTab === 'trainings' && (
-            <div className="space-y-6">
-              {/* Training Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Pending Approval</p>
-                      <p className="text-3xl font-bold text-yellow-600">{trainingStats.pending}</p>
-                    </div>
-                    <Clock className="w-8 h-8 text-yellow-500" />
-                  </div>
-                </div>
-                <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Approved</p>
-                      <p className="text-3xl font-bold text-green-600">{trainingStats.approved}</p>
-                    </div>
-                    <CheckCircle className="w-8 h-8 text-green-500" />
-                  </div>
-                </div>
-                <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Rejected</p>
-                      <p className="text-3xl font-bold text-red-600">{trainingStats.rejected}</p>
-                    </div>
-                    <XCircle className="w-8 h-8 text-red-500" />
-                  </div>
-                </div>
-                <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Total Trainings</p>
-                      <p className="text-3xl font-bold text-blue-600">{trainingStats.total}</p>
-                    </div>
-                    <GraduationCap className="w-8 h-8 text-blue-500" />
-                  </div>
-                </div>
-              </div>
 
-              {/* Training Search and Filters */}
-              <div className="bg-white shadow-lg rounded-2xl p-6">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-                  <div className="flex items-center gap-3">
-                    <GraduationCap className="w-8 h-8 text-purple-500" />
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900">Training Management</h2>
-                      <p className="text-gray-600">Review and manage training submissions from NGOs</p>
-                    </div>
-                  </div>
-                </div>
 
-                <div className="flex flex-col lg:flex-row gap-4">
-                  <div className="flex-1">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <input
-                        type="text"
-                        placeholder="Search trainings by title, description, or NGO..."
-                        value={contentSearch}
-                        onChange={(e) => setContentSearch(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <select
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    >
-                      <option value="all">All Status</option>
-                      <option value="pending">Pending</option>
-                      <option value="approved">Approved</option>
-                      <option value="rejected">Rejected</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
 
-              {/* Training List */}
-              <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
-                {tabLoading && activeTab === 'trainings' ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-                    <span className="ml-3 text-gray-600">Loading trainings...</span>
-                  </div>
-                ) : trainings.length === 0 ? (
-                  <div className="text-center py-12">
-                    <GraduationCap className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No trainings found</h3>
-                    <p className="text-gray-500">No training submissions match your current filters.</p>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-gray-200">
-                    {trainings.map((training) => (
-                      <div key={training._id} className="p-6 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="text-lg font-semibold text-gray-900">{training.title}</h3>
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                training.status === 'approved' ? 'bg-green-100 text-green-800' :
-                                training.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                                'bg-yellow-100 text-yellow-800'
-                              }`}>
-                                {training.status.charAt(0).toUpperCase() + training.status.slice(1)}
-                              </span>
-                            </div>
-                            <p className="text-gray-600 mb-3 line-clamp-2">{training.description}</p>
-                            <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                              <span className="flex items-center gap-1">
-                                <Tag className="w-4 h-4" />
-                                {training.category}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Calendar className="w-4 h-4" />
-                                {new Date(training.startDate).toLocaleDateString()}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Users className="w-4 h-4" />
-                                {training.creator?.organizationName || 'Unknown NGO'}
-                              </span>
-                            </div>
-                            {training.adminComment && (
-                              <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                                <p className="text-sm text-gray-700">
-                                  <span className="font-medium">Admin Comment:</span> {training.adminComment}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex gap-2 ml-4">
-                            <button
-                              onClick={() => {
-                                setSelectedTraining(training);
-                                setTrainingAction('approve');
-                                setShowTrainingModal(true);
-                              }}
-                              disabled={training.status === 'approved'}
-                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedTraining(training);
-                                setTrainingAction('reject');
-                                setShowTrainingModal(true);
-                              }}
-                              disabled={training.status === 'rejected'}
-                              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                            >
-                              <XCircle className="w-4 h-4" />
-                              Reject
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedTraining(training);
-                                setShowTrainingModal(true);
-                              }}
-                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                            >
-                              <Eye className="w-4 h-4" />
-                              View
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
 
           {/* Vacancies Tab */}
           {activeTab === 'vacancies' && (
             <div className="space-y-6">
               {/* Vacancy Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Total Vacancies</p>
-                      <p className="text-3xl font-bold text-blue-600">{vacancyStats.total}</p>
-                    </div>
-                    <Briefcase className="w-8 h-8 text-blue-500" />
-                  </div>
-                </div>
                 <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500">
                   <div className="flex items-center justify-between">
                     <div>
@@ -2696,97 +2568,174 @@ export default function AdminPage() {
                     <XCircle className="w-8 h-8 text-red-500" />
                   </div>
                 </div>
-              </div>
-
-              {/* Vacancy Management */}
-              <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
-                <div className="p-6 border-b border-gray-200">
-                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <Briefcase className="w-8 h-8 text-purple-500" />
-                      <div>
-                        <h2 className="text-2xl font-bold text-gray-900">Vacancy Management</h2>
-                        <p className="text-gray-600">Review and manage job postings, volunteering opportunities, and internships</p>
-                      </div>
+                <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Total Vacancies</p>
+                      <p className="text-3xl font-bold text-blue-600">{vacancyStats.total}</p>
                     </div>
+                    <Briefcase className="w-8 h-8 text-blue-500" />
                   </div>
                 </div>
+              </div>
 
-                {tabLoading && activeTab === 'vacancies' ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+              {/* Vacancy Search and Filter Controls */}
+              <div className="bg-white shadow-lg rounded-2xl p-6">
+                <div className="flex flex-col lg:flex-row gap-4 mb-4">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <input
+                        type="text"
+                        placeholder="Search vacancies by title, organization, or description..."
+                        value={contentSearch}
+                        onChange={(e) => setContentSearch(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      />
+                    </div>
                   </div>
-                ) : (
-                  <div className="divide-y divide-gray-200">
-                    {vacancies.map((vacancy) => (
-                      <div key={vacancy._id} className="p-6 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="text-lg font-semibold text-gray-900">{vacancy.title}</h3>
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                vacancy.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                vacancy.status === 'approved' ? 'bg-green-100 text-green-800' :
-                                'bg-red-100 text-red-800'
-                              }`}>
-                                {vacancy.status}
-                              </span>
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                vacancy.type === 'job' ? 'bg-blue-100 text-blue-800' :
-                                vacancy.type === 'volunteer' ? 'bg-purple-100 text-purple-800' :
-                                'bg-orange-100 text-orange-800'
-                              }`}>
-                                {vacancy.type}
-                              </span>
-                            </div>
-                            <p className="text-gray-600 mb-2">{vacancy.organization?.name}</p>
-                            <p className="text-gray-700 mb-3 line-clamp-2">{vacancy.description}</p>
-                            <div className="flex items-center gap-4 text-sm text-gray-500">
-                              <span>📍 {vacancy.location}</span>
-                              {vacancy.deadline && (
-                                <span>⏰ Deadline: {new Date(vacancy.deadline).toLocaleDateString()}</span>
+                  <div className="flex gap-2">
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    >
+                      <option value="all">All Status</option>
+                      <option value="pending">Pending</option>
+                      <option value="approved">Approved</option>
+                      <option value="rejected">Rejected</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Vacancy List */}
+              <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900">Vacancy Submissions</h3>
+                </div>
+                <div className="divide-y divide-gray-200">
+                  {vacancies.length === 0 ? (
+                    <div className="px-6 py-12 text-center">
+                      <Briefcase className="mx-auto h-12 w-12 text-gray-400" />
+                      <h3 className="mt-2 text-sm font-medium text-gray-900">No vacancies found</h3>
+                      <p className="mt-1 text-sm text-gray-500">No vacancy submissions match your current filters.</p>
+                    </div>
+                  ) : (
+                    vacancies.map((vacancy) => {
+                      const status = vacancy.rejectedAt ? 'rejected' : 
+                                   vacancy.isApproved ? 'approved' : 'pending';
+                      return (
+                        <div key={vacancy._id} className="px-6 py-6 hover:bg-gray-50 transition-colors">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                                  status === 'approved' ? 'bg-green-100 text-green-800' :
+                                  status === 'rejected' ? 'bg-red-100 text-red-800' :
+                                  'bg-yellow-100 text-yellow-800'
+                                }`}>
+                                  {status === 'approved' ? <CheckCircle className="w-3 h-3 mr-1" /> :
+                                   status === 'rejected' ? <XCircle className="w-3 h-3 mr-1" /> :
+                                   <Clock className="w-3 h-3 mr-1" />}
+                                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                                </span>
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                                  {vacancy.category}
+                                </span>
+                              </div>
+                              <h4 className="text-lg font-semibold text-gray-900 mb-1">{vacancy.title}</h4>
+                              <p className="text-sm text-gray-600 mb-2">{vacancy.description?.substring(0, 150)}...</p>
+                              <div className="flex items-center gap-4 text-sm text-gray-500">
+                                <span>By: {vacancy.createdBy?.ngoProfile?.organizationName || 'Unknown'}</span>
+                                <span>•</span>
+                                <span>Deadline: {new Date(vacancy.applicationDeadline).toLocaleDateString()}</span>
+                                <span>•</span>
+                                <span>{vacancy.location?.isRemote ? 'Remote' : `${vacancy.location?.city || ''} ${vacancy.location?.country || ''}`.trim() || 'Location TBD'}</span>
+                                <span>•</span>
+                                <span>{vacancy.compensation?.type}: {vacancy.compensation?.amount ? `${vacancy.compensation.amount} ${vacancy.compensation.currency || ''}` : 'Not specified'}</span>
+                              </div>
+                              {vacancy.rejectionReason && (
+                                <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
+                                  <p className="text-sm text-red-700"><strong>Rejection reason:</strong> {vacancy.rejectionReason}</p>
+                                </div>
                               )}
-                              <span>📅 {new Date(vacancy.createdAt).toLocaleDateString()}</span>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2 ml-4">
-                            <button
-                              onClick={() => {
-                                setSelectedVacancy(vacancy)
-                                setVacancyAction('approve')
-                                setShowVacancyModal(true)
-                              }}
-                              className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                              title="Approve"
-                            >
-                              <CheckCircle className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedVacancy(vacancy)
-                                setVacancyAction('reject')
-                                setShowVacancyModal(true)
-                              }}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Reject"
-                            >
-                              <XCircle className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedVacancy(vacancy)
-                                setVacancyAction(null)
-                                setShowVacancyModal(true)
-                              }}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="View Details"
-                            >
-                              <Eye className="w-5 h-5" />
-                            </button>
+                            <div className="flex items-center gap-2 ml-4">
+                              {status === 'pending' && (
+                                <>
+                                  <Button
+                                    onClick={() => handleVacancyAction(vacancy, 'approve')}
+                                    variant="primary"
+                                    size="sm"
+                                    className="inline-flex items-center text-xs"
+                                  >
+                                    <CheckCircle className="w-4 h-4 mr-1" />
+                                    Approve
+                                  </Button>
+                                  <Button
+                                    onClick={() => handleVacancyAction(vacancy, 'reject')}
+                                    variant="danger"
+                                    size="sm"
+                                    className="inline-flex items-center text-xs"
+                                  >
+                                    <XCircle className="w-4 h-4 mr-1" />
+                                    Reject
+                                  </Button>
+                                </>
+                              )}
+                              <Button
+                                onClick={() => window.open(`/admin/preview/vacancies/${vacancy._id}`, '_blank')}
+                                variant="outline"
+                                size="sm"
+                                className="inline-flex items-center text-xs mr-2 border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100"
+                              >
+                                <Eye className="w-4 h-4 mr-1" />
+                                Preview
+                              </Button>
+                              <Button
+                                onClick={() => window.open(`/resources/vacancies/${vacancy._id}`, '_blank')}
+                                variant="outline"
+                                size="sm"
+                                className="inline-flex items-center text-xs"
+                              >
+                                <Eye className="w-4 h-4 mr-1" />
+                                View Public
+                              </Button>
+                            </div>
                           </div>
                         </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Vacancy Pagination */}
+                {vacancyPagination.totalPages > 1 && (
+                  <div className="px-6 py-4 border-t border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-gray-700">
+                        Page {vacancyPagination.page} of {vacancyPagination.totalPages}
                       </div>
-                    ))}
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => handleVacancyPageChange(vacancyPagination.page - 1)}
+                          disabled={vacancyPagination.page === 1}
+                          variant="secondary"
+                          size="sm"
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          onClick={() => handleVacancyPageChange(vacancyPagination.page + 1)}
+                          disabled={vacancyPagination.page === vacancyPagination.totalPages}
+                          variant="secondary"
+                          size="sm"
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -2806,13 +2755,15 @@ export default function AdminPage() {
                       <p className="text-gray-600">Send announcements to users and manage sent announcements</p>
                     </div>
                   </div>
-                  <button
+                  <Button
                     onClick={() => setShowAnnouncementModal(true)}
-                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                    variant="primary"
+                    size="md"
+                    className="inline-flex items-center bg-blue-600 hover:bg-blue-700"
                   >
                     <Send className="w-4 h-4 mr-2" />
                     Send Announcement
-                  </button>
+                  </Button>
                 </div>
 
                 {/* Notification Stats Cards */}
@@ -2887,18 +2838,19 @@ export default function AdminPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Target Audience</label>
-                    <select 
+                    <Select 
                       value={announcementForm.targetUsers}
                       onChange={(e) => setAnnouncementForm(prev => ({ ...prev, targetUsers: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="all">All Users</option>
-                      <option value="verified">Verified Users Only</option>
-                    </select>
+                      options={[
+                        { value: "all", label: "All Users" },
+                        { value: "verified", label: "Verified Users Only" }
+                      ]}
+                    />
                   </div>
                   <div className="flex justify-end gap-2">
-                    <button 
+                    <Button 
                       type="button"
+                      variant="outline"
                       onClick={() => setAnnouncementForm({
                         type: 'announcement',
                         title: '',
@@ -2907,27 +2859,18 @@ export default function AdminPage() {
                         target: 'all',
                         userIds: ''
                       })}
-                      className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                     >
                       Clear Form
-                    </button>
-                    <button 
+                    </Button>
+                    <Button 
                       type="submit"
+                      variant="primary"
                       disabled={sendingAnnouncement || !announcementForm.title.trim() || !announcementForm.message.trim()}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      loading={sendingAnnouncement}
+                      icon={sendingAnnouncement ? undefined : Send}
                     >
-                      {sendingAnnouncement ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                          Sending...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="w-4 h-4" />
-                          Send Announcement
-                        </>
-                      )}
-                    </button>
+                      {sendingAnnouncement ? 'Sending...' : 'Send Announcement'}
+                    </Button>
                   </div>
                 </form>
               </div>
@@ -2944,10 +2887,10 @@ export default function AdminPage() {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <button className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                    <Button variant="outline" className="px-3 py-2 text-sm">
                       Filter
-                    </button>
-                    <button 
+                    </Button>
+                    <Button 
                       onClick={() => {
                         // Clear form and scroll to announcement form
                         setAnnouncementForm({
@@ -2961,10 +2904,10 @@ export default function AdminPage() {
                         // Scroll to form
                         document.querySelector('[data-announcement-form]')?.scrollIntoView({ behavior: 'smooth' });
                       }}
-                      className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      className="px-3 py-2 text-sm bg-blue-600 text-white hover:bg-blue-700"
                     >
                       New Announcement
-                    </button>
+                    </Button>
                   </div>
                 </div>
                 <div className="px-6 py-6">
@@ -3004,7 +2947,7 @@ export default function AdminPage() {
                               </div>
                             </div>
                             <div className="flex items-center gap-2 ml-4">
-                              <button
+                              <Button
                                 onClick={() => {
                                   // Set editing mode and populate form with announcement data
                                   setEditingAnnouncementId(notification._id);
@@ -3019,18 +2962,22 @@ export default function AdminPage() {
                                   // Scroll to form
                                   document.querySelector('[data-announcement-form]')?.scrollIntoView({ behavior: 'smooth' });
                                 }}
-                                className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                                variant="ghost"
+                                size="sm"
+                                className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                                 title="Edit announcement"
                               >
                                 <Edit className="w-4 h-4" />
-                              </button>
-                              <button
+                              </Button>
+                              <Button
                                 onClick={() => deleteNotification(notification._id)}
-                                className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                                variant="ghost"
+                                size="sm"
+                                className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50"
                                 title="Delete announcement"
                               >
                                 <Trash2 className="w-4 h-4" />
-                              </button>
+                              </Button>
                             </div>
                           </div>
                         </div>
@@ -3047,20 +2994,22 @@ export default function AdminPage() {
                         Page {notificationPagination.page} of {notificationPagination.totalPages}
                       </div>
                       <div className="flex gap-2">
-                        <button
+                        <Button
                           onClick={() => setNotificationPagination(prev => ({ ...prev, page: prev.page - 1 }))}
                           disabled={notificationPagination.page === 1}
-                          className="px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          variant="secondary"
+                          size="sm"
                         >
                           Previous
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           onClick={() => setNotificationPagination(prev => ({ ...prev, page: prev.page + 1 }))}
                           disabled={notificationPagination.page === notificationPagination.totalPages}
-                          className="px-3 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          variant="secondary"
+                          size="sm"
                         >
                           Next
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -3090,24 +3039,30 @@ export default function AdminPage() {
                         </div>
                       </div>
                       <div className="flex gap-2">
-                        <button
+                        <Button
                           onClick={loadSettingsHistory}
-                          className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors"
+                          variant="secondary"
+                          size="md"
+                          className="inline-flex items-center bg-gray-600 text-white hover:bg-gray-700"
                         >
                           <History className="w-4 h-4 mr-2" />
                           History
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           onClick={() => resetSettings()}
-                          className="inline-flex items-center px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-colors"
+                          variant="danger"
+                          size="md"
+                          className="inline-flex items-center"
                         >
                           <RotateCcw className="w-4 h-4 mr-2" />
                           Reset All
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           onClick={saveSettings}
                           disabled={!settingsChanged || savingSettings}
-                          className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          variant="primary"
+                          size="md"
+                          className="inline-flex items-center"
                         >
                           {savingSettings ? (
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -3115,7 +3070,7 @@ export default function AdminPage() {
                             <Save className="w-4 h-4 mr-2" />
                           )}
                           {savingSettings ? 'Saving...' : 'Save Changes'}
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -3134,10 +3089,12 @@ export default function AdminPage() {
                               { id: 'security', label: 'Security', icon: '🔒' },
                               { id: 'features', label: 'Features', icon: '⚡' }
                             ].map((section) => (
-                              <button
+                              <Button
                                 key={section.id}
                                 onClick={() => setActiveSettingsSection(section.id)}
-                                className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                                variant={activeSettingsSection === section.id ? 'primary' : 'ghost'}
+                                size="sm"
+                                className={`w-full text-left justify-start ${
                                   activeSettingsSection === section.id
                                     ? 'bg-purple-100 text-purple-700'
                                     : 'text-gray-600 hover:bg-gray-100'
@@ -3145,7 +3102,7 @@ export default function AdminPage() {
                               >
                                 <span className="mr-2">{section.icon}</span>
                                 {section.label}
-                              </button>
+                              </Button>
                             ))}
                           </nav>
                         </div>
@@ -3394,14 +3351,16 @@ export default function AdminPage() {
                 <h3 className="text-lg font-medium text-gray-900">
                   Review {activeTab.slice(0, -1).charAt(0).toUpperCase() + activeTab.slice(1, -1)}
                 </h3>
-                <button
+                <Button
                   onClick={() => setShowModal(false)}
+                  variant="ghost"
+                  size="sm"
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                </button>
+                </Button>
               </div>
 
               <div className="mb-4">
@@ -3451,26 +3410,29 @@ export default function AdminPage() {
               </div>
 
               <div className="flex justify-end space-x-3">
-                <button
+                <Button
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  variant="outline"
+                  size="sm"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handleReject}
                   disabled={isProcessing}
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                  variant="danger"
+                  size="sm"
                 >
                   {isProcessing ? 'Rejecting...' : 'Reject'}
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handleApprove}
                   disabled={isProcessing}
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+                  variant="primary"
+                  size="sm"
                 >
                   {isProcessing ? 'Approving...' : 'Approve'}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -3486,14 +3448,16 @@ export default function AdminPage() {
                 {userAction === 'role' && 'Change User Role'}
                 {userAction === 'delete' && 'Delete User'}
               </h3>
-              <button
+              <Button
                 onClick={() => setShowUserModal(false)}
-                className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-gray-600"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </button>
+              </Button>
             </div>
 
             <div className="p-6">
@@ -3563,26 +3527,24 @@ export default function AdminPage() {
               )}
 
               <div className="flex justify-end space-x-3">
-                <button
+                <Button
                   onClick={() => setShowUserModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  variant="outline"
+                  size="sm"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={executeUserAction}
                   disabled={isProcessing}
-                  className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 ${
-                    userAction === 'delete'
-                      ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
-                      : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
-                  }`}
+                  variant={userAction === 'delete' ? 'danger' : 'primary'}
+                  size="sm"
                 >
                   {isProcessing ? 'Processing...' : (
                     userAction === 'role' ? 'Update Role' :
                     'Delete User'
                   )}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -3599,14 +3561,16 @@ export default function AdminPage() {
                       bulkAction === 'reject' ? 'Reject' : 
                       bulkAction === 'delete' ? 'Delete' : 'Update'} {activeTab}
               </h3>
-              <button
+              <Button
                 onClick={() => setShowBulkModal(false)}
-                className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-gray-600"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </button>
+              </Button>
             </div>
 
             <div className="p-6">
@@ -3646,26 +3610,24 @@ export default function AdminPage() {
               )}
 
               <div className="flex justify-end space-x-3">
-                <button
+                <Button
                   onClick={() => setShowBulkModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  variant="outline"
+                  size="sm"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={executeBulkAction}
                   disabled={isProcessing || (bulkAction === 'reject' && !bulkComment.trim())}
-                  className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 ${
-                    bulkAction === 'delete' || bulkAction === 'reject'
-                      ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
-                      : 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
-                  }`}
+                  variant={bulkAction === 'delete' || bulkAction === 'reject' ? 'danger' : 'primary'}
+                  size="sm"
                 >
                   {isProcessing ? 'Processing...' : 
                    bulkAction === 'approve' ? 'Approve All' :
                    bulkAction === 'reject' ? 'Reject All' :
                    bulkAction === 'delete' ? 'Delete All' : 'Update All'}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -3680,14 +3642,16 @@ export default function AdminPage() {
               <h3 className="text-lg font-semibold text-gray-900">
                 {ngoAction === 'approve' ? 'Approve NGO Registration' : 'Reject NGO Registration'}
               </h3>
-              <button
+              <Button
                 onClick={() => setShowNgoModal(false)}
-                className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-gray-600"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </button>
+              </Button>
             </div>
 
             <div className="p-6">
@@ -3742,7 +3706,7 @@ export default function AdminPage() {
                         </h3>
                         <div className="mt-2 text-sm text-green-700">
                           <p>
-                            This will approve the NGO registration and grant them access to create events, trainings, and job postings.
+                            This will approve the NGO registration and grant them access to create events.
                           </p>
                         </div>
                       </div>
@@ -3787,25 +3751,23 @@ export default function AdminPage() {
               )}
 
               <div className="flex justify-end space-x-3">
-                <button
+                <Button
                   onClick={() => setShowNgoModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  variant="outline"
+                  size="sm"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={executeNgoAction}
                   disabled={isProcessing || (ngoAction === 'reject' && !rejectionReason.trim())}
-                  className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 ${
-                    ngoAction === 'reject'
-                      ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
-                      : 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
-                  }`}
+                  variant={ngoAction === 'reject' ? 'danger' : 'primary'}
+                  size="sm"
                 >
                   {isProcessing ? 'Processing...' : (
                     ngoAction === 'approve' ? 'Approve NGO' : 'Reject NGO'
                   )}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -3820,12 +3782,14 @@ export default function AdminPage() {
               <h3 className="text-xl font-semibold text-gray-900">
                 {eventAction === 'approve' ? 'Approve Event' : 'Reject Event'}
               </h3>
-              <button
+              <Button
                 onClick={() => setShowEventModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-gray-600"
               >
                 <XCircle className="w-6 h-6" />
-              </button>
+              </Button>
             </div>
 
             <div className="space-y-4">
@@ -3838,11 +3802,11 @@ export default function AdminPage() {
                   </div>
                   <div>
                     <span className="font-medium text-gray-700">Creator:</span>
-                    <span className="ml-2 text-gray-600">{selectedEvent.creator?.name || 'Unknown'}</span>
+                    <span className="ml-2 text-gray-600">{selectedEvent.createdBy.ngoProfile.organizationName || 'Unknown'}</span>
                   </div>
                   <div>
                     <span className="font-medium text-gray-700">Start Date:</span>
-                    <span className="ml-2 text-gray-600">{new Date(selectedEvent.startDate).toLocaleDateString()}</span>
+                    <span className="ml-2 text-gray-600">{new Date(selectedEvent.eventDate).toLocaleDateString()}</span>
                   </div>
                   <div>
                     <span className="font-medium text-gray-700">Location:</span>
@@ -3872,345 +3836,127 @@ export default function AdminPage() {
               )}
 
               <div className="flex justify-end space-x-3">
-                <button
+                <Button
                   onClick={() => setShowEventModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  variant="outline"
+                  size="sm"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={executeEventAction}
                   disabled={isProcessing || (eventAction === 'reject' && !eventRejectionReason.trim())}
-                  className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 ${
-                    eventAction === 'reject'
-                      ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
-                      : 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
-                  }`}
+                  variant={eventAction === 'reject' ? 'danger' : 'primary'}
+                  size="sm"
                 >
                   {isProcessing ? 'Processing...' : (
                     eventAction === 'approve' ? 'Approve Event' : 'Reject Event'
                   )}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Training Action Modal */}
-          {showTrainingModal && selectedTraining && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-              <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-bold text-gray-900">Training Details</h3>
-                    <button
-                      onClick={() => {
-                        setShowTrainingModal(false);
-                        setSelectedTraining(null);
-                        setTrainingAction(null);
-                        setTrainingRejectionReason('');
-                      }}
-                      className="text-gray-400 hover:text-gray-600"
-                    >
-                      <XCircle className="w-6 h-6" />
-                    </button>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-2">{selectedTraining.title}</h4>
-                      <p className="text-gray-600">{selectedTraining.description}</p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <span className="text-sm font-medium text-gray-500">Category:</span>
-                        <p className="text-gray-900">{selectedTraining.category}</p>
-                      </div>
-                      <div>
-                        <span className="text-sm font-medium text-gray-500">Type:</span>
-                        <p className="text-gray-900">{selectedTraining.type}</p>
-                      </div>
-                      <div>
-                        <span className="text-sm font-medium text-gray-500">Start Date:</span>
-                        <p className="text-gray-900">{new Date(selectedTraining.startDate).toLocaleDateString()}</p>
-                      </div>
-                      <div>
-                        <span className="text-sm font-medium text-gray-500">End Date:</span>
-                        <p className="text-gray-900">{new Date(selectedTraining.endDate).toLocaleDateString()}</p>
-                      </div>
-                      <div>
-                        <span className="text-sm font-medium text-gray-500">Duration:</span>
-                        <p className="text-gray-900">{selectedTraining.duration?.value} {selectedTraining.duration?.unit}</p>
-                      </div>
-                      <div>
-                        <span className="text-sm font-medium text-gray-500">Max Participants:</span>
-                        <p className="text-gray-900">{selectedTraining.maxParticipants || 'Unlimited'}</p>
-                      </div>
-                    </div>
-
-                    <div>
-                      <span className="text-sm font-medium text-gray-500">NGO:</span>
-                      <p className="text-gray-900">{selectedTraining.creator?.organizationName || 'Unknown'}</p>
-                    </div>
-
-                    <div>
-                      <span className="text-sm font-medium text-gray-500">Current Status:</span>
-                      <span className={`ml-2 px-3 py-1 rounded-full text-xs font-medium ${
-                        selectedTraining.status === 'approved' ? 'bg-green-100 text-green-800' :
-                        selectedTraining.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {selectedTraining.status.charAt(0).toUpperCase() + selectedTraining.status.slice(1)}
-                      </span>
-                    </div>
-
-                    {selectedTraining.adminComment && (
-                      <div>
-                        <span className="text-sm font-medium text-gray-500">Previous Admin Comment:</span>
-                        <p className="text-gray-900 bg-gray-50 p-3 rounded-lg mt-1">{selectedTraining.adminComment}</p>
-                      </div>
-                    )}
-
-                    {trainingAction === 'reject' && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Rejection Reason *</label>
-                        <textarea
-                          value={trainingRejectionReason}
-                          onChange={(e) => setTrainingRejectionReason(e.target.value)}
-                          rows={3}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                          placeholder="Please provide a reason for rejection..."
-                          required
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
-                    <button
-                      onClick={() => {
-                        setShowTrainingModal(false);
-                        setSelectedTraining(null);
-                        setTrainingAction(null);
-                        setTrainingRejectionReason('');
-                      }}
-                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                    >
-                      Cancel
-                    </button>
-                    {trainingAction && (
-                      <button
-                        onClick={async () => {
-                          if (trainingAction === 'reject' && !trainingRejectionReason.trim()) {
-                            alert('Please provide a rejection reason');
-                            return;
-                          }
-                          
-                          try {
-                            const response = await fetch(`/api/trainings/${selectedTraining._id}`, {
-                              method: 'PUT',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                status: trainingAction === 'approve' ? 'approved' : 'rejected',
-                                adminComment: trainingAction === 'reject' ? trainingRejectionReason : null
-                              })
-                            });
-                            
-                            if (response.ok) {
-                              setShowTrainingModal(false);
-                              setSelectedTraining(null);
-                              setTrainingAction(null);
-                              setTrainingRejectionReason('');
-                              loadTrainings();
-                            }
-                          } catch (error) {
-                            console.error('Error updating training:', error);
-                          }
-                        }}
-                        className={`px-4 py-2 text-white rounded-lg ${
-                          trainingAction === 'approve' 
-                            ? 'bg-green-600 hover:bg-green-700' 
-                            : 'bg-red-600 hover:bg-red-700'
-                        }`}
-                      >
-                        {trainingAction === 'approve' ? 'Approve Training' : 'Reject Training'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
+      {/* Vacancy Modal */}
+      {showVacancyModal && selectedVacancy && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="relative w-full max-w-2xl mx-auto p-6 border shadow-2xl rounded-2xl bg-white">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">
+                {vacancyAction === 'approve' ? 'Approve Vacancy' : 'Reject Vacancy'}
+              </h3>
+              <Button
+                onClick={() => setShowVacancyModal(false)}
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XCircle className="w-6 h-6" />
+              </Button>
             </div>
-          )}
 
-          {/* Vacancy Action Modal */}
-          {showVacancyModal && selectedVacancy && (
-            <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-              <div className="relative w-full max-w-4xl mx-auto p-6 border shadow-2xl rounded-2xl bg-white max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-semibold text-gray-900">
-                    {vacancyAction === 'approve' ? 'Approve Vacancy' : 
-                     vacancyAction === 'reject' ? 'Reject Vacancy' : 'Vacancy Details'}
-                  </h3>
-                  <button
-                    onClick={() => {
-                      setShowVacancyModal(false)
-                      setSelectedVacancy(null)
-                      setVacancyAction(null)
-                      setVacancyRejectionReason('')
-                    }}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-2">Title</h4>
-                      <p className="text-gray-700">{selectedVacancy.title}</p>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-2">Organization</h4>
-                      <p className="text-gray-700">{selectedVacancy.organization?.name}</p>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-2">Type</h4>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        selectedVacancy.type === 'job' ? 'bg-blue-100 text-blue-800' :
-                        selectedVacancy.type === 'volunteer' ? 'bg-purple-100 text-purple-800' :
-                        'bg-orange-100 text-orange-800'
-                      }`}>
-                        {selectedVacancy.type}
-                      </span>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-2">Location</h4>
-                      <p className="text-gray-700">{selectedVacancy.location}</p>
-                    </div>
-                    {selectedVacancy.deadline && (
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-2">Application Deadline</h4>
-                        <p className="text-gray-700">{new Date(selectedVacancy.deadline).toLocaleDateString()}</p>
-                      </div>
-                    )}
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-2">Status</h4>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        selectedVacancy.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        selectedVacancy.status === 'approved' ? 'bg-green-100 text-green-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {selectedVacancy.status}
-                      </span>
-                    </div>
-                  </div>
-
+            <div className="space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-gray-900 mb-2">{selectedVacancy.title}</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-2">Description</h4>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <p className="text-gray-700 whitespace-pre-wrap">{selectedVacancy.description}</p>
-                    </div>
+                    <span className="font-medium text-gray-700">Category:</span>
+                    <span className="ml-2 text-gray-600">{selectedVacancy.category}</span>
                   </div>
-
-                  {selectedVacancy.requirements && (
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-2">Requirements</h4>
-                      <div className="bg-gray-50 rounded-lg p-4">
-                        <p className="text-gray-700 whitespace-pre-wrap">{selectedVacancy.requirements}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedVacancy.applicationUrl && (
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-2">Application URL</h4>
-                      <a 
-                        href={selectedVacancy.applicationUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 underline"
-                      >
-                        {selectedVacancy.applicationUrl}
-                      </a>
-                    </div>
-                  )}
-
-                  {vacancyAction === 'reject' && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Rejection Reason *
-                      </label>
-                      <textarea
-                        value={vacancyRejectionReason}
-                        onChange={(e) => setVacancyRejectionReason(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                        rows={4}
-                        placeholder="Please provide a reason for rejection..."
-                        required
-                      />
-                    </div>
-                  )}
-
-                  <div className="flex justify-end gap-3 pt-4 border-t">
-                    <button
-                      onClick={() => {
-                        setShowVacancyModal(false)
-                        setSelectedVacancy(null)
-                        setVacancyAction(null)
-                        setVacancyRejectionReason('')
-                      }}
-                      className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    {vacancyAction && (
-                      <button
-                        onClick={async () => {
-                          if (vacancyAction === 'reject' && !vacancyRejectionReason.trim()) {
-                            alert('Please provide a rejection reason')
-                            return
-                          }
-                          
-                          try {
-                            const response = await fetch(`/api/vacancies/${selectedVacancy._id}`, {
-                              method: 'PATCH',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                status: vacancyAction === 'approve' ? 'approved' : 'rejected',
-                                adminComment: vacancyAction === 'reject' ? vacancyRejectionReason : undefined
-                              })
-                            })
-                            
-                            if (response.ok) {
-                              await loadVacancies()
-                              setShowVacancyModal(false)
-                              setSelectedVacancy(null)
-                              setVacancyAction(null)
-                              setVacancyRejectionReason('')
-                            }
-                          } catch (error) {
-                            console.error('Error updating vacancy:', error)
-                          }
-                        }}
-                        className={`px-4 py-2 text-white rounded-lg transition-colors ${
-                          vacancyAction === 'approve' 
-                            ? 'bg-green-600 hover:bg-green-700' 
-                            : 'bg-red-600 hover:bg-red-700'
-                        }`}
-                      >
-                        {vacancyAction === 'approve' ? 'Approve Vacancy' : 'Reject Vacancy'}
-                      </button>
-                    )}
+                  <div>
+                    <span className="font-medium text-gray-700">Organization:</span>
+                    <span className="ml-2 text-gray-600">{selectedVacancy.createdBy?.ngoProfile?.organizationName || 'Unknown'}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Deadline:</span>
+                    <span className="ml-2 text-gray-600">{new Date(selectedVacancy.applicationDeadline).toLocaleDateString()}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Location:</span>
+                    <span className="ml-2 text-gray-600">{selectedVacancy.location?.isRemote ? 'Remote' : `${selectedVacancy.location?.city || ''} ${selectedVacancy.location?.country || ''}`.trim() || 'Location TBD'}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Compensation:</span>
+                    <span className="ml-2 text-gray-600">{selectedVacancy.compensation?.type}: {selectedVacancy.compensation?.amount ? `${selectedVacancy.compensation.amount} ${selectedVacancy.compensation.currency || ''}` : 'Not specified'}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-700">Type:</span>
+                    <span className="ml-2 text-gray-600">{selectedVacancy.type}</span>
                   </div>
                 </div>
+                <div className="mt-3">
+                  <span className="font-medium text-gray-700">Description:</span>
+                  <p className="mt-1 text-gray-600 text-sm">{selectedVacancy.description}</p>
+                </div>
+                {selectedVacancy.requirements && (
+                  <div className="mt-3">
+                    <span className="font-medium text-gray-700">Requirements:</span>
+                    <p className="mt-1 text-gray-600 text-sm">{selectedVacancy.requirements}</p>
+                  </div>
+                )}
+              </div>
+
+              {vacancyAction === 'reject' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Rejection Reason (Required)
+                  </label>
+                  <textarea
+                    value={vacancyRejectionReason}
+                    onChange={(e) => setVacancyRejectionReason(e.target.value)}
+                    placeholder="Please provide a detailed reason for rejecting this vacancy..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                    rows={4}
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="flex justify-end space-x-3">
+                <Button
+                  onClick={() => setShowVacancyModal(false)}
+                  variant="outline"
+                  size="sm"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={executeVacancyAction}
+                  disabled={isProcessing || (vacancyAction === 'reject' && !vacancyRejectionReason.trim())}
+                  variant={vacancyAction === 'reject' ? 'danger' : 'primary'}
+                  size="sm"
+                >
+                  {isProcessing ? 'Processing...' : (
+                    vacancyAction === 'approve' ? 'Approve Vacancy' : 'Reject Vacancy'
+                  )}
+                </Button>
               </div>
             </div>
-          )}
+          </div>
+        </div>
+      )}
 
           {/* Announcement Modal */}
           {showAnnouncementModal && (
@@ -4218,14 +3964,16 @@ export default function AdminPage() {
           <div className="relative w-full max-w-2xl mx-auto p-6 border shadow-2xl rounded-2xl bg-white">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-semibold text-gray-900">Send Announcement</h3>
-              <button
+              <Button
                 onClick={() => setShowAnnouncementModal(false)}
+                variant="ghost"
+                size="sm"
                 className="text-gray-400 hover:text-gray-600"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </button>
+              </Button>
             </div>
 
             <form onSubmit={(e) => { e.preventDefault(); sendAnnouncement(); }} className="space-y-4">
@@ -4280,17 +4028,19 @@ export default function AdminPage() {
               )}
 
               <div className="flex justify-end gap-3 pt-4">
-                <button
+                <Button
                   type="button"
                   onClick={() => setShowAnnouncementModal(false)}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                  variant="outline"
+                  size="sm"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={sendingAnnouncement}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  variant="primary"
+                  size="sm"
                 >
                   {sendingAnnouncement ? (
                     <>
@@ -4303,7 +4053,7 @@ export default function AdminPage() {
                       Send Announcement
                     </>
                   )}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

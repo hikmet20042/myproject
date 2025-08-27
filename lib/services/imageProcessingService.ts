@@ -193,6 +193,7 @@ export async function generateImageVariants(
           originalMimetype: mimetype,
           wasOptimized: true,
           wasCompressed: true,
+          wasRotated: false,
           processingSteps: ['resize', 'crop', 'format-conversion', 'compression']
         }
       };
@@ -217,6 +218,7 @@ export async function generateImageVariants(
           originalMimetype: mimetype,
           wasOptimized: true,
           wasCompressed: true,
+          wasRotated: false,
           processingSteps: ['resize', 'format-conversion', 'compression']
         }
       };
@@ -365,19 +367,19 @@ export async function extractImageMetadata(buffer: Buffer): Promise<{
       orientation: metadata.orientation,
       exif: metadata.exif ? {
         // Extract common EXIF data
-        make: metadata.exif?.Make?.toString(),
-        model: metadata.exif?.Model?.toString(),
-        dateTime: metadata.exif?.DateTime?.toString(),
-        software: metadata.exif?.Software?.toString(),
-        orientation: metadata.exif?.Orientation,
-        xResolution: metadata.exif?.XResolution,
-        yResolution: metadata.exif?.YResolution(),
-        resolutionUnit: metadata.exif?.ResolutionUnit,
+        make: (metadata.exif as any)?.Make?.toString(),
+        model: (metadata.exif as any)?.Model?.toString(),
+        dateTime: (metadata.exif as any)?.DateTime?.toString(),
+        software: (metadata.exif as any)?.Software?.toString(),
+        orientation: (metadata.exif as any)?.Orientation,
+        xResolution: (metadata.exif as any)?.XResolution,
+        yResolution: (metadata.exif as any)?.YResolution,
+        resolutionUnit: (metadata.exif as any)?.ResolutionUnit,
         // GPS data (if available)
-        gps: metadata.exif?.GPSLatitude ? {
-          latitude: metadata.exif.GPSLatitude,
-          longitude: metadata.exif.GPSLongitude,
-          altitude: metadata.exif.GPSAltitude
+        gps: (metadata.exif as any)?.GPSLatitude ? {
+          latitude: (metadata.exif as any).GPSLatitude,
+          longitude: (metadata.exif as any).GPSLongitude,
+          altitude: (metadata.exif as any).GPSAltitude
         } : undefined
       } : undefined
     };

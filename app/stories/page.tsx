@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import StoryCard from '../../components/StoryCard'
+import { Button, SearchBar } from '@/components/ui'
 
 interface CommunityStory {
   id: number;
@@ -11,31 +12,65 @@ interface CommunityStory {
   authorName: string;
   date: string;
   excerpt: string;
-  content: string;
+  content: any; // Can be string or BlockNote array
   tags: string[];
   status: string;
   type: 'community-story';
 }
 
+const generateExcerpt = (content: any): string => {
+  let textContent = '';
+  
+  if (typeof content === 'string') {
+    textContent = content;
+  } else if (Array.isArray(content)) {
+    // Handle BlockNote content array
+    textContent = content
+      .map((block: any) => {
+        if (block.content && Array.isArray(block.content)) {
+          return block.content
+            .map((item: any) => item.text || '')
+            .join('');
+        }
+        return '';
+      })
+      .join(' ')
+      .trim();
+  }
+  
+  const words = textContent.split(' ');
+  if (words.length <= 30) {
+    return textContent;
+  }
+  return words.slice(0, 30).join(' ') + '...';
+}
+
 export default function CommunityStories() {
   const { data: session } = useSession()
-  const [stories, setStories] = useState<CommunityStory[]>([])
+  const [allStories, setAllStories] = useState<CommunityStory[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedTag, setSelectedTag] = useState<string>('')
+  const [searchQuery, setSearchQuery] = useState<string>('')
 
-  const loadStories = useCallback(async () => {
+  // Load all stories once
+  const loadAllStories = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/stories?page=1&limit=100');
+      const params = new URLSearchParams({
+        page: '1',
+        limit: '100'
+      });
+      
+      const response = await fetch(`/api/stories?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
         // Map MongoDB stories to CommunityStory interface
         const publishedStories = (data.results || []).filter((story: any) => story.status === 'approved');
-        setStories(publishedStories.map((story: any) => ({
+        setAllStories(publishedStories.map((story: any) => ({
           id: story._id || story.id,
           title: story.title,
           authorName: story.authorName,
-          date: story.submittedAt || story.date || new Date().toISOString(),
+          date: story.createdAt || story.submittedAt || story.date || new Date().toISOString(),
           excerpt: story.excerpt || generateExcerpt(story.content),
           content: story.content,
           tags: story.tags || [],
@@ -43,32 +78,51 @@ export default function CommunityStories() {
           type: 'community-story'
         })));
       } else {
-        setStories([]);
+        setAllStories([]);
       }
     } catch (error) {
       console.error('Failed to load community stories:', error);
-      setStories([]);
+      setAllStories([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // Load all stories on component mount
   useEffect(() => {
-    loadStories()
-  }, [loadStories])
+    loadAllStories();
+  }, [loadAllStories]);
 
-  const generateExcerpt = (content: string): string => {
-    const words = content.split(' ')
-    if (words.length <= 30) {
-      return content
-    }
-    return words.slice(0, 30).join(' ') + '...'
-  }
+  // Client-side filtering based on search and tags
 
-  const allTags = Array.from(new Set(stories.flatMap(story => story.tags)))
-  const filteredStories = selectedTag 
-    ? stories.filter(story => story.tags.includes(selectedTag))
-    : stories
+
+
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  const handleTagFilter = (tag: string) => {
+    setSelectedTag(tag);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setSelectedTag('');
+  };
+
+  const allTags = Array.from(new Set(allStories.flatMap(story => story.tags)))
+  const filteredStories = allStories.filter(story => {
+    const matchesSearch = !searchQuery || 
+      story.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      story.authorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (typeof story.content === 'string' && story.content.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (story.excerpt && story.excerpt.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    const matchesTag = !selectedTag || story.tags.includes(selectedTag);
+    
+    return matchesSearch && matchesTag;
+  });
 
   if (loading) {
     return (
@@ -84,7 +138,7 @@ export default function CommunityStories() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header - match Resources page styling */}
-  <section className="bg-primary text-white py-20 transition-colors duration-200">
+      <section className="bg-primary text-white py-20 transition-colors duration-200">
         <div className="section-padding">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl lg:text-5xl font-bold mb-6">
@@ -115,11 +169,10 @@ export default function CommunityStories() {
                 Your personal experiences matter. Share your journey, struggles, and victories to inspire others and create meaningful change in our community.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link
-                  href="/submit/story"
-                  className="btn-primary inline-block"
-                >
-                  Submit Your Story
+                <Link href="/submit/story">
+                  <Button size="lg">
+                    Submit Your Story
+                  </Button>
                 </Link>
               </div>
             </div>
@@ -132,9 +185,9 @@ export default function CommunityStories() {
         <div className="section-padding">
           <div className="max-w-6xl mx-auto">
             {/* Stories Source Info */}
-            {stories.length > 0 && (
+            {allStories.length > 0 && (
               <div className="mb-8">
-                {stories.some(story => story.status === 'pending') ? (
+                {allStories.some(story => story.status === 'pending') ? (
                   <div className="bg-gray-50 border-l-4 border-gray-300 p-4 rounded-r-lg">
                     <div className="flex items-start">
                       <svg className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -170,10 +223,11 @@ export default function CommunityStories() {
             <div className="mb-12">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
                 <h2 className="text-2xl font-bold text-primary mb-4 sm:mb-0">Filter by Experience Type</h2>
-                <button
-                  onClick={loadStories}
+                <Button
+                  onClick={() => loadAllStories()}
                   disabled={loading}
-                  className="btn-secondary text-sm flex items-center border-gray-400 text-gray-700 hover:bg-gray-100"
+                  variant="outline"
+                  size="sm"
                 >
                   {loading ? (
                     <>
@@ -188,33 +242,40 @@ export default function CommunityStories() {
                       Refresh Stories
                     </>
                   )}
-                </button>
+                </Button>
+              </div>
+              
+              {/* Search Bar */}
+              <div className="mb-6">
+                <SearchBar
+                  onSearch={handleSearch}
+                  onClear={handleClearSearch}
+                  placeholder="Search stories by title, content, or abstract..."
+                  value={searchQuery}
+                  storageKey="stories-search"
+                />
               </div>
               <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => setSelectedTag('')}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors duration-300 ${
-                    selectedTag === '' 
-                      ? 'bg-gray-800 text-white' 
-                      : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-                  }`}
+                <Button
+                  onClick={() => handleTagFilter('')}
+                  variant={selectedTag === '' ? 'primary' : 'outline'}
+                  size="sm"
+                  className="rounded-full"
                 >
-                  All Stories ({stories.length})
-                </button>
+                  All Stories ({allStories.length})
+                </Button>
                 {allTags.map((tag) => {
-                  const count = stories.filter(story => story.tags.includes(tag)).length
+                  const count = allStories.filter(story => story.tags.includes(tag)).length
                   return (
-                    <button
+                    <Button
                       key={tag}
-                      onClick={() => setSelectedTag(tag)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors duration-300 ${
-                        selectedTag === tag 
-                          ? 'bg-gray-800 text-white' 
-                          : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
-                      }`}
+                      onClick={() => handleTagFilter(tag)}
+                      variant={selectedTag === tag ? 'primary' : 'outline'}
+                      size="sm"
+                      className="rounded-full"
                     >
                       #{tag} ({count})
-                    </button>
+                    </Button>
                   )
                 })}
               </div>
@@ -236,18 +297,21 @@ export default function CommunityStories() {
                 </div>
                 <h3 className="text-xl font-semibold text-gray-700 mb-2">No stories found</h3>
                 <p className="text-gray-500 mb-6">
-                  {selectedTag 
+                  {searchQuery && selectedTag
+                    ? `No stories found for "${searchQuery}" with the tag "${selectedTag}".`
+                    : searchQuery
+                    ? `No stories found for "${searchQuery}".`
+                    : selectedTag 
                     ? `No stories found with the tag "${selectedTag}".` 
                     : "No community stories available at the moment."
                   }
                 </p>
-                {selectedTag && (
-                  <button
-                    onClick={() => setSelectedTag('')}
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200"
+                {(selectedTag || searchQuery) && (
+                  <Button
+                    onClick={handleClearSearch}
                   >
                     View All Stories
-                  </button>
+                  </Button>
                 )}
               </div>
             )}

@@ -7,7 +7,19 @@ interface IUser extends mongoose.Document {
   image?: string
   emailVerified?: Date | null
   verificationToken?: string
+  verificationEmailLastSent?: Date | null
+  passwordResetToken?: string
+  passwordResetExpires?: Date
   role: 'user' | 'admin' | 'ngo'
+  // Social media accounts for all users
+  socialMedia?: {
+    facebook?: string
+    twitter?: string
+    instagram?: string
+    linkedin?: string
+    youtube?: string
+    website?: string
+  }
   // NGO-specific fields
   ngoProfile?: {
     organizationName: string
@@ -22,6 +34,15 @@ interface IUser extends mongoose.Document {
     approvedBy?: mongoose.Types.ObjectId
     rejectedAt?: Date
     rejectionReason?: string
+    // NGO-specific social media (in addition to general socialMedia)
+    socialMedia?: {
+      facebook?: string
+      twitter?: string
+      instagram?: string
+      linkedin?: string
+      youtube?: string
+      website?: string
+    }
   }
 }
 
@@ -56,10 +77,25 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  passwordResetToken: {
+    type: String,
+  },
+  passwordResetExpires: {
+    type: Date,
+  },
   role: {
     type: String,
     enum: ['user', 'admin', 'ngo'],
     default: 'user',
+  },
+  // Social media accounts for all users
+  socialMedia: {
+    facebook: String,
+    twitter: String,
+    instagram: String,
+    linkedin: String,
+    youtube: String,
+    website: String
   },
   // NGO-specific profile
   ngoProfile: {
@@ -109,7 +145,16 @@ const UserSchema = new mongoose.Schema({
       ref: 'User'
     },
     rejectedAt: Date,
-    rejectionReason: String
+    rejectionReason: String,
+    // NGO-specific social media
+    socialMedia: {
+      facebook: String,
+      twitter: String,
+      instagram: String,
+      linkedin: String,
+      youtube: String,
+      website: String
+    }
   }
 }, {
   timestamps: true,

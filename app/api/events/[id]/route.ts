@@ -22,7 +22,7 @@ export async function GET(
     }
     
     const event = await Event.findById(params.id)
-      .populate('createdBy', 'name organizationName email')
+      .populate('createdBy', 'name ngoProfile email')
       .populate('approvedBy', 'name')
       .lean()
     
@@ -119,7 +119,9 @@ export async function PUT(
       
       // Update allowed fields
       const allowedFields = [
-        'title', 'description', 'category', 'eventDate', 'endDate',
+        'title', 'description', 'category', 'eventType', 'eventDate', 'endDate',
+        'duration', 'schedule', 'prerequisites', 'learningOutcomes',
+        'certification', 'cost', 'targetAudience', 'syllabus',
         'location', 'applicationLink', 'applicationDeadline',
         'maxParticipants', 'tags', 'imageUrl'
       ]
@@ -134,7 +136,7 @@ export async function PUT(
     await event.save()
     
     const updatedEvent = await Event.findById(params.id)
-      .populate('createdBy', 'name organizationName')
+      .populate('createdBy', 'name ngoProfile')
       .populate('approvedBy', 'name')
       .lean()
     

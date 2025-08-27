@@ -117,9 +117,12 @@ export async function PUT(request: NextRequest) {
 
     await dbConnect();
     
-    const { id, action, rejectionReason } = await request.json();
+    const { id, ngoId, action, rejectionReason } = await request.json();
     
-    if (!id || !action || !['approve', 'reject'].includes(action)) {
+    // Support both 'id' and 'ngoId' for backward compatibility
+    const userId = id || ngoId;
+    
+    if (!userId || !action || !['approve', 'reject'].includes(action)) {
       return NextResponse.json({ error: 'Invalid request data' }, { status: 400 });
     }
 
@@ -127,7 +130,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Rejection reason is required' }, { status: 400 });
     }
 
-    const ngo = await User.findOne({ _id: id, role: 'ngo' });
+    const ngo = await User.findOne({ _id: userId, role: 'ngo' });
     if (!ngo) {
       return NextResponse.json({ error: 'NGO not found' }, { status: 404 });
     }

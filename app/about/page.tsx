@@ -1,3 +1,8 @@
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { CardContent } from '@/components/ui/Card';
+import Link from 'next/link';
+
 export default function About() {
   return (
   <div className="min-h-screen bg-gray-50 transition-colors duration-200">
@@ -33,90 +38,94 @@ export default function About() {
               </div>
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="card">
-                  <div className="flex items-center mb-6">
-                    <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mr-4">
-                      <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center mb-6">
+                      <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mr-4">
+                        <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-semibold text-gray-900">
+                        Why Data is Unreliable
+                      </h3>
                     </div>
-                    <h3 className="text-xl font-semibold text-gray-900">
-                      Why Data is Unreliable
-                    </h3>
-                  </div>
-                  <div className="space-y-4 text-gray-600">
-                    <div className="flex items-start">
-                      <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                      <p className="text-sm leading-relaxed">
-                        <strong className="text-gray-900">Cultural stigma</strong> prevents many victims from reporting incidents to authorities, leading to significant underreporting.
-                      </p>
+                    <div className="space-y-4 text-gray-600">
+                      <div className="flex items-start">
+                        <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                        <p className="text-sm leading-relaxed">
+                          <strong className="text-gray-900">Cultural stigma</strong> prevents many victims from reporting incidents to authorities, leading to significant underreporting.
+                        </p>
+                      </div>
+                      <div className="flex items-start">
+                        <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                        <p className="text-sm leading-relaxed">
+                          <strong className="text-gray-900">Institutional gaps</strong> in data collection systems result in inconsistent recording and classification of social injustice cases.
+                        </p>
+                      </div>
+                      <div className="flex items-start">
+                        <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                        <p className="text-sm leading-relaxed">
+                          <strong className="text-gray-900">Limited transparency</strong> in official statistics makes it difficult for researchers and advocates to access comprehensive data.
+                        </p>
+                      </div>
+                      <div className="flex items-start">
+                        <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
+                        <p className="text-sm leading-relaxed">
+                          <strong className="text-gray-900">Resource constraints</strong> affect the ability to maintain systematic data collection and analysis across all regions.
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex items-start">
-                      <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                      <p className="text-sm leading-relaxed">
-                        <strong className="text-gray-900">Institutional gaps</strong> in data collection systems result in inconsistent recording and classification of social injustice cases.
-                      </p>
-                    </div>
-                    <div className="flex items-start">
-                      <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                      <p className="text-sm leading-relaxed">
-                        <strong className="text-gray-900">Limited transparency</strong> in official statistics makes it difficult for researchers and advocates to access comprehensive data.
-                      </p>
-                    </div>
-                    <div className="flex items-start">
-                      <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                      <p className="text-sm leading-relaxed">
-                        <strong className="text-gray-900">Resource constraints</strong> affect the ability to maintain systematic data collection and analysis across all regions.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
 
-                <div className="card">
-                  <div className="flex items-center mb-6">
-                    <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mr-4">
-                      <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                      </svg>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center mb-6">
+                      <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mr-4">
+                        <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-semibold text-gray-900">
+                        The Impact
+                      </h3>
                     </div>
-                    <h3 className="text-xl font-semibold text-gray-900">
-                      The Impact
-                    </h3>
-                  </div>
-                  <div className="space-y-4 text-gray-600">
-                    <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-lg">
-                      <p className="text-sm leading-relaxed text-orange-800">
-                        Without reliable data, it becomes nearly impossible to:
-                      </p>
+                    <div className="space-y-4 text-gray-600">
+                      <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-lg">
+                        <p className="text-sm leading-relaxed text-orange-800">
+                          Without reliable data, it becomes nearly impossible to:
+                        </p>
+                      </div>
+                      <ul className="space-y-2 text-sm">
+                        <li className="flex items-center">
+                          <svg className="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          Develop effective prevention strategies
+                        </li>
+                        <li className="flex items-center">
+                          <svg className="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          Allocate resources to areas of greatest need
+                        </li>
+                        <li className="flex items-center">
+                          <svg className="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          Measure progress toward social justice goals
+                        </li>
+                        <li className="flex items-center">
+                          <svg className="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          Advocate for policy changes based on evidence
+                        </li>
+                      </ul>
                     </div>
-                    <ul className="space-y-2 text-sm">
-                      <li className="flex items-center">
-                        <svg className="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        Develop effective prevention strategies
-                      </li>
-                      <li className="flex items-center">
-                        <svg className="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        Allocate resources to areas of greatest need
-                      </li>
-                      <li className="flex items-center">
-                        <svg className="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        Measure progress toward social justice goals
-                      </li>
-                      <li className="flex items-center">
-                        <svg className="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        Advocate for policy changes based on evidence
-                      </li>
-                    </ul>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
 
@@ -132,98 +141,104 @@ export default function About() {
               </div>
               
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="card text-center">
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                    News Scraping
-                  </h3>
-                  <p className="text-gray-600 text-sm leading-relaxed mb-4">
-                    We systematically collect and analyze news reports from Azerbaijani media sources to identify 
-                    publicly reported incidents of social injustice and discrimination.
-                  </p>
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <div className="text-left space-y-2 text-xs text-blue-800">
-                      <div className="flex items-center">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></div>
-                        Multiple news sources daily
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></div>
-                        Real-time monitoring
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></div>
-                        Source verification
+                <Card className="text-center">
+                  <CardContent className="p-6">
+                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                      News Scraping
+                    </h3>
+                    <p className="text-gray-600 text-sm leading-relaxed mb-4">
+                      We systematically collect and analyze news reports from Azerbaijani media sources to identify 
+                      publicly reported incidents of social injustice and discrimination.
+                    </p>
+                    <div className="bg-blue-50 rounded-lg p-4">
+                      <div className="text-left space-y-2 text-xs text-blue-800">
+                        <div className="flex items-center">
+                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></div>
+                          Multiple news sources daily
+                        </div>
+                        <div className="flex items-center">
+                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></div>
+                          Real-time monitoring
+                        </div>
+                        <div className="flex items-center">
+                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></div>
+                          Source verification
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
 
-                <div className="card text-center">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                    AI Classification
-                  </h3>
-                  <p className="text-gray-600 text-sm leading-relaxed mb-4">
-                    Advanced machine learning algorithms analyze and categorize incidents by type, severity, 
-                    location, and other relevant factors to create structured, searchable data.
-                  </p>
-                  <div className="bg-green-50 rounded-lg p-4">
-                    <div className="text-left space-y-2 text-xs text-green-800">
-                      <div className="flex items-center">
-                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></div>
-                        Natural language processing
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></div>
-                        Pattern recognition
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></div>
-                        Human oversight
+                <Card className="text-center">
+                  <CardContent className="p-6">
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                      AI Classification
+                    </h3>
+                    <p className="text-gray-600 text-sm leading-relaxed mb-4">
+                      Advanced machine learning algorithms analyze and categorize incidents by type, severity, 
+                      location, and other relevant factors to create structured, searchable data.
+                    </p>
+                    <div className="bg-green-50 rounded-lg p-4">
+                      <div className="text-left space-y-2 text-xs text-green-800">
+                        <div className="flex items-center">
+                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></div>
+                          Natural language processing
+                        </div>
+                        <div className="flex items-center">
+                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></div>
+                          Pattern recognition
+                        </div>
+                        <div className="flex items-center">
+                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></div>
+                          Human oversight
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
 
-                <div className="card text-center">
-                  <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                    Data Visualization
-                  </h3>
-                  <p className="text-gray-600 text-sm leading-relaxed mb-4">
-                    We transform complex data into accessible charts, maps, and trends that help everyone 
-                    understand the scope and patterns of social justice challenges.
-                  </p>
-                  <div className="bg-purple-50 rounded-lg p-4">
-                    <div className="text-left space-y-2 text-xs text-purple-800">
-                      <div className="flex items-center">
-                        <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-2"></div>
-                        Interactive charts
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-2"></div>
-                        Regional breakdowns
-                      </div>
-                      <div className="flex items-center">
-                        <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-2"></div>
-                        Trend analysis
+                <Card className="text-center">
+                  <CardContent className="p-6">
+                    <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                      Data Visualization
+                    </h3>
+                    <p className="text-gray-600 text-sm leading-relaxed mb-4">
+                      We transform complex data into accessible charts, maps, and trends that help everyone 
+                      understand the scope and patterns of social justice challenges.
+                    </p>
+                    <div className="bg-purple-50 rounded-lg p-4">
+                      <div className="text-left space-y-2 text-xs text-purple-800">
+                        <div className="flex items-center">
+                          <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-2"></div>
+                          Interactive charts
+                        </div>
+                        <div className="flex items-center">
+                          <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-2"></div>
+                          Regional breakdowns
+                        </div>
+                        <div className="flex items-center">
+                          <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-2"></div>
+                          Trend analysis
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
 
@@ -239,47 +254,49 @@ export default function About() {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="card">
-                  <div className="flex items-center mb-6">
-                    <div className="w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center mr-4">
-                      <svg className="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center mb-6">
+                      <div className="w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center mr-4">
+                        <svg className="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-semibold text-gray-900">
+                        Transparent Statistics
+                      </h3>
                     </div>
-                    <h3 className="text-xl font-semibold text-gray-900">
-                      Transparent Statistics
-                    </h3>
-                  </div>
-                  <ul className="space-y-3 text-gray-600">
-                    <li className="flex items-start">
-                      <svg className="w-5 h-5 text-cyan-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="text-sm">Open methodology - we explain exactly how data is collected and processed</span>
-                    </li>
-                    <li className="flex items-start">
-                      <svg className="w-5 h-5 text-cyan-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="text-sm">Source attribution - every data point is linked to its original news source</span>
-                    </li>
-                    <li className="flex items-start">
-                      <svg className="w-5 h-5 text-cyan-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="text-sm">Regular updates - data is refreshed continuously as new reports emerge</span>
-                    </li>
-                    <li className="flex items-start">
-                      <svg className="w-5 h-5 text-cyan-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="text-sm">Limitation disclosure - we clearly state what our data can and cannot tell us</span>
-                    </li>
-                  </ul>
-                </div>
+                    <ul className="space-y-3 text-gray-600">
+                      <li className="flex items-start">
+                        <svg className="w-5 h-5 text-cyan-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-sm">Open methodology - we explain exactly how data is collected and processed</span>
+                      </li>
+                      <li className="flex items-start">
+                        <svg className="w-5 h-5 text-cyan-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-sm">Source attribution - every data point is linked to its original news source</span>
+                      </li>
+                      <li className="flex items-start">
+                        <svg className="w-5 h-5 text-cyan-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-sm">Regular updates - data is refreshed continuously as new reports emerge</span>
+                      </li>
+                      <li className="flex items-start">
+                        <svg className="w-5 h-5 text-cyan-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-sm">Limitation disclosure - we clearly state what our data can and cannot tell us</span>
+                      </li>
+                    </ul>
+                  </CardContent>
+                </Card>
 
-                <div className="card">
+                <Card>
                   <div className="flex items-center mb-6">
                     <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mr-4">
                       <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -301,7 +318,7 @@ export default function About() {
                       <svg className="w-5 h-5 text-indigo-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
-                      <span className="text-sm">Access to training materials and online courses from leading institutions</span>
+                      <span className="text-sm">Access to educational materials and online courses from leading institutions</span>
                     </li>
                     <li className="flex items-start">
                       <svg className="w-5 h-5 text-indigo-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -316,12 +333,13 @@ export default function About() {
                       <span className="text-sm">Emergency resources and support service directories</span>
                     </li>
                   </ul>
+                  </Card>
                 </div>
               </div>
             </div>
 
             {/* Limitations & Ethics */}
-            <div className="card bg-amber-50 border-l-4 border-amber-500">
+            <Card className="bg-amber-50 border-l-4 border-amber-500">
               <div className="flex items-start">
                 <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
                   <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -360,8 +378,9 @@ export default function About() {
                   </div>
                 </div>
               </div>
+              </Card>
             </div>
-
+      </section>
             {/* Call to Action */}
             <div className="text-center">
               <div className="card bg-primary text-white">
@@ -371,31 +390,25 @@ export default function About() {
                   policymaker, or concerned citizen, there are many ways to contribute to this mission.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <a 
-                    href="/submit" 
-                    className="bg-white text-primary hover:bg-gray-100 px-6 py-3 rounded-lg font-medium transition-colors duration-200"
-                  >
-                    Share Your Story
-                  </a>
-                  <a 
-                    href="/resources" 
-                    className="border border-white text-white hover:bg-white hover:text-primary px-6 py-3 rounded-lg font-medium transition-colors duration-200"
-                  >
-                    Access Resources
-                  </a>
-                  <a 
-                    href="/stats" 
-                    className="border border-white text-white hover:bg-white hover:text-primary px-6 py-3 rounded-lg font-medium transition-colors duration-200"
-                  >
-                    View Statistics
-                  </a>
+                  <Link href="/submit">
+                    <Button variant="secondary" size="lg">
+                      Share Your Story
+                    </Button>
+                  </Link>
+                  <Link href="/resources">
+                    <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-primary">
+                      Access Resources
+                    </Button>
+                  </Link>
+                  <Link href="/stats">
+                    <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-primary">
+                      View Statistics
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </div>
 
           </div>
-        </div>
-      </section>
-    </div>
-  )
-}
+
+  )}

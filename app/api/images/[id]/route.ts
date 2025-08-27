@@ -52,7 +52,7 @@ export async function GET(
     }
 
     // Return the image data
-    return new NextResponse(imageBlob.data, {
+    return new NextResponse(new Uint8Array(imageBlob.data as Buffer), {
       status: 200,
       headers
     });

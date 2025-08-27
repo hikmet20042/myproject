@@ -9,7 +9,7 @@ import User from '@/lib/models/User';
 export const dynamic = 'force-dynamic';
 
 async function isAdmin(session: any) {
-  return session?.user?.email === 'hikmat@mammadli.space' || session?.user?.role === 'admin';
+  return session?.user?.email === 'hikmat.mammadlii@gmail.com' || session?.user?.role === 'admin';
 }
 
 export async function GET(request: NextRequest) {
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       query.status = { $ne: 'draft' }; // Exclude drafts when no status filter is applied
     }
     
-    if (author) query.author = { $regex: author, $options: 'i' };
+    if (author) query.authorName = { $regex: author, $options: 'i' };
     if (tags) {
       const tagArray = tags.split(',').map(tag => tag.trim());
       query.tags = { $in: tagArray };
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
     
     // Get unique tags and authors for filtering
     const allTags = await Article.distinct('tags');
-    const allAuthors = await Article.distinct('author');
+    const allAuthors = await Article.distinct('authorName');
     
     return NextResponse.json({ 
       total, 

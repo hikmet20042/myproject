@@ -127,7 +127,7 @@ export async function validateContentImages(
       uploadedBy: userIdObj
     }).select('_id');
 
-    const existingIds = existingImages.map(img => img._id.toString());
+    const existingIds = existingImages.map(img => (img._id as mongoose.Types.ObjectId).toString());
     const missingImages = blobIds.filter(id => !existingIds.includes(id));
     
     return {
@@ -176,7 +176,7 @@ export async function getImageMetadata(blobId: string | mongoose.Types.ObjectId)
       alt: image.alt,
       description: image.description,
       uploadedAt: image.uploadedAt,
-      url: blobIdToUrl(image._id)
+      url: blobIdToUrl(image._id as mongoose.Types.ObjectId)
     } : null;
   } catch (error) {
     console.error('Error getting image metadata:', error);

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter, useParams } from 'next/navigation'
 import { Calendar, Clock, MapPin, Users, Link as LinkIcon, Tag, Edit, Trash2, CheckCircle, XCircle, AlertCircle, ExternalLink } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
 
 interface Event {
   _id: string
@@ -150,12 +151,12 @@ export default function EventDetail() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Event Not Found</h2>
-          <button
+          <Button
             onClick={() => router.push('/dashboard/events')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            variant="primary"
           >
             Back to Events
-          </button>
+          </Button>
         </div>
       </div>
     )
@@ -168,12 +169,13 @@ export default function EventDetail() {
         <div className="mb-8">
           <div className="flex justify-between items-start">
             <div className="flex-1">
-              <button
+              <Button
                 onClick={() => router.push('/dashboard/events')}
+                variant="ghost"
                 className="text-blue-600 hover:text-blue-800 mb-4 inline-flex items-center"
               >
                 ← Back to Events
-              </button>
+              </Button>
               <div className="flex items-center gap-4 mb-4">
                 <h1 className="text-3xl font-bold text-gray-900">{event.title}</h1>
                 {getStatusBadge()}
@@ -182,20 +184,22 @@ export default function EventDetail() {
             </div>
             
             <div className="flex items-center gap-2 ml-4">
-              <button
+              <Button
                 onClick={() => router.push(`/dashboard/events/${event._id}/edit`)}
+                variant="outline"
                 className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
               >
                 <Edit className="w-4 h-4 mr-2" />
                 Edit
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => setShowDeleteModal(true)}
+                variant="outline"
                 className="inline-flex items-center px-4 py-2 border border-red-300 rounded-md text-red-700 hover:bg-red-50"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -414,20 +418,20 @@ export default function EventDetail() {
               Are you sure you want to delete "{event.title}"? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
-              <button
+              <Button
                 onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                variant="outline"
                 disabled={deleting}
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleDelete}
-                className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-md disabled:opacity-50"
+                variant="danger"
                 disabled={deleting}
               >
                 {deleting ? 'Deleting...' : 'Delete Event'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

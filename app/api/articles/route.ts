@@ -18,8 +18,8 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Article not found' }, { status: 404 });
       }
 
-      // Optimized: Always populate author in the initial query
-      const populatedArticle = await Article.findById(id).populate('author', 'name').lean();
+      // Optimized: Always populate userId in the initial query
+      const populatedArticle = await Article.findById(id).populate('userId', 'name').lean();
       return NextResponse.json({ article: populatedArticle || article });
     }
     const page = parseInt(searchParams.get('page') || '1');
@@ -35,7 +35,8 @@ export async function GET(request: NextRequest) {
     if (search && search.trim()) {
       query.$or = [
         { title: { $regex: search.trim(), $options: 'i' } },
-        { content: { $regex: search.trim(), $options: 'i' } }
+        { content: { $regex: search.trim(), $options: 'i' } },
+        { abstract: { $regex: search.trim(), $options: 'i' } }
       ];
     }
     if (tags && tags.trim()) {
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
     
     // Optimized: Use single populate query instead of individual queries
     const articles = await Article.find(query)
-      .populate('author', 'name') // Populate author in single query
+      .populate('userId', 'name') // Populate userId in single query
       .sort({ publishedAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -429,9 +430,9 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Article not found' }, { status: 404 });
     }
 
-    // Check if user owns this article (either by userId for drafts or by author for published articles)
+    // Check if user owns this article (either by userId for drafts or by authorName for published articles)
     const isOwner = (article.userId && article.userId.toString() === session.user.id) ||
-                   (article.author && article.author.toString() === session.user.id);
+                   (article.authorName && article.authorName === session.user.name);
 
     if (!isOwner) {
       return NextResponse.json({ error: 'You can only delete your own articles' }, { status: 403 });

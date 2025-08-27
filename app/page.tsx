@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState, useEffect, useCallback, useMemo } from 'react'
-
+import { Button, Card, CardContent } from '@/components/ui'
 import RecentCommunityContent from '@/components/RecentCommunityContent'
 
 interface Article {
@@ -259,23 +259,20 @@ export default function HomePage() {
               education, awareness, and transparent data analysis.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link 
-                href="/stats" 
-                className="bg-white text-primary hover:bg-gray-100 hover:text-primary inline-block text-center font-semibold px-6 py-3 rounded-lg transition-all duration-200 min-w-[140px]"
-              >
-                View Statistics
+              <Link href="/stats">
+                 <Button variant="secondary" size="lg">
+                   View Statistics
+                 </Button>
+               </Link>
+              <Link href="/resources">
+                <Button variant="secondary" size="lg">
+                  Learn More
+                </Button>
               </Link>
-              <Link 
-                href="/resources" 
-                className="bg-white text-primary hover:bg-gray-100 hover:text-primary inline-block text-center font-semibold px-6 py-3 rounded-lg transition-all duration-200 min-w-[140px]"
-              >
-                Learn More
-              </Link>
-              <Link 
-                href="/stories" 
-                className="bg-white text-primary hover:bg-gray-100 hover:text-primary inline-block text-center font-semibold px-6 py-3 rounded-lg transition-all duration-200 min-w-[140px]"
-              >
-                Community Stories
+              <Link href="/stories">
+                <Button variant="secondary" size="lg">
+                  Community Stories
+                </Button>
               </Link>
             </div>
           </div>
@@ -296,41 +293,47 @@ export default function HomePage() {
               and education are key to creating meaningful change.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
-              <div className="card text-center border-0">
-                <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-semibold mb-3">Data Transparency</h3>
-                <p className="text-gray-600">
-                  AI-powered analysis of news sources to track and categorize social justice issues and inequalities.
-                </p>
-              </div>
+              <Card className="text-center border-0">
+                <CardContent className="pt-6">
+                  <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-semibold mb-3">Data Transparency</h3>
+                  <p className="text-gray-600">
+                    AI-powered analysis of news sources to track and categorize social justice issues and inequalities.
+                  </p>
+                </CardContent>
+              </Card>
               
-              <div className="card text-center border-0">
-                <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C20.832 18.477 19.246 18 17.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-semibold mb-3">Education</h3>
-                <p className="text-gray-600">
-                  Free resources, training materials, and courses to promote social justice and equality awareness.
-                </p>
-              </div>
+              <Card className="text-center border-0">
+                <CardContent className="pt-6">
+                  <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C20.832 18.477 19.246 18 17.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-semibold mb-3">Education</h3>
+                  <p className="text-gray-600">
+                    Free resources, materials, and courses to promote social justice and equality awareness.
+                  </p>
+                </CardContent>
+              </Card>
               
-              <div className="card text-center border-0">
-                <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-semibold mb-3">Community</h3>
-                <p className="text-gray-600">
-                  A platform for sharing experiences, insights, and solutions through our community blog.
-                </p>
-              </div>
+              <Card className="text-center border-0">
+                <CardContent className="pt-6">
+                  <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-semibold mb-3">Community</h3>
+                  <p className="text-gray-600">
+                    A platform for sharing experiences, insights, and solutions through our community blog.
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
@@ -354,12 +357,16 @@ export default function HomePage() {
               you need to make a difference.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/submit/article/step1" className="btn-primary">
-                Share Your Article
-              </Link>
-              <Link href="/submit/story/step1" className="btn-secondary">
-                Share Your Story
-              </Link>
+              <Link href="/submit/article/step1">
+                 <Button size="lg">
+                   Share Your Article
+                 </Button>
+               </Link>
+              <Link href="/submit/story/step1">
+                 <Button variant="outline" size="lg">
+                   Share Your Story
+                 </Button>
+               </Link>
             </div>
           </div>
         </div>

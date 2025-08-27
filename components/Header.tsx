@@ -33,7 +33,7 @@ const navigation: NavigationItem[] = [
       { name: 'All Resources', href: '/resources' },
       { name: 'NGOs', href: '/resources/ngos' },
       { name: 'Events', href: '/resources/events' },
-      { name: 'Trainings', href: '/resources/trainings' },
+      
       { name: 'Vacancies', href: '/resources/vacancies' },
       { name: 'Materials', href: '/resources/materials' }
     ]
@@ -325,6 +325,15 @@ export default function Header() {
                         Admin Dashboard
                       </Link>
                     )}
+                    {session.user?.role === 'ngo' && (
+                      <Link
+                        href="/dashboard"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        NGO Dashboard
+                      </Link>
+                    )}
                     <Link
                       href="/submit/story"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -452,6 +461,15 @@ export default function Header() {
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           Admin Dashboard
+                        </Link>
+                      )}
+                      {session.user?.role === 'ngo' && (
+                        <Link
+                          href="/dashboard"
+                          className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          NGO Dashboard
                         </Link>
                       )}
                       <Link

@@ -1,4 +1,10 @@
 import Image from 'next/image';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { CardContent } from '@/components/ui/Card';
+import { ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 
 export default function Resources() {
   return (
@@ -32,71 +38,71 @@ export default function Resources() {
                 UN Women Toolkit
               </h2>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="card">
-                  <div className="flex items-start mb-4">
-                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-                      <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C20.832 18.477 19.246 18 17.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                        HeForShe Toolkit
-                      </h3>
-                      <span className="inline-block bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-medium mb-3">
-                        UN Women Official
-                      </span>
+                <Card>
+                  <CardContent>
+                    <div className="flex items-start mb-4">
+                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                        <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C20.832 18.477 19.246 18 17.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                          HeForShe Toolkit
+                        </h3>
+                        <Badge variant="primary" className="mb-3">
+                          UN Women Official
+                      </Badge>
                     </div>
                   </div>
-                  <p className="text-gray-600 mb-4 leading-relaxed">
-                    Comprehensive toolkit for engaging men and boys as advocates for gender equality. 
-                    Includes practical guides, campaign materials, and implementation strategies.
-                  </p>
-                  <a
-                    href="https://www.heforshe.org/en/take-action"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-primary inline-flex items-center"
-                  >
-                    Access Toolkit
-                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </a>
-                </div>
+                    <p className="text-gray-600 mb-4 leading-relaxed">
+                      Comprehensive toolkit for engaging men and boys as advocates for gender equality. 
+                      Includes practical guides, campaign materials, and implementation strategies.
+                    </p>
+                    <a
+                      href="https://www.heforshe.org/en/take-action"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Button variant="primary" icon={ExternalLink}>
+                        Access Toolkit
+                      </Button>
+                    </a>
+                  </CardContent>
+                </Card>
 
-                <div className="card">
-                  <div className="flex items-start mb-4">
-                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-                      <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
+                <Card>
+                  <CardContent>
+                    <div className="flex items-start mb-4">
+                      <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                        <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                          Women's Economic Empowerment
+                        </h3>
+                        <Badge variant="secondary" className="mb-3">
+                          UN Women Training
+                        </Badge>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                        Women's Economic Empowerment
-                      </h3>
-                      <span className="inline-block bg-purple-100 text-purple-800 text-xs px-3 py-1 rounded-full font-medium mb-3">
-                        UN Women Training
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-gray-600 mb-4 leading-relaxed">
-                    Training modules and resources for promoting women's economic participation 
-                    and entrepreneurship in developing countries.
-                  </p>
-                  <a
-                    href="https://www.unwomen.org/en/digital-library/training-materials"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-primary inline-flex items-center"
-                  >
-                    View Training Materials
-                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </a>
-                </div>
+                    <p className="text-gray-600 mb-4 leading-relaxed">
+                      Training modules and resources for promoting women's economic participation 
+                      and entrepreneurship in developing countries.
+                    </p>
+                    <a
+                      href="https://www.unwomen.org/en/digital-library/training-materials"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Button variant="primary" icon={ExternalLink}>
+                        View Training Materials
+                      </Button>
+                    </a>
+                  </CardContent>
+                </Card>
               </div>
             </div>
 
@@ -111,98 +117,101 @@ export default function Resources() {
                 Online Courses
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="card hover:shadow-xl transition-all duration-300">
-                  <div className="flex items-center mb-4">
-                    <Image src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Coursera-Logo_600x600.svg/1200px-Coursera-Logo_600x600.svg.png" alt="Coursera" width={32} height={32} className="w-8 h-8 mr-3" />
-                    <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-medium">
-                      Free Course
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                    Gender and Development
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-4 leading-relaxed">
-                    Explore how gender affects development outcomes and learn evidence-based approaches 
-                    to promoting gender equality in development programs.
-                  </p>
-                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                    <span>University of Edinburgh</span>
-                    <span>6 weeks</span>
-                  </div>
-                  <a
-                    href="https://www.coursera.org/learn/gender-development"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-primary w-full text-center inline-flex items-center justify-center"
-                  >
-                    Enroll Free
-                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </a>
-                </div>
+                <Card className="hover:shadow-xl transition-all duration-300">
+                  <CardContent>
+                    <div className="flex items-center mb-4">
+                      <Image src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Coursera-Logo_600x600.svg/1200px-Coursera-Logo_600x600.svg.png" alt="Coursera" width={32} height={32} className="w-8 h-8 mr-3" />
+                      <Badge variant="primary">
+                        Free Course
+                      </Badge>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                      Gender and Development
+                    </h3>
+                    <p className="text-gray-600 text-sm mb-4 leading-relaxed">
+                      Explore how gender affects development outcomes and learn evidence-based approaches 
+                      to promoting gender equality in development programs.
+                    </p>
+                    <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                      <span>University of Edinburgh</span>
+                      <span>6 weeks</span>
+                    </div>
+                    <a
+                      href="https://www.coursera.org/learn/gender-development"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full"
+                    >
+                      <Button variant="primary" icon={ExternalLink} className="w-full justify-center">
+                        Enroll Free
+                      </Button>
+                    </a>
+                  </CardContent>
+                </Card>
 
-                <div className="card hover:shadow-xl transition-all duration-300">
-                  <div className="flex items-center mb-4">
-                    <Image src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Coursera-Logo_600x600.svg/1200px-Coursera-Logo_600x600.svg.png" alt="Coursera" width={32} height={32} className="w-8 h-8 mr-3" />
-                    <span className="bg-green-100 text-green-800 text-xs px-3 py-1 rounded-full font-medium">
-                      Certificate
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                    Human Rights Law
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-4 leading-relaxed">
-                    Understanding international human rights law and its application to gender equality, 
-                    women's rights, and protection from discrimination.
-                  </p>
-                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                    <span>Lund University</span>
-                    <span>8 weeks</span>
-                  </div>
-                  <a
-                    href="https://www.coursera.org/learn/human-rights"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-primary w-full text-center inline-flex items-center justify-center"
-                  >
-                    Start Learning
-                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </a>
-                </div>
+                <Card className="hover:shadow-xl transition-all duration-300">
+                  <CardContent>
+                    <div className="flex items-center mb-4">
+                      <Image src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Coursera-Logo_600x600.svg/1200px-Coursera-Logo_600x600.svg.png" alt="Coursera" width={32} height={32} className="w-8 h-8 mr-3" />
+                      <Badge variant="success">
+                        Certificate
+                      </Badge>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                      Human Rights Law
+                    </h3>
+                    <p className="text-gray-600 text-sm mb-4 leading-relaxed">
+                      Understanding international human rights law and its application to gender equality, 
+                      women's rights, and protection from discrimination.
+                    </p>
+                    <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                      <span>Lund University</span>
+                      <span>8 weeks</span>
+                    </div>
+                    <a
+                      href="https://www.coursera.org/learn/human-rights"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full"
+                    >
+                      <Button variant="primary" icon={ExternalLink} className="w-full justify-center">
+                        Start Learning
+                      </Button>
+                    </a>
+                  </CardContent>
+                </Card>
 
-                <div className="card hover:shadow-xl transition-all duration-300">
-                  <div className="flex items-center mb-4">
-                    <Image src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Coursera-Logo_600x600.svg/1200px-Coursera-Logo_600x600.svg.png" alt="Coursera" width={32} height={32} className="w-8 h-8 mr-3" />
-                    <span className="bg-purple-100 text-purple-800 text-xs px-3 py-1 rounded-full font-medium">
-                      Specialization
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                    Women's Entrepreneurship
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-4 leading-relaxed">
-                    Learn strategies for supporting women entrepreneurs and creating inclusive 
-                    business environments that promote gender equality.
-                  </p>
-                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                    <span>University of Virginia</span>
-                    <span>4 courses</span>
-                  </div>
-                  <a
-                    href="https://www.coursera.org/specializations/entrepreneurship"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-primary w-full text-center inline-flex items-center justify-center"
+                <Card className="hover:shadow-xl transition-all duration-300">
+                  <CardContent>
+                    <div className="flex items-center mb-4">
+                      <Image src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Coursera-Logo_600x600.svg/1200px-Coursera-Logo_600x600.svg.png" alt="Coursera" width={32} height={32} className="w-8 h-8 mr-3" />
+                      <Badge variant="secondary">
+                        Specialization
+                      </Badge>
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                      Women's Entrepreneurship
+                    </h3>
+                    <p className="text-gray-600 text-sm mb-4 leading-relaxed">
+                      Learn strategies for supporting women entrepreneurs and creating inclusive 
+                      business environments that promote gender equality.
+                    </p>
+                    <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                      <span>University of Virginia</span>
+                      <span>4 courses</span>
+                    </div>
+                    <a
+                      href="https://www.coursera.org/specializations/entrepreneurship"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full"
                   >
-                    View Specialization
-                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </a>
-                </div>
+                      <Button variant="primary" icon={ExternalLink} className="w-full justify-center">
+                        View Specialization
+                      </Button>
+                    </a>
+                  </CardContent>
+                </Card>
               </div>
             </div>
 
@@ -215,64 +224,69 @@ export default function Resources() {
                 Educational Videos
               </h2>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="card">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                    Understanding Gender-Based Violence
-                  </h3>
-                  <div className="aspect-video rounded-lg overflow-hidden mb-4">
-                    <iframe
-                      width="100%"
-                      height="100%"
-                      src="https://www.youtube.com/embed/KQQVcBGvWrk"
-                      title="Understanding Gender-Based Violence"
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      className="w-full h-full"
-                    ></iframe>
-                  </div>
-                  <p className="text-gray-600 text-sm leading-relaxed">
-                    This educational video from UN Women explains the different forms of gender-based violence, 
-                    its root causes, and the importance of prevention strategies. Learn about recognizing warning 
-                    signs and supporting survivors.
-                  </p>
-                </div>
+                <Card>
+                  <CardContent>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                      Understanding Gender-Based Violence
+                    </h3>
+                    <div className="aspect-video rounded-lg overflow-hidden mb-4">
+                      <iframe
+                        width="100%"
+                        height="100%"
+                        src="https://www.youtube.com/embed/KQQVcBGvWrk"
+                        title="Understanding Gender-Based Violence"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="w-full h-full"
+                      ></iframe>
+                    </div>
+                    <p className="text-gray-600 text-sm leading-relaxed">
+                      This educational video from UN Women explains the different forms of gender-based violence, 
+                      its root causes, and the importance of prevention strategies. Learn about recognizing warning 
+                      signs and supporting survivors.
+                    </p>
+                  </CardContent>
+                </Card>
 
                 <div className="space-y-6">
-                  <div className="card">
-                    <div className="flex items-start">
-                      <div className="w-20 h-16 bg-red-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-                        <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M12 3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                  <Card>
+                    <CardContent>
+                      <div className="flex items-start">
+                        <div className="w-20 h-16 bg-red-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                          <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M12 3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                            Content Warning
+                          </h4>
+                          <p className="text-gray-600 text-sm">
+                            This video discusses sensitive topics related to gender-based violence. 
+                            Viewer discretion is advised.
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                          Content Warning
-                        </h4>
-                        <p className="text-gray-600 text-sm">
-                          This video discusses sensitive topics related to gender-based violence. 
-                          Viewer discretion is advised.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
 
-                  <div className="card">
-                    <h4 className="text-lg font-semibold text-gray-900 mb-3">
-                      Additional Video Resources
-                    </h4>
-                    <ul className="space-y-3">
-                      <li>
-                        <a
-                          href="https://www.youtube.com/watch?v=hg3umXU_qWc"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline text-sm flex items-center"
-                        >
-                          HeForShe Campaign Launch
-                          <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  <Card>
+                    <CardContent>
+                      <h4 className="text-lg font-semibold text-gray-900 mb-3">
+                        Additional Video Resources
+                      </h4>
+                      <ul className="space-y-3">
+                        <li>
+                          <a
+                            href="https://www.youtube.com/watch?v=hg3umXU_qWc"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline text-sm flex items-center"
+                          >
+                            HeForShe Campaign Launch
+                            <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                           </svg>
                         </a>
                       </li>
@@ -301,10 +315,10 @@ export default function Resources() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                           </svg>
                         </a>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
+                        </li>
+                      </ul>
+                    </CardContent>
+                  </Card>
               </div>
             </div>
 
@@ -317,113 +331,112 @@ export default function Resources() {
                 Downloadable Guides
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="card hover:shadow-xl transition-all duration-300">
-                  <div className="flex items-center mb-4">
-                    <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mr-3">
-                      <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
+                <Card className="hover:shadow-xl transition-all duration-300">
+                  <CardContent>
+                    <div className="flex items-center mb-4">
+                      <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mr-3">
+                        <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <Badge variant="danger">
+                        PDF Guide
+                      </Badge>
                     </div>
-                    <span className="bg-red-100 text-red-800 text-xs px-3 py-1 rounded-full font-medium">
-                      PDF Guide
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                    Gender-Based Violence Prevention Toolkit
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-4 leading-relaxed">
-                    Comprehensive 50-page guide with evidence-based strategies for preventing gender-based violence 
-                    in communities, workplaces, and educational institutions.
-                  </p>
-                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                    <span>WHO/UN Women</span>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                      Gender-Based Violence Prevention Toolkit
+                    </h3>
+                    <p className="text-gray-600 text-sm mb-4 leading-relaxed">
+                      Comprehensive 50-page guide with evidence-based strategies for preventing gender-based violence 
+                      in communities, workplaces, and educational institutions.
+                    </p>
+                    <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                      <span>WHO/UN Women</span>
                     <span>2.3 MB</span>
                   </div>
-                  <a
-                    href="https://www.who.int/publications/i/item/9789241564007"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-primary w-full text-center inline-flex items-center justify-center"
-                  >
-                    Download PDF
-                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </a>
-                </div>
+                    <a
+                      href="https://www.who.int/publications/i/item/9789241564007"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full"
+                    >
+                      <Button variant="primary" icon={ExternalLink} className="w-full justify-center">
+                        Download PDF
+                      </Button>
+                    </a>
+                  </CardContent>
+                </Card>
 
-                <div className="card hover:shadow-xl transition-all duration-300">
-                  <div className="flex items-center mb-4">
-                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                      <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
+                <Card className="hover:shadow-xl transition-all duration-300">
+                  <CardContent>
+                    <div className="flex items-center mb-4">
+                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                        <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <Badge variant="primary">
+                        PDF Handbook
+                      </Badge>
                     </div>
-                    <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-medium">
-                      PDF Handbook
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                    Women's Legal Rights in Azerbaijan
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-4 leading-relaxed">
-                    Legal handbook covering women's rights under Azerbaijani law, including domestic violence 
-                    protections, workplace rights, and legal remedies.
-                  </p>
-                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                    <span>Ministry of Justice AZ</span>
-                    <span>1.8 MB</span>
-                  </div>
-                  <button
-                    className="btn-secondary w-full text-center inline-flex items-center justify-center"
-                    disabled
-                  >
-                    Coming Soon
-                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </button>
-                </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                      Women's Legal Rights in Azerbaijan
+                    </h3>
+                    <p className="text-gray-600 text-sm mb-4 leading-relaxed">
+                      Legal handbook covering women's rights under Azerbaijani law, including domestic violence 
+                      protections, workplace rights, and legal remedies.
+                    </p>
+                    <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                      <span>Ministry of Justice AZ</span>
+                      <span>1.8 MB</span>
+                    </div>
+                    <Button variant="secondary" disabled className="w-full justify-center">
+                      Coming Soon
+                    </Button>
+                  </CardContent>
+                </Card>
 
-                <div className="card hover:shadow-xl transition-all duration-300">
-                  <div className="flex items-center mb-4">
-                    <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                      <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
+                <Card className="hover:shadow-xl transition-all duration-300">
+                  <CardContent>
+                    <div className="flex items-center mb-4">
+                      <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                        <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <Badge variant="success">
+                        PDF Report
+                      </Badge>
                     </div>
-                    <span className="bg-green-100 text-green-800 text-xs px-3 py-1 rounded-full font-medium">
-                      PDF Report
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                    Global Gender Gap Report 2024
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-4 leading-relaxed">
-                    World Economic Forum's comprehensive analysis of gender parity across 146 countries, 
-                    including Azerbaijan's progress and rankings.
-                  </p>
-                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                    <span>World Economic Forum</span>
-                    <span>4.2 MB</span>
-                  </div>
-                  <a
-                    href="https://www.weforum.org/publications/global-gender-gap-report-2024/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn-primary w-full text-center inline-flex items-center justify-center"
-                  >
-                    Download Report
-                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </a>
-                </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                      Global Gender Gap Report 2024
+                    </h3>
+                    <p className="text-gray-600 text-sm mb-4 leading-relaxed">
+                      World Economic Forum's comprehensive analysis of gender parity across 146 countries, 
+                      including Azerbaijan's progress and rankings.
+                    </p>
+                    <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                      <span>World Economic Forum</span>
+                      <span>4.2 MB</span>
+                    </div>
+                    <a
+                      href="https://www.weforum.org/publications/global-gender-gap-report-2024/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full"
+                    >
+                      <Button variant="primary" icon={ExternalLink} className="w-full justify-center">
+                        Download Report
+                      </Button>
+                    </a>
+                  </CardContent>
+                </Card>
               </div>
             </div>
 
             {/* Emergency Support Section */}
-            <div className="card bg-red-50 border-l-4 border-red-500">
+            <Card className="bg-red-50 border-l-4 border-red-500">
+              <CardContent>
               <div className="flex items-start">
                 <div className="flex-shrink-0">
                   <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -451,13 +464,15 @@ export default function Resources() {
                     >
                       Women's Support: +994 12 555 1234
                     </a>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
           </div>
         </div>
+      </div>
       </section>
     </div>
   )

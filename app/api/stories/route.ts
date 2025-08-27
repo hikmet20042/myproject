@@ -12,16 +12,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     
-    // If ID is provided, return single story (for editing)
+    // If ID is provided, return single story
     if (id) {
-      const session = await getServerSession(authOptions);
-      if (!session?.user) {
-        return NextResponse.json(
-          { error: 'Authentication required' },
-          { status: 401 }
-        );
-      }
-      
       const story = await Story.findById(id).lean();
       if (!story) {
         return NextResponse.json(
@@ -30,11 +22,25 @@ export async function GET(request: NextRequest) {
         );
       }
       
+      // Check if story is approved for public access
+      if ((story as any).status === 'approved') {
+        return NextResponse.json({ story });
+      }
+      
+      // For non-approved stories, require authentication and ownership
+      const session = await getServerSession(authOptions);
+      if (!session?.user) {
+        return NextResponse.json(
+          { error: 'Story not found' },
+          { status: 404 }
+        );
+      }
+      
       // Check if user owns the story or is admin
       if ((story as any).author?.toString() !== session.user.id && session.user.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-          { status: 403 }
+        return NextResponse.json(
+          { error: 'Story not found' },
+          { status: 404 }
         );
       }
       
@@ -62,7 +68,8 @@ export async function GET(request: NextRequest) {
         if (search && search.trim()) {
           query.$or = [
             { title: { $regex: search.trim(), $options: 'i' } },
-            { content: { $regex: search.trim(), $options: 'i' } }
+            { content: { $regex: search.trim(), $options: 'i' } },
+            { abstract: { $regex: search.trim(), $options: 'i' } }
           ];
         }
         if (tags && tags.trim()) {

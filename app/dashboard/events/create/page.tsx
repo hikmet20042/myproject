@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Calendar, MapPin, Users, Link as LinkIcon, Clock, Tag, Image as ImageIcon } from 'lucide-react'
+import { Input, Select, Button, TextArea } from '@/components/ui'
 
 const eventCategories = [
   'Workshop',
@@ -24,11 +25,13 @@ const eventCategories = [
 export default function CreateEvent() {
   const { data: session } = useSession()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     category: '',
+    eventType: 'event' as 'event' | 'training' | 'workshop' | 'seminar',
     eventDate: '',
     endDate: '',
     location: {
@@ -42,8 +45,42 @@ export default function CreateEvent() {
     applicationDeadline: '',
     maxParticipants: '',
     tags: '',
-    imageUrl: ''
+    imageUrl: '',
+    // Training-specific fields
+    duration: {
+      value: '',
+      unit: 'hours' as 'hours' | 'days' | 'weeks'
+    },
+    schedule: '',
+    prerequisites: [] as string[],
+    learningOutcomes: [] as string[],
+    targetAudience: '',
+    syllabus: '',
+    certification: {
+      provided: false,
+      type: '',
+      accreditedBy: ''
+    },
+    cost: {
+      isFree: false,
+      amount: '',
+      currency: 'USD',
+      scholarshipAvailable: false
+    }
   })
+
+  // Handle URL parameters for event type
+  useEffect(() => {
+    const typeParam = searchParams.get('type')
+    if (typeParam && ['training', 'workshop', 'seminar'].includes(typeParam)) {
+      setFormData(prev => ({
+        ...prev,
+        eventType: typeParam as 'training' | 'workshop' | 'seminar'
+      }))
+    }
+  }, [searchParams])
+
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -84,7 +121,8 @@ export default function CreateEvent() {
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
+    const { name, value, type } = e.target
+    const checked = (e.target as HTMLInputElement).checked
     
     if (name.startsWith('location.')) {
       const locationField = name.split('.')[1]
@@ -95,12 +133,47 @@ export default function CreateEvent() {
           [locationField]: value
         }
       }))
+    } else if (name.startsWith('duration.')) {
+      const durationField = name.split('.')[1]
+      setFormData(prev => ({
+        ...prev,
+        duration: {
+          ...prev.duration,
+          [durationField]: value
+        }
+      }))
+    } else if (name.startsWith('certification.')) {
+      const certField = name.split('.')[1]
+      setFormData(prev => ({
+        ...prev,
+        certification: {
+          ...prev.certification,
+          [certField]: type === 'checkbox' ? checked : value
+        }
+      }))
+    } else if (name.startsWith('cost.')) {
+      const costField = name.split('.')[1]
+      setFormData(prev => ({
+        ...prev,
+        cost: {
+          ...prev.cost,
+          [costField]: type === 'checkbox' ? checked : value
+        }
+      }))
     } else {
       setFormData(prev => ({
         ...prev,
         [name]: value
       }))
     }
+  }
+
+  const handleArrayInputChange = (field: 'prerequisites' | 'learningOutcomes', value: string) => {
+    const items = value.split(',').map(item => item.trim()).filter(item => item)
+    setFormData(prev => ({
+      ...prev,
+      [field]: items
+    }))
   }
 
   return (
@@ -122,15 +195,32 @@ export default function CreateEvent() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Event Title *
                 </label>
-                <input
+                <Input
                   type="text"
                   name="title"
                   value={formData.title}
                   onChange={handleInputChange}
                   required
                   maxLength={200}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter event title"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Event Type *
+                </label>
+                <Select
+                  name="eventType"
+                  value={formData.eventType}
+                  onChange={handleInputChange}
+                  required
+                  options={[
+                    { value: 'event', label: 'Event' },
+                    { value: 'training', label: 'Training' },
+                    { value: 'workshop', label: 'Workshop' },
+                    { value: 'seminar', label: 'Seminar' }
+                  ]}
                 />
               </div>
               
@@ -138,31 +228,31 @@ export default function CreateEvent() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Category *
                 </label>
-                <select
+                <Select
                   name="category"
                   value={formData.category}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Select category</option>
-                  {eventCategories.map(category => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                </select>
+                  options={[
+                    { value: '', label: 'Select category' },
+                    ...eventCategories.map(category => ({
+                      value: category,
+                      label: category
+                    }))
+                  ]}
+                />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Max Participants
                 </label>
-                <input
+                <Input
                   type="number"
                   name="maxParticipants"
                   value={formData.maxParticipants}
                   onChange={handleInputChange}
                   min="1"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Leave empty for unlimited"
                 />
               </div>
@@ -171,14 +261,13 @@ export default function CreateEvent() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Description *
                 </label>
-                <textarea
+                <TextArea
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
                   required
                   maxLength={2000}
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Describe your event"
                 />
               </div>
@@ -187,17 +276,210 @@ export default function CreateEvent() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Tags
                 </label>
-                <input
+                <Input
                   type="text"
                   name="tags"
                   value={formData.tags}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Enter tags separated by commas (e.g., human rights, workshop, youth)"
                 />
               </div>
             </div>
           </div>
+
+          {/* Training-specific fields */}
+          {(formData.eventType === 'training' || formData.eventType === 'workshop' || formData.eventType === 'seminar') && (
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">Training Details</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Duration *
+                  </label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      name="duration.value"
+                      value={formData.duration.value}
+                      onChange={handleInputChange}
+                      required
+                      min="1"
+                      className="flex-1"
+                      placeholder="Duration"
+                    />
+                    <Select
+                       name="duration.unit"
+                       value={formData.duration.unit}
+                       onChange={handleInputChange}
+                       options={[
+                         { value: 'hours', label: 'Hours' },
+                         { value: 'days', label: 'Days' },
+                         { value: 'weeks', label: 'Weeks' }
+                       ]}
+                     />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Target Audience
+                  </label>
+                  <Input
+                    type="text"
+                    name="targetAudience"
+                    value={formData.targetAudience}
+                    onChange={handleInputChange}
+                    placeholder="e.g., NGO staff, volunteers, students"
+                  />
+                </div>
+                
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Schedule
+                  </label>
+                  <TextArea
+                    name="schedule"
+                    value={formData.schedule}
+                    onChange={handleInputChange}
+                    rows={3}
+                    placeholder="Describe the training schedule (e.g., Day 1: Introduction, Day 2: Practical exercises)"
+                  />
+                </div>
+                
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Prerequisites
+                  </label>
+                  <Input
+                    type="text"
+                    value={formData.prerequisites.join(', ')}
+                    onChange={(e) => handleArrayInputChange('prerequisites', e.target.value)}
+                    placeholder="Enter prerequisites separated by commas (e.g., Basic computer skills, Previous NGO experience)"
+                  />
+                </div>
+                
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Learning Outcomes
+                  </label>
+                  <Input
+                    type="text"
+                    value={formData.learningOutcomes.join(', ')}
+                    onChange={(e) => handleArrayInputChange('learningOutcomes', e.target.value)}
+                    placeholder="Enter learning outcomes separated by commas (e.g., Understand fundraising basics, Create grant proposals)"
+                  />
+                </div>
+                
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Syllabus
+                  </label>
+                  <TextArea
+                    name="syllabus"
+                    value={formData.syllabus}
+                    onChange={handleInputChange}
+                    rows={4}
+                    placeholder="Detailed syllabus or curriculum outline"
+                  />
+                </div>
+                
+                {/* Cost Information */}
+                <div className="md:col-span-2">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Cost Information</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        name="cost.isFree"
+                        checked={formData.cost.isFree}
+                        onChange={handleInputChange}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <label className="ml-2 block text-sm text-gray-700">
+                        This training is free
+                      </label>
+                    </div>
+                    
+                    {!formData.cost.isFree && (
+                      <div className="flex gap-2">
+                        <Input
+                          type="number"
+                          name="cost.amount"
+                          value={formData.cost.amount}
+                          onChange={handleInputChange}
+                          min="0"
+                          step="0.01"
+                          className="flex-1"
+                          placeholder="Amount"
+                        />
+                        <Select
+                          name="cost.currency"
+                          value={formData.cost.currency}
+                          onChange={handleInputChange}
+                          options={[
+                            { value: 'USD', label: 'USD' },
+                            { value: 'EUR', label: 'EUR' },
+                            { value: 'GBP', label: 'GBP' },
+                            { value: 'CAD', label: 'CAD' }
+                          ]}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Certification */}
+                <div className="md:col-span-2">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Certification</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        name="certification.provided"
+                        checked={formData.certification.provided}
+                        onChange={handleInputChange}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <label className="ml-2 block text-sm text-gray-700">
+                        Certificate will be provided
+                      </label>
+                    </div>
+                    
+                    {formData.certification.provided && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Certificate Type
+                          </label>
+                          <Input
+                            type="text"
+                            name="certification.type"
+                            value={formData.certification.type}
+                            onChange={handleInputChange}
+                            placeholder="e.g., Certificate of Completion, Professional Certificate"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Accredited By
+                          </label>
+                          <Input
+                            type="text"
+                            name="certification.accreditedBy"
+                            value={formData.certification.accreditedBy}
+                            onChange={handleInputChange}
+                            placeholder="Accrediting organization (optional)"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Date & Time */}
           <div className="bg-white rounded-lg shadow p-6">
@@ -209,41 +491,38 @@ export default function CreateEvent() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Start Date & Time *
+                  Start Date *
                 </label>
-                <input
-                  type="datetime-local"
+                <Input
+                  type="date"
                   name="eventDate"
                   value={formData.eventDate}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  End Date & Time
+                  End Date
                 </label>
-                <input
-                  type="datetime-local"
+                <Input
+                  type="date"
                   name="endDate"
                   value={formData.endDate}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Application Deadline
+                  Application Deadline (with time)
                 </label>
-                <input
+                <Input
                   type="datetime-local"
                   name="applicationDeadline"
                   value={formData.applicationDeadline}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -261,17 +540,17 @@ export default function CreateEvent() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Location Type *
                 </label>
-                <select
+                <Select
                   name="location.type"
                   value={formData.location.type}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="physical">Physical Location</option>
-                  <option value="online">Online Event</option>
-                  <option value="hybrid">Hybrid (Physical + Online)</option>
-                </select>
+                  options={[
+                    { value: 'physical', label: 'Physical Location' },
+                    { value: 'online', label: 'Online Event' },
+                    { value: 'hybrid', label: 'Hybrid (Physical + Online)' }
+                  ]}
+                />
               </div>
               
               {(formData.location.type === 'physical' || formData.location.type === 'hybrid') && (
@@ -280,12 +559,11 @@ export default function CreateEvent() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Address
                     </label>
-                    <input
+                    <Input
                       type="text"
                       name="location.address"
                       value={formData.location.address}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Street address"
                     />
                   </div>
@@ -294,12 +572,11 @@ export default function CreateEvent() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       City
                     </label>
-                    <input
+                    <Input
                       type="text"
                       name="location.city"
                       value={formData.location.city}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="City"
                     />
                   </div>
@@ -308,12 +585,11 @@ export default function CreateEvent() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Country
                     </label>
-                    <input
+                    <Input
                       type="text"
                       name="location.country"
                       value={formData.location.country}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Country"
                     />
                   </div>
@@ -325,12 +601,11 @@ export default function CreateEvent() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Online Meeting Link
                   </label>
-                  <input
+                  <Input
                     type="url"
                     name="location.onlineLink"
                     value={formData.location.onlineLink}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="https://zoom.us/j/..."
                   />
                 </div>
@@ -347,12 +622,11 @@ export default function CreateEvent() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Application/Registration Link
                 </label>
-                <input
+                <Input
                   type="url"
                   name="applicationLink"
                   value={formData.applicationLink}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="https://..."
                 />
               </div>
@@ -361,12 +635,11 @@ export default function CreateEvent() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Event Image URL
                 </label>
-                <input
+                <Input
                   type="url"
                   name="imageUrl"
                   value={formData.imageUrl}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="https://..."
                 />
               </div>
@@ -375,20 +648,19 @@ export default function CreateEvent() {
 
           {/* Submit */}
           <div className="flex justify-end gap-4">
-            <button
+            <Button
               type="button"
               onClick={() => router.back()}
-              className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              variant="outline"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Creating...' : 'Submit for Review'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
