@@ -34,12 +34,11 @@ export async function GET(request: NextRequest) {
     
     if (status !== 'all') {
       if (status === 'pending') {
-        query['ngoProfile.isApproved'] = false;
-        query['ngoProfile.rejectedAt'] = { $exists: false };
+        query['ngoProfile.status'] = 'pending';
       } else if (status === 'approved') {
-        query['ngoProfile.isApproved'] = true;
+        query['ngoProfile.status'] = 'approved';
       } else if (status === 'rejected') {
-        query['ngoProfile.rejectedAt'] = { $exists: true };
+        query['ngoProfile.status'] = 'rejected';
       }
     }
 
@@ -69,18 +68,17 @@ export async function GET(request: NextRequest) {
     // Get counts for different statuses
     const pendingCount = await User.countDocuments({
       role: 'ngo',
-      'ngoProfile.isApproved': false,
-      'ngoProfile.rejectedAt': { $exists: false }
+      'ngoProfile.status': 'pending'
     });
     
     const approvedCount = await User.countDocuments({
       role: 'ngo',
-      'ngoProfile.isApproved': true
+      'ngoProfile.status': 'approved'
     });
     
     const rejectedCount = await User.countDocuments({
       role: 'ngo',
-      'ngoProfile.rejectedAt': { $exists: true }
+      'ngoProfile.status': 'rejected'
     });
 
     return NextResponse.json({
@@ -136,16 +134,14 @@ export async function PUT(request: NextRequest) {
     }
 
     if (action === 'approve') {
-      ngo.ngoProfile.isApproved = true;
+      ngo.ngoProfile.status = 'approved';
       ngo.ngoProfile.approvedAt = new Date();
       ngo.ngoProfile.approvedBy = session.user.id;
       // Clear any previous rejection data
-      ngo.ngoProfile.rejectedAt = undefined;
-      ngo.ngoProfile.rejectionReason = undefined;
+      ngo.ngoProfile.adminComment = undefined;
     } else if (action === 'reject') {
-      ngo.ngoProfile.isApproved = false;
-      ngo.ngoProfile.rejectedAt = new Date();
-      ngo.ngoProfile.rejectionReason = rejectionReason.trim();
+      ngo.ngoProfile.status = 'rejected';
+      ngo.ngoProfile.adminComment = rejectionReason.trim();
       // Clear approval data
       ngo.ngoProfile.approvedAt = undefined;
       ngo.ngoProfile.approvedBy = undefined;
@@ -223,17 +219,15 @@ export async function PATCH(request: NextRequest) {
 
     const updateData: any = {};
     if (action === 'approve') {
-      updateData['ngoProfile.isApproved'] = true;
+      updateData['ngoProfile.status'] = 'approved';
       updateData['ngoProfile.approvedAt'] = new Date();
       updateData['ngoProfile.approvedBy'] = session.user.id;
       updateData['$unset'] = {
-        'ngoProfile.rejectedAt': 1,
-        'ngoProfile.rejectionReason': 1
+        'ngoProfile.adminComment': 1
       };
     } else if (action === 'reject') {
-      updateData['ngoProfile.isApproved'] = false;
-      updateData['ngoProfile.rejectedAt'] = new Date();
-      updateData['ngoProfile.rejectionReason'] = rejectionReason.trim();
+      updateData['ngoProfile.status'] = 'rejected';
+      updateData['ngoProfile.adminComment'] = rejectionReason.trim();
       updateData['$unset'] = {
         'ngoProfile.approvedAt': 1,
         'ngoProfile.approvedBy': 1

@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     // Build filter query - only show approved NGOs
     const filter: any = {
       role: 'ngo',
-      'ngoProfile.isApproved': true
+      'ngoProfile.status': 'approved'
     }
     
     // Category filter
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
       website: ngo.ngoProfile?.website || '',
       email: ngo.email,
       phone: ngo.ngoProfile?.phone || '',
-      verified: ngo.ngoProfile?.isApproved || false,
+      verified: ngo.ngoProfile?.status === 'approved' || false,
       logo: ngo.ngoProfile?.logo || null,
       address: ngo.ngoProfile?.address || {},
       createdAt: ngo.createdAt

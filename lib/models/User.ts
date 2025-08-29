@@ -29,11 +29,10 @@ interface IUser extends mongoose.Document {
     address?: string
     registrationNumber?: string
     focusAreas: string[]
-    isApproved: boolean
+    status: 'pending' | 'approved' | 'rejected'
     approvedAt?: Date
     approvedBy?: mongoose.Types.ObjectId
-    rejectedAt?: Date
-    rejectionReason?: string
+    adminComment?: string
     // NGO-specific social media (in addition to general socialMedia)
     socialMedia?: {
       facebook?: string
@@ -135,17 +134,17 @@ const UserSchema = new mongoose.Schema({
         'Other'
       ]
     }],
-    isApproved: {
-      type: Boolean,
-      default: false
+    status: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending'
     },
     approvedAt: Date,
     approvedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User'
     },
-    rejectedAt: Date,
-    rejectionReason: String,
+    adminComment: String,
     // NGO-specific social media
     socialMedia: {
       facebook: String,

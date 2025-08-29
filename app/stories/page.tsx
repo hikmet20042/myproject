@@ -169,7 +169,7 @@ export default function CommunityStories() {
                 Your personal experiences matter. Share your journey, struggles, and victories to inspire others and create meaningful change in our community.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link href="/submit/story">
+                <Link href="/submit/story/step1">
                   <Button size="lg">
                     Submit Your Story
                   </Button>

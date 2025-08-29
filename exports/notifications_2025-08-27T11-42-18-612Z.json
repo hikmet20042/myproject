@@ -1,0 +1,160 @@
+[
+  {
+    "_id": "689db27e24a3b18d5ed1aece",
+    "userId": "689db27e24a3b18d5ed1aecc",
+    "type": "welcome",
+    "title": "Welcome to Gender Equality Azerbaijan!",
+    "message": "Thank you for joining our community. Please verify your email to get started.",
+    "data": {
+      "type": "welcome"
+    },
+    "isRead": false,
+    "createdAt": "2025-08-14T09:55:10.727Z",
+    "updatedAt": "2025-08-14T09:55:10.727Z",
+    "__v": 0
+  },
+  {
+    "_id": "689db82724a3b18d5ed1aedf",
+    "userId": "689db27e24a3b18d5ed1aecc",
+    "type": "email_verification",
+    "title": "Email Verified Successfully!",
+    "message": "Your email has been verified. You can now sign in to your account.",
+    "data": {
+      "type": "email_verification"
+    },
+    "isRead": false,
+    "createdAt": "2025-08-14T10:19:19.376Z",
+    "updatedAt": "2025-08-14T10:19:19.376Z",
+    "__v": 0
+  },
+  {
+    "_id": "689db9a824a3b18d5ed1afa7",
+    "userId": "689db9a824a3b18d5ed1afa5",
+    "type": "welcome",
+    "title": "Welcome to Gender Equality Azerbaijan!",
+    "message": "Thank you for joining our community. Please verify your email to get started.",
+    "data": {
+      "type": "welcome"
+    },
+    "isRead": true,
+    "createdAt": "2025-08-14T10:25:44.792Z",
+    "updatedAt": "2025-08-14T11:14:02.169Z",
+    "__v": 0
+  },
+  {
+    "_id": "689ef7b091b8cd849f6faf0e",
+    "userId": "689ef7b091b8cd849f6faf0c",
+    "type": "welcome",
+    "title": "Welcome to Gender Equality Azerbaijan!",
+    "message": "Thank you for joining our community. Please verify your email to get started.",
+    "data": {
+      "type": "welcome"
+    },
+    "isRead": false,
+    "createdAt": "2025-08-15T09:02:40.286Z",
+    "updatedAt": "2025-08-15T09:02:40.286Z",
+    "__v": 0
+  },
+  {
+    "_id": "689efaec9a41ec4fae2b87c9",
+    "userId": "689efaec9a41ec4fae2b87c7",
+    "type": "welcome",
+    "title": "Welcome to Gender Equality Azerbaijan!",
+    "message": "Thank you for joining our community. Please verify your email to get started.",
+    "data": {
+      "type": "welcome"
+    },
+    "isRead": false,
+    "createdAt": "2025-08-15T09:16:28.957Z",
+    "updatedAt": "2025-08-15T09:16:28.957Z",
+    "__v": 0
+  },
+  {
+    "_id": "689efc0a593c59024cbf2a27",
+    "userId": "689efc0a593c59024cbf2a25",
+    "type": "welcome",
+    "title": "Welcome to Gender Equality Azerbaijan!",
+    "message": "Thank you for joining our community. Please verify your email to get started.",
+    "data": {
+      "type": "welcome"
+    },
+    "isRead": false,
+    "createdAt": "2025-08-15T09:21:14.959Z",
+    "updatedAt": "2025-08-15T09:21:14.959Z",
+    "__v": 0
+  },
+  {
+    "_id": "689efc19212c085ef838a48c",
+    "userId": "689efc0a593c59024cbf2a25",
+    "type": "email_verification",
+    "title": "Email Verified Successfully!",
+    "message": "Your email has been verified. You can now sign in to your account.",
+    "data": {
+      "type": "email_verification"
+    },
+    "isRead": false,
+    "createdAt": "2025-08-15T09:21:29.062Z",
+    "updatedAt": "2025-08-15T09:21:29.062Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a82ce2e1e6d4607cf6f0b0",
+    "userId": "68a82ce2e1e6d4607cf6f0ae",
+    "type": "welcome",
+    "title": "NGO Registration Received!",
+    "message": "Thank you for registering your NGO. Please verify your email and wait for admin approval to access NGO features.",
+    "data": {
+      "type": "welcome",
+      "userType": "ngo"
+    },
+    "isRead": true,
+    "createdAt": "2025-08-22T08:40:02.307Z",
+    "updatedAt": "2025-08-22T08:47:04.373Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a82ce2e1e6d4607cf6f0b3",
+    "userId": "689d7cc1bf2cdf5ae8e43e65",
+    "type": "admin_action_required",
+    "title": "New NGO Registration Pending",
+    "message": "Gender Hub Azerbaijan has registered as an NGO and requires approval.",
+    "data": {
+      "type": "ngo_approval_required",
+      "userId": "68a82ce2e1e6d4607cf6f0ae",
+      "organizationName": "Gender Hub Azerbaijan"
+    },
+    "isRead": true,
+    "createdAt": "2025-08-22T08:40:02.662Z",
+    "updatedAt": "2025-08-22T08:42:01.525Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a82d10e1e6d4607cf6f0b7",
+    "userId": "68a82ce2e1e6d4607cf6f0ae",
+    "type": "email_verification",
+    "title": "Email Verified Successfully!",
+    "message": "Your email has been verified. You can now sign in to your account.",
+    "data": {
+      "type": "email_verification"
+    },
+    "isRead": true,
+    "createdAt": "2025-08-22T08:40:48.539Z",
+    "updatedAt": "2025-08-22T08:47:02.562Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a82e3ae1e6d4607cf6f12c",
+    "userId": "68a82ce2e1e6d4607cf6f0ae",
+    "type": "ngo_approved",
+    "title": "NGO Registration Approved!",
+    "message": "Congratulations! Your NGO \"Gender Hub Azerbaijan\" has been approved. You can now access all NGO features.",
+    "data": {
+      "action": "approve",
+      "organizationName": "Gender Hub Azerbaijan"
+    },
+    "isRead": true,
+    "createdAt": "2025-08-22T08:45:46.611Z",
+    "updatedAt": "2025-08-22T08:46:54.249Z",
+    "__v": 0
+  }
+]

@@ -10,14 +10,19 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    await dbConnect();
-    const session = await getServerSession(authOptions);
+    await dbConnect()
+  
+  const session = await getServerSession(authOptions)
+    
     if (!session?.user?.id) {
+      console.log('Profile GET - No session or user ID');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await User.findById(session.user.id).lean();
+    const user = await User.findById(session.user.id);
+    
     if (!user || Array.isArray(user)) {
+      console.log('Profile GET - User not found or is array');
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 

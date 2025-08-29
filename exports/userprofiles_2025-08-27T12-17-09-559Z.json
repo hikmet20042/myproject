@@ -1,0 +1,53 @@
+[
+  {
+    "_id": "689dc93517f8fff296e5f176",
+    "userId": "689d7cc1bf2cdf5ae8e43e66",
+    "__v": 0,
+    "bio": "",
+    "createdAt": "2025-08-14T11:32:05.713Z",
+    "dateOfBirth": null,
+    "gender": "",
+    "interests": "",
+    "location": "",
+    "occupation": "",
+    "organization": "",
+    "phone": "",
+    "socialLinks": "",
+    "updatedAt": "2025-08-14T11:32:05.713Z",
+    "website": ""
+  },
+  {
+    "_id": "68a96c00a183ba62b2f708e8",
+    "userId": "689d7cc1bf2cdf5ae8e43e65",
+    "__v": 0,
+    "avatarBlobId": "68a96bf8f671f86453da2b00",
+    "bio": "",
+    "createdAt": "2025-08-23T07:21:36.167Z",
+    "gender": "",
+    "interests": "",
+    "location": "",
+    "occupation": "",
+    "organization": "",
+    "phone": "",
+    "socialLinks": "",
+    "updatedAt": "2025-08-23T07:21:36.167Z",
+    "website": ""
+  },
+  {
+    "_id": "68a96e76a183ba62b2f708e9",
+    "userId": "68a82ce2e1e6d4607cf6f0ae",
+    "__v": 0,
+    "avatarBlobId": "68a96e713bffd6b94d39834a",
+    "bio": "",
+    "createdAt": "2025-08-23T07:32:07.104Z",
+    "gender": "",
+    "interests": "",
+    "location": "",
+    "occupation": "",
+    "organization": "",
+    "phone": "",
+    "socialLinks": "",
+    "updatedAt": "2025-08-23T07:32:07.104Z",
+    "website": ""
+  }
+]

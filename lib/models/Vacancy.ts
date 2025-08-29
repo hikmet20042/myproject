@@ -43,11 +43,12 @@ interface IVacancy extends mongoose.Document {
   tags: string[]
   imageUrl?: string
   createdBy: mongoose.Types.ObjectId
-  isApproved: boolean
+  status: 'pending' | 'approved' | 'rejected'
   approvedAt?: Date
   approvedBy?: mongoose.Types.ObjectId
   rejectedAt?: Date
   rejectionReason?: string
+  adminComment?: string
   isPublished: boolean
   isFeatured: boolean
   isUrgent: boolean
@@ -231,9 +232,10 @@ const VacancySchema = new mongoose.Schema<IVacancy>({
     ref: 'User',
     required: true
   },
-  isApproved: {
-    type: Boolean,
-    default: false
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending',
   },
   approvedAt: Date,
   approvedBy: {
@@ -242,6 +244,9 @@ const VacancySchema = new mongoose.Schema<IVacancy>({
   },
   rejectedAt: Date,
   rejectionReason: String,
+  adminComment: {
+    type: String,
+  },
   isPublished: {
     type: Boolean,
     default: false
@@ -271,7 +276,7 @@ VacancySchema.index({ experienceLevel: 1 })
 VacancySchema.index({ 'location.city': 1 })
 VacancySchema.index({ 'location.country': 1 })
 VacancySchema.index({ applicationDeadline: 1 })
-VacancySchema.index({ isApproved: 1, isPublished: 1 })
+VacancySchema.index({ status: 1, isPublished: 1 })
 VacancySchema.index({ createdBy: 1 })
 VacancySchema.index({ 'compensation.type': 1 })
 VacancySchema.index({ isUrgent: 1 })

@@ -35,14 +35,13 @@ interface Event {
     }
   }
   organizationName?: string
-  isApproved: boolean
+  status: 'pending' | 'approved' | 'rejected'
+  adminComment?: string
   approvedAt?: string
   approvedBy?: {
     _id: string
     name: string
   }
-  rejectedAt?: string
-  rejectionReason?: string
   isPublished: boolean
   isFeatured: boolean
   createdAt: string
@@ -83,7 +82,7 @@ export default function AdminEventPreview() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
-  const [rejectionReason, setRejectionReason] = useState('')
+  const [adminComment, setAdminComment] = useState('')
   const [showRejectModal, setShowRejectModal] = useState(false)
 
   useEffect(() => {
@@ -136,8 +135,8 @@ export default function AdminEventPreview() {
   }
 
   const handleReject = async () => {
-    if (!rejectionReason.trim()) {
-      setError('Please provide a rejection reason')
+    if (!adminComment.trim()) {
+      setError('Please provide an admin comment')
       return
     }
 
@@ -150,7 +149,7 @@ export default function AdminEventPreview() {
         },
         body: JSON.stringify({
           action: 'reject',
-          rejectionReason
+          adminComment
         })
       })
 
@@ -192,7 +191,7 @@ export default function AdminEventPreview() {
   }
 
   const getStatusBadge = () => {
-    if (event?.rejectedAt) {
+    if (event?.status === 'rejected') {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
           <XCircle className="w-3 h-3 mr-1" />
@@ -200,7 +199,7 @@ export default function AdminEventPreview() {
         </span>
       )
     }
-    if (event?.isApproved) {
+    if (event?.status === 'approved') {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
           <CheckCircle className="w-3 h-3 mr-1" />
@@ -269,7 +268,7 @@ export default function AdminEventPreview() {
               </div>
             </div>
             
-            {!event.isApproved && !event.rejectedAt && (
+            {event.status === 'pending' && (
               <div className="flex gap-3">
                 <Button
                   onClick={() => setShowRejectModal(true)}
@@ -568,16 +567,10 @@ export default function AdminEventPreview() {
                     <span className="ml-2">{formatDateTime(event.approvedAt)}</span>
                   </div>
                 )}
-                {event.rejectedAt && (
+                {event.adminComment && (
                   <div>
-                    <span className="font-medium text-gray-700">Rejected:</span>
-                    <span className="ml-2">{formatDateTime(event.rejectedAt)}</span>
-                  </div>
-                )}
-                {event.rejectionReason && (
-                  <div>
-                    <span className="font-medium text-gray-700">Rejection Reason:</span>
-                    <p className="mt-1 text-gray-600">{event.rejectionReason}</p>
+                    <span className="font-medium text-gray-700">Admin Comment:</span>
+                    <p className="mt-1 text-gray-600">{event.adminComment}</p>
                   </div>
                 )}
               </div>
@@ -593,17 +586,17 @@ export default function AdminEventPreview() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Reject Event</h3>
             <p className="text-gray-600 mb-4">Please provide a reason for rejecting this event:</p>
             <textarea
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
+              value={adminComment}
+              onChange={(e) => setAdminComment(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               rows={4}
-              placeholder="Enter rejection reason..."
+              placeholder="Enter admin comment..."
             />
             <div className="flex justify-end gap-3 mt-6">
               <Button
                 onClick={() => {
                   setShowRejectModal(false)
-                  setRejectionReason('')
+                  setAdminComment('')
                   setError('')
                 }}
                 variant="outline"
@@ -613,7 +606,7 @@ export default function AdminEventPreview() {
               </Button>
               <Button
                 onClick={handleReject}
-                disabled={actionLoading || !rejectionReason.trim()}
+                disabled={actionLoading || !adminComment.trim()}
                 variant="danger"
                 size="sm"
               >

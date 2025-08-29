@@ -1,0 +1,32 @@
+[
+  {
+    "_id": "68a0701617f8fff296e5f183",
+    "userId": "689d7cc1bf2cdf5ae8e43e65",
+    "__v": 0,
+    "achievements": [],
+    "avgEngagementRate": 0,
+    "avgWordsPerArticle": 0,
+    "avgWordsPerDraft": 0,
+    "completedDrafts": 0,
+    "createdAt": "2025-08-16T11:48:37.288Z",
+    "dailyStats": [],
+    "lastActiveDate": "2025-08-20T12:03:45.060Z",
+    "lastCalculated": "2025-08-20T12:03:45.060Z",
+    "longestStreak": 0,
+    "monthlyStats": [],
+    "preferredCategories": [],
+    "productivityScore": 0,
+    "publishedContent": 0,
+    "topPerformingTags": [],
+    "totalArticles": 0,
+    "totalDrafts": 27,
+    "totalLikes": 0,
+    "totalShares": 0,
+    "totalStories": 0,
+    "totalViews": 0,
+    "totalWordCount": 1301,
+    "updatedAt": "2025-08-20T12:03:45.060Z",
+    "weeklyStats": [],
+    "writingStreak": 0
+  }
+]

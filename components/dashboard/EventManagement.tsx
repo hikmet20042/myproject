@@ -33,7 +33,8 @@ interface Event {
   contactPhone?: string
   website?: string
   tags: string[]
-  isApproved: boolean
+  status: 'pending' | 'approved' | 'rejected'
+  adminComment?: string
   isPublished: boolean
   createdAt: string
   updatedAt: string
@@ -131,9 +132,9 @@ export default function EventManagement() {
   }
 
   const getStatusIcon = (event: Event) => {
-    if (event.isApproved && event.isPublished) {
+    if (event.status === 'approved' && event.isPublished) {
       return <CheckCircle className="h-4 w-4 text-green-500" />
-    } else if (event.isApproved === false) {
+    } else if (event.status === 'rejected') {
       return <XCircle className="h-4 w-4 text-red-500" />
     } else {
       return <AlertCircle className="h-4 w-4 text-yellow-500" />
@@ -141,9 +142,9 @@ export default function EventManagement() {
   }
 
   const getStatusBadge = (event: Event) => {
-    if (event.isApproved && event.isPublished) {
+    if (event.status === 'approved' && event.isPublished) {
       return <Badge variant="success">Approved</Badge>
-    } else if (event.isApproved === false) {
+    } else if (event.status === 'rejected') {
       return <Badge variant="danger">Rejected</Badge>
     } else {
       return <Badge variant="warning">Pending</Badge>
@@ -156,11 +157,11 @@ export default function EventManagement() {
     
     let matchesStatus = true
     if (statusFilter === 'approved') {
-      matchesStatus = event.isApproved && event.isPublished
+      matchesStatus = event.status === 'approved' && event.isPublished
     } else if (statusFilter === 'pending') {
-      matchesStatus = !event.isApproved || !event.isPublished
+      matchesStatus = event.status === 'pending' || (event.status === 'approved' && !event.isPublished)
     } else if (statusFilter === 'rejected') {
-      matchesStatus = event.isApproved === false
+      matchesStatus = event.status === 'rejected'
     }
     
     const matchesCategory = categoryFilter === 'all' || event.category === categoryFilter
@@ -180,14 +181,14 @@ export default function EventManagement() {
           <h2 className="text-2xl font-bold text-gray-900">Event Management</h2>
           <p className="text-gray-600">Manage your organization's events</p>
         </div>
-        <Button
-          as={Link}
-          href="/dashboard/events/create"
-          variant="primary"
-          icon={Plus}
-        >
-          Create Event
-        </Button>
+        <Link href="/dashboard/events/create">
+          <Button
+            variant="primary"
+            icon={Plus}
+          >
+            Create Event
+          </Button>
+        </Link>
       </div>
 
       {/* Filters */}
@@ -206,13 +207,13 @@ export default function EventManagement() {
             <Select
               options={statusOptions}
               value={statusFilter}
-              onChange={(value) => setStatusFilter(value)}
+              onChange={(e) => setStatusFilter(e.target.value)}
               placeholder="Filter by status"
             />
             <Select
               options={categoryOptions}
               value={categoryFilter}
-              onChange={(value) => setCategoryFilter(value)}
+              onChange={(e) => setCategoryFilter(e.target.value)}
               placeholder="Filter by category"
             />
           </div>
@@ -232,14 +233,14 @@ export default function EventManagement() {
                   : "No events match your current filters."}
               </p>
               {events.length === 0 && (
-                <Button
-                  as={Link}
-                  href="/dashboard/events/create"
-                  variant="primary"
-                  icon={Plus}
-                >
-                  Create Your First Event
-                </Button>
+                <Link href="/dashboard/events/create">
+                  <Button
+                    variant="primary"
+                    icon={Plus}
+                  >
+                    Create Your First Event
+                  </Button>
+                </Link>
               )}
             </div>
           </CardContent>
@@ -283,31 +284,31 @@ export default function EventManagement() {
                     <div className="flex items-center gap-2 mt-3">
                       <Badge variant="secondary">{event.category}</Badge>
                       {event.tags.slice(0, 2).map((tag, index) => (
-                        <Badge key={index} variant="outline">{tag}</Badge>
+                        <Badge key={index} variant="secondary">{tag}</Badge>
                       ))}
                       {event.tags.length > 2 && (
-                        <Badge variant="outline">+{event.tags.length - 2} more</Badge>
+                        <Badge variant="secondary">+{event.tags.length - 2} more</Badge>
                       )}
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-2 ml-4">
-                    <Button
-                      as={Link}
-                      href={`/resources/events/${event._id}`}
-                      variant="ghost"
-                      size="sm"
-                      icon={Eye}
-                      title="View Event"
-                    />
-                    <Button
-                      as={Link}
-                      href={`/dashboard/events/${event._id}/edit`}
-                      variant="ghost"
-                      size="sm"
-                      icon={Edit}
-                      title="Edit Event"
-                    />
+                    <Link href={`/resources/events/${event._id}`}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={Eye}
+                        title="View Event"
+                      />
+                    </Link>
+                    <Link href={`/dashboard/events/${event._id}/edit`}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={Edit}
+                        title="Edit Event"
+                      />
+                    </Link>
                     <Button
                       onClick={() => handleDelete(event)}
                       variant="ghost"

@@ -16,11 +16,10 @@ interface NGOUser {
     address?: string
     registrationNumber?: string
     focusAreas: string[]
-    isApproved: boolean
+    status: 'pending' | 'approved' | 'rejected'
     approvedAt?: Date
     approvedBy?: Types.ObjectId
-    rejectedAt?: Date
-    rejectionReason?: string
+    adminComment?: string
   }
   createdAt: Date
 }
@@ -50,7 +49,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
     
     // Check if user is an NGO and is approved
-    if (ngoUser.role !== 'ngo' || !ngoUser.ngoProfile?.isApproved) {
+    if (ngoUser.role !== 'ngo' || ngoUser.ngoProfile?.status !== 'approved') {
       return NextResponse.json({ error: 'NGO not found or not approved' }, { status: 404 })
     }
     
@@ -65,7 +64,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       website: ngoUser.ngoProfile?.website || '',
       email: ngoUser.email,
       phone: ngoUser.ngoProfile?.contactPhone || '',
-      verified: ngoUser.ngoProfile?.isApproved || false,
+      verified: ngoUser.ngoProfile?.status === 'approved' || false,
       logo: null, // Logo field doesn't exist in schema
       address: ngoUser.ngoProfile?.address || '',
       registrationNumber: ngoUser.ngoProfile?.registrationNumber || '',

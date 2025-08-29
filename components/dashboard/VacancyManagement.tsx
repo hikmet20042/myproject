@@ -54,11 +54,10 @@ interface Vacancy {
   skills: string[]
   languages?: string[]
   tags: string[]
-  isApproved: boolean
+  status: 'pending' | 'approved' | 'rejected'
+  adminComment?: string
   approvedAt?: string
   approvedBy?: string
-  rejectedAt?: string
-  rejectionReason?: string
   isPublished: boolean
   isFeatured: boolean
   isUrgent: boolean
@@ -197,7 +196,7 @@ export default function VacancyManagement() {
       case 'stipend':
         return <Badge variant="secondary">{amount ? `$${amount} stipend` : 'Stipend'}</Badge>
       default:
-        return <Badge variant="outline">Unpaid</Badge>
+        return <Badge variant="secondary">Unpaid</Badge>
     }
   }
 
@@ -208,7 +207,7 @@ export default function VacancyManagement() {
       case 'hybrid':
         return <Badge variant="secondary">Hybrid</Badge>
       default:
-        return <Badge variant="outline">On-site</Badge>
+        return <Badge variant="secondary">On-site</Badge>
     }
   }
 
@@ -217,8 +216,7 @@ export default function VacancyManagement() {
                          vacancy.description.toLowerCase().includes(searchTerm.toLowerCase())
     
     // Determine status based on approval fields
-    const status = vacancy.rejectedAt ? 'rejected' : 
-                   vacancy.isApproved ? 'approved' : 'pending'
+    const status = vacancy.status || 'pending'
     const matchesStatus = statusFilter === 'all' || status === statusFilter
     
     const matchesCategory = categoryFilter === 'all' || vacancy.category === categoryFilter
@@ -239,14 +237,14 @@ export default function VacancyManagement() {
           <h2 className="text-2xl font-bold text-gray-900">Vacancy Management</h2>
           <p className="text-gray-600">Manage your organization's job postings</p>
         </div>
-        <Button
-          as={Link}
-          href="/dashboard/vacancies/create"
-          variant="primary"
-          icon={Plus}
-        >
-          Create Vacancy
-        </Button>
+        <Link href="/dashboard/vacancies/create">
+          <Button
+            variant="primary"
+            icon={Plus}
+          >
+            Create Vacancy
+          </Button>
+        </Link>
       </div>
 
       {/* Filters */}
@@ -265,19 +263,19 @@ export default function VacancyManagement() {
             <Select
               options={statusOptions}
               value={statusFilter}
-              onChange={(value) => setStatusFilter(value)}
+              onChange={(e) => setStatusFilter(e.target.value)}
               placeholder="Filter by status"
             />
             <Select
               options={categoryOptions}
               value={categoryFilter}
-              onChange={(value) => setCategoryFilter(value)}
+              onChange={(e) => setCategoryFilter(e.target.value)}
               placeholder="Filter by category"
             />
             <Select
               options={compensationOptions}
               value={compensationFilter}
-              onChange={(value) => setCompensationFilter(value)}
+              onChange={(e) => setCompensationFilter(e.target.value)}
               placeholder="Filter by compensation"
             />
           </div>
@@ -297,14 +295,14 @@ export default function VacancyManagement() {
                   : "No vacancies match your current filters."}
               </p>
               {vacancies.length === 0 && (
-                <Button
-                  as={Link}
-                  href="/dashboard/vacancies/create"
-                  variant="primary"
-                  icon={Plus}
-                >
-                  Create Your First Vacancy
-                </Button>
+                <Link href="/dashboard/vacancies/create">
+                  <Button
+                    variant="primary"
+                    icon={Plus}
+                  >
+                    Create Your First Vacancy
+                  </Button>
+                </Link>
               )}
             </div>
           </CardContent>
@@ -319,13 +317,11 @@ export default function VacancyManagement() {
                     <div className="flex items-center gap-2 mb-2">
                       <h3 className="text-lg font-semibold text-gray-900">{vacancy.title}</h3>
                       {(() => {
-                        const status = vacancy.rejectedAt ? 'rejected' : 
-                                       vacancy.isApproved ? 'approved' : 'pending'
+                        const status = vacancy.status || 'pending'
                         return getStatusIcon(status)
                       })()}
                       {(() => {
-                        const status = vacancy.rejectedAt ? 'rejected' : 
-                                       vacancy.isApproved ? 'approved' : 'pending'
+                        const status = vacancy.status || 'pending'
                         return getStatusBadge(status)
                       })()}
                     </div>
@@ -360,31 +356,31 @@ export default function VacancyManagement() {
                       {getLocationBadge(vacancy.workType)}
                       {getCompensationBadge(vacancy.compensation.type, vacancy.compensation.amount?.toString())}
                       {vacancy.tags.slice(0, 2).map((tag, index) => (
-                        <Badge key={index} variant="outline">{tag}</Badge>
+                        <Badge key={index} variant="secondary">{tag}</Badge>
                       ))}
                       {vacancy.tags.length > 2 && (
-                        <Badge variant="outline">+{vacancy.tags.length - 2} more</Badge>
+                        <Badge variant="secondary">+{vacancy.tags.length - 2} more</Badge>
                       )}
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-2 ml-4">
-                    <Button
-                      as={Link}
-                      href={`/resources/vacancies/${vacancy._id}`}
-                      variant="ghost"
-                      size="sm"
-                      icon={Eye}
-                      title="View Vacancy"
-                    />
-                    <Button
-                      as={Link}
-                      href={`/dashboard/vacancies/${vacancy._id}/edit`}
-                      variant="ghost"
-                      size="sm"
-                      icon={Edit}
-                      title="Edit Vacancy"
-                    />
+                    <Link href={`/resources/vacancies/${vacancy._id}`}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={Eye}
+                        title="View Vacancy"
+                      />
+                    </Link>
+                    <Link href={`/dashboard/vacancies/${vacancy._id}/edit`}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={Edit}
+                        title="Edit Vacancy"
+                      />
+                    </Link>
                     <Button
                       onClick={() => handleDelete(vacancy)}
                       variant="ghost"

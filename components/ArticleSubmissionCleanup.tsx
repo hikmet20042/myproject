@@ -14,7 +14,10 @@ export default function ArticleSubmissionCleanup() {
 
     // If we were in the article flow but now we're not, cleanup localStorage
     // But only if we're not supposed to preserve the data
-    if (wasInArticleFlow && !isInArticleFlow && !shouldPreserve) {
+    // Also check if we're not in story editing flow to avoid conflicts
+    const isInStoryEditFlow = pathname?.includes('/edit/story/')
+    
+    if (wasInArticleFlow && !isInArticleFlow && !shouldPreserve && !isInStoryEditFlow) {
       // Clean up article submission data
       localStorage.removeItem('draftArticle')
       localStorage.removeItem('currentDraftId')

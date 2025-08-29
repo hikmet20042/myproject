@@ -132,12 +132,10 @@ const ArticleSchema = new mongoose.Schema({
   views: {
     type: Number,
     default: 0,
-    index: true,
   },
   likes: {
     type: Number,
     default: 0,
-    index: true,
   },
   uniqueViews: {
     type: Number,
@@ -162,13 +160,11 @@ const ArticleSchema = new mongoose.Schema({
   engagementScore: {
     type: Number,
     default: 0,
-    index: true,
   },
   slug: {
     type: String,
     unique: true,
     sparse: true,
-    index: true,
   },
   metaDescription: {
     type: String,

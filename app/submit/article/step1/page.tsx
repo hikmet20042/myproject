@@ -237,7 +237,16 @@ export default function ArticleStep1() {
       const idToLoad = editId || draftId || localStorage.getItem('currentEditId') || localStorage.getItem('currentDraftId');
 
       if (!idToLoad && !draftId && !editId) {
-        await initializeNewArticle();
+        // Check if we're coming from within the article flow (e.g., from step2)
+        const isComingFromFlow = sessionStorage.getItem('navigatingWithinArticleFlow') === 'true' || 
+                                sessionStorage.getItem('preserveArticleData') === 'true' ||
+                                sessionStorage.getItem('inArticleSubmissionFlow') === 'true';
+        
+        // Only initialize new article if we're not coming from within the flow AND there's no existing data
+        const existingData = localStorage.getItem('draftArticle');
+        if (!isComingFromFlow && !existingData) {
+          await initializeNewArticle();
+        }
         return;
       }
 

@@ -1,6 +1,7 @@
 import { FileText, Trash2 } from "lucide-react";
 import { ReactNode } from "react";
 import { Button } from '@/components/ui/Button';
+import { useSession } from 'next-auth/react';
 
 interface Story {
   _id: string;
@@ -21,7 +22,6 @@ interface StoriesProps {
   stories: Story[];
   isUnverified: boolean;
   getStatusIcon: (status: string) => ReactNode;
-  handleEditRejectedStory: (storyId: string) => Promise<void>;
   getStatusColor: (status: string) => string;
   setDeleteConfirm: (confirm: { type: 'article' | 'story' | 'draft', id: string, title: string } | null) => void;
 }
@@ -31,10 +31,10 @@ export default function Stories({
   stories,
   isUnverified,
   getStatusIcon,
-  handleEditRejectedStory,
   getStatusColor,
   setDeleteConfirm
 }: StoriesProps) {
+  const { data: session, status } = useSession();
 
     return(
          <div className="bg-white shadow rounded-lg">
@@ -111,20 +111,88 @@ export default function Stories({
                             <div className="mt-2 flex space-x-2">
                               {/* Allow editing for pending and rejected stories */}
                               {story.status === 'pending' && (
-                                <a
-                                  href={`/edit/story/${story._id}/step1`}
+                                <button
+                                  onClick={() => {
+                                    // Check if user is authenticated
+                                    if (!session || status !== 'authenticated') {
+                                      alert('Please log in to edit stories.');
+                                      return;
+                                    }
+                                    
+                                    // Navigate directly to edit page
+                                    window.location.href = `/edit/story/${story._id}/step1`;
+                                  }}
                                   className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
                                 >
                                   Edit Story
-                                </a>
+                                </button>
                               )}
                               {story.status === 'rejected' && (
-                                <Button
-                                  onClick={() => handleEditRejectedStory(story._id)}
-                                  className="bg-blue-500 hover:bg-blue-600 focus:ring-blue-500"
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      // Check if user is authenticated
+                                      if (!session || status !== 'authenticated') {
+                                        alert('Please log in to edit stories.');
+                                        return;
+                                      }
+                                      
+                                      // Clear any existing story edit data from localStorage
+                                      localStorage.removeItem('editStoryData');
+                                      localStorage.removeItem('draftStory');
+                                      localStorage.removeItem('currentStoryDraftId');
+                                      localStorage.removeItem('currentStoryEditId');
+                                      localStorage.removeItem('storyStep1Data');
+                                      localStorage.removeItem('storyStep2Data');
+                                      
+                                      // Fetch story data from API with credentials
+                                      const response = await fetch(`/api/stories?id=${story._id}`, {
+                                        method: 'GET',
+                                        credentials: 'include',
+                                        headers: {
+                                          'Content-Type': 'application/json',
+                                        },
+                                      });
+                                      
+                                      if (response.ok) {
+                                        const data = await response.json();
+                                        const storyData = data.story;
+                                        
+                                        if (storyData) {
+                                          // Prepare story data for localStorage
+                                          const editData = {
+                                            title: storyData.title || '',
+                                            tags: storyData.tags || [],
+                                            isAnonymous: storyData.isAnonymous || false,
+                                            authorName: storyData.isAnonymous ? 'Anonymous' : (storyData.authorName || session.user.name || ''),
+                                            content: storyData.content || null,
+                                            contentHtml: storyData.contentHtml || '',
+                                            characterCount: 0,
+                                            editId: story._id
+                                          };
+                                          
+                                          // Store story data in localStorage for the edit page
+                                          localStorage.setItem('editStoryData', JSON.stringify(editData));
+                                          localStorage.setItem('currentStoryEditId', story._id);
+                                          
+                                          // Navigate to edit page
+                                          window.location.href = `/edit/story/${story._id}/step1`;
+                                        } else {
+                                          alert('Story data not found.');
+                                        }
+                                      } else {
+                                        console.error('Failed to fetch story data:', response.statusText);
+                                        alert('Failed to load story data. Please try again.');
+                                      }
+                                    } catch (error) {
+                                      console.error('Error fetching story data:', error);
+                                      alert('Failed to load story data. Please try again.');
+                                    }
+                                  }}
+                                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                 >
                                   Edit & Resubmit
-                                </Button>
+                                </button>
                               )}
                               {story.status === 'approved' && (
                                 <span className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-gray-100 rounded-md">

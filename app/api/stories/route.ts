@@ -237,7 +237,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, title, content, contentHtml, tags, abstract, isAnonymous, media, featuredImage, status: reqStatus } = body;
+    const { id, title, content, contentHtml, tags, abstract, isAnonymous, authorName, media, featuredImage, status: reqStatus } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Story ID is required' }, { status: 400 });
@@ -268,6 +268,7 @@ export async function PATCH(request: NextRequest) {
     if (tags !== undefined) updateData.tags = tags;
     if (abstract !== undefined) updateData.abstract = abstract;
     if (isAnonymous !== undefined) updateData.isAnonymous = isAnonymous;
+    if (authorName !== undefined) updateData.authorName = isAnonymous ? 'Anonymous' : authorName;
     if (media !== undefined) updateData.media = media;
     if (featuredImage !== undefined) updateData.featuredImage = featuredImage;
     if (reqStatus !== undefined) updateData.status = reqStatus;

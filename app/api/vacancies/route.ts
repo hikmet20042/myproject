@@ -18,10 +18,10 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type')
     const location = searchParams.get('location')
     const search = searchParams.get('search')
-    const status = searchParams.get('status') || 'approved'
     const createdBy = searchParams.get('createdBy') // For NGO's own vacancies
     const author = searchParams.get('author') // Handle 'author=me' parameter
     const adminView = searchParams.get('adminView') === 'true'
+    const status = searchParams.get('status') || (adminView ? 'all' : 'approved')
     const sortBy = searchParams.get('sortBy') || 'createdAt'
     const sortOrder = searchParams.get('sortOrder') || 'desc'
     
@@ -42,14 +42,22 @@ export async function GET(request: NextRequest) {
     
     // Admin view shows all vacancies, regular view shows only approved
     if (!adminView) {
-      if (status !== 'all' && !createdBy) {
+      // Regular view: only show approved vacancies unless filtering by creator
+      if (!createdBy) {
         filter.status = 'approved'
       }
     } else {
       // Admin view with status filtering
-      if (status !== 'all') {
-        filter.status = status
+      if (status && status !== 'all') {
+        if (status === 'pending') {
+          filter.status = 'pending'
+        } else if (status === 'approved') {
+          filter.status = 'approved'
+        } else if (status === 'rejected') {
+          filter.status = 'rejected'
+        }
       }
+      // If status is 'all' or not specified in admin view, show all vacancies (no additional filter)
     }
     
     // Filter by creator if specified (for NGO dashboard)
@@ -155,7 +163,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Check if NGO is approved
-    if (user.role === 'ngo' && !user.ngoProfile?.isApproved) {
+    if (user.role === 'ngo' && user.ngoProfile?.status !== 'approved') {
       return NextResponse.json(
         { error: 'NGO must be approved to create vacancies' },
         { status: 403 }
@@ -313,7 +321,7 @@ export async function POST(request: NextRequest) {
       benefits: body.benefits || [],
       tags: body.tags || [],
       createdBy: session.user.id,
-      isApproved: user.role === 'admin',
+      status: user.role === 'admin' ? 'approved' : 'pending',
       isPublished: user.role === 'admin'
     }
 

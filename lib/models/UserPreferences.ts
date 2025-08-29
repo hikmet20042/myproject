@@ -2,8 +2,6 @@ import mongoose from 'mongoose';
 
 interface IUserPreferences extends mongoose.Document {
   userId: mongoose.Types.ObjectId;
-  
-  // Privacy settings
   privacy: {
     publicProfile: boolean;
     showEmail: boolean;
@@ -11,8 +9,6 @@ interface IUserPreferences extends mongoose.Document {
     allowDirectMessages: boolean;
     showOnlineStatus: boolean;
   };
-  
-  // Notification preferences
   notifications: {
     email: {
       enabled: boolean;
@@ -40,22 +36,17 @@ interface IUserPreferences extends mongoose.Document {
       soundEnabled: boolean;
     };
   };
-  
-  // Writing preferences
   writing: {
     autoSave: boolean;
-    autoSaveInterval: number; // in seconds
+    autoSaveInterval: number;
     defaultPrivacy: 'public' | 'private' | 'anonymous';
     defaultCategory: string;
     defaultTags: string[];
-
     enableCollaboration: boolean;
     defaultFolder: string;
     enableReminders: boolean;
-    wordCountGoal: number; // daily word count goal
+    wordCountGoal: number;
   };
-  
-  // UI/UX preferences
   interface: {
     theme: 'light' | 'dark' | 'auto';
     language: string;
@@ -69,8 +60,6 @@ interface IUserPreferences extends mongoose.Document {
     fontSize: 'small' | 'medium' | 'large';
     fontFamily: string;
   };
-  
-  // Dashboard preferences
   dashboard: {
     defaultTab: string;
     showQuickStats: boolean;
@@ -80,8 +69,6 @@ interface IUserPreferences extends mongoose.Document {
     enableAnalytics: boolean;
     showAchievements: boolean;
   };
-  
-  // Content preferences
   content: {
     enableDrafts: boolean;
     enableTemplates: boolean;
@@ -92,8 +79,6 @@ interface IUserPreferences extends mongoose.Document {
     enablePrioritySystem: boolean;
     enableFolderSystem: boolean;
   };
-  
-  // Advanced settings
   advanced: {
     enableBetaFeatures: boolean;
     enableAnalytics: boolean;
@@ -102,11 +87,16 @@ interface IUserPreferences extends mongoose.Document {
     dataRetentionDays: number;
     exportFormat: 'json' | 'csv' | 'pdf';
   };
-  
-  // Last updated tracking
   lastUpdated: Date;
   updatedBy: 'user' | 'system' | 'admin';
+  mergeWithDefaults(): this;
 }
+
+interface IUserPreferencesModel extends mongoose.Model<IUserPreferences> {
+  getDefaults(): any;
+}
+
+
 
 const UserPreferencesSchema = new mongoose.Schema<IUserPreferences>({
   userId: {
@@ -114,7 +104,6 @@ const UserPreferencesSchema = new mongoose.Schema<IUserPreferences>({
     ref: 'User',
     required: true,
     unique: true,
-    index: true,
   },
   
   privacy: {
@@ -331,4 +320,6 @@ UserPreferencesSchema.methods.mergeWithDefaults = function() {
   return this;
 };
 
-export default mongoose.models.UserPreferences || mongoose.model<IUserPreferences>('UserPreferences', UserPreferencesSchema);
+const UserPreferences = mongoose.models.UserPreferences as IUserPreferencesModel || mongoose.model<IUserPreferences, IUserPreferencesModel>('UserPreferences', UserPreferencesSchema);
+
+export default UserPreferences;

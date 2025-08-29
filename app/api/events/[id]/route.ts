@@ -93,25 +93,27 @@ export async function PUT(
     // If admin is approving/rejecting
     if (isAdmin && (body.action === 'approve' || body.action === 'reject')) {
       if (body.action === 'approve') {
-        event.isApproved = true
+        event.status = 'approved'
         event.approvedAt = new Date()
         event.approvedBy = session.user.id
         event.isPublished = true
         event.rejectedAt = undefined
         event.rejectionReason = undefined
+        event.adminComment = body.adminComment || undefined
       } else if (body.action === 'reject') {
-        event.isApproved = false
+        event.status = 'rejected'
         event.rejectedAt = new Date()
         event.rejectionReason = body.rejectionReason || 'No reason provided'
+        event.adminComment = body.adminComment || body.rejectionReason || 'No reason provided'
         event.approvedAt = undefined
         event.approvedBy = undefined
         event.isPublished = false
       }
     } else {
       // Regular update by owner
-      if (event.isApproved && isOwner) {
+      if (event.status === 'approved' && isOwner) {
         // If event was approved, reset approval status for re-review
-        event.isApproved = false
+        event.status = 'pending'
         event.approvedAt = undefined
         event.approvedBy = undefined
         event.isPublished = false

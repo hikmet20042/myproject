@@ -128,11 +128,12 @@ export async function PUT(
     
     // Reset approval status if content changed (except for admins)
     if (!isAdmin && isOwner) {
-      vacancy.isApproved = false
+      vacancy.status = 'pending'
       vacancy.approvedAt = undefined
       vacancy.approvedBy = undefined
       vacancy.rejectedAt = undefined
       vacancy.rejectionReason = undefined
+      vacancy.adminComment = undefined
     }
     
     await vacancy.save()
@@ -214,16 +215,18 @@ export async function PATCH(
     
     // Update vacancy status
     if (action === 'approve') {
-      vacancy.isApproved = true
+      vacancy.status = 'approved'
       vacancy.approvedAt = new Date()
       vacancy.approvedBy = session.user.id
       // Clear any previous rejection data
       vacancy.rejectedAt = undefined
       vacancy.rejectionReason = undefined
+      vacancy.adminComment = undefined
     } else if (action === 'reject') {
-      vacancy.isApproved = false
+      vacancy.status = 'rejected'
       vacancy.rejectedAt = new Date()
       vacancy.rejectionReason = rejectionReason.trim()
+      vacancy.adminComment = rejectionReason.trim()
       // Clear any previous approval data
       vacancy.approvedAt = undefined
       vacancy.approvedBy = undefined

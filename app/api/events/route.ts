@@ -44,19 +44,17 @@ export async function GET(request: NextRequest) {
     // Admin view shows all events, regular view shows only approved
     if (!adminView) {
       if (status !== 'all' && !createdBy) {
-        filter.isApproved = true
+        filter.status = 'approved'
         filter.isPublished = true
       }
     } else {
       // Admin view with status filtering
       if (status === 'approved') {
-        filter.isApproved = true
-        filter.rejectedAt = { $exists: false }
+        filter.status = 'approved'
       } else if (status === 'pending') {
-        filter.isApproved = false
-        filter.rejectedAt = { $exists: false }
+        filter.status = 'pending'
       } else if (status === 'rejected') {
-        filter.rejectedAt = { $exists: true }
+        filter.status = 'rejected'
       }
     }
     
@@ -64,9 +62,11 @@ export async function GET(request: NextRequest) {
     if (actualCreatedBy) {
       filter.createdBy = actualCreatedBy
       if (status === 'approved') {
-        filter.isApproved = true
+        filter.status = 'approved'
       } else if (status === 'pending') {
-        filter.isApproved = false
+        filter.status = 'pending'
+      } else if (status === 'rejected') {
+        filter.status = 'rejected'
       }
     }
     
@@ -133,9 +133,9 @@ export async function GET(request: NextRequest) {
     let stats = null
     if (adminView) {
       const [pending, approved, rejected, totalCount] = await Promise.all([
-        Event.countDocuments({ isApproved: false, rejectedAt: { $exists: false } }),
-        Event.countDocuments({ isApproved: true, rejectedAt: { $exists: false } }),
-        Event.countDocuments({ rejectedAt: { $exists: true } }),
+        Event.countDocuments({ status: 'pending' }),
+        Event.countDocuments({ status: 'approved' }),
+        Event.countDocuments({ status: 'rejected' }),
         Event.countDocuments({})
       ])
       
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
     
     // Check if user is an approved NGO
     const user = await User.findById(session.user.id)
-    if (!user || user.role !== 'ngo' || !user.ngoProfile?.isApproved) {
+    if (!user || user.role !== 'ngo' || user.ngoProfile?.status !== 'approved') {
       return NextResponse.json(
         { error: 'Only approved NGOs can create events' },
         { status: 403 }
@@ -242,7 +242,7 @@ export async function POST(request: NextRequest) {
       eventType: body.eventType || 'event', // Default to 'event' for backward compatibility
       createdBy: session.user.id,
       organizationName: user.ngoProfile?.organizationName || 'Unknown Organization',
-      isApproved: false, // Requires admin approval
+      status: 'pending', // Requires admin approval
       isPublished: false,
       currentParticipants: 0
     })

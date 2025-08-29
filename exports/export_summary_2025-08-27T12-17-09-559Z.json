@@ -1,0 +1,20 @@
+{
+  "exportDate": "2025-08-27T12:17:16.413Z",
+  "sourceDatabase": "MongoDB",
+  "collections": [
+    "users",
+    "articles",
+    "stories",
+    "events",
+    "notifications",
+    "imageblobs",
+    "newsarticles",
+    "sitesettings",
+    "submissions",
+    "useranalytics",
+    "userpreferences",
+    "userprofiles",
+    "vacancies"
+  ],
+  "exportDirectory": "C:\\Users\\Lenovo\\Documents\\myprjct\\exports"
+}

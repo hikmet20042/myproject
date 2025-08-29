@@ -1,0 +1,68 @@
+[
+  {
+    "_id": "689d7cc1bf2cdf5ae8e43e65",
+    "name": "Admin User",
+    "email": "hikmat.mammadlii@gmail.com",
+    "password": "$2b$12$rjF0MezFjGxZiLSHTBFYBeZILvyHIzZmeD1kSkjzlKP3o86xdhE0u",
+    "role": "admin",
+    "emailVerified": "2025-08-14T06:05:53.042Z",
+    "createdAt": "2025-08-14T06:05:53.042Z",
+    "updatedAt": "2025-08-26T11:24:51.480Z",
+    "__v": 1,
+    "ngoProfile": {
+      "focusAreas": [],
+      "isApproved": false
+    }
+  },
+  {
+    "_id": "689d7cc1bf2cdf5ae8e43e66",
+    "name": "Hikmat Mammadli",
+    "email": "testuser@example.com",
+    "password": "$2b$10$wQSIMiK77lQ6Drq16hyjCuWWgzHALkbwzdLvV8WyN.oHG.Lvk8tIy",
+    "role": "user",
+    "emailVerified": "2025-08-14T06:38:52.860Z",
+    "createdAt": "2025-08-14T06:05:53.614Z",
+    "updatedAt": "2025-08-14T11:32:05.500Z"
+  },
+  {
+    "_id": "689efc0a593c59024cbf2a25",
+    "name": "Hikmat Mammadli",
+    "email": "memmedlih032@gmail.com",
+    "password": "$2b$12$bcUvTQsIDJBsYaAp5sQtEeSKqOig1BMUjefqVX8hoceDvKqBZ7CpO",
+    "emailVerified": "2025-08-15T09:21:28.855Z",
+    "verificationEmailLastSent": null,
+    "role": "user",
+    "createdAt": "2025-08-15T09:21:14.746Z",
+    "updatedAt": "2025-08-15T09:21:28.861Z",
+    "__v": 0
+  },
+  {
+    "_id": "68a82ce2e1e6d4607cf6f0ae",
+    "name": "Hikmat Mammadli",
+    "email": "localhost.stout923@passinbox.com",
+    "password": "$2b$12$DMd6G9rNAjlU0s5jaXcQI.OLYzOelbPy9o0zeUVNOE2GRh1dRXjNa",
+    "emailVerified": "2025-08-22T08:40:48.355Z",
+    "verificationEmailLastSent": null,
+    "role": "ngo",
+    "ngoProfile": {
+      "organizationName": "Gender Hub Azerbaijan",
+      "description": "we gender equality",
+      "website": "https://www.genderhubaz.org/",
+      "contactPhone": "+994526389",
+      "address": "Jafar Jabbarli 609",
+      "registrationNumber": "125698944",
+      "focusAreas": [
+        "Women Rights",
+        "Human Rights",
+        "LGBTQ+ Rights",
+        "Youth Development"
+      ],
+      "isApproved": true,
+      "approvedAt": "2025-08-22T08:45:46.418Z",
+      "approvedBy": "689d7cc1bf2cdf5ae8e43e65"
+    },
+    "createdAt": "2025-08-22T08:40:02.120Z",
+    "updatedAt": "2025-08-25T08:54:09.534Z",
+    "__v": 0
+  }
+]

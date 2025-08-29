@@ -515,10 +515,25 @@ export default function Dashboard() {
         </div>
       ) : (
         <div className="space-y-3">
-          {items.slice(0, 5).map((item) => (
+          {items.slice(0, 5).map((item) => {
+            const getStatusBadge = (status: string) => {
+              switch (status) {
+                case 'approved':
+                  return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Approved</span>
+                case 'rejected':
+                  return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">Rejected</span>
+                default:
+                  return <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending</span>
+              }
+            }
+            
+            return (
             <div key={item._id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
               <div className="flex-1">
-                <h3 className="font-medium text-gray-900 truncate">{item.title}</h3>
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-medium text-gray-900 truncate">{item.title}</h3>
+                  {getStatusBadge(item.status || 'pending')}
+                </div>
                 <p className="text-sm text-gray-500">
                   Created {new Date(item.createdAt).toLocaleDateString()}
                 </p>
@@ -549,7 +564,8 @@ export default function Dashboard() {
                 </Button>
               </div>
             </div>
-          ))}
+            )
+          })}
           {items.length > 5 && (
             <div className="text-center pt-2">
               <Link

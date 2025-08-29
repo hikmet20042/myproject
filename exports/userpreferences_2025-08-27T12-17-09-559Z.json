@@ -1,0 +1,100 @@
+[
+  {
+    "_id": "68a056bbe8a5bc28c2e0a50c",
+    "userId": "689d7cc1bf2cdf5ae8e43e65",
+    "privacy": {
+      "publicProfile": true,
+      "showEmail": false,
+      "showStats": true,
+      "showActivity": true,
+      "allowDirectMessages": true,
+      "showOnlineStatus": true
+    },
+    "notifications": {
+      "email": {
+        "enabled": true,
+        "articleApproved": true,
+        "articleRejected": true,
+        "newFollower": true,
+        "articleLiked": false,
+        "articleCommented": true,
+        "weeklyDigest": true,
+        "systemUpdates": true
+      },
+      "push": {
+        "enabled": true,
+        "articleApproved": true,
+        "articleRejected": true,
+        "newFollower": false,
+        "articleLiked": false,
+        "articleCommented": true,
+        "systemAlerts": true
+      },
+      "inApp": {
+        "enabled": true,
+        "showFloatingPanel": true,
+        "autoMarkAsRead": false,
+        "soundEnabled": true
+      }
+    },
+    "writing": {
+      "autoSave": true,
+      "autoSaveInterval": 60,
+      "defaultPrivacy": "public",
+      "defaultCategory": "general",
+      "defaultTags": [],
+      "enableVersionHistory": true,
+      "maxVersions": 10,
+      "enableCollaboration": false,
+      "defaultFolder": "General",
+      "enableReminders": true,
+      "wordCountGoal": 500
+    },
+    "interface": {
+      "theme": "light",
+      "language": "en",
+      "timezone": "UTC",
+      "dateFormat": "MM/DD/YYYY",
+      "timeFormat": "12h",
+      "editorMode": "simple",
+      "showLineNumbers": false,
+      "enableSpellCheck": true,
+      "enableGrammarCheck": true,
+      "fontSize": "medium",
+      "fontFamily": "Inter"
+    },
+    "dashboard": {
+      "defaultTab": "profile",
+      "showQuickStats": true,
+      "showRecentActivity": true,
+      "showDraftPreview": true,
+      "itemsPerPage": 10,
+      "defaultView": "grid",
+      "enableAnalytics": true,
+      "showAchievements": true
+    },
+    "content": {
+      "enableDrafts": true,
+      "enableTemplates": true,
+      "enableBulkOperations": true,
+      "defaultSortBy": "updatedAt",
+      "defaultFilterBy": "all",
+      "showCompletionPercentage": true,
+      "enablePrioritySystem": true,
+      "enableFolderSystem": true
+    },
+    "advanced": {
+      "enableBetaFeatures": false,
+      "enableAnalytics": true,
+      "enableErrorReporting": true,
+      "enablePerformanceMonitoring": false,
+      "dataRetentionDays": 365,
+      "exportFormat": "json"
+    },
+    "updatedBy": "system",
+    "lastUpdated": "2025-08-16T10:00:27.081Z",
+    "createdAt": "2025-08-16T10:00:27.089Z",
+    "updatedAt": "2025-08-25T08:29:19.718Z",
+    "__v": 0
+  }
+]

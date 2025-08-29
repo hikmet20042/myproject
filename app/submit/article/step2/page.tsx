@@ -626,13 +626,13 @@ export default function Step2Page() {
               <div>
                 <label className="block text-sm font-medium text-gray-700">Tags</label>
                 <div className="mt-1 flex flex-wrap gap-2">
-                  {tags && Array.isArray(tags) && tags.length > 0 ? (
-                    tags.map((tag, index) => (
+                  {tags && tags.trim() ? (
+                    tags.split(',').map((tag, index) => (
                       <span
                         key={index}
                         className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"
                       >
-                        {tag.label || tag}
+                        {tag.trim()}
                       </span>
                     ))
                   ) : (

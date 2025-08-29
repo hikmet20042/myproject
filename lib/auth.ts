@@ -106,7 +106,7 @@ export const authOptions: NextAuthOptions = {
             }
             token.id = existingUser._id.toString();
             token.role = existingUser.role;
-            token.isApprovedNGO = existingUser.role === 'ngo' && existingUser.ngoProfile?.isApproved || false;
+            token.isApprovedNGO = existingUser.role === 'ngo' && existingUser.ngoProfile?.status === 'approved' || false;
           } catch (error) {
             console.error('Error handling Google OAuth user:', error);
           }

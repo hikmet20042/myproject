@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     if (type === 'ngo' && ngoProfile) {
       userData.ngoProfile = {
         ...ngoProfile,
-        isApproved: false // NGOs need admin approval
+        status: 'pending' // NGOs need admin approval
       };
     }
 

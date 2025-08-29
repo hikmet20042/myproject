@@ -43,11 +43,12 @@ interface IEvent extends mongoose.Document {
   imageUrl?: string
   createdBy: mongoose.Types.ObjectId
   organizationName?: string
-  isApproved: boolean
+  status: 'pending' | 'approved' | 'rejected'
   approvedAt?: Date
   approvedBy?: mongoose.Types.ObjectId
   rejectedAt?: Date
   rejectionReason?: string
+  adminComment?: string
   isPublished: boolean
   isFeatured: boolean
 }
@@ -209,9 +210,10 @@ const EventSchema = new mongoose.Schema<IEvent>({
     type: String,
     trim: true
   },
-  isApproved: {
-    type: Boolean,
-    default: false
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending',
   },
   approvedAt: Date,
   approvedBy: {
@@ -220,6 +222,9 @@ const EventSchema = new mongoose.Schema<IEvent>({
   },
   rejectedAt: Date,
   rejectionReason: String,
+  adminComment: {
+    type: String,
+  },
   isPublished: {
     type: Boolean,
     default: false
@@ -237,7 +242,7 @@ EventSchema.index({ eventDate: 1 })
 EventSchema.index({ category: 1 })
 EventSchema.index({ eventType: 1 })
 EventSchema.index({ 'location.city': 1 })
-EventSchema.index({ isApproved: 1, isPublished: 1 })
+EventSchema.index({ status: 1, isPublished: 1 })
 EventSchema.index({ createdBy: 1 })
 EventSchema.index({ tags: 1 })
 EventSchema.index({ isFeatured: 1 })

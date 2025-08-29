@@ -16,11 +16,14 @@ export async function GET(request: NextRequest) {
   try {
     await dbConnect();
     const session = await getServerSession(authOptions);
+    console.log('Profile Stats GET - Session:', { userId: session?.user?.id, email: session?.user?.email });
+    
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const user = await User.findById(session.user.id).lean();
+    
+    const user = await User.findById(session.user.id);
+    
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }

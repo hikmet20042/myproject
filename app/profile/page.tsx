@@ -709,43 +709,7 @@ export default function ProfilePage() {
     }
   };
 
-  const handleEditRejectedStory = async (storyId: string) => {
-    try {
-      // Call API to convert rejected story to draft
-      const response = await fetch('/api/stories/edit-rejected', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ storyId }),
-      });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        // Clear any existing draft data from localStorage
-        localStorage.removeItem('draftStory');
-        localStorage.removeItem('currentStoryDraftId');
-        localStorage.removeItem('currentStoryEditId');
-        localStorage.removeItem('storyStep1Data');
-        localStorage.removeItem('storyStep2Data');
-
-        // Set the ID of the story to be edited
-        localStorage.setItem('currentStoryEditId', storyId);
-
-        // Refresh stories list to show updated status
-        await loadUserStories();
-
-        // Navigate to the edit page for the story
-        router.push(`/edit/story/${storyId}/step1`);
-      } else {
-        alert(data.error || 'Failed to convert story to draft');
-      }
-    } catch (error) {
-      console.error('Error converting rejected story to draft:', error);
-      alert('Failed to convert story to draft. Please try again.');
-    }
-  };
 
   // Block submit if not verified
   const isUnverified = profile && !profile.user.emailVerified;
@@ -914,7 +878,7 @@ export default function ProfilePage() {
 
           {/* Stories Tab */}
           {activeTab === 'stories' && (
-           <Stories loadingTab={loadingTab} stories={stories} isUnverified={isUnverified} getStatusIcon={getStatusIcon} handleEditRejectedStory={handleEditRejectedStory} getStatusColor={getStatusColor} setDeleteConfirm={setDeleteConfirm} />
+           <Stories loadingTab={loadingTab} stories={stories} isUnverified={isUnverified} getStatusIcon={getStatusIcon} getStatusColor={getStatusColor} setDeleteConfirm={setDeleteConfirm} />
 
           )}
 

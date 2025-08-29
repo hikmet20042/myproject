@@ -8,9 +8,15 @@ if (!cached) {
 }
 
 async function dbConnect() {
+  // Priority: MongoDB > Oracle Autonomous JSON Database (temporarily)
   const MONGODB_URI = process.env.MONGODB_URI as string;
-  if (!MONGODB_URI) {
-    throw new Error('Please define the MONGODB_URI environment variable.');
+  const ORACLE_MONGODB_URI = process.env.ORACLE_MONGODB_URI as string;
+  
+  const connectionUri = MONGODB_URI || ORACLE_MONGODB_URI;
+  const dbType = MONGODB_URI ? 'MongoDB' : 'Oracle Autonomous JSON Database';
+  
+  if (!connectionUri) {
+    throw new Error('Please define either ORACLE_MONGODB_URI or MONGODB_URI environment variable.');
   }
   if (cached.conn) {
     return cached.conn;
@@ -25,11 +31,12 @@ async function dbConnect() {
       connectTimeoutMS: 10000, // Give up initial connection after 10 seconds
     };
     
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      console.log('✅ Connected to MongoDB');
+    cached.promise = mongoose.connect(connectionUri, opts).then((mongoose) => {
+      console.log(`✅ Connected to ${dbType}`);
+      console.log(`🔗 Using connection: ${connectionUri.replace(/\/\/[^:]+:[^@]+@/, '//***:***@')}`);
       return mongoose;
     }).catch((error) => {
-      console.error('❌ MongoDB connection error:', error);
+      console.error(`❌ ${dbType} connection error:`, error);
       throw error;
     });
   }

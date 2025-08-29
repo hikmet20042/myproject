@@ -76,11 +76,11 @@ type NGO = {
     address?: string
     registrationNumber?: string
     focusAreas: string[]
-    isApproved: boolean
+    status: 'pending' | 'approved' | 'rejected'
     approvedAt?: string
     approvedBy?: string
     rejectedAt?: string
-    rejectionReason?: string
+    adminComment?: string
   }
 }
 
@@ -243,7 +243,6 @@ export default function AdminPage() {
   const [selectedNgo, setSelectedNgo] = useState<NGO | null>(null)
   const [showNgoModal, setShowNgoModal] = useState(false)
   const [ngoAction, setNgoAction] = useState<'approve' | 'reject' | null>(null)
-  const [rejectionReason, setRejectionReason] = useState('')
   
   // Event management states (unified for all event types)
   const [events, setEvents] = useState<any[]>([])
@@ -881,8 +880,8 @@ export default function AdminPage() {
         action: ngoAction
       }
       
-      if (ngoAction === 'reject' && rejectionReason.trim()) {
-        body.rejectionReason = rejectionReason.trim()
+      if (ngoAction === 'reject' && adminComment.trim()) {
+        body.rejectionReason = adminComment.trim()
       }
       
       const response = await fetch('/api/admin/ngos', {
@@ -895,7 +894,7 @@ export default function AdminPage() {
         setShowNgoModal(false)
         setSelectedNgo(null)
         setNgoAction(null)
-        setRejectionReason('')
+        setAdminComment('')
         await loadNgos()
       }
     } catch (error) {
@@ -927,7 +926,7 @@ export default function AdminPage() {
       }
       
       if (eventAction === 'reject' && eventRejectionReason.trim()) {
-        body.rejectionReason = eventRejectionReason.trim()
+        body.adminComment = eventRejectionReason.trim()
       }
       
       const response = await fetch(`/api/admin/events/${selectedEvent._id}`, {
@@ -972,7 +971,7 @@ export default function AdminPage() {
       }
       
       if (vacancyAction === 'reject' && vacancyRejectionReason.trim()) {
-        body.rejectionReason = vacancyRejectionReason.trim()
+        body.adminComment = vacancyRejectionReason.trim()
       }
       
       const response = await fetch(`/api/vacancies/${selectedVacancy._id}`, {
@@ -2186,8 +2185,7 @@ export default function AdminPage() {
                     </div>
                   ) : (
                     ngos.map((ngo) => {
-                      const status = ngo.ngoProfile.rejectedAt ? 'rejected' : 
-                                   ngo.ngoProfile.isApproved ? 'approved' : 'pending';
+                      const status = ngo.ngoProfile.status || 'pending';
                       return (
                         <div key={ngo._id} className="px-6 py-6 hover:bg-gray-50 transition-colors">
                           <div className="flex items-start justify-between">
@@ -2245,19 +2243,16 @@ export default function AdminPage() {
                                   </div>
                                 </div>
                               )}
-                              {ngo.ngoProfile.rejectionReason && (
+                              {ngo.ngoProfile.adminComment && status === 'rejected' && (
                                 <div className="mt-3 p-3 bg-red-50 rounded-lg">
-                                  <p className="text-sm font-medium text-red-800 mb-1">Rejection Reason:</p>
-                                  <p className="text-sm text-red-700">{ngo.ngoProfile.rejectionReason}</p>
+                                  <p className="text-sm font-medium text-red-800 mb-1">Admin Comment:</p>
+                                  <p className="text-sm text-red-700">{ngo.ngoProfile.adminComment}</p>
                                 </div>
                               )}
                               <div className="mt-3 text-xs text-gray-500">
                                 Registered: {new Date(ngo.createdAt).toLocaleDateString()}
                                 {ngo.ngoProfile.approvedAt && (
                                   <span className="ml-4">Approved: {new Date(ngo.ngoProfile.approvedAt).toLocaleDateString()}</span>
-                                )}
-                                {ngo.ngoProfile.rejectedAt && (
-                                  <span className="ml-4">Rejected: {new Date(ngo.ngoProfile.rejectedAt).toLocaleDateString()}</span>
                                 )}
                               </div>
                             </div>
@@ -2409,8 +2404,7 @@ export default function AdminPage() {
                     </div>
                   ) : (
                     events.map((event) => {
-                      const status = event.rejectedAt ? 'rejected' : 
-                                   event.isApproved ? 'approved' : 'pending';
+                      const status = event.status || 'pending';
                       return (
                         <div key={event._id} className="px-6 py-6 hover:bg-gray-50 transition-colors">
                           <div className="flex items-start justify-between">
@@ -2445,9 +2439,9 @@ export default function AdminPage() {
                                 <span>•</span>
                                 <span>{event.location?.type || 'Unknown location'}</span>
                               </div>
-                              {event.rejectionReason && (
+                              {event.adminComment && status === 'rejected' && (
                                 <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
-                                  <p className="text-sm text-red-700"><strong>Rejection reason:</strong> {event.rejectionReason}</p>
+                                  <p className="text-sm text-red-700"><strong>Admin comment:</strong> {event.adminComment}</p>
                                 </div>
                               )}
                             </div>
@@ -2623,8 +2617,7 @@ export default function AdminPage() {
                     </div>
                   ) : (
                     vacancies.map((vacancy) => {
-                      const status = vacancy.rejectedAt ? 'rejected' : 
-                                   vacancy.isApproved ? 'approved' : 'pending';
+                      const status = vacancy.status || 'pending';
                       return (
                         <div key={vacancy._id} className="px-6 py-6 hover:bg-gray-50 transition-colors">
                           <div className="flex items-start justify-between">
@@ -2655,9 +2648,9 @@ export default function AdminPage() {
                                 <span>•</span>
                                 <span>{vacancy.compensation?.type}: {vacancy.compensation?.amount ? `${vacancy.compensation.amount} ${vacancy.compensation.currency || ''}` : 'Not specified'}</span>
                               </div>
-                              {vacancy.rejectionReason && (
+                              {vacancy.adminComment && status === 'rejected' && (
                                 <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
-                                  <p className="text-sm text-red-700"><strong>Rejection reason:</strong> {vacancy.rejectionReason}</p>
+                                  <p className="text-sm text-red-700"><strong>Admin comment:</strong> {vacancy.adminComment}</p>
                                 </div>
                               )}
                             </div>
@@ -3736,11 +3729,11 @@ export default function AdminPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Rejection Reason (Required)
+                      Admin Comment (Required)
                     </label>
                     <textarea
-                      value={rejectionReason}
-                      onChange={(e) => setRejectionReason(e.target.value)}
+                      value={adminComment}
+                      onChange={(e) => setAdminComment(e.target.value)}
                       placeholder="Please provide a detailed reason for rejecting this NGO registration..."
                       className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
                       rows={4}
@@ -3760,7 +3753,7 @@ export default function AdminPage() {
                 </Button>
                 <Button
                   onClick={executeNgoAction}
-                  disabled={isProcessing || (ngoAction === 'reject' && !rejectionReason.trim())}
+                  disabled={isProcessing || (ngoAction === 'reject' && !adminComment.trim())}
                   variant={ngoAction === 'reject' ? 'danger' : 'primary'}
                   size="sm"
                 >
@@ -3822,12 +3815,12 @@ export default function AdminPage() {
               {eventAction === 'reject' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Rejection Reason (Required)
+                    Admin Comment (Required)
                   </label>
                   <textarea
                     value={eventRejectionReason}
                     onChange={(e) => setEventRejectionReason(e.target.value)}
-                    placeholder="Please provide a detailed reason for rejecting this event..."
+                    placeholder="Please provide a detailed comment for rejecting this event..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
                     rows={4}
                     required
@@ -3921,12 +3914,12 @@ export default function AdminPage() {
               {vacancyAction === 'reject' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Rejection Reason (Required)
+                    Admin Comment (Required)
                   </label>
                   <textarea
                     value={vacancyRejectionReason}
                     onChange={(e) => setVacancyRejectionReason(e.target.value)}
-                    placeholder="Please provide a detailed reason for rejecting this vacancy..."
+                    placeholder="Please provide a detailed comment for rejecting this vacancy..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
                     rows={4}
                     required

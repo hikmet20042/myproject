@@ -28,16 +28,21 @@ export default function EditStoryStep2() {
   const [init, setInit] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Load story for editing - prioritize localStorage
+  // Cleanup function to clear localStorage when leaving the story editing flow
+  const cleanupLocalStorage = () => {
+    localStorage.removeItem('editStoryData')
+    localStorage.removeItem('currentStoryEditId')
+  }
+
+  // Load story data from localStorage only
   useEffect(() => {
-    // First check localStorage for existing edit data
-    if (typeof window !== 'undefined') {
+    if (storyId && typeof window !== 'undefined') {
       const saved = localStorage.getItem('editStoryData');
       if (saved) {
         try {
           const data = JSON.parse(saved);
           if (data.editId === storyId) {
-            // Load from localStorage if data exists for this story
+            // Load from localStorage
             setTitle(data.title || '');
             setTags(Array.isArray(data.tags) ? data.tags : []);
             setIsAnonymous(data.isAnonymous || false);
@@ -47,67 +52,66 @@ export default function EditStoryStep2() {
               calculateCharacterCountFromContent(data.content);
             }
             if (data.contentHtml) setContentHtml(data.contentHtml);
-            setInit(true);
-            return; // Don't make API call if localStorage data exists
+            
+            // Clear the navigation flag after a small delay to ensure step1 cleanup runs first
+            setTimeout(() => {
+              sessionStorage.removeItem('navigatingWithinStoryFlow');
+            }, 100);
+          } else {
+            setError('No story data found. Please go back to step 1.');
           }
         } catch (error) {
           console.error('Error parsing localStorage data:', error);
+          setError('Error loading story data. Please go back to step 1.');
         }
+      } else {
+        setError('No story data found. Please go back to step 1.');
       }
     }
-    
-    // Only make API call if no localStorage data found and user is authenticated
-    if (session && status === 'authenticated') {
-      loadStoryForEditing(storyId);
-    } else {
-      setInit(true);
-    }
-  }, [storyId, session, status]);
+    setInit(true);
+  }, [storyId]);
 
-  const loadStoryForEditing = async (storyId: string) => {
-    if (!session || status !== 'authenticated') return;
-    
-    setLoading(true);
-    try {
-      const response = await fetch(`/api/stories?id=${storyId}`);
-      if (response.ok) {
-        const data = await response.json();
-        const story = data.story;
-        
-        if (story) {
-          setTitle(story.title || '');
-          setTags(Array.isArray(story.tags) ? story.tags : []);
-          setIsAnonymous(story.authorName === 'Anonymous');
-          setAuthorName(story.authorName || session.user.name || '');
-          
-          // Set content
-          if (story.content) {
-            const loadedContent = Array.isArray(story.content) ? story.content : (story.content.blocks || []);
-            setContent(loadedContent);
-            calculateCharacterCountFromContent(loadedContent);
+  // Save form field changes to localStorage (only after initial load)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && storyId && init) {
+      const saved = localStorage.getItem('editStoryData');
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          if (data.editId === storyId) {
+            const updatedData = {
+              ...data,
+              title,
+              tags,
+              isAnonymous,
+              authorName
+            };
+            localStorage.setItem('editStoryData', JSON.stringify(updatedData));
           }
-          
-          setContentHtml(story.contentHtml || '');
-          
-          // Save to localStorage for step navigation
-          const storyData = {
-            title: story.title || '',
-            tags: Array.isArray(story.tags) ? story.tags : [],
-            isAnonymous: story.authorName === 'Anonymous',
-            authorName: story.authorName || session.user.name || '',
-            content: story.content || null,
-            contentHtml: story.contentHtml || '',
-            editId: storyId
-          };
-          localStorage.setItem('editStoryData', JSON.stringify(storyData));
+        } catch (error) {
+          console.error('Error updating localStorage:', error);
         }
       }
-    } catch (error) {
-      console.error('Error loading story for editing:', error);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [title, tags, isAnonymous, authorName, storyId, init]);
+
+  // Cleanup localStorage when component unmounts (user navigates away)
+  useEffect(() => {
+    // Set a flag that we're currently in the story editing flow
+    sessionStorage.setItem('inStoryEditFlow', 'true')
+    
+    // Cleanup on component unmount
+    return () => {
+      const isNavigatingWithinFlow = sessionStorage.getItem('navigatingWithinStoryFlow') === 'true'
+      
+      if (!isNavigatingWithinFlow) {
+        // Not navigating within the flow - cleanup localStorage
+        cleanupLocalStorage()
+        sessionStorage.removeItem('inStoryEditFlow')
+      }
+      // Flag is already removed after successful data loading
+    }
+  }, []);
 
   // Helper function to calculate character count from content
   const calculateCharacterCountFromContent = async (content: any) => {
@@ -251,7 +255,8 @@ export default function EditStoryStep2() {
       });
       if (response.ok) {
         // Clear localStorage after successful submission
-        localStorage.removeItem('editStoryData');
+        cleanupLocalStorage();
+        sessionStorage.removeItem('inStoryEditFlow');
         setSuccess(true);
         setTimeout(() => {
           router.push('/profile');
@@ -326,6 +331,8 @@ export default function EditStoryStep2() {
                     };
                     localStorage.setItem('editStoryData', JSON.stringify(updatedData));
                   }
+                  // Set flag to preserve data during navigation within the flow
+                  sessionStorage.setItem('navigatingWithinStoryFlow', 'true');
                   router.push(`/edit/story/${storyId}/step1`);
                 }}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
@@ -372,7 +379,7 @@ export default function EditStoryStep2() {
                     onChange={e => setAuthorName(e.target.value)}
                   />
                 ) : (
-                  <p className="mt-1 text-sm text-gray-900">Community Member</p>
+                  <p className="mt-1 text-sm text-gray-900">{authorName || session?.user?.name || 'Community Member'}</p>
                 )}
               </div>
             </div>

@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     
     if (!preferences) {
       // Create default preferences if none exist
-      const defaults = new UserPreferences().getDefaults();
+      const defaults = UserPreferences.getDefaults();
       preferences = await UserPreferences.create({
         userId: session.user.id,
         ...defaults,
@@ -60,7 +60,7 @@ export async function PUT(request: NextRequest) {
     
     if (!preferences) {
       // Create new preferences with defaults
-     const defaults = new UserPreferences().getDefaults();
+     const defaults = UserPreferences.getDefaults();
       preferences = new UserPreferences({
         userId: session.user.id,
         ...defaults
@@ -121,7 +121,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Preferences not found' }, { status: 404 });
     }
 
-    const defaults = new UserPreferences().getDefaults();
+    const defaults = UserPreferences.getDefaults();
 
     if (section) {
       // Reset only a specific section
@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Merge imported data with current preferences
-      const defaults = new UserPreferences().getDefaults();
+      const defaults = UserPreferences.getDefaults();
       Object.keys(defaults).forEach(key => {
         if (importData.preferences[key]) {
           Object.assign(preferences[key as keyof typeof preferences], importData.preferences[key]);
