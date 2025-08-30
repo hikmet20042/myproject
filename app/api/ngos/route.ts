@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import dbConnect from '@/lib/mongoose'
 import User from '@/lib/models/User'
 
+// Force dynamic rendering due to request.url usage
+export const dynamic = 'force-dynamic'
+
 // GET /api/ngos - Get approved NGOs for public display
 export async function GET(request: NextRequest) {
   try {

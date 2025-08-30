@@ -11,7 +11,7 @@ export interface ContactCardProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: 'default' | 'compact';
 }
 
-const ContactCard = React.forwardRef<HTMLDivElement, ContactCardProps>(
+const ContactCard = React.forwardRef<any, ContactCardProps>(
   ({
     className,
     icon: Icon,
@@ -66,7 +66,7 @@ const ContactCard = React.forwardRef<HTMLDivElement, ContactCardProps>(
             'cursor-pointer',
             className
           )}
-          {...props}
+          {...(props as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
         >
           {content}
         </Link>
@@ -75,7 +75,7 @@ const ContactCard = React.forwardRef<HTMLDivElement, ContactCardProps>(
     
     return (
       <div
-        ref={ref}
+        ref={ref as React.Ref<HTMLDivElement>}
         className={cn(
           baseClasses,
           variants[variant],

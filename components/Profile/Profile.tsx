@@ -1,5 +1,6 @@
 import { Settings } from "lucide-react";
 import { Button } from '@/components/ui';
+import Image from 'next/image';
 
 interface UserProfile {
   user: {
@@ -111,17 +112,20 @@ export default function Profile({loading,setEditing,editing,formData, profile,se
                       {/* Avatar Upload Section */}
                       <div className="flex items-center space-x-6">
                         <div className="shrink-0">
-                          <img
-                            className="h-20 w-20 rounded-full object-cover"
-                            src={
-                              formData.avatar ||
-                              profile.profile?.avatarUrl ||
-                              profile.profile?.avatar ||
-                              profile.user.image ||
-                              '/default-avatar.png'
-                            }
-                            alt="Profile"
-                          />
+                          <div className="relative h-20 w-20">
+                            <Image
+                              className="rounded-full object-cover"
+                              src={
+                                formData.avatar ||
+                                profile.profile?.avatarUrl ||
+                                profile.profile?.avatar ||
+                                profile.user.image ||
+                                '/default-avatar.png'
+                              }
+                              alt="Profile"
+                              fill
+                            />
+                          </div>
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -371,16 +375,19 @@ export default function Profile({loading,setEditing,editing,formData, profile,se
                       {/* Avatar Display Section */}
                       <div className="flex items-center space-x-6">
                         <div className="shrink-0">
-                          <img
-                            className="h-20 w-20 rounded-full object-cover"
-                            src={
-                              profile.profile?.avatarUrl ||
-                              profile.profile?.avatar ||
-                              profile.user.image ||
-                              '/default-avatar.png'
-                            }
-                            alt="Profile"
-                          />
+                          <div className="relative h-20 w-20">
+                            <Image
+                              className="rounded-full object-cover"
+                              src={
+                                profile.profile?.avatarUrl ||
+                                profile.profile?.avatar ||
+                                profile.user.image ||
+                                '/default-avatar.png'
+                              }
+                              alt="Profile"
+                              fill
+                            />
+                          </div>
                         </div>
                         <div>
                           <h3 className="text-lg font-medium text-gray-900">{profile.user.name}</h3>

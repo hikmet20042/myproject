@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter, useParams } from 'next/navigation'
 import { Calendar, MapPin, Users, Link as LinkIcon, Clock, Tag, Image as ImageIcon } from 'lucide-react'
@@ -59,6 +59,7 @@ export default function EditEvent() {
   const [loading, setLoading] = useState(false)
   const [loadingEvent, setLoadingEvent] = useState(true)
   const [event, setEvent] = useState<Event | null>(null)
+  const [error, setError] = useState('')
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -79,13 +80,7 @@ export default function EditEvent() {
     imageUrl: ''
   })
 
-  useEffect(() => {
-    if (params.id) {
-      loadEvent()
-    }
-  }, [params.id])
-
-  const loadEvent = async () => {
+  const loadEvent = useCallback(async () => {
     try {
       setLoadingEvent(true)
       const response = await fetch(`/api/events/${params.id}`)
@@ -94,39 +89,41 @@ export default function EditEvent() {
       if (response.ok) {
         const eventData = data.event
         setEvent(eventData)
-        
-        // Populate form with existing data
         setFormData({
-          title: eventData.title,
-          description: eventData.description,
-          category: eventData.category,
-          eventDate: new Date(eventData.eventDate).toISOString().slice(0, 16),
+          title: eventData.title || '',
+          description: eventData.description || '',
+          category: eventData.category || '',
+          eventDate: eventData.eventDate ? new Date(eventData.eventDate).toISOString().slice(0, 16) : '',
           endDate: eventData.endDate ? new Date(eventData.endDate).toISOString().slice(0, 16) : '',
           location: {
-            type: eventData.location.type,
-            address: eventData.location.address || '',
-            city: eventData.location.city || '',
-            country: eventData.location.country || '',
-            onlineLink: eventData.location.onlineLink || ''
+            type: eventData.location?.type || 'physical',
+            address: eventData.location?.address || '',
+            city: eventData.location?.city || '',
+            country: eventData.location?.country || '',
+            onlineLink: eventData.location?.onlineLink || ''
           },
           applicationLink: eventData.applicationLink || '',
           applicationDeadline: eventData.applicationDeadline ? new Date(eventData.applicationDeadline).toISOString().slice(0, 16) : '',
-          maxParticipants: eventData.maxParticipants ? eventData.maxParticipants.toString() : '',
-          tags: eventData.tags.join(', '),
+          maxParticipants: eventData.maxParticipants?.toString() || '',
+          tags: Array.isArray(eventData.tags) ? eventData.tags.join(', ') : '',
           imageUrl: eventData.imageUrl || ''
         })
       } else {
-        alert('Failed to load event: ' + data.error)
-        router.push('/dashboard/events')
+        setError(data.error || 'Failed to load event')
       }
     } catch (error) {
       console.error('Error loading event:', error)
-      alert('Failed to load event')
-      router.push('/dashboard/events')
+      setError('Failed to load event')
     } finally {
       setLoadingEvent(false)
     }
-  }
+  }, [params.id])
+
+  useEffect(() => {
+    if (params.id) {
+      loadEvent()
+    }
+  }, [loadEvent, params.id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

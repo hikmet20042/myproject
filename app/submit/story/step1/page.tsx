@@ -1,13 +1,13 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, Suspense } from 'react'
 import Select from 'react-select'
 import { STORY_TAGS } from '@/lib/tagOptions'
 import { useSession } from 'next-auth/react'
 import { Input, Button } from '@/components/ui'
 
-export default function StoryStep1() {
+function StoryStep1() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: session, status } = useSession()
@@ -21,40 +21,7 @@ export default function StoryStep1() {
   const [editId, setEditId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    const editIdFromUrl = searchParams.get('edit')
-    setEditId(editIdFromUrl)
-    
-    if (editIdFromUrl) {
-      // Clear any existing draft data when editing
-      localStorage.removeItem('draftStory')
-      localStorage.setItem('currentStoryEditId', editIdFromUrl)
-      loadStoryForEditing(editIdFromUrl)
-    } else {
-      // Load from localStorage for new stories
-      const saved = localStorage.getItem('draftStory')
-      if (saved) {
-        try {
-          const d = JSON.parse(saved)
-          if (d.title) setTitle(d.title)
-          if (d.tags) setTags(Array.isArray(d.tags) ? d.tags : typeof d.tags === 'string' ? d.tags.split(',').map((t:string)=>t.trim()).filter(Boolean) : [])
-          if (typeof d.isAnonymous === 'boolean') setIsAnonymous(d.isAnonymous)
-          if (typeof d.authorName === 'string') setAuthorName(d.authorName)
-        } catch {}
-      }
-    }
-    
-    // Check session for user name
-    if (session?.user?.name) {
-      setUserName(session.user.name)
-      setIsLoggedIn(true)
-      if (!editIdFromUrl && !authorName) {
-        setAuthorName(session.user.name)
-      }
-    }
-  }, [searchParams, session])
-  
-  const loadStoryForEditing = async (storyId: string) => {
+  const loadStoryForEditing = useCallback(async (storyId: string) => {
     if (!session || status !== 'authenticated') return
     
     setLoading(true)
@@ -89,8 +56,41 @@ export default function StoryStep1() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [session, status]);
 
+  useEffect(() => {
+    const editIdFromUrl = searchParams.get('edit')
+    setEditId(editIdFromUrl)
+    
+    if (editIdFromUrl) {
+      // Clear any existing draft data when editing
+      localStorage.removeItem('draftStory')
+      localStorage.setItem('currentStoryEditId', editIdFromUrl)
+      loadStoryForEditing(editIdFromUrl)
+    } else {
+      // Load from localStorage for new stories
+      const saved = localStorage.getItem('draftStory')
+      if (saved) {
+        try {
+          const d = JSON.parse(saved)
+          if (d.title) setTitle(d.title)
+          if (d.tags) setTags(Array.isArray(d.tags) ? d.tags : typeof d.tags === 'string' ? d.tags.split(',').map((t:string)=>t.trim()).filter(Boolean) : [])
+          if (typeof d.isAnonymous === 'boolean') setIsAnonymous(d.isAnonymous)
+          if (typeof d.authorName === 'string') setAuthorName(d.authorName)
+        } catch {}
+      }
+    }
+    
+    // Check session for user name
+    if (session?.user?.name) {
+      setUserName(session.user.name)
+      setIsLoggedIn(true)
+      if (!editIdFromUrl && !authorName) {
+        setAuthorName(session.user.name)
+      }
+    }
+  }, [searchParams, session, authorName, loadStoryForEditing])
+  
   const next = (e: React.FormEvent) => {
     e.preventDefault()
     setNameError('')
@@ -185,6 +185,14 @@ export default function StoryStep1() {
       </div>
     </form>
     </div>
+  )
+}
+
+export default function StoryStep1Page() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center min-h-screen"><div className="text-lg">Loading...</div></div>}>
+      <StoryStep1 />
+    </Suspense>
   )
 }
 

@@ -75,7 +75,6 @@ const UserAnalyticsSchema = new mongoose.Schema<IUserAnalytics>({
     ref: 'User',
     required: true,
     unique: true,
-    index: true,
   },
   
   // Writing statistics
@@ -153,7 +152,7 @@ const UserAnalyticsSchema = new mongoose.Schema<IUserAnalytics>({
 });
 
 // Indexes for efficient queries
-UserAnalyticsSchema.index({ userId: 1 });
+// userId index not needed - already unique
 UserAnalyticsSchema.index({ productivityScore: -1 });
 UserAnalyticsSchema.index({ totalViews: -1 });
 UserAnalyticsSchema.index({ totalLikes: -1 });

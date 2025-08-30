@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Calendar, MapPin, Users, Link as LinkIcon, Clock, Tag, Image as ImageIcon } from 'lucide-react'
+import { Calendar, MapPin, Users, Link as LinkIcon, Clock, Tag, Image as ImageIcon, Loader2 } from 'lucide-react'
 import { Input, Select, Button, TextArea } from '@/components/ui'
 
 const eventCategories = [
@@ -22,7 +22,7 @@ const eventCategories = [
   'Other'
 ]
 
-export default function CreateEvent() {
+function CreateEventContent() {
   const { data: session } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -665,5 +665,13 @@ export default function CreateEvent() {
         </form>
       </div>
     </div>
+  )
+}
+
+export default function CreateEvent() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+      <CreateEventContent />
+    </Suspense>
   )
 }

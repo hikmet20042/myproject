@@ -289,54 +289,7 @@ export default function AdminPage() {
   const [settingsHistory, setSettingsHistory] = useState<any[]>([])
   const [showSettingsHistory, setShowSettingsHistory] = useState(false)
 
-  useEffect(() => {
-    if (status === 'loading') return
-    
-    if (status === 'unauthenticated') {
-      router.push('/auth/signin')
-      return
-    }
-
-    if (session?.user?.role !== 'admin') {
-      router.push('/')
-      return
-    }
-
-    loadSubmissions()
-  }, [status, session, router])
-
-  // Load data when tab changes
-  useEffect(() => {
-    if (status === 'authenticated' && session?.user?.role === 'admin') {
-      loadSubmissions()
-    }
-  }, [activeTab])
-
-  // Reload data when filters change
-  useEffect(() => {
-    if (status === 'authenticated' && session?.user?.role === 'admin') {
-      if (activeTab === 'articles') {
-        loadArticles();
-      } else if (activeTab === 'stories') {
-        loadStories();
-      }
-    }
-  }, [contentSearch, statusFilter, authorFilter, tagFilter, dateFromFilter, dateToFilter, sortBy, sortOrder])
-
-  // Reload users when user filters change
-  useEffect(() => {
-    if (status === 'authenticated' && session?.user?.role === 'admin' && activeTab === 'users') {
-      loadUsers();
-    }
-  }, [userSearch, userRoleFilter, userPagination.page])
-
-  // Reload vacancies when vacancy filters change
-  useEffect(() => {
-    if (status === 'authenticated' && session?.user?.role === 'admin' && activeTab === 'vacancies') {
-      loadVacancies();
-    }
-  }, [contentSearch, statusFilter, vacancyPagination.page])
-
+  // Load functions - defined before useEffect hooks
   const loadSubmissions = async () => {
     setTabLoading(true);
     try {
@@ -364,7 +317,6 @@ export default function AdminPage() {
       setTabLoading(false);
     }
   }
-
   const loadArticles = async () => {
     try {
       const params = new URLSearchParams({
@@ -414,6 +366,8 @@ export default function AdminPage() {
       console.error('Error loading stories:', error);
     }
   }
+
+
 
   const loadUsers = async () => {
     try {

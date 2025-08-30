@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import BlocknoteEditor from '@/components/BlocknoteEditor'
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui'
 
 
 
-export default function Step2Page() {
+function Step2Page() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -42,6 +42,60 @@ export default function Step2Page() {
   const [success, setSuccess] = useState(false);
   const [draftSaved, setDraftSaved] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Helper function to update character count in localStorage
+  const updateCharacterCountInLocalStorage = useCallback((count: number) => {
+    const savedDraft = localStorage.getItem('draftArticle');
+    if (savedDraft) {
+      try {
+        const parsedDraft = JSON.parse(savedDraft);
+        parsedDraft.characterCount = count;
+        localStorage.setItem('draftArticle', JSON.stringify(parsedDraft));
+      } catch (error) {
+        console.error('Error updating character count in localStorage:', error);
+      }
+    }
+  }, []);
+
+  // Helper function to calculate character count from content
+  const calculateCharacterCountFromContent = useCallback(async (content: any) => {
+    if (!content) {
+      setCharacterCount(0);
+      updateCharacterCountInLocalStorage(0);
+      return;
+    }
+
+    try {
+      // Create a temporary BlockNote editor to extract text from content
+      const { BlockNoteEditor } = await import('@blocknote/core');
+      const tempEditor = BlockNoteEditor.create();
+
+      // Convert content to HTML then extract text
+      const html = await tempEditor.blocksToFullHTML(content);
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      const text = tempDiv.textContent || tempDiv.innerText || '';
+      const count = text.length;
+      setCharacterCount(count);
+      updateCharacterCountInLocalStorage(count);
+    } catch (error) {
+      console.error('Error calculating character count:', error);
+      // Fallback: try to extract text from content structure
+      let text = '';
+      if (Array.isArray(content)) {
+        content.forEach((block: any) => {
+          if (block.content && Array.isArray(block.content)) {
+            block.content.forEach((item: any) => {
+              if (item.text) text += item.text;
+            });
+          }
+        });
+      }
+      const count = text.length;
+      setCharacterCount(count);
+      updateCharacterCountInLocalStorage(count);
+    }
+  }, [updateCharacterCountInLocalStorage]);
 
   // Cleanup localStorage when component unmounts (user navigates away)
   useEffect(() => {
@@ -229,7 +283,7 @@ export default function Step2Page() {
     };
 
     loadDraft();
-  }, [session, status, router]); // Removed isAnonymous from dependencies
+  }, [session, status, router, calculateCharacterCountFromContent]); // Removed isAnonymous from dependencies
 
   // Cleanup localStorage when user navigates away from article submission flow
   useEffect(() => {
@@ -267,59 +321,7 @@ export default function Step2Page() {
 
 
 
-  // Helper function to calculate character count from content
-  const calculateCharacterCountFromContent = async (content: any) => {
-    if (!content) {
-      setCharacterCount(0);
-      updateCharacterCountInLocalStorage(0);
-      return;
-    }
 
-    try {
-      // Create a temporary BlockNote editor to extract text from content
-      const { BlockNoteEditor } = await import('@blocknote/core');
-      const tempEditor = BlockNoteEditor.create();
-
-      // Convert content to HTML then extract text
-      const html = await tempEditor.blocksToFullHTML(content);
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = html;
-      const text = tempDiv.textContent || tempDiv.innerText || '';
-      const count = text.length;
-      setCharacterCount(count);
-      updateCharacterCountInLocalStorage(count);
-    } catch (error) {
-      console.error('Error calculating character count:', error);
-      // Fallback: try to extract text from content structure
-      let text = '';
-      if (Array.isArray(content)) {
-        content.forEach((block: any) => {
-          if (block.content && Array.isArray(block.content)) {
-            block.content.forEach((item: any) => {
-              if (item.text) text += item.text;
-            });
-          }
-        });
-      }
-      const count = text.length;
-      setCharacterCount(count);
-      updateCharacterCountInLocalStorage(count);
-    }
-  };
-
-  // Helper function to update character count in localStorage
-  const updateCharacterCountInLocalStorage = (count: number) => {
-    const savedDraft = localStorage.getItem('draftArticle');
-    if (savedDraft) {
-      try {
-        const parsedDraft = JSON.parse(savedDraft);
-        parsedDraft.characterCount = count;
-        localStorage.setItem('draftArticle', JSON.stringify(parsedDraft));
-      } catch (error) {
-        console.error('Error updating character count in localStorage:', error);
-      }
-    }
-  };
 
   const handleEditorChange = (json: any, html: string, text: string) => {
     setContent(json)
@@ -783,6 +785,14 @@ export default function Step2Page() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function Step2PageWrapper() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center min-h-screen"><div className="text-lg">Loading...</div></div>}>
+      <Step2Page />
+    </Suspense>
   )
 }
 

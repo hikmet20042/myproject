@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter, useParams } from 'next/navigation'
 import { Calendar, MapPin, Users, Link as LinkIcon, Clock, Tag, ArrowLeft, CheckCircle, XCircle, AlertCircle, ExternalLink } from 'lucide-react'
@@ -85,15 +85,7 @@ export default function AdminEventPreview() {
   const [adminComment, setAdminComment] = useState('')
   const [showRejectModal, setShowRejectModal] = useState(false)
 
-  useEffect(() => {
-    if (session?.user?.role !== 'admin') {
-      router.push('/')
-      return
-    }
-    fetchEvent()
-  }, [session, params.id])
-
-  const fetchEvent = async () => {
+  const fetchEvent = useCallback(async () => {
     try {
       const response = await fetch(`/api/events/${params.id}`)
       if (response.ok) {
@@ -107,7 +99,15 @@ export default function AdminEventPreview() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.id])
+
+  useEffect(() => {
+    if (session?.user?.role !== 'admin') {
+      router.push('/')
+      return
+    }
+    fetchEvent()
+  }, [fetchEvent, router, session, params.id])
 
   const handleApprove = async () => {
     setActionLoading(true)

@@ -51,17 +51,7 @@ export default function EditArticleStep1() {
 
 
   // Load article data
-  useEffect(() => {
-    if (status === 'loading') return
-    if (!session) {
-      router.push('/auth/signin')
-      return
-    }
-    
-    loadArticle()
-  }, [session, status, articleId])
-
-  const loadArticle = async () => {
+  const loadArticle = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch(`/api/articles/${articleId}`)
@@ -73,7 +63,7 @@ export default function EditArticleStep1() {
       const data = await response.json()
       const article = data.article
       
-      // Check if user can edit this article
+      // Check permissions
       const articleUserId = article.userId?.toString() || article.userId
       if (articleUserId !== session?.user?.id && article.author !== session?.user?.name) {
         setError('You do not have permission to edit this article')
@@ -86,7 +76,7 @@ export default function EditArticleStep1() {
         return
       }
       
-      // Populate form
+      // Populate form fields
       setTitle(article.title || '')
       setAbstract(article.abstract || '')
       setTags(article.tags || [])
@@ -115,13 +105,17 @@ export default function EditArticleStep1() {
       setLoading(false)
       setIsInitialLoad(false)
     }
-  }
+  }, [articleId, session])
 
-
-
-
-
-
+  useEffect(() => {
+    if (status === 'loading') return
+    if (!session) {
+      router.push('/auth/signin')
+      return
+    }
+    
+    loadArticle()
+  }, [loadArticle, router, session, status, articleId])
 
   const handleSaveDraft = async () => {
     if (!session || !articleId) return

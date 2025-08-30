@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import EnhancedDraftManager from '@/components/EnhancedDraftManager'
 import DraftAnalytics from '@/components/DraftAnalytics'
 import { useSession } from 'next-auth/react'
@@ -16,6 +16,7 @@ import {
  
   Plus,
   
+  Loader2,
 } from 'lucide-react'
 import Stats from '@/components/Profile/Stats'
 import TabNavigation from '@/components/Profile/TabNavigation'
@@ -70,7 +71,7 @@ interface Notification {
   createdAt: string;
 }
 
-export default function ProfilePage() {
+function ProfilePageContent() {
   // Notification modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [modalNotification, setModalNotification] = useState<Notification | null>(null);
@@ -84,13 +85,13 @@ export default function ProfilePage() {
   const searchParams = useSearchParams()
 
   // Get active tab from URL, default to 'profile'
-  const getActiveTabFromUrl = () => {
+  const getActiveTabFromUrl = useCallback(() => {
     const tab = searchParams.get('tab')
     if (tab && ['profile', 'drafts', 'analytics', 'articles', 'stories', 'notifications', 'settings'].includes(tab)) {
       return tab
     }
     return 'profile'
-  }
+  }, [searchParams])
 
   const [activeTab, setActiveTab] = useState(getActiveTabFromUrl())
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -117,8 +118,131 @@ export default function ProfilePage() {
   // Tab switching state - track which tab is being loaded
   const [loadingTab, setLoadingTab] = useState<string | null>(null)
 
+  // State for tab content
+  const [articles, setArticles] = useState<any[]>([])
+  const [stories, setStories] = useState<any[]>([])
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [drafts, setDrafts] = useState<any[]>([])
+
+  // Load functions
+  const loadDrafts = useCallback(async () => {
+    try {
+      const response = await fetch('/api/drafts')
+      if (response.ok) {
+        const data = await response.json()
+        setDrafts(data.drafts || [])
+      }
+    } catch (error) {
+      console.error('Error loading drafts:', error)
+    }
+  }, [])
+
+  const loadProfileStats = useCallback(async () => {
+    try {
+      const response = await fetch('/api/users/profile/stats')
+      if (response.ok) {
+        const data = await response.json()
+        setProfileStats(data.stats)
+        setAchievements(data.stats.achievements || [])
+      } else {
+        // Fallback to calculated stats
+        const totalViews = articles.reduce((sum, article) => sum + (article.views || 0), 0)
+        const totalLikes = articles.reduce((sum, article) => sum + (article.likes || 0), 0)
+
+        setProfileStats({
+          totalArticles: articles.length,
+          totalStories: stories.length,
+          totalDrafts: drafts.length,
+          totalViews,
+          totalLikes,
+          joinedDate: profile?.user?.createdAt || new Date().toISOString(),
+          lastActive: new Date().toISOString(),
+          writingStreak: Math.floor(Math.random() * 30) + 1,
+          completedDrafts: drafts.filter(d => d.status === 'completed').length,
+          avgWordsPerDraft: drafts.length > 0 ? Math.floor(Math.random() * 500) + 200 : 0
+        })
+      }
+    } catch (error) {
+      console.error('Error loading profile stats:', error)
+    }
+  }, [articles, stories, drafts, profile])
+
+  const loadPreferences = useCallback(async () => {
+    try {
+      setPreferencesLoading(true)
+      const response = await fetch('/api/users/preferences')
+      if (response.ok) {
+        const data = await response.json()
+        setPreferences(data.preferences)
+      } else {
+        // Set default preferences if API fails
+        setPreferences({
+          privacy: {
+            publicProfile: true,
+            showEmail: false,
+            showPhone: false,
+            showLocation: true
+          },
+          notifications: {
+            email: true,
+            push: true,
+            marketing: false
+          },
+          display: {
+            theme: 'light',
+            language: 'en'
+          }
+        })
+      }
+    } catch (error) {
+      console.error('Error loading preferences:', error)
+    } finally {
+      setPreferencesLoading(false)
+    }
+  }, [])
+
+  const loadUserArticles = useCallback(async () => {
+    try {
+      const response = await fetch('/api/articles/user')
+      if (response.ok) {
+        const data = await response.json()
+        // Only show articles with a status (pending, approved, or rejected)
+        const submittedArticles = (data.results || []).filter((article: any) =>
+          ['pending', 'approved', 'rejected'].includes(article.status)
+        )
+        setArticles(submittedArticles)
+      }
+    } catch (error) {
+      console.error('Error loading user articles:', error)
+    }
+  }, [])
+
+  const loadUserStories = useCallback(async () => {
+    try {
+      const response = await fetch('/api/stories/user')
+      if (response.ok) {
+        const data = await response.json()
+        setStories(data.results || [])
+      }
+    } catch (error) {
+      console.error('Error loading user stories:', error)
+    }
+  }, [])
+
+  const loadNotifications = useCallback(async () => {
+    try {
+      const response = await fetch('/api/notifications')
+      if (response.ok) {
+        const data = await response.json()
+        setNotifications(data.notifications || [])
+      }
+    } catch (error) {
+      console.error('Error loading notifications:', error)
+    }
+  }, [])
+
   // Load data for specific tab
-  const loadTabData = async (tab: string) => {
+  const loadTabData = useCallback(async (tab: string) => {
     switch (tab) {
       case 'articles':
         if (articles.length === 0) {
@@ -150,7 +274,7 @@ export default function ProfilePage() {
         }
         break
     }
-  }
+  }, [articles.length, stories.length, notifications.length, drafts.length, preferences, loadUserArticles, loadUserStories, loadNotifications, loadDrafts, loadProfileStats, loadPreferences])
 
   // Handle tab change with URL update and loading state
   const handleTabChange = (tab: string) => {
@@ -168,10 +292,6 @@ export default function ProfilePage() {
     })
   }
 
-  const [articles, setArticles] = useState<any[]>([])
-  const [stories, setStories] = useState<any[]>([])
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [drafts, setDrafts] = useState<any[]>([])
   const [editing, setEditing] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'draft' | 'article' | 'story', id: string, title: string } | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -198,105 +318,7 @@ export default function ProfilePage() {
     }
   })
 
-  const loadDrafts = async () => {
-    try {
-      const response = await fetch('/api/drafts')
-      if (response.ok) {
-        const data = await response.json()
-        setDrafts(data.drafts || [])
-      }
-    } catch (error) {
-      console.error('Error loading drafts:', error)
-    }
-  }
 
-  const loadProfileStats = async () => {
-    try {
-      const response = await fetch('/api/users/profile/stats')
-      if (response.ok) {
-        const data = await response.json()
-        setProfileStats(data.stats)
-        setAchievements(data.stats.achievements || [])
-      } else {
-        // Fallback to calculated stats
-        const totalViews = articles.reduce((sum, article) => sum + (article.views || 0), 0)
-        const totalLikes = articles.reduce((sum, article) => sum + (article.likes || 0), 0)
-
-        setProfileStats({
-          totalArticles: articles.length,
-          totalStories: stories.length,
-          totalDrafts: drafts.length,
-          totalViews,
-          totalLikes,
-          joinedDate: profile?.user?.createdAt || new Date().toISOString(),
-          lastActive: new Date().toISOString(),
-          writingStreak: Math.floor(Math.random() * 30) + 1,
-          completedDrafts: drafts.filter(d => d.status === 'completed').length,
-          avgWordsPerDraft: drafts.length > 0 ? Math.floor(Math.random() * 500) + 200 : 0
-        })
-      }
-    } catch (error) {
-      console.error('Error loading profile stats:', error)
-    }
-  }
-
-
-
-  const loadPreferences = async () => {
-    try {
-      setPreferencesLoading(true)
-      const response = await fetch('/api/users/preferences')
-      if (response.ok) {
-        const data = await response.json()
-        setPreferences(data.preferences)
-      } else {
-        // Set default preferences if API fails
-        setPreferences({
-          privacy: {
-            publicProfile: true,
-            showEmail: false,
-            showStats: true,
-            showActivity: true,
-          },
-          notifications: {
-            email: { enabled: true },
-            push: { enabled: true },
-            inApp: { enabled: true }
-          },
-          writing: {
-            defaultPrivacy: 'public'
-          },
-          interface: {
-            theme: 'light'
-          }
-        })
-      }
-    } catch (error) {
-      console.error('Error loading preferences:', error)
-      // Set default preferences on error
-      setPreferences({
-        privacy: {
-          publicProfile: true,
-          showEmail: false,
-          showStats: true,
-          showActivity: true,
-        },
-        notifications: {
-          email: { enabled: true },
-          push: { enabled: true },
-          inApp: { enabled: true }
-        },
-        writing: {
-          defaultPrivacy: 'public'
-        },
-        interface: {
-          theme: 'light'
-        }
-      })
-    } finally {
-      setPreferencesLoading(false)
-    }
-  }
 
   const savePreferences = async (section?: string) => {
     try {
@@ -421,7 +443,7 @@ export default function ProfilePage() {
       // Load data for the new tab
       loadTabData(newTab)
     }
-  }, [searchParams, activeTab, loadingTab])
+  }, [getActiveTabFromUrl, loadTabData, searchParams, activeTab, loadingTab])
 
   // Handle notification parameter from URL (when coming from header dropdown)
   useEffect(() => {
@@ -459,7 +481,7 @@ export default function ProfilePage() {
     }
 
     loadEssentialData()
-  }, [status, session, router])
+  }, [activeTab, loadProfileStats, loadTabData, loadPreferences, status, session, router])
 
   const loadProfile = async () => {
     try {
@@ -498,49 +520,7 @@ export default function ProfilePage() {
   }
 
 
-  const loadUserArticles = async () => {
-    try {
-      const response = await fetch('/api/articles/user')
-      if (response.ok) {
-        const data = await response.json()
-        // Only show articles with a status (pending, approved, or rejected)
-        const submittedArticles = (data.results || []).filter((article: any) =>
-          ['pending', 'approved', 'rejected'].includes(article.status)
-        )
-        setArticles(submittedArticles)
-      }
-    } catch (error) {
-      console.error('Error loading user articles:', error)
-    }
-  }
 
-  const loadUserStories = async () => {
-    try {
-
-      const response = await fetch('/api/stories/user')
-      if (response.ok) {
-        const data = await response.json()
-        setStories(data.results || [])
-      }
-    } catch (error) {
-      console.error('Error loading user stories:', error)
-    } finally {
-
-    }
-  }
-
-  const loadNotifications = async () => {
-    try {
-
-      const response = await fetch('/api/notifications')
-      if (response.ok) {
-        const data = await response.json()
-        setNotifications(data.notifications || [])
-      }
-    } catch (error) {
-      console.error('Error loading notifications:', error)
-    }
-  }
 
   const handleSaveProfile = async () => {
     try {
@@ -953,5 +933,13 @@ export default function ProfilePage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+      <ProfilePageContent />
+    </Suspense>
   )
 }

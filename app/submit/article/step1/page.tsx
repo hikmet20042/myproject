@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, Suspense } from 'react'
 import Select from 'react-select'
 import { ARTICLE_TAGS } from '@/lib/tagOptions'
 import { useSession } from 'next-auth/react'
@@ -27,7 +27,7 @@ interface SelectOption {
 
 
 
-export default function ArticleStep1() {
+function ArticleStep1() {
   // Hooks
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -359,7 +359,7 @@ export default function ArticleStep1() {
     if (!draftId && !editId && !localStorage.getItem('draftArticle')) {
       initializeNewArticle()
     }
-  }, [draftId, editId])
+  }, [draftId, editId, initializeNewArticle])
 
 
 
@@ -634,6 +634,14 @@ export default function ArticleStep1() {
         </div>
       </div>
     </form>
+  )
+}
+
+export default function ArticleStep1Page() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center min-h-screen"><div className="text-lg">Loading...</div></div>}>
+      <ArticleStep1 />
+    </Suspense>
   )
 }
 

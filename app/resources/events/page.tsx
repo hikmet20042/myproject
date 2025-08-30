@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Calendar, MapPin, Users, ExternalLink, Clock, Tag, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -346,11 +347,12 @@ export default function EventsPage() {
                       <div key={event._id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
                         {/* Event Image */}
                         {event.imageUrl && (
-                          <div className="h-48 bg-gray-200 overflow-hidden">
-                            <img
+                          <div className="h-48 bg-gray-200 overflow-hidden relative">
+                            <Image
                               src={event.imageUrl}
                               alt={event.title}
-                              className="w-full h-full object-cover"
+                              fill
+                              className="object-cover"
                             />
                           </div>
                         )}

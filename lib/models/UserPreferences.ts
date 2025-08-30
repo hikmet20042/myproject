@@ -206,7 +206,7 @@ const UserPreferencesSchema = new mongoose.Schema<IUserPreferences>({
 });
 
 // Indexes
-UserPreferencesSchema.index({ userId: 1 });
+// Note: userId index is automatically created by unique: true constraint
 UserPreferencesSchema.index({ lastUpdated: -1 });
 
 // Static method to get default preferences

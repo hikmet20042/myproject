@@ -66,8 +66,7 @@ const ImageBlobSchema = new mongoose.Schema<IImageBlob>({
   filename: {
     type: String,
     required: true,
-    unique: true,
-    index: true
+    unique: true
   },
   originalName: {
     type: String,

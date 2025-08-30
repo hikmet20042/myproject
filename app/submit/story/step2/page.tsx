@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import BlocknoteEditor from '@/components/BlocknoteEditor'
@@ -13,7 +13,7 @@ interface Step2Props {
   searchParams: { [key: string]: string | string[] | undefined }
 }
 
-export default function Step2Page({ searchParams }: Step2Props) {
+function Step2Page({ searchParams }: Step2Props) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const urlSearchParams = useSearchParams();
@@ -44,15 +44,62 @@ export default function Step2Page({ searchParams }: Step2Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Check if we're editing
-  useEffect(() => {
-    if (editId) {
-      setIsEditing(true);
-      loadStoryForEditing(editId);
+  // Helper function to update character count in localStorage
+  const updateCharacterCountInLocalStorage = useCallback((count: number) => {
+    const savedDraft = localStorage.getItem('draftStory');
+    if (savedDraft) {
+      try {
+        const parsedDraft = JSON.parse(savedDraft);
+        parsedDraft.characterCount = count;
+        localStorage.setItem('draftStory', JSON.stringify(parsedDraft));
+      } catch (error) {
+        console.error('Error updating character count in localStorage:', error);
+      }
     }
-  }, [editId]);
+  }, []);
 
-  const loadStoryForEditing = async (storyId: string) => {
+  // Helper function to calculate character count from content
+  const calculateCharacterCountFromContent = useCallback(async (content: any) => {
+    if (!content) {
+      setCharacterCount(0);
+      updateCharacterCountInLocalStorage(0);
+      return;
+    }
+
+    try {
+      // Create a temporary BlockNote editor to extract text from content
+      const { BlockNoteEditor } = await import('@blocknote/core');
+      const tempEditor = BlockNoteEditor.create();
+
+      // Convert content to HTML then extract text
+      const html = await tempEditor.blocksToFullHTML(content);
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      const text = tempDiv.textContent || tempDiv.innerText || '';
+      const count = text.length;
+      setCharacterCount(count);
+      updateCharacterCountInLocalStorage(count);
+    } catch (error) {
+      console.error('Error calculating character count:', error);
+      // Fallback: try to extract text from content structure
+      let text = '';
+      if (Array.isArray(content)) {
+        content.forEach((block: any) => {
+          if (block.content && Array.isArray(block.content)) {
+            block.content.forEach((item: any) => {
+              if (item.text) text += item.text;
+            });
+          }
+        });
+      }
+      const count = text.length;
+      setCharacterCount(count);
+      updateCharacterCountInLocalStorage(count);
+    }
+  }, [updateCharacterCountInLocalStorage]);
+
+  // Load functions - defined before useEffect hooks
+  const loadStoryForEditing = useCallback(async (storyId: string) => {
     if (!session || status !== 'authenticated') return;
     
     setLoading(true);
@@ -96,62 +143,17 @@ export default function Step2Page({ searchParams }: Step2Props) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [session, status, calculateCharacterCountFromContent]);
+
+  // Check if we're editing
+  useEffect(() => {
+    if (editId) {
+      setIsEditing(true);
+      loadStoryForEditing(editId);
+    }
+  }, [editId, loadStoryForEditing]);
 
   // On mount, get data from searchParams or localStorage
-  // Helper function to calculate character count from content
-  const calculateCharacterCountFromContent = async (content: any) => {
-    if (!content) {
-      setCharacterCount(0);
-      updateCharacterCountInLocalStorage(0);
-      return;
-    }
-
-    try {
-      // Create a temporary BlockNote editor to extract text from content
-      const { BlockNoteEditor } = await import('@blocknote/core');
-      const tempEditor = BlockNoteEditor.create();
-
-      // Convert content to HTML then extract text
-      const html = await tempEditor.blocksToFullHTML(content);
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = html;
-      const text = tempDiv.textContent || tempDiv.innerText || '';
-      const count = text.length;
-      setCharacterCount(count);
-      updateCharacterCountInLocalStorage(count);
-    } catch (error) {
-      console.error('Error calculating character count:', error);
-      // Fallback: try to extract text from content structure
-      let text = '';
-      if (Array.isArray(content)) {
-        content.forEach((block: any) => {
-          if (block.content && Array.isArray(block.content)) {
-            block.content.forEach((item: any) => {
-              if (item.text) text += item.text;
-            });
-          }
-        });
-      }
-      const count = text.length;
-      setCharacterCount(count);
-      updateCharacterCountInLocalStorage(count);
-    }
-  };
-
-  // Helper function to update character count in localStorage
-  const updateCharacterCountInLocalStorage = (count: number) => {
-    const savedDraft = localStorage.getItem('draftStory');
-    if (savedDraft) {
-      try {
-        const parsedDraft = JSON.parse(savedDraft);
-        parsedDraft.characterCount = count;
-        localStorage.setItem('draftStory', JSON.stringify(parsedDraft));
-      } catch (error) {
-        console.error('Error updating character count in localStorage:', error);
-      }
-    }
-  };
 
   useEffect(() => {
     // Skip if we're editing (data will be loaded by loadStoryForEditing)
@@ -197,7 +199,7 @@ export default function Step2Page({ searchParams }: Step2Props) {
       calculateCharacterCountFromContent(loadedContent.blocks || loadedContent);
     }
     setInit(true);
-  }, [searchParams, editId]);
+  }, [searchParams, editId, calculateCharacterCountFromContent]);
   // Show author name input if not anonymous and not logged in
   useEffect(() => {
     if (!isAnonymous) {
@@ -618,6 +620,14 @@ export default function Step2Page({ searchParams }: Step2Props) {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function Step2PageWrapper({ searchParams }: Step2Props) {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center min-h-screen"><div className="text-lg">Loading...</div></div>}>
+      <Step2Page searchParams={searchParams} />
+    </Suspense>
   )
 }
 

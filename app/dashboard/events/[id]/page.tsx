@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter, useParams } from 'next/navigation'
+import Image from 'next/image'
 import { Calendar, Clock, MapPin, Users, Link as LinkIcon, Tag, Edit, Trash2, CheckCircle, XCircle, AlertCircle, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 
@@ -49,16 +50,11 @@ export default function EventDetail() {
   const params = useParams()
   const [event, setEvent] = useState<Event | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
-  useEffect(() => {
-    if (params.id) {
-      loadEvent()
-    }
-  }, [params.id])
-
-  const loadEvent = async () => {
+  const loadEvent = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch(`/api/events/${params.id}`)
@@ -67,17 +63,21 @@ export default function EventDetail() {
       if (response.ok) {
         setEvent(data.event)
       } else {
-        alert('Failed to load event: ' + data.error)
-        router.push('/dashboard/events')
+        setError(data.error || 'Failed to load event')
       }
     } catch (error) {
       console.error('Error loading event:', error)
-      alert('Failed to load event')
-      router.push('/dashboard/events')
+      setError('Failed to load event')
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.id])
+
+  useEffect(() => {
+    if (params.id) {
+      loadEvent()
+    }
+  }, [loadEvent, params.id])
 
   const handleDelete = async () => {
     try {
@@ -219,11 +219,12 @@ export default function EventDetail() {
 
         {/* Event Image */}
         {event.imageUrl && (
-          <div className="mb-8">
-            <img
+          <div className="mb-8 relative h-64">
+            <Image
               src={event.imageUrl}
               alt={event.title}
-              className="w-full h-64 object-cover rounded-lg shadow-md"
+              fill
+              className="object-cover rounded-lg shadow-md"
             />
           </div>
         )}

@@ -81,55 +81,7 @@ export default function EditArticleStep2() {
   }, [title, abstract, tags, references, isAnonymous, content, characterCount])
 
   // Load article data and step 1 data
-  useEffect(() => {
-    if (status === 'loading') return
-    if (!session) {
-      router.push('/auth/signin')
-      return
-    }
-    
-    loadArticleData()
-  }, [session, status, articleId])
-
-  const loadArticleData = async () => {
-    try {
-      setLoading(true)
-      
-      // First, try to load from localStorage (step 1 data)
-      const editData = localStorage.getItem('editArticle')
-      const currentEditId = localStorage.getItem('currentEditId')
-      
-      if (!currentEditId || currentEditId !== articleId) {
-        // If no localStorage data or wrong article, load from API
-        await loadFromAPI()
-      } else if (editData) {
-        // Load from localStorage
-        const data = JSON.parse(editData)
-        setTitle(data.title || '')
-        setAbstract(data.abstract || '')
-        setTags(data.tags || [])
-        setReferences(data.references || '')
-        setIsAnonymous(data.isAnonymous || false)
-        setContent(data.content || null)
-        setCharacterCount(data.characterCount || 0)
-        
-        // Still need to load original article for content if not in localStorage
-        if (!data.content) {
-          await loadContentFromAPI()
-        }
-      } else {
-        // No localStorage data, load from API
-        await loadFromAPI()
-      }
-    } catch (error) {
-      console.error('Error loading article data:', error)
-      setError('Failed to load article data')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadFromAPI = async () => {
+  const loadFromAPI = useCallback(async () => {
     const response = await fetch(`/api/articles/${articleId}`)
     
     if (!response.ok) {
@@ -173,16 +125,64 @@ export default function EditArticleStep2() {
     }
     localStorage.setItem('editArticle', JSON.stringify(editData))
     localStorage.setItem('currentEditId', articleId)
-  }
+  }, [articleId, session])
 
-  const loadContentFromAPI = async () => {
+  const loadContentFromAPI = useCallback(async () => {
     const response = await fetch(`/api/articles/${articleId}`)
     if (response.ok) {
       const data = await response.json()
       setContent(data.article.content || null)
       setOriginalStatus(data.article.status)
     }
-  }
+  }, [articleId])
+
+  const loadArticleData = useCallback(async () => {
+    try {
+      setLoading(true)
+      
+      // First, try to load from localStorage (step 1 data)
+      const editData = localStorage.getItem('editArticle')
+      const currentEditId = localStorage.getItem('currentEditId')
+      
+      if (!currentEditId || currentEditId !== articleId) {
+        // If no localStorage data or wrong article, load from API
+        await loadFromAPI()
+      } else if (editData) {
+        // Load from localStorage
+        const data = JSON.parse(editData)
+        setTitle(data.title || '')
+        setAbstract(data.abstract || '')
+        setTags(data.tags || [])
+        setReferences(data.references || '')
+        setIsAnonymous(data.isAnonymous || false)
+        setContent(data.content || null)
+        setCharacterCount(data.characterCount || 0)
+        
+        // Still need to load original article for content if not in localStorage
+        if (!data.content) {
+          await loadContentFromAPI()
+        }
+      } else {
+        // No localStorage data, load from API
+        await loadFromAPI()
+      }
+    } catch (error) {
+      console.error('Error loading article data:', error)
+      setError('Failed to load article data')
+    } finally {
+      setLoading(false)
+    }
+  }, [articleId, loadFromAPI, loadContentFromAPI])
+
+  useEffect(() => {
+    if (status === 'loading') return
+    if (!session) {
+      router.push('/auth/signin')
+      return
+    }
+    
+    loadArticleData()
+  }, [loadArticleData, router, session, status, articleId])
 
 
 

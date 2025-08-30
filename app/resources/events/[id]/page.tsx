@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { CalendarIcon, MapPinIcon, UserGroupIcon, ClockIcon, LinkIcon, TagIcon } from '@heroicons/react/24/outline'
 import { ArrowLeft, Calendar, MapPin, Users, Clock, ExternalLink, Tag } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -220,11 +221,12 @@ export default function EventDetailPage() {
             </div>
 
             {event.imageUrl && (
-              <div className="mb-6">
-                <img
+              <div className="mb-6 relative h-80">
+                <Image
                   src={event.imageUrl}
                   alt={event.title}
-                  className="w-full h-80 object-cover rounded-xl"
+                  fill
+                  className="object-cover rounded-xl"
                 />
               </div>
             )}
@@ -373,18 +375,15 @@ export default function EventDetailPage() {
                     </div>
                     <h3 className="text-xl font-bold text-gray-900">Apply Now</h3>
                   </div>
-                  <Button
-                    as="a"
+                  <a
                     href={event.applicationLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    variant="primary"
-                    size="lg"
-                    className="w-full flex items-center justify-center gap-2"
+                    className="w-full flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-4 text-white bg-gradient-to-r from-primary to-red-800 hover:from-red-700 hover:to-red-900 focus:ring-red-100 shadow-lg hover:shadow-xl border-2 border-transparent"
                   >
                     <ExternalLink className="h-5 w-5" />
                     Apply for Event
-                  </Button>
+                  </a>
                 </CardContent>
               </Card>
             )}

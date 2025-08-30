@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import DOMPurify from 'dompurify'
@@ -43,18 +43,7 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
   const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
 
-  useEffect(() => {
-    if (status === 'loading') return
-    
-    if (!session?.user || session.user.role !== 'admin') {
-      router.push('/admin')
-      return
-    }
-
-    loadStory()
-  }, [params.id, session, status, router])
-
-  const loadStory = async () => {
+  const loadStory = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch(`/api/admin/stories/${params.id}`)
@@ -71,7 +60,18 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
     } finally {
       setLoading(false)
     }
-  }
+  }, [params.id])
+
+  useEffect(() => {
+    if (status === 'loading') return
+    
+    if (!session?.user || session.user.role !== 'admin') {
+      router.push('/admin')
+      return
+    }
+
+    loadStory()
+  }, [loadStory, params.id, session, status, router])
 
   const getStatusBadge = (status: string) => {
     switch (status) {
