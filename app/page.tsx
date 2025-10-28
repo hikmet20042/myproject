@@ -5,25 +5,9 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Button, Card, CardContent } from '@/components/ui'
 import RecentCommunityContent from '@/components/RecentCommunityContent'
 
-interface Article {
-  _id: string;
-  title: string;
-  summary: string;
-  content: string;
-  source: string;
-  sourceUrl: string;
-  date: string;
-  scrapedAt: string;
-  contentLength: number;
-  tags: string[];
-}
 
-interface ArticlesResponse {
-  total: number;
-  page: number;
-  limit: number;
-  results: Article[];
-}
+
+
 
 interface Filters {
   search: string;
@@ -32,7 +16,7 @@ interface Filters {
 }
 
 export default function HomePage() {
-  const [articles, setArticles] = useState<Article[]>([]);
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -73,48 +57,7 @@ export default function HomePage() {
 
   // ...removed useEffect that resets page on filters change...
 
-  const fetchArticles = useCallback(async (page: number, currentFilters: Filters) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // Build query parameters robustly (avoid undefined values)
-      const queryParams = new URLSearchParams();
-      queryParams.set('limit', String(limit));
-      queryParams.set('page', String(page));
-
-      const searchValue = (currentFilters.search || '').trim();
-      if (searchValue) {
-        queryParams.set('search', searchValue);
-      }
-
-      if (Array.isArray(currentFilters.tags) && currentFilters.tags.length > 0) {
-        queryParams.set('tags', currentFilters.tags.join(','));
-      }
-
-      const sourceValue = currentFilters.source || '';
-      if (sourceValue) {
-        queryParams.set('source', sourceValue);
-      }
-
-      const response = await fetch(`/api/news?${queryParams.toString()}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch articles');
-      }
-      
-      const data: ArticlesResponse = await response.json();
-      setArticles((data && Array.isArray(data.results)) ? data.results : []);
-      setCurrentPage(data.page);
-      setTotalPages(Math.ceil(data.total / data.limit));
-      
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load articles');
-      setArticles([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [limit]);
+  
 
   // Fetch available tags and sources for filtering
   const fetchFilterOptions = useCallback(() => {
@@ -140,53 +83,7 @@ export default function HomePage() {
       return;
     }
       
-      const loadFilteredArticles = async () => {
-        try {
-          setLoading(true);
-          setError(null);
-          
-          // Build query parameters
-          const queryParams = new URLSearchParams();
-          queryParams.set('limit', String(limit));
-          queryParams.set('page', String(currentPage));
-
-          const searchVal = (memoizedFilters.search || '').trim();
-          if (searchVal) {
-            queryParams.set('search', searchVal);
-          }
-
-          if (Array.isArray(memoizedFilters.tags) && memoizedFilters.tags.length > 0) {
-            queryParams.set('tags', memoizedFilters.tags.join(','));
-          }
-
-          const srcVal = memoizedFilters.source || '';
-          if (srcVal) {
-            queryParams.set('source', srcVal);
-          }
-
-          const response = await fetch(`/api/news?${queryParams.toString()}`, {
-            cache: 'no-store' // Prevent caching issues
-          });
-          
-          if (!response.ok) {
-            throw new Error(`Failed to fetch articles: ${response.status} ${response.statusText}`);
-          }
-          
-          const data: ArticlesResponse = await response.json();
-          setArticles((data && Array.isArray(data.results)) ? data.results : []);
-          setCurrentPage(data.page);
-          setTotalPages(Math.ceil(data.total / data.limit));
-          
-        } catch (err) {
-          console.error('Filtered article load error:', err);
-          setError(err instanceof Error ? err.message : 'Failed to load articles');
-          setArticles([]);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      loadFilteredArticles();
+      
   }, [mounted, hasInitialLoaded, currentPage, memoizedFilters, limit]);
 
   const handlePrevPage = () => {
@@ -269,9 +166,9 @@ export default function HomePage() {
                   Learn More
                 </Button>
               </Link>
-              <Link href="/stories">
+              <Link href="/blogs">
                 <Button variant="secondary" size="lg">
-                  Community Stories
+                  Community Blogs
                 </Button>
               </Link>
             </div>
@@ -341,7 +238,6 @@ export default function HomePage() {
 
       
 
-  {/* Recent community stories and articles */}
   {mounted && <RecentCommunityContent />}
 
       {/* Call to Action */}
@@ -352,19 +248,15 @@ export default function HomePage() {
               Get Involved
             </h2>
             <p className="text-lg text-gray-700 mb-8">
-              Join us in the fight for social justice and equality. Whether you want to share your story, 
+              Join us in the fight for social justice and equality. Whether you want to share your blog, 
               access educational resources, or analyze the latest data, we provide the tools 
               you need to make a difference.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/submit/article/step1">
-                 <Button size="lg">
-                   Share Your Article
-                 </Button>
-               </Link>
-              <Link href="/submit/story/step1">
+            
+              <Link href="/submit/blog/step1">
                  <Button variant="outline" size="lg">
-                   Share Your Story
+                   Share Your Blog
                  </Button>
                </Link>
             </div>

@@ -105,7 +105,7 @@ export default function Dashboard() {
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     )
   }
@@ -166,7 +166,7 @@ export default function Dashboard() {
           <div className="flex flex-wrap gap-2">
             {ngoProfile.focusAreas?.length > 0 ? (
               ngoProfile.focusAreas.map((area: string, index: number) => (
-                <span key={index} className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm">
+                <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
                   {area}
                 </span>
               ))

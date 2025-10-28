@@ -17,14 +17,14 @@ interface UserProfile {
     location: string
     website: string
     phone: string
-    dateOfBirth: string
-    gender: string
-    occupation: string
+    dateOfBirth?: string
+    gender?: string
+    occupation?: string
     organization: string
-    interests: string
-    avatar: string
+    interests?: string
+    avatar?: string
     avatarUrl?: string
-    socialLinks: string
+    socialLinks?: string
     socialMedia?: {
       facebook: string
       twitter: string
@@ -33,7 +33,13 @@ interface UserProfile {
       youtube: string
       website: string
     }
+    // NGO-specific fields
+    registrationNumber?: string
+    focusAreas?: string[]
+    status?: string
+    contactPerson?: string
   } | null
+  isNGO?: boolean
 }
 
 interface FormData {
@@ -57,6 +63,11 @@ interface FormData {
     youtube: string
     website: string
   }
+  // NGO-specific fields
+  registrationNumber: string
+  focusAreas: string[]
+  status: string
+  contactPerson: string
 }
 
 interface ProfileProps {
@@ -269,12 +280,62 @@ export default function Profile({loading,setEditing,editing,formData, profile,se
                         <label className="block text-sm font-medium text-gray-700">Interests</label>
                         <input
                           type="text"
-                          value={formData.interests}
+                          value={formData.interests || ''}
                           onChange={(e) => setFormData({ ...formData, interests: e.target.value })}
                           placeholder="e.g., Gender equality, Women's rights, Activism"
                           className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
                         />
                       </div>
+                      
+                      {/* NGO-specific fields */}
+                      {profile.isNGO && (
+                        <>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">Registration Number</label>
+                              <input
+                                type="text"
+                                value={formData.registrationNumber || ''}
+                                onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
+                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700">Status</label>
+                              <select
+                                value={formData.status || ''}
+                                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
+                              >
+                                <option value="">Select status</option>
+                                <option value="active">Active</option>
+                                <option value="pending">Pending</option>
+                                <option value="suspended">Suspended</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">Contact Person</label>
+                            <input
+                              type="text"
+                              value={formData.contactPerson || ''}
+                              onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
+                              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">Focus Areas</label>
+                            <input
+                              type="text"
+                              value={formData.focusAreas?.join(', ') || ''}
+                              onChange={(e) => setFormData({ ...formData, focusAreas: e.target.value.split(',').map(area => area.trim()).filter(area => area) })}
+                              placeholder="e.g., Education, Healthcare, Environment"
+                              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">Separate multiple areas with commas</p>
+                          </div>
+                        </>
+                      )}
                       {/* Social Media Accounts */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-4">Social Media Accounts</label>
@@ -286,7 +347,10 @@ export default function Profile({loading,setEditing,editing,formData, profile,se
                               value={formData.socialMedia?.facebook || ''}
                               onChange={(e) => setFormData(prev => ({
                                 ...prev,
-                                socialMedia: { ...prev.socialMedia, facebook: e.target.value }
+                                socialMedia: { 
+                                  ...prev.socialMedia,
+                                  facebook: e.target.value 
+                                }
                               }))}
                               placeholder="https://facebook.com/username"
                               className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
@@ -299,7 +363,10 @@ export default function Profile({loading,setEditing,editing,formData, profile,se
                               value={formData.socialMedia?.twitter || ''}
                               onChange={(e) => setFormData(prev => ({
                                 ...prev,
-                                socialMedia: { ...prev.socialMedia, twitter: e.target.value }
+                                socialMedia: { 
+                                  ...prev.socialMedia,
+                                  twitter: e.target.value 
+                                }
                               }))}
                               placeholder="https://twitter.com/username"
                               className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
@@ -312,7 +379,10 @@ export default function Profile({loading,setEditing,editing,formData, profile,se
                               value={formData.socialMedia?.instagram || ''}
                               onChange={(e) => setFormData(prev => ({
                                 ...prev,
-                                socialMedia: { ...prev.socialMedia, instagram: e.target.value }
+                                socialMedia: { 
+                                  ...prev.socialMedia,
+                                  instagram: e.target.value 
+                                }
                               }))}
                               placeholder="https://instagram.com/username"
                               className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
@@ -325,7 +395,10 @@ export default function Profile({loading,setEditing,editing,formData, profile,se
                               value={formData.socialMedia?.linkedin || ''}
                               onChange={(e) => setFormData(prev => ({
                                 ...prev,
-                                socialMedia: { ...prev.socialMedia, linkedin: e.target.value }
+                                socialMedia: { 
+                                  ...prev.socialMedia,
+                                  linkedin: e.target.value 
+                                }
                               }))}
                               placeholder="https://linkedin.com/in/username"
                               className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
@@ -338,7 +411,10 @@ export default function Profile({loading,setEditing,editing,formData, profile,se
                               value={formData.socialMedia?.youtube || ''}
                               onChange={(e) => setFormData(prev => ({
                                 ...prev,
-                                socialMedia: { ...prev.socialMedia, youtube: e.target.value }
+                                socialMedia: { 
+                                  ...prev.socialMedia,
+                                  youtube: e.target.value 
+                                }
                               }))}
                               placeholder="https://youtube.com/channel/..."
                               className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"

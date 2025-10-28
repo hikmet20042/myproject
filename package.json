@@ -1,5 +1,5 @@
 {
-  "name": "gender-equality-az",
+  "name": "icma360",
   "version": "1.0.0",
   "description": "Public service website for gender equality in Azerbaijan",
   "private": true,
@@ -27,6 +27,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",
     "@types/dompurify": "^3.0.5",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/mongoose": "^5.11.96",
     "@types/node": "^20.19.9",
     "@types/nodemailer": "^6.4.17",
@@ -47,6 +48,7 @@
     "eslint": "^8.0.0",
     "eslint-config-next": "^14.0.0",
     "highlight.js": "^11.11.1",
+    "jsonwebtoken": "^9.0.2",
     "lowlight": "^3.3.0",
     "lru-cache": "^11.1.0",
     "lucide-react": "^0.539.0",

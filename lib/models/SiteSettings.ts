@@ -128,7 +128,6 @@ interface ISiteSettings extends mongoose.Document {
     enableSharing: boolean;
     enableBookmarks: boolean;
     enableFollowing: boolean;
-    enableDrafts: boolean;
     enableCollaboration: boolean;
     enableVersioning: boolean;
     enableAI: boolean;
@@ -272,7 +271,6 @@ const SiteSettingsSchema = new mongoose.Schema<ISiteSettings>({
     enableSharing: { type: Boolean, default: true },
     enableBookmarks: { type: Boolean, default: true },
     enableFollowing: { type: Boolean, default: true },
-    enableDrafts: { type: Boolean, default: true },
     enableCollaboration: { type: Boolean, default: false },
     enableVersioning: { type: Boolean, default: false },
     enableAI: { type: Boolean, default: false },
@@ -391,7 +389,6 @@ SiteSettingsSchema.statics.getDefaults = function() {
       enableSharing: true,
       enableBookmarks: true,
       enableFollowing: true,
-      enableDrafts: true,
       enableCollaboration: false,
       enableVersioning: false,
       enableAI: false,

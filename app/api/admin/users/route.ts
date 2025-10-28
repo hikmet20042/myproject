@@ -4,8 +4,8 @@ import { authOptions } from '@/lib/auth';
 import dbConnect from '@/lib/mongoose';
 import User from '@/lib/models/User';
 import UserProfile from '@/lib/models/UserProfile';
-import Article from '@/lib/models/Article';
-import Story from '@/lib/models/Story';
+
+import Blog from '@/lib/models/Blog';
 import Notification from '@/lib/models/Notification';
 import mongoose from 'mongoose';
 
@@ -91,13 +91,13 @@ export async function GET(request: NextRequest) {
       users.map(async (user) => {
         const [articleCount, storyCount] = await Promise.all([
           Article.countDocuments({ userId: user._id }),
-          Story.countDocuments({ author: user._id })
+          Blog.countDocuments({ author: user._id })
         ]);
         return {
           ...user,
           stats: {
             articles: articleCount,
-            stories: storyCount,
+            blogs: storyCount,
             totalContent: articleCount + storyCount
           }
         };
@@ -238,7 +238,7 @@ export async function DELETE(request: NextRequest) {
           deletedBy: session.user.id
         }
       ),
-      Story.updateMany(
+      Blog.updateMany(
         { author: new mongoose.Types.ObjectId(userId) },
         { 
           deleted: true,

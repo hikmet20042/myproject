@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 export interface ISubmission extends mongoose.Document {
   userId: mongoose.Types.ObjectId;
-  type: 'story' | 'article';
+  type: 'blog' | 'article';
   title: string;
   content: string;
   contentHtml: string;
@@ -18,7 +18,7 @@ export interface ISubmission extends mongoose.Document {
 
 const SubmissionSchema = new mongoose.Schema<ISubmission>({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  type: { type: String, enum: ['story', 'article'], required: true },
+  type: { type: String, enum: ['blog', 'article'], required: true },
   title: { type: String, required: true },
   content: { type: String, required: true },
   contentHtml: { type: String, required: true },

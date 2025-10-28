@@ -30,7 +30,7 @@ interface Article {
   category: string
 }
 
-interface Story {
+interface Blog {
   _id: string
   title: string
   abstract: string
@@ -42,7 +42,7 @@ export default function ProfilePage() {
   const params = useParams()
   const [user, setUser] = useState<User | null>(null)
   const [articles, setArticles] = useState<Article[]>([])
-  const [stories, setStories] = useState<Story[]>([])
+  const [blogs, setBlogs] = useState<Blog[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -64,11 +64,11 @@ export default function ProfilePage() {
           setArticles(articlesData)
         }
 
-        // Fetch user's stories
-        const storiesResponse = await fetch(`/api/stories?author=${params.id}`)
-        if (storiesResponse.ok) {
-          const storiesData = await storiesResponse.json()
-          setStories(storiesData)
+        // Fetch user's blogs
+        const blogsResponse = await fetch(`/api/blogs?author=${params.id}`)
+        if (blogsResponse.ok) {
+          const blogsData = await blogsResponse.json()
+          setBlogs(blogsData)
         }
       } catch (err) {
         setError('Failed to load user profile')
@@ -117,13 +117,13 @@ export default function ProfilePage() {
             <div className="relative inline-block mb-6">
               <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto shadow-lg">
                 <span className="text-3xl font-bold text-primary">
-                  {user.name.charAt(0).toUpperCase()}
+                  {user?.name?.charAt(0)?.toUpperCase() || '?'}
                 </span>
               </div>
             </div>
             
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              {user.name}
+              {user?.name || 'Unknown User'}
             </h1>
             
             {user.bio && (
@@ -146,10 +146,10 @@ export default function ProfilePage() {
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 0h6m-6 0l-1 1m7-1l1 1m-6 0v6a2 2 0 002 2h2a2 2 0 002-2V8m-6 0H9m6 0h1" />
                 </svg>
-                Joined {new Date(user.joinedAt).toLocaleDateString('en-US', {
+                Joined {user?.joinedAt ? new Date(user.joinedAt).toLocaleDateString('en-US', {
                   year: 'numeric',
                   month: 'long'
-                })}
+                }) : 'Unknown'}
               </span>
             </div>
             
@@ -164,7 +164,7 @@ export default function ProfilePage() {
               )}
               {user.website && (
                 <a 
-                  href={user.website.startsWith('http') ? user.website : `https://${user.website}`} 
+                  href={user?.website?.startsWith('http') ? user.website : `https://${user?.website || ''}`} 
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="inline-flex items-center bg-accent text-white px-6 py-3 rounded-lg font-semibold hover:bg-accent/90 transition-colors"
@@ -197,7 +197,7 @@ export default function ProfilePage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </div>
-                        <h2 className="text-2xl font-bold text-gray-900">About {user.name}</h2>
+                        <h2 className="text-2xl font-bold text-gray-900">About {user?.name || 'User'}</h2>
                       </div>
                       <p className="text-gray-700 leading-relaxed text-lg">
                         {user.bio}
@@ -215,7 +215,7 @@ export default function ProfilePage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                       </div>
-                      <h2 className="text-2xl font-bold text-primary">Articles by {user.name}</h2>
+                      <h2 className="text-2xl font-bold text-primary">Articles by {user?.name || 'User'}</h2>
                     </div>
                     
                     {articles.length > 0 ? (
@@ -265,7 +265,7 @@ export default function ProfilePage() {
                   </CardContent>
                 </Card>
 
-                {/* Stories Section */}
+                {/* Blogs Section */}
                 <Card className="bg-white rounded-xl shadow-lg">
                   <CardContent className="p-8">
                     <div className="flex items-center mb-6">
@@ -274,19 +274,19 @@ export default function ProfilePage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                         </svg>
                       </div>
-                      <h2 className="text-2xl font-bold text-primary">Stories by {user.name}</h2>
+                      <h2 className="text-2xl font-bold text-primary">Blogs by {user?.name || 'User'}</h2>
                     </div>
                     
-                    {stories.length > 0 ? (
+                    {blogs.length > 0 ? (
                       <div className="grid gap-6">
-                        {stories.map((story) => (
-                          <div key={story._id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                        {blogs.map((blog) => (
+                          <div key={blog._id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
                             <div className="flex justify-between items-start mb-3">
                               <Badge className="bg-accent/20 text-primary">
-                                {story.category}
+                                {blog.category}
                               </Badge>
                               <span className="text-sm text-gray-500">
-                                {new Date(story.createdAt).toLocaleDateString('en-US', {
+                                {new Date(blog.createdAt).toLocaleDateString('en-US', {
                                   year: 'numeric',
                                   month: 'long',
                                   day: 'numeric'
@@ -294,15 +294,15 @@ export default function ProfilePage() {
                               </span>
                             </div>
                             <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                              <Link href={`/stories/${story._id}`} className="hover:text-primary transition-colors">
-                                {story.title}
+                              <Link href={`/blogs/${blog._id}`} className="hover:text-primary transition-colors">
+                                {blog.title}
                               </Link>
                             </h3>
                             <p className="text-gray-600 leading-relaxed mb-4">
-                              {story.abstract}
+                              {blog.abstract}
                             </p>
                             <Link 
-                              href={`/stories/${story._id}`}
+                              href={`/blogs/${blog._id}`}
                               className="inline-flex items-center text-primary hover:text-primary/80 font-medium"
                             >
                               Read More
@@ -318,7 +318,7 @@ export default function ProfilePage() {
                         <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                         </svg>
-                        <p className="text-gray-500 text-lg">No stories published yet</p>
+                        <p className="text-gray-500 text-lg">No blogs published yet</p>
                       </div>
                     )}
                   </CardContent>
@@ -365,7 +365,7 @@ export default function ProfilePage() {
                           <div className="flex-1">
                             <p className="text-xs text-gray-500 font-medium">Website</p>
                             <a 
-                              href={user.website.startsWith('http') ? user.website : `https://${user.website}`} 
+                              href={user?.website?.startsWith('http') ? user.website : `https://${user?.website || ''}`} 
                               target="_blank" 
                               rel="noopener noreferrer" 
                               className="text-gray-900 hover:text-primary font-medium break-all"
@@ -455,16 +455,16 @@ export default function ProfilePage() {
                         <span className="text-primary font-semibold">{articles.length}</span>
                       </div>
                       <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                        <span className="text-gray-600">Stories</span>
-                        <span className="text-primary font-semibold">{stories.length}</span>
+                        <span className="text-gray-600">Blogs</span>
+                        <span className="text-primary font-semibold">{blogs.length}</span>
                       </div>
                       <div className="flex justify-between items-center py-2">
                         <span className="text-gray-600">Member Since</span>
                         <span className="text-primary font-semibold">
-                          {new Date(user.joinedAt).toLocaleDateString('en-US', {
+                          {user?.joinedAt ? new Date(user.joinedAt).toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'short'
-                          })}
+                          }) : 'Unknown'}
                         </span>
                       </div>
                     </div>

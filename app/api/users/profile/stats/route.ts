@@ -3,8 +3,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import dbConnect from '@/lib/mongoose'
 import User from '@/lib/models/User'
-import Article from '@/lib/models/Article'
-import Story from '@/lib/models/Story'
+import NGO from '@/lib/models/NGO'
+import Blog from '@/lib/models/Blog'
 import UserAnalytics from '@/lib/models/UserAnalytics'
 
 import mongoose from 'mongoose'
@@ -16,10 +16,43 @@ export async function GET(request: NextRequest) {
   try {
     await dbConnect();
     const session = await getServerSession(authOptions);
-    console.log('Profile Stats GET - Session:', { userId: session?.user?.id, email: session?.user?.email });
+    console.log('Profile Stats GET - Session:', { userId: session?.user?.id, email: session?.user?.email, role: session?.user?.role });
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    // Handle NGO users - they don't have User documents, they're in NGO collection
+    if (session.user.role === 'ngo') {
+      const ngo = await NGO.findById(session.user.id);
+      
+      if (!ngo) {
+        return NextResponse.json({ error: 'NGO not found' }, { status: 404 });
+      }
+      
+      // Return basic stats for NGO users (they don't have blogs)
+      return NextResponse.json({
+        stats: {
+          totalStories: 0,
+          publishedStories: 0,
+          totalViews: 0,
+          totalUniqueViews: 0,
+          totalLikes: 0,
+          totalWordCount: 0,
+          averageReadTime: 0,
+          engagementRate: 0,
+          growthRate: 0,
+          recentActivity: [],
+          activityStats: {
+            thisWeek: 0,
+            lastWeek: 0,
+            thisMonth: 0,
+            lastMonth: 0
+          }
+        },
+        analytics: null,
+        isNGO: true
+      });
     }
     
     const user = await User.findById(session.user.id);
@@ -41,41 +74,12 @@ export async function GET(request: NextRequest) {
       async () => {
         // Optimized: Use fewer, more efficient aggregation queries
         const [
-          articleStats,
           storyStats,
           recentActivity,
           activityStats
         ] = await Promise.all([
-      // Combined article statistics in single aggregation
-      Article.aggregate([
-        { $match: { userId: new mongoose.Types.ObjectId(session.user.id) } },
-        {
-          $group: {
-            _id: null,
-            totalArticles: { $sum: 1 },
-            publishedArticles: {
-              $sum: {
-                $cond: [{ $eq: ['$status', 'approved'] }, 1, 0]
-              }
-            },
-            draftArticles: {
-              $sum: { $cond: [{ $eq: ['$status', 'draft'] }, 1, 0] }
-            },
-            totalViews: { $sum: '$views' },
-            totalUniqueViews: { $sum: '$uniqueViews' },
-            totalLikes: { $sum: '$likes' },
-            totalWordCount: { $sum: '$draftMetadata.wordCount' },
-            completedDrafts: {
-              $sum: {
-                $cond: [{ $gte: ['$draftMetadata.completionPercentage', 80] }, 1, 0]
-              }
-            }
-          }
-        }
-      ]),
-
-      // Combined story statistics in single aggregation
-      Story.aggregate([
+      // Combined blog statistics in single aggregation
+      Blog.aggregate([
         { $match: { author: new mongoose.Types.ObjectId(session.user.id) } },
         {
           $group: {
@@ -99,19 +103,15 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Extract stats with defaults
-    const articles = articleStats[0] || {};
-    const stories = storyStats[0] || {};
-    const drafts = { length: articles.draftArticles || 0 };
+    const blogs = storyStats[0] || {};
 
     // Calculate metrics from aggregated data
-    const completedDrafts = articles.completedDrafts || 0;
-    const totalWordCount = articles.totalWordCount || 0;
-    const avgWordsPerDraft = drafts.length > 0 ? Math.round(totalWordCount / drafts.length) : 0;
+    const totalWordCount = 0;
 
     // Calculate total views and likes from aggregated data
-    const totalViews = (articles.totalViews || 0) + (stories.totalViews || 0);
-    const totalUniqueViews = (articles.totalUniqueViews || 0) + (stories.totalUniqueViews || 0);
-    const totalLikes = (articles.totalLikes || 0) + (stories.totalLikes || 0);
+    const totalViews = blogs.totalViews || 0;
+    const totalUniqueViews = blogs.totalUniqueViews || 0;
+    const totalLikes = blogs.totalLikes || 0;
 
     // Calculate writing streak from activity data
     const activityDates = recentActivity.map(item =>
@@ -138,9 +138,8 @@ export async function GET(request: NextRequest) {
     // Calculate productivity score using the UserAnalytics static method
     const productivityScore = userAnalytics ?
       (UserAnalytics as any).calculateProductivityScore({
-        totalArticles: articles.length,
-        totalStories: stories.length,
-        completedDrafts,
+        
+        totalStories: blogs.length,
         writingStreak,
         avgEngagementRate: totalViews > 0 ? (totalLikes / totalViews) * 100 : 0,
         totalWordCount
@@ -149,38 +148,7 @@ export async function GET(request: NextRequest) {
     // Generate achievements
     const achievements = [];
 
-    if (articles.length >= 1) {
-      achievements.push({
-        id: 'first_article',
-        name: 'First Article',
-        description: 'Published your first article',
-        icon: '📝',
-        category: 'milestone',
-        unlockedAt: articles[0]?.publishedAt || articles[0]?.createdAt
-      });
-    }
-
-    if (drafts.length >= 5) {
-      achievements.push({
-        id: 'prolific_writer',
-        name: 'Prolific Writer',
-        description: 'Created 5 or more drafts',
-        icon: '✍️',
-        category: 'writing',
-        unlockedAt: new Date()
-      });
-    }
-
-    if (completedDrafts >= 3) {
-      achievements.push({
-        id: 'finisher',
-        name: 'Finisher',
-        description: 'Completed 3 or more drafts',
-        icon: '🏆',
-        category: 'consistency',
-        unlockedAt: new Date()
-      });
-    }
+    // Removed first article achievement
 
     if (writingStreak >= 7) {
       achievements.push({
@@ -217,9 +185,8 @@ export async function GET(request: NextRequest) {
 
         return {
           // Basic counts from aggregated data
-          totalArticles: articles.publishedArticles || 0,
-          totalStories: stories.totalStories || 0,
-          totalDrafts: drafts.length,
+          totalStories: blogs.approvedStories || 0,
+          
           totalViews,
           totalUniqueViews,
           totalLikes,
@@ -230,8 +197,6 @@ export async function GET(request: NextRequest) {
 
           // Writing metrics
           writingStreak,
-          completedDrafts,
-          avgWordsPerDraft,
           totalWordCount,
           productivityScore,
 
@@ -240,11 +205,9 @@ export async function GET(request: NextRequest) {
 
           // Content breakdown from aggregated data
           contentByStatus: {
-            published: articles.publishedArticles || 0,
-            approved: stories.approvedStories || 0,
+            approved: blogs.approvedStories || 0,
             pending: 0, // Would need separate query if needed
-            rejected: 0, // Would need separate query if needed
-            drafts: drafts.length
+            rejected: 0 // Would need separate query if needed
           },
 
           // Recent activity summary

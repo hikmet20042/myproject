@@ -22,7 +22,12 @@ export default function RegisterPage() {
     contactPhone: '',
     address: '',
     registrationNumber: '',
-    focusAreas: [] as string[]
+    focusAreas: [] as string[],
+    // Contact person fields
+    contactPersonName: '',
+    contactPersonEmail: '',
+    contactPersonPhone: '',
+    contactPersonPosition: ''
   })
   const [errors, setErrors] = useState<{[key: string]: string}>({})
   const [loading, setLoading] = useState(false)
@@ -44,7 +49,12 @@ export default function RegisterPage() {
       contactPhone: '',
       address: '',
       registrationNumber: '',
-      focusAreas: []
+      focusAreas: [],
+      // Contact person fields
+      contactPersonName: '',
+      contactPersonEmail: '',
+      contactPersonPhone: '',
+      contactPersonPosition: ''
     })
     setErrors({})
   }, [registrationType])
@@ -76,7 +86,8 @@ export default function RegisterPage() {
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {}
 
-    if (!formData.name.trim()) {
+    // Name validation only for regular users
+    if (registrationType === 'user' && !formData.name.trim()) {
       newErrors.name = 'Name is required'
     }
 
@@ -112,6 +123,15 @@ export default function RegisterPage() {
       if (formData.website && !/^https?:\/\/.+/.test(formData.website)) {
         newErrors.website = 'Please enter a valid website URL'
       }
+      // Contact person validation
+      if (!formData.contactPersonName.trim()) {
+        newErrors.contactPersonName = 'Contact person name is required'
+      }
+      if (!formData.contactPersonEmail.trim()) {
+        newErrors.contactPersonEmail = 'Contact person email is required'
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactPersonEmail)) {
+        newErrors.contactPersonEmail = 'Please enter a valid contact person email'
+      }
     }
 
     setErrors(newErrors)
@@ -132,27 +152,43 @@ export default function RegisterPage() {
 
     try {
       console.log('Sending registration request...')
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name,
+      const requestBody: any = {
           email: formData.email,
           password: formData.password,
-          type: registrationType,
-          ngoProfile: registrationType === 'ngo' ? {
+          type: registrationType
+        }
+
+        // Add name only for regular users
+        if (registrationType === 'user') {
+          requestBody.name = formData.name
+        }
+
+        // Add NGO profile for NGO registrations
+        if (registrationType === 'ngo') {
+          requestBody.ngoProfile = {
             organizationName: formData.organizationName,
             description: formData.description,
             website: formData.website || undefined,
             contactPhone: formData.contactPhone || undefined,
             address: formData.address || undefined,
             registrationNumber: formData.registrationNumber || undefined,
-            focusAreas: formData.focusAreas
-          } : undefined
-        }),
-      })
+            focusAreas: formData.focusAreas,
+            contactPerson: {
+              name: formData.contactPersonName,
+              email: formData.contactPersonEmail,
+              phone: formData.contactPersonPhone || undefined,
+              position: formData.contactPersonPosition || undefined
+            }
+          }
+        }
+
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        })
 
       const data = await response.json()
       console.log('Registration response:', data)
@@ -270,82 +306,90 @@ export default function RegisterPage() {
             </div>
           )}
           <form className="space-y-6" onSubmit={handleSubmit} autoComplete="off">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">Full Name</label>
-              <div className="mt-1 relative">
-                <Input
-                  id="name"
-                  name="name"
-                  type="text"
-                  required
-                  placeholder="Enter your full name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  autoComplete="name"
-                  icon={User}
-                />
-              </div>
-              {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
-            </div>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email address</label>
-              <div className="mt-1 relative">
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  placeholder="Enter your email address"
-                  value={formData.email}
-                  onChange={handleChange}
-                  autoComplete="email"
-                  icon={Mail}
-                />
-              </div>
-              {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
-            </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
-              <div className="mt-1 relative">
-                <Input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  placeholder="Password (min. 6 characters)"
-                  value={formData.password}
-                  onChange={handleChange}
-                  autoComplete="new-password"
-                  icon={Lock}
-                />
-                <button type="button" tabIndex={-1} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600" onClick={() => setShowPassword(v => !v)}>
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
-            </div>
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">Confirm Password</label>
-              <div className="mt-1 relative">
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  required
-                  placeholder="Confirm Password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  autoComplete="new-password"
-                  icon={Lock}
-                />
-                <button type="button" tabIndex={-1} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600" onClick={() => setShowConfirmPassword(v => !v)}>
-                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
-            </div>
+            {/* User Registration Fields */}
+            {registrationType === 'user' && (
+              <>
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">Full Name</label>
+                  <div className="mt-1 relative">
+                    <Input
+                      id="name"
+                      name="name"
+                      type="text"
+                      required
+                      placeholder="Enter your full name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      autoComplete="name"
+                      icon={User}
+                    />
+                  </div>
+                  {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+                </div>
 
-            {/* NGO-specific fields */}
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email address</label>
+                  <div className="mt-1 relative">
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      required
+                      placeholder="Enter your email address"
+                      value={formData.email}
+                      onChange={handleChange}
+                      autoComplete="email"
+                      icon={Mail}
+                    />
+                  </div>
+                  {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+                </div>
+
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+                  <div className="mt-1 relative">
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      placeholder="Password (min. 6 characters)"
+                      value={formData.password}
+                      onChange={handleChange}
+                      autoComplete="new-password"
+                      icon={Lock}
+                    />
+                    <button type="button" tabIndex={-1} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600" onClick={() => setShowPassword(v => !v)}>
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
+                </div>
+
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">Confirm Password</label>
+                  <div className="mt-1 relative">
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      required
+                      placeholder="Confirm Password"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      autoComplete="new-password"
+                      icon={Lock}
+                    />
+                    <button type="button" tabIndex={-1} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600" onClick={() => setShowConfirmPassword(v => !v)}>
+                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
+                </div>
+              </>
+            )}
+
+            {/* NGO Registration Fields */}
             {registrationType === 'ngo' && (
               <>
                 <div className="border-t pt-6">
@@ -367,6 +411,75 @@ export default function RegisterPage() {
                     />
                   </div>
                   {errors.organizationName && <p className="mt-1 text-sm text-red-600">{errors.organizationName}</p>}
+                </div>
+                
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email address</label>
+                  <div className="mt-1 relative">
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      required
+                      placeholder="Enter your email address"
+                      value={formData.email}
+                      onChange={handleChange}
+                      autoComplete="email"
+                      icon={Mail}
+                    />
+                  </div>
+                  {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+                </div>
+                
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+                  <div className="mt-1 relative">
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      placeholder="Password (min. 6 characters)"
+                      value={formData.password}
+                      onChange={handleChange}
+                      autoComplete="new-password"
+                      icon={Lock}
+                    />
+                    <button type="button" tabIndex={-1} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600" onClick={() => setShowPassword(v => !v)}>
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
+                </div>
+                
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">Confirm Password</label>
+                  <div className="mt-1 relative">
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      required
+                      placeholder="Confirm Password"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      autoComplete="new-password"
+                      icon={Lock}
+                    />
+                    <button type="button" tabIndex={-1} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600" onClick={() => setShowConfirmPassword(v => !v)}>
+                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
+                </div>
+              </>
+            )}
+
+            {/* NGO Organization Details */}
+            {registrationType === 'ngo' && (
+              <>
+                <div className="border-t pt-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Organization Details</h3>
                 </div>
 
                 <div>
@@ -403,7 +516,7 @@ export default function RegisterPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="contactPhone" className="block text-sm font-medium text-gray-700">Contact Phone</label>
+                    <label htmlFor="contactPhone" className="block text-sm font-medium text-gray-700">Organization Phone</label>
                     <div className="mt-1 relative">
                       <Input
                         id="contactPhone"
@@ -470,6 +583,80 @@ export default function RegisterPage() {
                   </div>
                   {errors.focusAreas && <p className="mt-1 text-sm text-red-600">{errors.focusAreas}</p>}
                 </div>
+
+                <div className="border-t pt-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Contact Person Information</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="contactPersonName" className="block text-sm font-medium text-gray-700">Contact Person Name *</label>
+                    <div className="mt-1 relative">
+                      <Input
+                        id="contactPersonName"
+                        name="contactPersonName"
+                        type="text"
+                        required
+                        placeholder="Full name of contact person"
+                        value={formData.contactPersonName}
+                        onChange={handleChange}
+                        icon={User}
+                      />
+                    </div>
+                    {errors.contactPersonName && <p className="mt-1 text-sm text-red-600">{errors.contactPersonName}</p>}
+                  </div>
+
+                  <div>
+                    <label htmlFor="contactPersonEmail" className="block text-sm font-medium text-gray-700">Contact Person Email *</label>
+                    <div className="mt-1 relative">
+                      <Input
+                        id="contactPersonEmail"
+                        name="contactPersonEmail"
+                        type="email"
+                        required
+                        placeholder="contact@organization.org"
+                        value={formData.contactPersonEmail}
+                        onChange={handleChange}
+                        icon={Mail}
+                      />
+                    </div>
+                    {errors.contactPersonEmail && <p className="mt-1 text-sm text-red-600">{errors.contactPersonEmail}</p>}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="contactPersonPhone" className="block text-sm font-medium text-gray-700">Contact Person Phone</label>
+                    <div className="mt-1 relative">
+                      <Input
+                        id="contactPersonPhone"
+                        name="contactPersonPhone"
+                        type="tel"
+                        placeholder="+1 (555) 123-4567"
+                        value={formData.contactPersonPhone}
+                        onChange={handleChange}
+                        icon={Phone}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="contactPersonPosition" className="block text-sm font-medium text-gray-700">Position/Title</label>
+                    <div className="mt-1 relative">
+                      <Input
+                        id="contactPersonPosition"
+                        name="contactPersonPosition"
+                        type="text"
+                        placeholder="Director, Manager, etc."
+                        value={formData.contactPersonPosition}
+                        onChange={handleChange}
+                        icon={Users}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+
 
                 <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
                   <div className="flex">

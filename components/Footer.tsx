@@ -48,7 +48,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link href="/submit" className="text-gray-200 hover:text-white transition-colors text-sm">
-                  Submit Story
+                  Submit Blog
                 </Link>
               </li>
               <li>

@@ -3,18 +3,32 @@ import bcrypt from 'bcryptjs'
 import nodemailer from 'nodemailer'
 import dbConnect from '@/lib/mongoose'
 import User from '@/lib/models/User'
+import NGO from '@/lib/models/NGO'
 import NotificationModel from '@/lib/models/Notification'
 
 export async function POST(request: NextRequest) {
   try {
     await dbConnect();
     const { name, email, password, type, ngoProfile } = await request.json();
-    if (!name || !email || !password) {
-      return NextResponse.json(
-        { error: 'Name, email, and password are required' },
-        { status: 400 }
-      );
+    
+    if (type === 'ngo') {
+      // NGO Registration
+      if (!ngoProfile?.organizationName || !email || !password || !ngoProfile?.description || !ngoProfile?.contactPerson?.name || !ngoProfile?.contactPerson?.email) {
+        return NextResponse.json(
+          { error: 'Organization name, email, password, description, and contact person details are required' },
+          { status: 400 }
+        );
+      }
+    } else {
+      // User Registration
+      if (!name || !email || !password) {
+        return NextResponse.json(
+          { error: 'Name, email, and password are required' },
+          { status: 400 }
+        );
+      }
     }
+    
     if (password.length < 6) {
       return NextResponse.json(
         { error: 'Password must be at least 6 characters long' },
@@ -28,11 +42,13 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    // Check if user already exists
+    
+    // Check if email already exists in both User and NGO collections
     const existingUser = await User.findOne({ email });
-    if (existingUser) {
+    const existingNGO = await NGO.findOne({ email });
+    if (existingUser || existingNGO) {
       return NextResponse.json(
-        { error: 'User with this email already exists' },
+        { error: 'An account with this email already exists' },
         { status: 400 }
       );
     }
@@ -40,37 +56,59 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 12);
     // Generate verification token
     const verificationToken = Math.random().toString(36).substring(2, 15);
-    // Create user
-    const userData: any = {
-      name,
-      email,
-      password: hashedPassword,
-      verificationToken,
-      emailVerified: null,
-      role: type === 'ngo' ? 'ngo' : 'user'
-    };
-
-    // Add NGO profile if registering as NGO
-    if (type === 'ngo' && ngoProfile) {
-      userData.ngoProfile = {
-        ...ngoProfile,
-        status: 'pending' // NGOs need admin approval
+    
+    let createdAccount;
+    
+    if (type === 'ngo') {
+      // Create NGO account
+      const ngoData = {
+        organizationName: ngoProfile.organizationName,
+        email,
+        password: hashedPassword,
+        description: ngoProfile.description,
+        website: ngoProfile.website,
+        contactPhone: ngoProfile.contactPhone,
+        address: ngoProfile.address,
+        registrationNumber: ngoProfile.registrationNumber,
+        focusAreas: ngoProfile.focusAreas || [],
+        contactPerson: ngoProfile.contactPerson,
+        socialMedia: ngoProfile.socialMedia,
+        status: 'pending', // NGOs need admin approval
+        verificationToken,
+        emailVerified: null
       };
+      
+      createdAccount = await NGO.create(ngoData);
+    } else {
+      // Create user account
+      const userData = {
+        name,
+        email,
+        password: hashedPassword,
+        verificationToken,
+        emailVerified: null,
+        role: 'user'
+      };
+      
+      createdAccount = await User.create(userData);
     }
-
-    const user = await User.create(userData);
     // Create welcome notification
     const welcomeMessage = type === 'ngo' 
       ? 'Thank you for registering your NGO. Please verify your email and wait for admin approval to access NGO features.'
       : 'Thank you for joining our community. Please verify your email to get started.';
     
-    await NotificationModel.create({
-      userId: user._id,
-      type: 'welcome',
-      title: type === 'ngo' ? 'NGO Registration Received!' : 'Welcome to Social Justice Platform!',
-      message: welcomeMessage,
-      data: { type: 'welcome', userType: type },
-    });
+    if (type === 'ngo') {
+      // For NGOs, we'll handle notifications after email verification
+      // since NGOs don't have a userId in the traditional sense
+    } else {
+      await NotificationModel.create({
+        userId: createdAccount._id,
+        type: 'welcome',
+        title: 'Welcome to Social Justice Platform!',
+        message: welcomeMessage,
+        data: { type: 'welcome', userType: type },
+      });
+    }
 
     // Notify admins about new NGO registration
     if (type === 'ngo') {
@@ -80,10 +118,10 @@ export async function POST(request: NextRequest) {
           userId: admin._id,
           type: 'admin_action_required',
           title: 'New NGO Registration Pending',
-          message: `${ngoProfile?.organizationName || name} has registered as an NGO and requires approval.`,
+          message: `${ngoProfile?.organizationName} has registered as an NGO and requires approval.`,
           data: { 
             type: 'ngo_approval_required', 
-            userId: user._id,
+            ngoId: createdAccount._id,
             organizationName: ngoProfile?.organizationName 
           },
         });

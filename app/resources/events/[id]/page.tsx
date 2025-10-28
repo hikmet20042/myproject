@@ -34,9 +34,6 @@ interface Event {
   createdBy: {
     _id: string
     name: string
-    ngoProfile?: {
-      organizationName: string
-    }
   }
   organizationName?: string
   isApproved: boolean
@@ -211,10 +208,10 @@ export default function EventDetailPage() {
                       href={`/resources/ngos/${event.createdBy._id}`}
                       className="text-primary hover:text-primary-dark transition-colors duration-200 hover:underline font-medium"
                     >
-                      {event.organizationName || event.createdBy?.ngoProfile?.organizationName || event.createdBy?.name || 'Unknown'}
+                      {event.organizationName || event.createdBy?.name || 'Unknown'}
                     </Link>
                   ) : (
-                    <span className="font-medium">{event.organizationName || event.createdBy?.ngoProfile?.organizationName || event.createdBy?.name || 'Unknown'}</span>
+                    <span className="font-medium">{event.organizationName || event.createdBy?.name || 'Unknown'}</span>
                   )}</span>
                 </div>
               </div>
@@ -400,7 +397,7 @@ export default function EventDetailPage() {
                 <div className="space-y-3">
                   <div>
                     <p className="font-semibold text-gray-900 text-lg">
-                      {event.organizationName || event.createdBy?.ngoProfile?.organizationName || 'Unknown Organization'}
+                      {event.organizationName || 'Unknown Organization'}
                     </p>
                     <p className="text-sm text-gray-600">Contact: {event.createdBy?.name}</p>
                   </div>

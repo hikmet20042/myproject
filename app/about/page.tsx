@@ -392,7 +392,7 @@ export default function About() {
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Link href="/submit">
                     <Button variant="secondary" size="lg">
-                      Share Your Story
+                      Share Your Blog
                     </Button>
                   </Link>
                   <Link href="/resources">

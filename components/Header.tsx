@@ -24,8 +24,7 @@ interface Notification {
 
 const navigation: NavigationItem[] = [
   { name: 'Home', href: '/' },
-  { name: 'Stories', href: '/stories' },
-  { name: 'Articles', href: '/articles' },
+  { name: 'Blogs', href: '/blogs' },
   { 
     name: 'Resources', 
     href: '/resources',
@@ -37,8 +36,7 @@ const navigation: NavigationItem[] = [
       { name: 'Vacancies', href: '/resources/vacancies' },
       { name: 'Materials', href: '/resources/materials' }
     ]
-  },
-  { name: 'Statistics', href: '/stats' },
+  }
 ]
 
 export default function Header() {
@@ -165,7 +163,7 @@ export default function Header() {
                 <>
                   <button
                     onClick={() => setActiveDropdown(activeDropdown === item.name ? null : item.name)}
-                    className="flex items-center text-sm font-semibold leading-6 text-gray-900 hover:text-red-600"
+                    className="flex items-center text-sm font-semibold leading-6 text-gray-900 hover:text-blue-600"
                   >
                     {item.name}
                     <ChevronDown className="ml-1 h-4 w-4" />
@@ -188,7 +186,7 @@ export default function Header() {
               ) : (
                 <Link
                   href={item.href}
-                  className="text-sm font-semibold leading-6 text-gray-900 hover:text-red-600"
+                  className="text-sm font-semibold leading-6 text-gray-900 hover:text-blue-600"
                 >
                   {item.name}
                 </Link>
@@ -203,11 +201,11 @@ export default function Header() {
               <div className="relative" ref={notificationsRef}>
                 <button
                   onClick={handleNotificationsToggle}
-                  className="relative flex items-center justify-center p-2 text-gray-700 hover:text-red-600"
+                  className="relative flex items-center justify-center p-2 text-gray-700 hover:text-blue-600"
                 >
                   <Bell className="h-5 w-5" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
@@ -221,7 +219,7 @@ export default function Header() {
                         <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
                         <Link
                           href="/profile?tab=notifications"
-                          className="text-xs text-red-600 hover:text-red-700"
+                          className="text-xs text-blue-600 hover:text-blue-700"
                           onClick={() => setNotificationsOpen(false)}
                         >
                           View All
@@ -231,7 +229,7 @@ export default function Header() {
 
                     {loading ? (
                       <div className="px-4 py-8 text-center text-gray-500">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-red-600 mx-auto"></div>
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
                         <p className="mt-2 text-sm">Loading...</p>
                       </div>
                     ) : notifications.length === 0 ? (
@@ -301,7 +299,7 @@ export default function Header() {
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center space-x-2 text-sm font-semibold leading-6 text-gray-900 hover:text-red-600"
+                  className="flex items-center space-x-2 text-sm font-semibold leading-6 text-gray-900 hover:text-blue-600"
                 >
                   <User className="h-5 w-5" />
                   <span>{session.user?.name || 'User'}</span>
@@ -335,18 +333,11 @@ export default function Header() {
                       </Link>
                     )}
                     <Link
-                      href="/submit/story"
+                      href="/submit/blog"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       onClick={() => setUserMenuOpen(false)}
                     >
-                      Share Story
-                    </Link>
-                    <Link
-                      href="/submit/article"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={() => setUserMenuOpen(false)}
-                    >
-                      Submit Article
+                      Share Blog
                     </Link>
                     <button
                       onClick={() => {
@@ -364,7 +355,7 @@ export default function Header() {
           ) : (
             <Link
               href="/auth/signin"
-              className="text-sm font-semibold leading-6 text-gray-900 hover:text-red-600"
+              className="text-sm font-semibold leading-6 text-gray-900 hover:text-blue-600"
             >
               Sign in
             </Link>
@@ -449,7 +440,7 @@ export default function Header() {
                       >
                         My Profile
                         {unreadCount > 0 && (
-                          <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">
+                          <span className="ml-2 bg-blue-500 text-white text-xs rounded-full px-2 py-1">
                             {unreadCount}
                           </span>
                         )}
@@ -473,18 +464,11 @@ export default function Header() {
                         </Link>
                       )}
                       <Link
-                        href="/submit/story"
+                        href="/submit/blog"
                         className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        Share Story
-                      </Link>
-                      <Link
-                        href="/submit/article"
-                        className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        Submit Article
+                        Share Blog
                       </Link>
                       <button
                         onClick={() => {

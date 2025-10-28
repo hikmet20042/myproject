@@ -1,8 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback, Suspense } from 'react'
-import EnhancedDraftManager from '@/components/EnhancedDraftManager'
-import DraftAnalytics from '@/components/DraftAnalytics'
 import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import {
@@ -21,8 +19,7 @@ import {
 import Stats from '@/components/Profile/Stats'
 import TabNavigation from '@/components/Profile/TabNavigation'
 import Profile from '@/components/Profile/Profile'
-import Articles from '@/components/Profile/Articles'
-import Stories from '@/components/Profile/Stories'
+import Blogs from '@/components/Profile/Blogs'
 import Notifications from '@/components/Profile/Notifications'
 import SettingsTab from '@/components/Profile/SettingsTab'
 import { Button } from '@/components/ui/Button'
@@ -42,14 +39,14 @@ interface UserProfile {
     location: string
     website: string
     phone: string
-    dateOfBirth: string
-    gender: string
-    occupation: string
+    dateOfBirth?: string
+    gender?: string
+    occupation?: string
     organization: string
-    interests: string
-    avatar: string
+    interests?: string
+    avatar?: string
     avatarUrl?: string // Virtual field from UserProfile model
-    socialLinks: string
+    socialLinks?: string
     socialMedia?: {
       facebook: string
       twitter: string
@@ -58,7 +55,13 @@ interface UserProfile {
       youtube: string
       website: string
     }
+    // NGO-specific fields
+    registrationNumber?: string
+    focusAreas?: string[]
+    status?: string
+    contactPerson?: string
   } | null
+  isNGO?: boolean
 }
 
 interface Notification {
@@ -87,7 +90,7 @@ function ProfilePageContent() {
   // Get active tab from URL, default to 'profile'
   const getActiveTabFromUrl = useCallback(() => {
     const tab = searchParams.get('tab')
-    if (tab && ['profile', 'drafts', 'analytics', 'articles', 'stories', 'notifications', 'settings'].includes(tab)) {
+    if (tab && ['profile', 'blogs', 'notifications', 'settings'].includes(tab)) {
       return tab
     }
     return 'profile'
@@ -96,16 +99,10 @@ function ProfilePageContent() {
   const [activeTab, setActiveTab] = useState(getActiveTabFromUrl())
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [profileStats, setProfileStats] = useState({
-    totalArticles: 0,
-    totalStories: 0,
-    totalDrafts: 0,
-    totalViews: 0,
-    totalLikes: 0,
+    totalBlogs: 0,
     joinedDate: '',
     lastActive: '',
-    writingStreak: 0,
-    completedDrafts: 0,
-    avgWordsPerDraft: 0
+    writingStreak: 0
   })
 
   const [achievements, setAchievements] = useState<any[]>([])
@@ -119,24 +116,10 @@ function ProfilePageContent() {
   const [loadingTab, setLoadingTab] = useState<string | null>(null)
 
   // State for tab content
-  const [articles, setArticles] = useState<any[]>([])
-  const [stories, setStories] = useState<any[]>([])
+    const [blogs, setBlogs] = useState<any[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
-  const [drafts, setDrafts] = useState<any[]>([])
 
   // Load functions
-  const loadDrafts = useCallback(async () => {
-    try {
-      const response = await fetch('/api/drafts')
-      if (response.ok) {
-        const data = await response.json()
-        setDrafts(data.drafts || [])
-      }
-    } catch (error) {
-      console.error('Error loading drafts:', error)
-    }
-  }, [])
-
   const loadProfileStats = useCallback(async () => {
     try {
       const response = await fetch('/api/users/profile/stats')
@@ -146,26 +129,19 @@ function ProfilePageContent() {
         setAchievements(data.stats.achievements || [])
       } else {
         // Fallback to calculated stats
-        const totalViews = articles.reduce((sum, article) => sum + (article.views || 0), 0)
-        const totalLikes = articles.reduce((sum, article) => sum + (article.likes || 0), 0)
+
 
         setProfileStats({
-          totalArticles: articles.length,
-          totalStories: stories.length,
-          totalDrafts: drafts.length,
-          totalViews,
-          totalLikes,
+          totalBlogs: blogs.length,
           joinedDate: profile?.user?.createdAt || new Date().toISOString(),
           lastActive: new Date().toISOString(),
-          writingStreak: Math.floor(Math.random() * 30) + 1,
-          completedDrafts: drafts.filter(d => d.status === 'completed').length,
-          avgWordsPerDraft: drafts.length > 0 ? Math.floor(Math.random() * 500) + 200 : 0
+          writingStreak: Math.floor(Math.random() * 30) + 1
         })
       }
     } catch (error) {
       console.error('Error loading profile stats:', error)
     }
-  }, [articles, stories, drafts, profile])
+  }, [])
 
   const loadPreferences = useCallback(async () => {
     try {
@@ -201,31 +177,16 @@ function ProfilePageContent() {
     }
   }, [])
 
-  const loadUserArticles = useCallback(async () => {
+  
+  const loadUserBlogs = useCallback(async () => {
     try {
-      const response = await fetch('/api/articles/user')
+      const response = await fetch('/api/blogs/user')
       if (response.ok) {
         const data = await response.json()
-        // Only show articles with a status (pending, approved, or rejected)
-        const submittedArticles = (data.results || []).filter((article: any) =>
-          ['pending', 'approved', 'rejected'].includes(article.status)
-        )
-        setArticles(submittedArticles)
+        setBlogs(data.results || [])
       }
     } catch (error) {
-      console.error('Error loading user articles:', error)
-    }
-  }, [])
-
-  const loadUserStories = useCallback(async () => {
-    try {
-      const response = await fetch('/api/stories/user')
-      if (response.ok) {
-        const data = await response.json()
-        setStories(data.results || [])
-      }
-    } catch (error) {
-      console.error('Error loading user stories:', error)
+      console.error('Error loading user blogs:', error)
     }
   }, [])
 
@@ -244,14 +205,9 @@ function ProfilePageContent() {
   // Load data for specific tab
   const loadTabData = useCallback(async (tab: string) => {
     switch (tab) {
-      case 'articles':
-        if (articles.length === 0) {
-          await loadUserArticles()
-        }
-        break
-      case 'stories':
-        if (stories.length === 0) {
-          await loadUserStories()
+            case 'blogs':
+        if (blogs.length === 0) {
+          await loadUserBlogs()
         }
         break
       case 'notifications':
@@ -259,22 +215,13 @@ function ProfilePageContent() {
           await loadNotifications()
         }
         break
-      case 'drafts':
-        if (drafts.length === 0) {
-          await loadDrafts()
-        }
-        break
-      case 'analytics':
-        await loadProfileStats()
-        break
-
       case 'settings':
         if (!preferences) {
           await loadPreferences()
         }
         break
     }
-  }, [articles.length, stories.length, notifications.length, drafts.length, preferences, loadUserArticles, loadUserStories, loadNotifications, loadDrafts, loadProfileStats, loadPreferences])
+  }, [blogs.length, notifications.length, preferences, loadUserBlogs, loadNotifications])
 
   // Handle tab change with URL update and loading state
   const handleTabChange = (tab: string) => {
@@ -293,7 +240,7 @@ function ProfilePageContent() {
   }
 
   const [editing, setEditing] = useState(false)
-  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'draft' | 'article' | 'story', id: string, title: string } | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'blog', id: string, title: string } | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -315,7 +262,12 @@ function ProfilePageContent() {
       linkedin: '',
       youtube: '',
       website: ''
-    }
+    },
+    // NGO-specific fields
+    registrationNumber: '',
+    focusAreas: [] as string[],
+    status: '',
+    contactPerson: ''
   })
 
 
@@ -344,92 +296,22 @@ function ProfilePageContent() {
     }
   }
 
-  const deleteDraft = async (id: string) => {
+  const deleteBlog = async (id: string) => {
     setDeleting(true)
     try {
-      const response = await fetch(`/api/drafts?id=${id}`, {
+      const response = await fetch(`/api/blogs?id=${id}`, {
         method: 'DELETE'
       })
       if (response.ok) {
-        setDrafts(drafts.filter(draft => draft._id !== id))
+        setBlogs(blogs.filter(blog => blog._id !== id))
         setDeleteConfirm(null)
       } else {
         const data = await response.json()
-        alert(data.error || 'Failed to delete draft')
+        alert(data.error || 'Failed to delete blog')
       }
     } catch (error) {
-      console.error('Error deleting draft:', error)
-      alert('Failed to delete draft')
-    } finally {
-      setDeleting(false)
-    }
-  }
-
-  const bulkDeleteDrafts = async (draftIds: string[]) => {
-    try {
-      // Use bulk delete API
-      const response = await fetch('/api/drafts/bulk', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ draftIds })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to delete drafts')
-      }
-
-      const result = await response.json()
-      console.log(`Successfully deleted ${result.deletedCount} drafts`)
-
-      // Update local state to remove deleted drafts
-      setDrafts(prev => prev.filter(draft => !draftIds.includes(draft._id)))
-
-    } catch (error) {
-      console.error('Error in bulk delete:', error)
-      throw error // Re-throw to let the component handle the error display
-    }
-  }
-
-  const deleteArticle = async (id: string) => {
-    setDeleting(true)
-    try {
-      const response = await fetch(`/api/articles?id=${id}`, {
-        method: 'DELETE'
-      })
-      if (response.ok) {
-        setArticles(articles.filter(article => article._id !== id))
-        setDeleteConfirm(null)
-      } else {
-        const data = await response.json()
-        alert(data.error || 'Failed to delete article')
-      }
-    } catch (error) {
-      console.error('Error deleting article:', error)
-      alert('Failed to delete article')
-    } finally {
-      setDeleting(false)
-    }
-  }
-
-  const deleteStory = async (id: string) => {
-    setDeleting(true)
-    try {
-      const response = await fetch(`/api/stories?id=${id}`, {
-        method: 'DELETE'
-      })
-      if (response.ok) {
-        setStories(stories.filter(story => story._id !== id))
-        setDeleteConfirm(null)
-      } else {
-        const data = await response.json()
-        alert(data.error || 'Failed to delete story')
-      }
-    } catch (error) {
-      console.error('Error deleting story:', error)
-      alert('Failed to delete story')
+      console.error('Error deleting blog:', error)
+      alert('Failed to delete blog')
     } finally {
       setDeleting(false)
     }
@@ -443,7 +325,7 @@ function ProfilePageContent() {
       // Load data for the new tab
       loadTabData(newTab)
     }
-  }, [getActiveTabFromUrl, loadTabData, searchParams, activeTab, loadingTab])
+  }, [getActiveTabFromUrl, searchParams, activeTab, loadingTab])
 
   // Handle notification parameter from URL (when coming from header dropdown)
   useEffect(() => {
@@ -468,6 +350,9 @@ function ProfilePageContent() {
       return
     }
 
+    // Allow NGO users to access profile page
+    // NGO users can view their profile alongside their dashboard
+
     // Load essential data first (profile, preferences, and stats)
     const loadEssentialData = async () => {
       await Promise.all([
@@ -481,7 +366,7 @@ function ProfilePageContent() {
     }
 
     loadEssentialData()
-  }, [activeTab, loadProfileStats, loadTabData, loadPreferences, status, session, router])
+  }, [status, session, router]) // Removed activeTab, loadProfileStats, loadTabData, loadPreferences from dependencies
 
   const loadProfile = async () => {
     try {
@@ -509,7 +394,12 @@ function ProfilePageContent() {
             youtube: data.profile?.socialMedia?.youtube || '',
             website: data.profile?.socialMedia?.website || ''
           },
-          socialLinks: data.profile?.socialLinks || ''
+          socialLinks: data.profile?.socialLinks || '',
+          // NGO-specific fields
+          registrationNumber: data.profile?.registrationNumber || '',
+          focusAreas: data.profile?.focusAreas || [],
+          status: data.profile?.status || '',
+          contactPerson: data.profile?.contactPerson || ''
         })
       }
     } catch (error) {
@@ -577,7 +467,7 @@ function ProfilePageContent() {
       case 'approved':
         return <CheckCircle className="w-4 h-4 text-green-500" />
       case 'rejected':
-        return <XCircle className="w-4 h-4 text-red-500" />
+        return <XCircle className="w-4 h-4 text-blue-500" />
       default:
         return <Clock className="w-4 h-4 text-yellow-500" />
     }
@@ -588,7 +478,7 @@ function ProfilePageContent() {
       case 'approved':
         return 'text-green-600 bg-green-100'
       case 'rejected':
-        return 'text-red-600 bg-red-100'
+        return 'text-blue-600 bg-blue-100'
       default:
         return 'text-yellow-600 bg-yellow-100'
     }
@@ -626,11 +516,6 @@ function ProfilePageContent() {
     )
   }
 
-  const handleDraftEdit = (draftId: string) => {
-    // Navigate directly to the edit page for the draft
-    router.push(`/edit/article/${draftId}/step1`);
-  };
-
 
   const handleResendVerification = async () => {
     setResendLoading(true);
@@ -651,43 +536,7 @@ function ProfilePageContent() {
     }
   };
 
-  const handleEditRejectedArticle = async (articleId: string) => {
-    try {
-      // Call API to convert rejected article to draft
-      const response = await fetch('/api/articles/edit-rejected', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ articleId }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Clear any existing draft data from localStorage
-        localStorage.removeItem('draftArticle');
-        localStorage.removeItem('currentDraftId');
-        localStorage.removeItem('currentEditId');
-        localStorage.removeItem('articleStep1Data');
-        localStorage.removeItem('articleStep2Data');
-
-        // Set the ID of the article to be edited
-        localStorage.setItem('currentEditId', articleId);
-
-        // Refresh articles list to show updated status
-        await loadUserArticles();
-
-        // Navigate to the edit page for the article
-        router.push(`/edit/article/${articleId}`);
-      } else {
-        alert(data.error || 'Failed to convert article to draft');
-      }
-    } catch (error) {
-      console.error('Error converting rejected article to draft:', error);
-      alert('Failed to convert article to draft. Please try again.');
-    }
-  };
+  
 
 
 
@@ -704,7 +553,7 @@ function ProfilePageContent() {
             <div className="px-6 py-8">
               <div className="flex items-center space-x-6">
                 <div className="flex-shrink-0">
-                  <div className="h-20 w-20 rounded-full bg-gradient-to-r from-red-500 to-pink-500 flex items-center justify-center text-white text-2xl font-bold">
+                  <div className="h-20 w-20 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-white text-2xl font-bold">
                     {profile.user.name?.charAt(0).toUpperCase() || 'U'}
                   </div>
                 </div>
@@ -743,7 +592,7 @@ function ProfilePageContent() {
               </svg>
               <div className="flex-1">
                 <div className="text-sm text-yellow-800">
-                  <strong>Your email is not verified.</strong> You cannot submit articles or stories until you verify your email.<br />
+                  <strong>Your email is not verified.</strong> You cannot submit blogs until you verify your email.<br />
                   <span className="block mt-1">Please check your inbox (and spam folder) for a verification email.</span>
                 </div>
                 <Button
@@ -754,13 +603,13 @@ function ProfilePageContent() {
                   {resendLoading ? 'Sending...' : 'Resend Verification Email'}
                 </Button>
                 {resendSuccess && <div className="mt-2 text-green-700">{resendSuccess}</div>}
-                {resendError && <div className="mt-2 text-red-700">{resendError}</div>}
+                {resendError && <div className="mt-2 text-blue-700">{resendError}</div>}
               </div>
             </div>
           )}
 
           {/* Tab Navigation */}
-          <TabNavigation handleTabChange={handleTabChange} loadingTab= {loadingTab } activeTab={activeTab} drafts={drafts} notifications={notifications}/>
+          <TabNavigation handleTabChange={handleTabChange} loadingTab= {loadingTab } activeTab={activeTab} notifications={notifications} userRole={profile?.user?.role}/>
 
           {/* Profile Tab */}
           {activeTab === 'profile' && (
@@ -768,97 +617,11 @@ function ProfilePageContent() {
 
           )}
 
-          {/* Drafts Tab */}
-          {activeTab === 'drafts' && (
-            <div className="space-y-6">
-              <div className="bg-white shadow rounded-lg p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Draft Management</h2>
-                    <p className="text-gray-600">Organize, search, and manage your drafts efficiently</p>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <a
-                      href="/submit/article/step1"
-                      className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      New Article
-                    </a>
-                    <a
-                      href="/submit/story"
-                      className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      New Story
-                    </a>
-                  </div>
-                </div>
-
-                {loadingTab === 'drafts' ? (
-                  <div className="animate-pulse space-y-4">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-2">
-                            <div className="h-4 bg-gray-200 rounded w-48"></div>
-                            <div className="h-3 bg-gray-200 rounded w-32"></div>
-                          </div>
-                          <div className="h-8 bg-gray-200 rounded w-20"></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <EnhancedDraftManager
-                    initialDrafts={drafts}
-                    onDraftEdit={handleDraftEdit}
-                    onDraftDelete={(draftId) => {
-                      const draft = drafts.find(d => d._id === draftId)
-                      setDeleteConfirm({ type: 'draft', id: draftId, title: draft?.title || 'Untitled' })
-                    }}
-                    onBulkDelete={bulkDeleteDrafts}
-                  />
-                )}
-              </div>
-            </div>
-          )}
 
 
-
-          {/* Analytics Tab */}
-          {activeTab === 'analytics' && (
-            <div className="space-y-6">
-              {loadingTab === 'analytics' ? (
-                <div className="bg-white shadow rounded-lg p-6">
-                  <div className="animate-pulse space-y-4">
-                    <div className="h-6 bg-gray-200 rounded w-48"></div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {[...Array(3)].map((_, i) => (
-                        <div key={i} className="bg-gray-100 rounded-lg p-4">
-                          <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
-                          <div className="h-8 bg-gray-200 rounded w-16"></div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <DraftAnalytics userId={session?.user?.id} />
-              )}
-            </div>
-          )}
-
-          {/* Articles Tab */}
-          {activeTab === 'articles' && (
-            <Articles loadingTab={loadingTab} articles={articles} isUnverified={isUnverified} getStatusIcon={getStatusIcon} handleEditRejectedArticle={handleEditRejectedArticle} getStatusColor={getStatusColor} setDeleteConfirm={setDeleteConfirm} />
-
-          )}
-
-
-          {/* Stories Tab */}
-          {activeTab === 'stories' && (
-           <Stories loadingTab={loadingTab} stories={stories} isUnverified={isUnverified} getStatusIcon={getStatusIcon} getStatusColor={getStatusColor} setDeleteConfirm={setDeleteConfirm} />
+          {/* Blogs Tab */}
+          {activeTab === 'blogs' && profile?.user?.role !== 'ngo' && (
+           <Blogs loadingTab={loadingTab} blogs={blogs} getStatusIcon={getStatusIcon} getStatusColor={getStatusColor} setDeleteConfirm={setDeleteConfirm} />
 
           )}
 
@@ -894,11 +657,11 @@ function ProfilePageContent() {
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div className="mt-3 text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-                <Trash2 className="h-6 w-6 text-red-600" />
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
+                <Trash2 className="h-6 w-6 text-blue-600" />
               </div>
               <h3 className="text-lg font-medium text-gray-900 mt-4">
-                Delete {deleteConfirm.type === 'draft' ? 'Draft' : deleteConfirm.type === 'article' ? 'Article' : 'Story'}
+                Delete Blog
               </h3>
               <div className="mt-2 px-7 py-3">
                 <p className="text-sm text-gray-500">
@@ -913,15 +676,7 @@ function ProfilePageContent() {
                   Cancel
                 </Button>
                 <Button
-                  onClick={() => {
-                    if (deleteConfirm.type === 'draft') {
-                      deleteDraft(deleteConfirm.id)
-                    } else if (deleteConfirm.type === 'article') {
-                      deleteArticle(deleteConfirm.id)
-                    } else {
-                      deleteStory(deleteConfirm.id)
-                    }
-                  }}
+                  onClick={() => deleteBlog(deleteConfirm.id)}
                   disabled={deleting}
                   variant="danger"
                 >

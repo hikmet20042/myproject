@@ -135,7 +135,7 @@ export default function EventManagement() {
     if (event.status === 'approved' && event.isPublished) {
       return <CheckCircle className="h-4 w-4 text-green-500" />
     } else if (event.status === 'rejected') {
-      return <XCircle className="h-4 w-4 text-red-500" />
+      return <XCircle className="h-4 w-4 text-blue-500" />
     } else {
       return <AlertCircle className="h-4 w-4 text-yellow-500" />
     }
@@ -315,7 +315,7 @@ export default function EventManagement() {
                       size="sm"
                       icon={Trash2}
                       title="Delete Event"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                     />
                   </div>
                 </div>

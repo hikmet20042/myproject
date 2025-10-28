@@ -11,7 +11,8 @@ import { Input, Button } from '@/components/ui'
 function SignInContent() {
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    password: '',
+    accountType: 'user'
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -39,6 +40,7 @@ function SignInContent() {
       const result = await signIn('credentials', {
         email: formData.email,
         password: formData.password,
+        accountType: formData.accountType,
         redirect: false,
       })
 
@@ -132,6 +134,34 @@ function SignInContent() {
           {/* Credentials Sign In */}
           <form className="mt-6" onSubmit={handleCredentialsSignIn} autoComplete="off">
             <div className="space-y-4">
+              {/* Account Type Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Account Type</label>
+                <div className="flex space-x-6">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="accountType"
+                      value="user"
+                      checked={formData.accountType === 'user'}
+                      onChange={handleChange}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Individual User</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="accountType"
+                      value="ngo"
+                      checked={formData.accountType === 'ngo'}
+                      onChange={handleChange}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">NGO Organization</span>
+                  </label>
+                </div>
+              </div>
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email address</label>
                 <div className="mt-1 relative">

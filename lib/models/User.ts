@@ -20,29 +20,6 @@ interface IUser extends mongoose.Document {
     youtube?: string
     website?: string
   }
-  // NGO-specific fields
-  ngoProfile?: {
-    organizationName: string
-    description: string
-    website?: string
-    contactPhone?: string
-    address?: string
-    registrationNumber?: string
-    focusAreas: string[]
-    status: 'pending' | 'approved' | 'rejected'
-    approvedAt?: Date
-    approvedBy?: mongoose.Types.ObjectId
-    adminComment?: string
-    // NGO-specific social media (in addition to general socialMedia)
-    socialMedia?: {
-      facebook?: string
-      twitter?: string
-      instagram?: string
-      linkedin?: string
-      youtube?: string
-      website?: string
-    }
-  }
 }
 
 const UserSchema = new mongoose.Schema({
@@ -95,65 +72,6 @@ const UserSchema = new mongoose.Schema({
     linkedin: String,
     youtube: String,
     website: String
-  },
-  // NGO-specific profile
-  ngoProfile: {
-    organizationName: {
-      type: String,
-      required: function(this: IUser) {
-        return this.role === 'ngo';
-      }
-    },
-    description: {
-      type: String,
-      required: function(this: IUser) {
-        return this.role === 'ngo';
-      }
-    },
-    website: String,
-    contactPhone: String,
-    address: String,
-    registrationNumber: String,
-    focusAreas: [{
-      type: String,
-      enum: [
-        'Human Rights',
-        'Women Rights',
-        'Children Rights',
-        'Education',
-        'Healthcare',
-        'Environment',
-        'Poverty Alleviation',
-        'Legal Aid',
-        'Community Development',
-        'Youth Development',
-        'Elderly Care',
-        'Disability Rights',
-        'LGBTQ+ Rights',
-        'Mental Health',
-        'Other'
-      ]
-    }],
-    status: {
-      type: String,
-      enum: ['pending', 'approved', 'rejected'],
-      default: 'pending'
-    },
-    approvedAt: Date,
-    approvedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    adminComment: String,
-    // NGO-specific social media
-    socialMedia: {
-      facebook: String,
-      twitter: String,
-      instagram: String,
-      linkedin: String,
-      youtube: String,
-      website: String
-    }
   }
 }, {
   timestamps: true,

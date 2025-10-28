@@ -172,7 +172,7 @@ export default function VacancyManagement() {
       case 'approved':
         return <CheckCircle className="h-4 w-4 text-green-500" />
       case 'rejected':
-        return <XCircle className="h-4 w-4 text-red-500" />
+        return <XCircle className="h-4 w-4 text-blue-500" />
       default:
         return <AlertCircle className="h-4 w-4 text-yellow-500" />
     }
@@ -387,7 +387,7 @@ export default function VacancyManagement() {
                       size="sm"
                       icon={Trash2}
                       title="Delete Vacancy"
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                     />
                   </div>
                 </div>

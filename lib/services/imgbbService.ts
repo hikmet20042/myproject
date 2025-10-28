@@ -133,11 +133,11 @@ export class ImgBBService {
 
   /**
    * Determine if an image should be uploaded to ImgBB (public) or stored as blob (private)
-   * @param context - The context where the image is used ('article', 'story', 'profile', etc.)
+   * @param context - The context where the image is used ('article', 'blog', 'profile', etc.)
    * @returns boolean indicating if image should use ImgBB
    */
   static shouldUseImgBB(context: string): boolean {
-    const publicContexts = ['article', 'story', 'news', 'event'];
+    const publicContexts = ['article', 'blog', 'news', 'event'];
     return publicContexts.includes(context.toLowerCase());
   }
 }

@@ -54,14 +54,14 @@ export default function SubmitPage() {
     }
 
     try {
-      const response = await fetch('/api/articles', {
+      const response = await fetch('/api/blogs', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           ...formData,
-          isAnonymous: formData.isAnonymous, // Use isAnonymous for API
+          isAnonymous: formData.isAnonymous,
           tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()) : []
         })
       })
@@ -78,10 +78,10 @@ export default function SubmitPage() {
           isAnonymous: false
         })
         setTimeout(() => {
-          router.push('/blog')
+          router.push('/blogs')
         }, 2000)
       } else {
-        setMessage({ type: 'error', text: data.error || 'Failed to submit article' })
+        setMessage({ type: 'error', text: data.error || 'Failed to submit blog' })
       }
     } catch (error) {
       setMessage({ type: 'error', text: 'Network error. Please try again.' })
@@ -117,7 +117,7 @@ export default function SubmitPage() {
   <div className="bg-white rounded-lg shadow-lg p-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-4">
-              Submit Your Story
+              Submit Your Blog
             </h1>
             <p className="text-gray-600">
               Share your experience or knowledge about social justice and equality in Azerbaijan. 
@@ -129,7 +129,7 @@ export default function SubmitPage() {
             <div className={`mb-6 p-4 rounded-lg ${
               message.type === 'success' 
                 ? 'bg-green-100 text-green-700 border border-green-500'
-                : 'bg-red-100 text-red-700 border border-red-500'
+                : 'bg-blue-100 text-blue-700 border border-blue-500'
             }`}>
               {message.text}
             </div>
@@ -222,7 +222,7 @@ export default function SubmitPage() {
                 <ul className="text-sm text-blue-700 space-y-1">
                   <li>• Your submission will be reviewed by our team</li>
                   <li>• We typically review submissions within 24-48 hours</li>
-                  <li>• Approved articles will be published in the blog section</li>
+                  <li>• Approved blogs will be published in the blogs section</li>
                   <li>• You will be notified about the status via email</li>
                 </ul>
               </div>
@@ -234,7 +234,7 @@ export default function SubmitPage() {
                 variant="primary"
                 fullWidth
               >
-                Submit Article
+                Submit Blog
               </Button>
             </div>
           </form>

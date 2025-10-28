@@ -1,83 +1,196 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/lib/auth'
 import dbConnect from '@/lib/mongoose'
+import NGO from '@/lib/models/NGO'
 import User from '@/lib/models/User'
-import { Types } from 'mongoose'
+import mongoose from 'mongoose'
+import jwt from 'jsonwebtoken'
 
-interface NGOUser {
-  _id: Types.ObjectId
-  name: string
-  email: string
-  role: 'user' | 'admin' | 'ngo'
-  ngoProfile?: {
-    organizationName: string
-    description: string
-    website?: string
-    contactPhone?: string
-    address?: string
-    registrationNumber?: string
-    focusAreas: string[]
-    status: 'pending' | 'approved' | 'rejected'
-    approvedAt?: Date
-    approvedBy?: Types.ObjectId
-    adminComment?: string
+// Helper function to verify NGO token
+function verifyNGOToken(request: NextRequest) {
+  const token = request.cookies.get('ngo-token')?.value
+  
+  if (!token) {
+    return null
   }
-  createdAt: Date
+  
+  try {
+    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as any
+    return decoded
+  } catch (error) {
+    return null
+  }
 }
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export const dynamic = 'force-dynamic'
+
+// GET - Get single NGO by ID
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     await dbConnect()
     
     const { id } = params
     
-    if (!id) {
-      return NextResponse.json({ error: 'NGO ID is required' }, { status: 400 })
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ error: 'Invalid NGO ID' }, { status: 400 })
     }
-    
-    // Validate ObjectId format
-    if (!Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ error: 'Invalid NGO ID format' }, { status: 400 })
-    }
-    
-    // Find the NGO user by ID
-    const ngoUser = await User.findById(id)
-      .select('name email role ngoProfile createdAt')
-      .lean() as NGOUser | null
-    
-    if (!ngoUser) {
+
+    const ngo = await NGO.findById(id)
+      .populate('approvedBy', 'name email')
+      .lean()
+
+    if (!ngo) {
       return NextResponse.json({ error: 'NGO not found' }, { status: 404 })
     }
-    
-    // Check if user is an NGO and is approved
-    if (ngoUser.role !== 'ngo' || ngoUser.ngoProfile?.status !== 'approved') {
-      return NextResponse.json({ error: 'NGO not found or not approved' }, { status: 404 })
-    }
-    
-    // Transform data for frontend
-    const transformedNgo = {
-      _id: ngoUser._id,
-      name: ngoUser.ngoProfile?.organizationName || ngoUser.name,
-      description: ngoUser.ngoProfile?.description || '',
-      category: ngoUser.ngoProfile?.focusAreas?.[0] || 'Other',
-      focusAreas: ngoUser.ngoProfile?.focusAreas || [],
-      location: ngoUser.ngoProfile?.address || 'Not specified',
-      website: ngoUser.ngoProfile?.website || '',
-      email: ngoUser.email,
-      phone: ngoUser.ngoProfile?.contactPhone || '',
-      verified: ngoUser.ngoProfile?.status === 'approved' || false,
-      logo: null, // Logo field doesn't exist in schema
-      address: ngoUser.ngoProfile?.address || '',
-      registrationNumber: ngoUser.ngoProfile?.registrationNumber || '',
-      createdAt: ngoUser.createdAt
-    }
-    
-    return NextResponse.json(transformedNgo)
-    
+
+    return NextResponse.json({ ngo })
   } catch (error) {
     console.error('Error fetching NGO:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+// PUT - Update NGO (for NGO owners and admins)
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    await dbConnect()
+    
+    const { id } = params
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ error: 'Invalid NGO ID' }, { status: 400 })
+    }
+
+    const ngo = await NGO.findById(id)
+    if (!ngo) {
+      return NextResponse.json({ error: 'NGO not found' }, { status: 404 })
+    }
+
+    // Check permissions - NGO owner or admin
+    const ngoTokenData = verifyNGOToken(request)
+    const session = await getServerSession(authOptions)
+    
+    const isNGOOwner = ngoTokenData && ngoTokenData.ngoId === id
+    const isAdmin = session?.user?.id && (await User.findById(session.user.id))?.role === 'admin'
+    
+    if (!isNGOOwner && !isAdmin) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const {
+      organizationName,
+      description,
+      website,
+      contactPhone,
+      address,
+      registrationNumber,
+      focusAreas,
+      contactPerson,
+      socialMedia,
+      status // Only admins can change status
+    } = body
+
+    // Validation
+    if (!organizationName || !description || !contactPerson?.name || !contactPerson?.email) {
+      return NextResponse.json({
+        error: 'Organization name, description, contact person name and email are required'
+      }, { status: 400 })
+    }
+
+    // Check if another NGO with same name exists (excluding current NGO)
+    if (organizationName !== ngo.organizationName) {
+      const existingNGO = await NGO.findOne({ 
+        organizationName: { $regex: new RegExp(`^${organizationName}$`, 'i') },
+        _id: { $ne: id }
+      })
+      if (existingNGO) {
+        return NextResponse.json({
+          error: 'An NGO with this name already exists'
+        }, { status: 400 })
+      }
+    }
+
+    // Prepare update data
+    const updateData: any = {
+      organizationName,
+      description,
+      website,
+      contactPhone,
+      address,
+      registrationNumber,
+      focusAreas: focusAreas || [],
+      contactPerson,
+      socialMedia,
+      updatedAt: new Date()
+    }
+
+    // Only admins can change status
+    if (isAdmin && status) {
+      updateData.status = status
+      if (status === 'approved') {
+        updateData.approvedBy = session?.user?.id
+        updateData.approvedAt = new Date()
+      }
+    }
+
+    const updatedNGO = await NGO.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
     )
+      .populate('approvedBy', 'name email')
+      .lean()
+
+    return NextResponse.json({
+      message: 'NGO updated successfully',
+      ngo: updatedNGO
+    })
+  } catch (error) {
+    console.error('Error updating NGO:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+// DELETE - Delete NGO (admin only)
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    await dbConnect()
+    
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const user = await User.findById(session.user.id)
+    if (user?.role !== 'admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
+
+    const { id } = params
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ error: 'Invalid NGO ID' }, { status: 400 })
+    }
+
+    const deletedNGO = await NGO.findByIdAndDelete(id)
+    if (!deletedNGO) {
+      return NextResponse.json({ error: 'NGO not found' }, { status: 404 })
+    }
+
+    return NextResponse.json({ message: 'NGO deleted successfully' })
+  } catch (error) {
+    console.error('Error deleting NGO:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

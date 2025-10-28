@@ -4,7 +4,6 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import AuthProvider from '@/components/AuthProvider'
 import { NotificationProvider } from '@/components/NotificationContext'
-import ArticleSubmissionCleanup from '@/components/ArticleSubmissionCleanup'
 
 export const metadata: Metadata = {
   title: 'Social Justice Platform',
@@ -22,7 +21,6 @@ export default function RootLayout({
   <body className="min-h-screen bg-gray-50 text-gray-900 transition-colors duration-200" suppressHydrationWarning={true}>
         <AuthProvider>
           <NotificationProvider>
-            <ArticleSubmissionCleanup />
             <Header />
             <main className="min-h-screen">
               {children}

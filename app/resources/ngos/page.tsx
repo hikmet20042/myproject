@@ -11,21 +11,35 @@ import { Badge } from '@/components/ui/Badge';
 
 interface NGO {
   _id: string
-  name: string
+  organizationName: string
   description: string
-  category: string
   focusAreas: string[]
-  location: string
-  website: string
-  email: string
-  phone: string
-  verified: boolean
-  logo: string | null
-  address: {
-    city?: string
-    country?: string
+  address?: string
+  website?: string
+  contactPhone?: string
+  registrationNumber?: string
+  status: 'pending' | 'approved' | 'rejected'
+  contactPerson: {
+    name: string
+    email: string
+    phone?: string
+    position?: string
+  }
+  socialMedia?: {
+    facebook?: string
+    twitter?: string
+    instagram?: string
+    linkedin?: string
+    youtube?: string
+    website?: string
+  }
+  approvedBy?: {
+    _id: string
+    name: string
+    email: string
   }
   createdAt: string
+  updatedAt: string
 }
 
 export default function NGOsPage() {
@@ -62,10 +76,12 @@ export default function NGOsPage() {
   const locations = ['all', 'Baku', 'Ganja', 'Sumgayit', 'Mingachevir', 'Other'];
 
   const filteredNGOs = ngos.filter(ngo => {
-    const matchesSearch = ngo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = ngo.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          ngo.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || ngo.category === selectedCategory;
-    const matchesLocation = selectedLocation === 'all' || ngo.location === selectedLocation;
+    const matchesCategory = selectedCategory === 'all' || 
+                           (ngo.focusAreas && ngo.focusAreas.some(area => area === selectedCategory));
+    const matchesLocation = selectedLocation === 'all' || 
+                           (ngo.address && ngo.address.toLowerCase().includes(selectedLocation.toLowerCase()));
     
     return matchesSearch && matchesCategory && matchesLocation;
   });
@@ -190,28 +206,26 @@ export default function NGOsPage() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-start">
                       <div className="w-16 h-16 bg-primary-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-                        {ngo.logo ? (
-                          <div className="relative w-12 h-12">
-                            <Image src={ngo.logo} alt={ngo.name} fill className="rounded-lg object-cover" />
-                          </div>
-                        ) : (
-                          <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                        )}
+                        <span className="text-2xl font-bold text-primary">
+                          {ngo.organizationName.charAt(0).toUpperCase()}
+                        </span>
                       </div>
                       <div>
                         <h3 className="text-xl font-bold text-gray-900 mb-2">
-                          {ngo.name}
+                          {ngo.organizationName}
                         </h3>
                         <div className="flex items-center gap-2 mb-2">
-                          <Badge variant="secondary">
-                            {ngo.category}
-                          </Badge>
-                          <Badge variant="secondary">
-                            {ngo.location}
-                          </Badge>
-                          {ngo.verified && (
+                          {ngo.focusAreas && ngo.focusAreas.length > 0 && (
+                            <Badge variant="secondary">
+                              {ngo.focusAreas[0]}
+                            </Badge>
+                          )}
+                          {ngo.address && (
+                            <Badge variant="secondary">
+                              {ngo.address.split(',')[0]}
+                            </Badge>
+                          )}
+                          {ngo.status === 'approved' && (
                             <Badge variant="success" className="bg-green-100 text-green-800 hover:bg-green-200">
                               <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -239,32 +253,36 @@ export default function NGOsPage() {
                         </a>
                       </div>
                     )}
-                    {ngo.email && (
+                    {ngo.contactPerson?.email && (
                       <div className="flex items-center text-sm text-gray-600">
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
-                        <a href={`mailto:${ngo.email}`} className="text-primary hover:underline">
-                          {ngo.email}
+                        <a href={`mailto:${ngo.contactPerson.email}`} className="text-primary hover:underline">
+                          {ngo.contactPerson.email}
                         </a>
                       </div>
                     )}
-                    {ngo.phone && (
+                    {ngo.contactPhone && (
                       <div className="flex items-center text-sm text-gray-600">
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                         </svg>
-                        <a href={`tel:${ngo.phone}`} className="text-primary hover:underline">
-                          {ngo.phone}
+                        <a href={`tel:${ngo.contactPhone}`} className="text-primary hover:underline">
+                          {ngo.contactPhone}
                         </a>
                       </div>
                     )}
                   </div>
 
                   <div className="flex gap-3">
-                    <Button className="flex-1">
-                      Contact NGO
-                    </Button>
+                    {ngo.contactPerson?.email && (
+                      <a href={`mailto:${ngo.contactPerson.email}`} className="flex-1">
+                        <Button className="w-full">
+                          Contact NGO
+                        </Button>
+                      </a>
+                    )}
                     <Link href={`/resources/ngos/${ngo._id}`}>
                        <Button variant="secondary">
                          View Profile

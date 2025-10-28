@@ -4,6 +4,7 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import dbConnect from './mongoose'
 import User from './models/User'
+import NGO from './models/NGO'
 
 // Extend NextAuth types to include emailVerified in session.user
 import { Session, User as NextAuthUser } from 'next-auth'
@@ -36,7 +37,8 @@ export const authOptions: NextAuthOptions = {
       name: 'credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' }
+        password: { label: 'Password', type: 'password' },
+        accountType: { label: 'Account Type', type: 'text' }
       },
       async authorize(credentials) {
         await dbConnect();
@@ -44,23 +46,48 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
         try {
-          const user = await User.findOne({ email: credentials.email });
-          if (!user || !user.password) {
-            return null;
+          const accountType = credentials.accountType || 'user';
+          
+          if (accountType === 'ngo') {
+            // Authenticate NGO
+            const ngo = await NGO.findOne({ email: credentials.email });
+            if (!ngo || !ngo.password) {
+              return null;
+            }
+            const isPasswordValid = await bcrypt.compare(credentials.password, ngo.password);
+            if (!isPasswordValid) {
+              return null;
+            }
+            // Return NGO user object
+            return {
+              id: ngo._id.toString(),
+              email: ngo.email,
+              name: ngo.organizationName,
+              image: null,
+              role: 'ngo',
+              emailVerified: ngo.emailVerified ? true : false,
+              isApprovedNGO: ngo.status === 'approved'
+            };
+          } else {
+            // Authenticate regular user
+            const user = await User.findOne({ email: credentials.email });
+            if (!user || !user.password) {
+              return null;
+            }
+            const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
+            if (!isPasswordValid) {
+              return null;
+            }
+            // Allow sign in even if not verified, but add flag
+            return {
+              id: user._id.toString(),
+              email: user.email,
+              name: user.name,
+              image: user.image,
+              role: user.role,
+              emailVerified: user.emailVerified ? true : false
+            };
           }
-          const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
-          if (!isPasswordValid) {
-            return null;
-          }
-          // Allow sign in even if not verified, but add flag
-          return {
-            id: user._id.toString(),
-            email: user.email,
-            name: user.name,
-            image: user.image,
-            role: user.role,
-            emailVerified: user.emailVerified ? true : false
-          };
         } catch (error) {
           console.error('Credentials auth error:', error);
           return null;

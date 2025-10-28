@@ -20,7 +20,7 @@ const storiesCache = new LRUCache({
 // Cache key generators
 export const generateCacheKey = {
   userStats: (userId: string) => `user_stats_${userId}`,
-  stories: (page: number, limit: number, search?: string, tags?: string[], status?: string) => {
+  blogs: (page: number, limit: number, search?: string, tags?: string[], status?: string) => {
     const params = new URLSearchParams();
     params.set('page', page.toString());
     params.set('limit', limit.toString());
@@ -43,7 +43,7 @@ export const cache = {
   },
   
   // Stories cache
-  stories: {
+  blogs: {
     get: (key: string) => storiesCache.get(key),
     set: (key: string, value: any) => storiesCache.set(key, value),
     delete: (key: string) => storiesCache.delete(key),

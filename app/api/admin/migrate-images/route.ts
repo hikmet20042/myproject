@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import dbConnect from '@/lib/mongoose';
-import { runCompleteMigration, migrateProfileAvatars, migrateArticleImages, migrateStoryImages } from '@/lib/utils/imageMigration';
+import { runCompleteMigration, migrateProfileAvatars, migrateArticleImages, migrateBlogImages } from '@/lib/utils/imageMigration';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { type = 'all' } = body; // 'all', 'profiles', 'articles', 'stories'
+    const { type = 'all' } = body; // 'all', 'profiles', 'articles', 'blogs'
 
     let result;
 
@@ -35,8 +35,8 @@ export async function POST(request: NextRequest) {
       case 'articles':
         result = { articles: await migrateArticleImages() };
         break;
-      case 'stories':
-        result = { stories: await migrateStoryImages() };
+      case 'blogs':
+        result = { blogs: await migrateBlogImages() };
         break;
       case 'all':
       default:
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
         featuredImage: { $exists: true, $nin: [null, ''] },
         featuredImageBlobId: { $exists: false }
       }),
-      Story.countDocuments({
+      Blog.countDocuments({
         featuredImage: { $exists: true, $nin: [null, ''] },
         featuredImageBlobId: { $exists: false }
       }),

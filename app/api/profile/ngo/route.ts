@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import dbConnect from '@/lib/mongoose'
-import User from '@/lib/models/User'
+import NGO from '@/lib/models/NGO'
 
 export async function PUT(request: NextRequest) {
   try {
@@ -39,31 +39,31 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Update the user's NGO profile
-    const updatedUser = await User.findByIdAndUpdate(
-      session.user.id,
+    // Find and update the NGO profile for this user
+    const updatedNGO = await NGO.findOneAndUpdate(
+      { createdBy: session.user.id },
       {
         $set: {
-          'ngoProfile.organizationName': organizationName,
-          'ngoProfile.description': description,
-          'ngoProfile.website': website || '',
-          'ngoProfile.contactPhone': contactPhone || '',
-          'ngoProfile.address': address || '',
-          'ngoProfile.registrationNumber': registrationNumber || '',
-          'ngoProfile.focusAreas': focusAreas || [],
-          'ngoProfile.socialMedia': socialMedia || {}
+          organizationName,
+          description,
+          website: website || '',
+          contactPhone: contactPhone || '',
+          address: address || '',
+          registrationNumber: registrationNumber || '',
+          focusAreas: focusAreas || [],
+          socialMedia: socialMedia || {}
         }
       },
       { new: true, runValidators: true }
-    ).select('ngoProfile')
+    )
 
-    if (!updatedUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    if (!updatedNGO) {
+      return NextResponse.json({ error: 'NGO profile not found' }, { status: 404 })
     }
 
     return NextResponse.json({
       message: 'NGO profile updated successfully',
-      ngoProfile: updatedUser.ngoProfile
+      ngoProfile: updatedNGO
     })
 
   } catch (error) {

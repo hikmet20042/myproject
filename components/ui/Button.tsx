@@ -27,11 +27,11 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const baseClasses = 'inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-4 disabled:opacity-50 disabled:cursor-not-allowed';
     
     const variants = {
-      primary: 'text-white bg-gradient-to-r from-primary to-red-800 hover:from-red-700 hover:to-red-900 focus:ring-red-100 shadow-lg hover:shadow-xl border-2 border-transparent',
+      primary: 'text-white bg-gradient-to-r from-primary to-blue-700 hover:from-blue-600 hover:to-blue-800 focus:ring-blue-100 shadow-lg hover:shadow-xl border-2 border-transparent',
       secondary: 'text-gray-700 bg-white border-2 border-gray-300 hover:bg-gray-50 hover:border-gray-400 focus:ring-gray-100',
-      outline: 'text-primary border-2 border-primary bg-white hover:bg-primary hover:text-white focus:ring-red-100',
+      outline: 'text-primary border-2 border-primary bg-white hover:bg-primary hover:text-white focus:ring-blue-100',
       ghost: 'text-gray-600 bg-transparent hover:bg-gray-100 focus:ring-gray-100 border-2 border-transparent',
-      danger: 'text-white bg-red-600 hover:bg-red-700 focus:ring-red-100 border-2 border-transparent',
+      danger: 'text-white bg-blue-600 hover:bg-blue-700 focus:ring-blue-100 border-2 border-transparent',
       add: 'text-indigo-600 border-2 border-dashed border-indigo-300 bg-white hover:border-indigo-400 hover:bg-indigo-50 focus:ring-indigo-100'
     };
     

@@ -2,8 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import mongoose from 'mongoose';
 import ImageBlob from '@/lib/models/ImageBlob';
-import Article from '@/lib/models/Article';
-import Story from '@/lib/models/Story';
+import Blog from '@/lib/models/Blog';
 import UserProfile from '@/lib/models/UserProfile';
 
 /**
@@ -139,65 +138,25 @@ export async function migrateProfileAvatars(): Promise<MigrationResult> {
 }
 
 /**
- * Migrate article images
+ * Migrate article images - DISABLED (Article model removed, only Blog exists)
  */
-export async function migrateArticleImages(): Promise<MigrationResult> {
+async function migrateArticleImages(): Promise<MigrationResult> {
+  // Articles have been replaced by Blogs
+  // This function is kept for reference but returns empty result
   const result: MigrationResult = {
     success: true,
     migratedCount: 0,
     errors: [],
     skippedCount: 0
   };
-
-  try {
-    // Find articles with legacy featured images
-    const articles = await Article.find({
-      featuredImage: { $exists: true, $nin: [null, ''] },
-      featuredImageBlobId: { $exists: false }
-    });
-
-    for (const article of articles) {
-      if (!article.featuredImage || article.featuredImage.startsWith('/api/images/')) {
-        result.skippedCount++;
-        continue;
-      }
-
-      const userId = article.userId;
-      if (!userId) {
-        result.errors.push(`Article ${article._id}: No user ID found`);
-        continue;
-      }
-
-      const migration = await migrateFileToBlob(
-        article.featuredImage,
-        new mongoose.Types.ObjectId(userId.toString()),
-        `Featured image for article: ${article.title}`
-      );
-
-      if (migration.success && migration.blobId) {
-        // Update article with blob reference
-        await Article.findByIdAndUpdate(article._id, {
-          featuredImageBlobId: new mongoose.Types.ObjectId(migration.blobId),
-          featuredImage: undefined // Clear legacy field
-        });
-        result.migratedCount++;
-      } else {
-        result.errors.push(`Article ${article._id}: ${migration.error}`);
-      }
-    }
-
-  } catch (error) {
-    result.success = false;
-    result.errors.push(`Migration error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
 
   return result;
 }
 
 /**
- * Migrate story images
+ * Migrate blog images
  */
-export async function migrateStoryImages(): Promise<MigrationResult> {
+export async function migrateBlogImages(): Promise<MigrationResult> {
   const result: MigrationResult = {
     success: true,
     migratedCount: 0,
@@ -206,39 +165,39 @@ export async function migrateStoryImages(): Promise<MigrationResult> {
   };
 
   try {
-    // Find stories with legacy featured images
-    const stories = await Story.find({
+    // Find blogs with legacy featured images
+    const blogs = await Blog.find({
       featuredImage: { $exists: true, $nin: [null, ''] },
       featuredImageBlobId: { $exists: false }
     });
 
-    for (const story of stories) {
-      if (!story.featuredImage || story.featuredImage.startsWith('/api/images/')) {
+    for (const blog of blogs) {
+      if (!blog.featuredImage || blog.featuredImage.startsWith('/api/images/')) {
         result.skippedCount++;
         continue;
       }
 
-      const userId = story.author;
+      const userId = blog.author;
       if (!userId) {
-        result.errors.push(`Story ${story._id}: No author ID found`);
+        result.errors.push(`Blog ${blog._id}: No author ID found`);
         continue;
       }
 
       const migration = await migrateFileToBlob(
-        story.featuredImage,
+        blog.featuredImage,
         new mongoose.Types.ObjectId(userId.toString()),
-        `Featured image for story: ${story.title}`
+        `Featured image for blog: ${blog.title}`
       );
 
       if (migration.success && migration.blobId) {
-        // Update story with blob reference
-        await Story.findByIdAndUpdate(story._id, {
+        // Update blog with blob reference
+        await Blog.findByIdAndUpdate(blog._id, {
           featuredImageBlobId: new mongoose.Types.ObjectId(migration.blobId),
           featuredImage: undefined // Clear legacy field
         });
         result.migratedCount++;
       } else {
-        result.errors.push(`Story ${story._id}: ${migration.error}`);
+        result.errors.push(`Blog ${blog._id}: ${migration.error}`);
       }
     }
 
@@ -256,7 +215,7 @@ export async function migrateStoryImages(): Promise<MigrationResult> {
 export async function runCompleteMigration(): Promise<{
   profiles: MigrationResult;
   articles: MigrationResult;
-  stories: MigrationResult;
+  blogs: MigrationResult;
   summary: {
     totalMigrated: number;
     totalErrors: number;
@@ -271,16 +230,16 @@ export async function runCompleteMigration(): Promise<{
   const articles = await migrateArticleImages();
   console.log(`Article images: ${articles.migratedCount} migrated, ${articles.skippedCount} skipped, ${articles.errors.length} errors`);
 
-  const stories = await migrateStoryImages();
-  console.log(`Story images: ${stories.migratedCount} migrated, ${stories.skippedCount} skipped, ${stories.errors.length} errors`);
+  const blogs = await migrateBlogImages();
+  console.log(`Blog images: ${blogs.migratedCount} migrated, ${blogs.skippedCount} skipped, ${blogs.errors.length} errors`);
 
   const summary = {
-    totalMigrated: profiles.migratedCount + articles.migratedCount + stories.migratedCount,
-    totalErrors: profiles.errors.length + articles.errors.length + stories.errors.length,
-    totalSkipped: profiles.skippedCount + articles.skippedCount + stories.skippedCount
+    totalMigrated: profiles.migratedCount + articles.migratedCount + blogs.migratedCount,
+    totalErrors: profiles.errors.length + articles.errors.length + blogs.errors.length,
+    totalSkipped: profiles.skippedCount + articles.skippedCount + blogs.skippedCount
   };
 
   console.log('Migration complete:', summary);
 
-  return { profiles, articles, stories, summary };
+  return { profiles, articles, blogs, summary };
 }

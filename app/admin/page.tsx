@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { CheckCircle, XCircle, Clock, Eye, Users, Search, Filter, Edit, Trash2, Shield, UserCheck, ChevronDown, Calendar, GraduationCap, Briefcase, Tag, SortAsc, SortDesc, MoreHorizontal, Bell, Send, MessageSquare, AlertCircle, Settings, Save, RotateCcw, History, BookOpen, Building } from 'lucide-react'
+import { CheckCircle, XCircle, Clock, Eye, Users, Search, Filter, Edit, Trash2, Shield, UserCheck, ChevronDown, Calendar, GraduationCap, Briefcase, Tag, SortAsc, SortDesc, MoreHorizontal, Bell, Send, AlertCircle, Settings, Save, RotateCcw, History, BookOpen, Building } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Input } from '@/components/ui/Input'
@@ -27,12 +27,11 @@ type Article = {
   createdAt: string
 }
 
-type Story = {
+type Blog = {
   _id: string
   title: string
   content: string
   contentHtml: string
-  tags: string[]
   abstract?: string
   status: 'pending' | 'approved' | 'rejected'
   adminComment?: string
@@ -56,32 +55,45 @@ type User = {
   }
   stats: {
     articles: number
-    stories: number
+    blogs: number
     totalContent: number
   }
 }
 
 type NGO = {
   _id: string
-  name: string
+  organizationName: string
   email: string
-  role: 'ngo'
-  emailVerified: boolean
-  createdAt: string
-  ngoProfile: {
-    organizationName: string
-    description: string
-    website?: string
-    contactPhone?: string
-    address?: string
-    registrationNumber?: string
-    focusAreas: string[]
-    status: 'pending' | 'approved' | 'rejected'
-    approvedAt?: string
-    approvedBy?: string
-    rejectedAt?: string
-    adminComment?: string
+  description: string
+  website?: string
+  contactPhone?: string
+  address?: string
+  registrationNumber?: string
+  focusAreas: string[]
+  status: 'pending' | 'approved' | 'rejected'
+  approvedAt?: string
+  approvedBy?: {
+    _id: string
+    name: string
+    email: string
   }
+  adminComment?: string
+  contactPerson: {
+    name: string
+    email: string
+    phone?: string
+    position?: string
+  }
+  socialMedia?: {
+    facebook?: string
+    twitter?: string
+    instagram?: string
+    linkedin?: string
+    youtube?: string
+    website?: string
+  }
+  createdAt: string
+  updatedAt: string
 }
 
 type Notification = {
@@ -121,7 +133,7 @@ type SiteSettings = {
     requireApproval: boolean
     autoApproveVerifiedUsers: boolean
     maxArticleLength: number
-    maxStoryLength: number
+    maxBlogLength: number
     allowedFileTypes: string[]
     maxFileSize: number
     moderationKeywords: string[]
@@ -181,7 +193,7 @@ type SiteSettings = {
     enableSharing: boolean
     enableBookmarks: boolean
     enableFollowing: boolean
-    enableDrafts: boolean
+    
     enableCollaboration: boolean
     enableVersioning: boolean
     enableAI: boolean
@@ -201,11 +213,11 @@ export default function AdminPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('articles')
   const [articles, setArticles] = useState<any[]>([])
-  const [stories, setStories] = useState<any[]>([])
+  const [blogs, setBlogs] = useState<any[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [ngos, setNgos] = useState<NGO[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedItem, setSelectedItem] = useState<Article | Story | null>(null)
+  const [selectedItem, setSelectedItem] = useState<Article | Blog | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [adminComment, setAdminComment] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
@@ -223,7 +235,7 @@ export default function AdminPage() {
   const [contentSearch, setContentSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [authorFilter, setAuthorFilter] = useState('')
-  const [tagFilter, setTagFilter] = useState('')
+
   const [dateFromFilter, setDateFromFilter] = useState('')
   const [dateToFilter, setDateToFilter] = useState('')
   const [sortBy, setSortBy] = useState('createdAt')
@@ -295,8 +307,8 @@ export default function AdminPage() {
     try {
       if (activeTab === 'articles') {
         await loadArticles();
-      } else if (activeTab === 'stories') {
-        await loadStories();
+      } else if (activeTab === 'blogs') {
+        await loadBlogs();
       } else if (activeTab === 'users') {
         await loadUsers();
       } else if (activeTab === 'ngos') {
@@ -326,7 +338,7 @@ export default function AdminPage() {
         ...(statusFilter !== 'all' && { status: statusFilter }),
         ...(contentSearch && { search: contentSearch }),
         ...(authorFilter && { author: authorFilter }),
-        ...(tagFilter && { tags: tagFilter }),
+
         ...(dateFromFilter && { dateFrom: dateFromFilter }),
         ...(dateToFilter && { dateTo: dateToFilter })
       });
@@ -342,7 +354,7 @@ export default function AdminPage() {
     }
   }
 
-  const loadStories = async () => {
+  const loadBlogs = async () => {
     try {
       const params = new URLSearchParams({
         limit: '50',
@@ -351,19 +363,19 @@ export default function AdminPage() {
         ...(statusFilter !== 'all' && { status: statusFilter }),
         ...(contentSearch && { search: contentSearch }),
         ...(authorFilter && { author: authorFilter }),
-        ...(tagFilter && { tags: tagFilter }),
+
         ...(dateFromFilter && { dateFrom: dateFromFilter }),
         ...(dateToFilter && { dateTo: dateToFilter })
       });
       
-      const response = await fetch(`/api/admin/stories?${params}`);
+      const response = await fetch(`/api/admin/blogs?${params}`);
       if (response.ok) {
         const data = await response.json();
-        setStories(data.results || []);
+        setBlogs(data.results || []);
         setAvailableFilters(data.filters || {tags: [], authors: []});
       }
     } catch (error) {
-      console.error('Error loading stories:', error);
+      console.error('Error loading blogs:', error);
     }
   }
 
@@ -675,7 +687,7 @@ export default function AdminPage() {
     setActiveTab(tab);
   };
 
-  const handleReview = (item: Article | Story) => {
+  const handleReview = (item: Article | Blog) => {
     setSelectedItem(item)
     setAdminComment(item.adminComment || '')
     setShowModal(true)
@@ -685,7 +697,7 @@ export default function AdminPage() {
     if (!selectedItem) return;
     setIsProcessing(true);
     try {
-      const endpoint = activeTab === 'articles' ? '/api/admin/articles' : '/api/admin/stories';
+      const endpoint = activeTab === 'articles' ? '/api/admin/articles' : '/api/admin/blogs';
       const response = await fetch(endpoint, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -716,7 +728,7 @@ export default function AdminPage() {
     }
     setIsProcessing(true);
     try {
-      const endpoint = activeTab === 'articles' ? '/api/admin/articles' : '/api/admin/stories';
+      const endpoint = activeTab === 'articles' ? '/api/admin/articles' : '/api/admin/blogs';
       const response = await fetch(endpoint, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -1003,7 +1015,7 @@ export default function AdminPage() {
     setIsProcessing(true)
     
     try {
-      const endpoint = activeTab === 'articles' ? '/api/admin/articles' : '/api/admin/stories'
+      const endpoint = activeTab === 'articles' ? '/api/admin/articles' : '/api/admin/blogs'
       const response = await fetch(endpoint, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -1037,7 +1049,7 @@ export default function AdminPage() {
   }
 
   const toggleSelectAll = () => {
-    const currentItems = activeTab === 'articles' ? articles : stories
+    const currentItems = activeTab === 'articles' ? articles : blogs
     if (selectedItems.length === currentItems.length) {
       setSelectedItems([])
     } else {
@@ -1049,7 +1061,7 @@ export default function AdminPage() {
     setContentSearch('')
     setStatusFilter('all')
     setAuthorFilter('')
-    setTagFilter('')
+
     setDateFromFilter('')
     setDateToFilter('')
     setSortBy('createdAt')
@@ -1127,20 +1139,20 @@ export default function AdminPage() {
                 </div>
               </button>
               <button
-                onClick={() => handleTabChange('stories')}
+                onClick={() => handleTabChange('blogs')}
                 disabled={tabLoading}
                 className={`relative flex items-center px-2 sm:px-3 py-2 sm:py-3 font-medium text-xs transition-all duration-200 disabled:opacity-50 border-b-4 whitespace-nowrap ${
-                  activeTab === 'stories'
+                  activeTab === 'blogs'
                     ? 'border-red-500 text-red-600 bg-red-50'
                     : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
-                <MessageSquare className="w-4 h-4 mr-2" />
-                Stories
+                <BookOpen className="w-4 h-4 mr-2" />
+                Blogs
                 <div className="ml-2 w-6 h-4 flex items-center justify-center">
-                  {getByStatus(stories, 'pending').length > 0 && (
+                  {getByStatus(blogs, 'pending').length > 0 && (
                     <span className="bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full px-2 py-1 font-semibold shadow-sm">
-                      {getByStatus(stories, 'pending').length}
+                      {getByStatus(blogs, 'pending').length}
                     </span>
                   )}
                 </div>
@@ -1359,21 +1371,7 @@ export default function AdminPage() {
                       />
                     </div>
 
-                    {/* Tag Filter */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Tag</label>
-                      <Select
-                        value={tagFilter}
-                        onChange={(e) => setTagFilter(e.target.value)}
-                        options={[
-                          { value: '', label: 'All Tags' },
-                          ...availableFilters.tags.map(tag => ({
-                            value: tag,
-                            label: tag
-                          }))
-                        ]}
-                      />
-                    </div>
+
 
                     {/* Sort Options */}
                     <div>
@@ -1559,16 +1557,16 @@ export default function AdminPage() {
             </div>
           )}
 
-          {/* Stories Tab */}
-          {activeTab === 'stories' && (
+          {/* Blogs Tab */}
+          {activeTab === 'blogs' && (
             <div className="space-y-6">
-              {/* Story Stats Cards */}
+              {/* Blogs Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Pending Approval</p>
-                      <p className="text-3xl font-bold text-yellow-600">{getByStatus(stories, 'pending').length}</p>
+                      <p className="text-3xl font-bold text-yellow-600">{getByStatus(blogs, 'pending').length}</p>
                     </div>
                     <Clock className="w-8 h-8 text-yellow-500" />
                   </div>
@@ -1577,7 +1575,7 @@ export default function AdminPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Approved</p>
-                      <p className="text-3xl font-bold text-green-600">{getByStatus(stories, 'approved').length}</p>
+                      <p className="text-3xl font-bold text-green-600">{getByStatus(blogs, 'approved').length}</p>
                     </div>
                     <CheckCircle className="w-8 h-8 text-green-500" />
                   </div>
@@ -1586,7 +1584,7 @@ export default function AdminPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Rejected</p>
-                      <p className="text-3xl font-bold text-red-600">{getByStatus(stories, 'rejected').length}</p>
+                      <p className="text-3xl font-bold text-red-600">{getByStatus(blogs, 'rejected').length}</p>
                     </div>
                     <XCircle className="w-8 h-8 text-red-500" />
                   </div>
@@ -1594,8 +1592,8 @@ export default function AdminPage() {
                 <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Total Stories</p>
-                      <p className="text-3xl font-bold text-blue-600">{stories.length}</p>
+                      <p className="text-sm font-medium text-gray-600">Total Blogs</p>
+                      <p className="text-3xl font-bold text-blue-600">{blogs.length}</p>
                     </div>
                     <BookOpen className="w-8 h-8 text-blue-500" />
                   </div>
@@ -1611,7 +1609,7 @@ export default function AdminPage() {
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <input
                         type="text"
-                        placeholder="Search stories by title, content, or tags..."
+                        placeholder="Search blogs by title, content, or tags..."
                         value={contentSearch}
                         onChange={(e) => setContentSearch(e.target.value)}
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
@@ -1665,20 +1663,7 @@ export default function AdminPage() {
                       </select>
                     </div>
 
-                    {/* Tag Filter */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Tag</label>
-                      <select
-                        value={tagFilter}
-                        onChange={(e) => setTagFilter(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                      >
-                        <option value="">All Tags</option>
-                        {availableFilters.tags.map(tag => (
-                          <option key={tag} value={tag}>{tag}</option>
-                        ))}
-                      </select>
-                    </div>
+
 
                     {/* Sort Options */}
                     <div>
@@ -1770,17 +1755,17 @@ export default function AdminPage() {
                 )}
               </div>
 
-              {/* Stories List */}
+              {/* Blogs List */}
               <div className="bg-white shadow-lg rounded-2xl">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
                   <h2 className="text-xl font-semibold text-gray-900">
-                    Stories ({stories.length})
+                    Blogs ({blogs.length})
                   </h2>
-                  {stories.length > 0 && (
+                  {blogs.length > 0 && (
                     <div className="flex items-center gap-2">
                       <input
                         type="checkbox"
-                        checked={selectedItems.length === stories.length}
+                        checked={selectedItems.length === blogs.length}
                         onChange={toggleSelectAll}
                         className="rounded border-gray-300 text-red-600 focus:ring-red-500"
                       />
@@ -1789,68 +1774,58 @@ export default function AdminPage() {
                   )}
                 </div>
                 <div className="px-6 py-6">
-                  {stories.length === 0 ? (
+                  {blogs.length === 0 ? (
                     <p className="text-gray-500 text-center py-8">
                       No stories found
                     </p>
                   ) : (
                     <div className="space-y-4">
-                      {stories.map((story) => (
-                        <div key={story._id} className={`border border-gray-200 rounded-xl p-6 transition-all ${
-                          selectedItems.includes(story._id) ? 'bg-blue-50 border-blue-300' : 'bg-gray-50 hover:shadow-md'
+                      {blogs.map((blog) => (
+                        <div key={blog._id} className={`border border-gray-200 rounded-xl p-6 transition-all ${
+                          selectedItems.includes(blog._id) ? 'bg-blue-50 border-blue-300' : 'bg-gray-50 hover:shadow-md'
                         }`}>
                           <div className="flex items-start gap-4">
                             <input
                               type="checkbox"
-                              checked={selectedItems.includes(story._id)}
-                              onChange={() => toggleItemSelection(story._id)}
+                              checked={selectedItems.includes(blog._id)}
+                              onChange={() => toggleItemSelection(blog._id)}
                               className="mt-1 rounded border-gray-300 text-red-600 focus:ring-red-500"
                             />
                             <div className="flex-1">
                               <div className="flex flex-wrap items-center gap-2 mb-2">
                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide ${
-                                  story.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                  story.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                  blog.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                  blog.status === 'approved' ? 'bg-green-100 text-green-800' :
                                   'bg-red-100 text-red-800'
                                 }`}>
-                                  {story.status}
+                                  {blog.status}
                                 </span>
                                 <span className="text-sm text-gray-500">
-                                  by {story.isAnonymous ? 'Anonymous' : (story.author?.name || story.author || 'Unknown')}
+                                  by {blog.isAnonymous ? 'Anonymous' : (blog.author?.name || blog.author || 'Unknown')}
                                 </span>
                                 <span className="text-xs text-gray-400">
-                                  {new Date(story.createdAt).toLocaleDateString()}
+                                  {new Date(blog.createdAt).toLocaleDateString()}
                                 </span>
                               </div>
                               <h3 className="text-lg font-bold text-gray-900 mb-2">
-                                {story.title}
+                                {blog.title}
                               </h3>
-                              {story.abstract && (
+                              {blog.abstract && (
                                 <p className="text-sm text-gray-600 mb-2">
-                                  {story.abstract}
+                                  {blog.abstract}
                                 </p>
                               )}
-                              <div className="flex flex-wrap gap-2 mb-2">
-                                {story.tags.map((tag: string, index: number) => (
-                                  <span
-                                    key={index}
-                                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-800"
-                                  >
-                                    <Tag className="w-3 h-3 mr-1" />
-                                    {tag}
-                                  </span>
-                                ))}
-                              </div>
-                              {story.adminComment && (
+
+                              {blog.adminComment && (
                                 <div className="mt-3 p-3 bg-red-100 rounded-lg">
                                   <p className="text-sm font-medium text-red-800 mb-1">Admin Comment:</p>
-                                  <p className="text-sm text-red-700">{story.adminComment}</p>
+                                  <p className="text-sm text-red-700">{blog.adminComment}</p>
                                 </div>
                               )}
                             </div>
                             <div className="flex gap-2">
                               <Link
-                                href={`/admin/preview/story/${story._id}`}
+                                href={`/admin/preview/blog/${blog._id}`}
                                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                               >
                                 <Eye className="w-4 h-4" />
@@ -1984,7 +1959,7 @@ export default function AdminPage() {
                             </p>
                             <div className="flex flex-wrap gap-4 text-xs text-gray-500">
                               <span>Articles: {user.stats.articles}</span>
-                              <span>Stories: {user.stats.stories}</span>
+                              <span>Blogs: {user.stats.blogs}</span>
                               <span>Joined: {new Date(user.createdAt).toLocaleDateString()}</span>
                             </div>
                             {user.profile?.bio && (
@@ -2139,7 +2114,7 @@ export default function AdminPage() {
                     </div>
                   ) : (
                     ngos.map((ngo) => {
-                      const status = ngo.ngoProfile.status || 'pending';
+                      const status = ngo.status || 'pending';
                       return (
                         <div key={ngo._id} className="px-6 py-6 hover:bg-gray-50 transition-colors">
                           <div className="flex items-start justify-between">
@@ -2155,41 +2130,35 @@ export default function AdminPage() {
                                    <Clock className="w-3 h-3 mr-1" />}
                                   {status.charAt(0).toUpperCase() + status.slice(1)}
                                 </span>
-                                {ngo.emailVerified && (
-                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-                                    <UserCheck className="w-3 h-3 mr-1" />
-                                    Email Verified
-                                  </span>
-                                )}
                               </div>
                               <h3 className="text-lg font-bold text-gray-900 mb-1">
-                                {ngo.ngoProfile.organizationName}
+                                {ngo.organizationName}
                               </h3>
                               <p className="text-sm text-gray-600 mb-2">
-                                Contact: {ngo.name} ({ngo.email})
+                                Contact: {ngo.contactPerson.name} ({ngo.email})
                               </p>
                               <p className="text-sm text-gray-700 mb-3">
-                                {ngo.ngoProfile.description}
+                                {ngo.description}
                               </p>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-gray-500">
-                                {ngo.ngoProfile.website && (
-                                  <span>Website: {ngo.ngoProfile.website}</span>
+                                {ngo.website && (
+                                  <span>Website: {ngo.website}</span>
                                 )}
-                                {ngo.ngoProfile.contactPhone && (
-                                  <span>Phone: {ngo.ngoProfile.contactPhone}</span>
+                                {ngo.contactPhone && (
+                                  <span>Phone: {ngo.contactPhone}</span>
                                 )}
-                                {ngo.ngoProfile.address && (
-                                  <span>Address: {ngo.ngoProfile.address}</span>
+                                {ngo.address && (
+                                  <span>Address: {ngo.address}</span>
                                 )}
-                                {ngo.ngoProfile.registrationNumber && (
-                                  <span>Reg. No: {ngo.ngoProfile.registrationNumber}</span>
+                                {ngo.registrationNumber && (
+                                  <span>Reg. No: {ngo.registrationNumber}</span>
                                 )}
                               </div>
-                              {ngo.ngoProfile.focusAreas.length > 0 && (
+                              {ngo.focusAreas.length > 0 && (
                                 <div className="mt-3">
                                   <p className="text-xs text-gray-500 mb-1">Focus Areas:</p>
                                   <div className="flex flex-wrap gap-1">
-                                    {ngo.ngoProfile.focusAreas.map((area: string, index: number) => (
+                                    {ngo.focusAreas.map((area: string, index: number) => (
                                       <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                                         {area}
                                       </span>
@@ -2197,16 +2166,16 @@ export default function AdminPage() {
                                   </div>
                                 </div>
                               )}
-                              {ngo.ngoProfile.adminComment && status === 'rejected' && (
+                              {ngo.adminComment && status === 'rejected' && (
                                 <div className="mt-3 p-3 bg-red-50 rounded-lg">
                                   <p className="text-sm font-medium text-red-800 mb-1">Admin Comment:</p>
-                                  <p className="text-sm text-red-700">{ngo.ngoProfile.adminComment}</p>
+                                  <p className="text-sm text-red-700">{ngo.adminComment}</p>
                                 </div>
                               )}
                               <div className="mt-3 text-xs text-gray-500">
                                 Registered: {new Date(ngo.createdAt).toLocaleDateString()}
-                                {ngo.ngoProfile.approvedAt && (
-                                  <span className="ml-4">Approved: {new Date(ngo.ngoProfile.approvedAt).toLocaleDateString()}</span>
+                                {ngo.approvedAt && (
+                                  <span className="ml-4">Approved: {new Date(ngo.approvedAt).toLocaleDateString()}</span>
                                 )}
                               </div>
                             </div>
@@ -2381,7 +2350,7 @@ export default function AdminPage() {
                               <h4 className="text-lg font-semibold text-gray-900 mb-1">{event.title}</h4>
                               <p className="text-sm text-gray-600 mb-2">{event.description?.substring(0, 150)}...</p>
                               <div className="flex items-center gap-4 text-sm text-gray-500">
-                                <span>By: {event.createdBy.ngoProfile.organizationName || 'Unknown'}</span>
+                                <span>By: {event.organizationName || 'Unknown'}</span>
                                 <span>•</span>
                                 <span>{new Date(event.eventDate).toLocaleDateString()}</span>
                                 {event.endDate && (
@@ -2594,7 +2563,7 @@ export default function AdminPage() {
                               <h4 className="text-lg font-semibold text-gray-900 mb-1">{vacancy.title}</h4>
                               <p className="text-sm text-gray-600 mb-2">{vacancy.description?.substring(0, 150)}...</p>
                               <div className="flex items-center gap-4 text-sm text-gray-500">
-                                <span>By: {vacancy.createdBy?.ngoProfile?.organizationName || 'Unknown'}</span>
+                                <span>By: {vacancy.organizationName || 'Unknown'}</span>
                                 <span>•</span>
                                 <span>Deadline: {new Date(vacancy.applicationDeadline).toLocaleDateString()}</span>
                                 <span>•</span>
@@ -2721,7 +2690,7 @@ export default function AdminPage() {
                         <p className="text-sm font-medium text-gray-600">Total Announcements</p>
                         <p className="text-3xl font-bold text-blue-600">{notificationStats.total}</p>
                       </div>
-                      <MessageSquare className="w-8 h-8 text-blue-500" />
+                      <BookOpen className="w-8 h-8 text-blue-500" />
                     </div>
                   </div>
                   <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
@@ -3150,11 +3119,11 @@ export default function AdminPage() {
                                     />
                                   </div>
                                   <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Max Story Length</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Max Blogs Length</label>
                                     <input
                                       type="number"
-                                      value={settings.contentPolicies.maxStoryLength}
-                                      onChange={(e) => updateSettingsField('contentPolicies', 'maxStoryLength', parseInt(e.target.value))}
+                                      value={settings.contentPolicies.maxBlogLength}
+                                      onChange={(e) => updateSettingsField('contentPolicies', 'maxBlogLength', parseInt(e.target.value))}
                                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                     />
                                   </div>
@@ -3529,7 +3498,7 @@ export default function AdminPage() {
                   {selectedItems.map(id => {
                     const item = activeTab === 'articles' ? 
                       articles.find(a => a._id === id) : 
-                      stories.find(s => s._id === id)
+                      blogs.find(s => s._id === id)
                     return (
                       <div key={id} className="text-sm text-gray-700 mb-1">
                         • {item?.title || 'Unknown'}
@@ -3604,33 +3573,33 @@ export default function AdminPage() {
             <div className="p-6">
               <div className="mb-4">
                 <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                  {selectedNgo.ngoProfile.organizationName}
+                  {selectedNgo.organizationName}
                 </h4>
                 <p className="text-sm text-gray-600 mb-2">
-                  Contact: {selectedNgo.name} ({selectedNgo.email})
+                  Contact: {selectedNgo.contactPerson.name} ({selectedNgo.email})
                 </p>
                 <p className="text-sm text-gray-700 mb-3">
-                  {selectedNgo.ngoProfile.description}
+                  {selectedNgo.description}
                 </p>
                 <div className="grid grid-cols-1 gap-2 text-xs text-gray-500">
-                  {selectedNgo.ngoProfile.website && (
-                    <span>Website: {selectedNgo.ngoProfile.website}</span>
+                  {selectedNgo.website && (
+                    <span>Website: {selectedNgo.website}</span>
                   )}
-                  {selectedNgo.ngoProfile.contactPhone && (
-                    <span>Phone: {selectedNgo.ngoProfile.contactPhone}</span>
+                  {selectedNgo.contactPhone && (
+                    <span>Phone: {selectedNgo.contactPhone}</span>
                   )}
-                  {selectedNgo.ngoProfile.address && (
-                    <span>Address: {selectedNgo.ngoProfile.address}</span>
+                  {selectedNgo.address && (
+                    <span>Address: {selectedNgo.address}</span>
                   )}
-                  {selectedNgo.ngoProfile.registrationNumber && (
-                    <span>Registration Number: {selectedNgo.ngoProfile.registrationNumber}</span>
+                  {selectedNgo.registrationNumber && (
+                    <span>Registration Number: {selectedNgo.registrationNumber}</span>
                   )}
                 </div>
-                {selectedNgo.ngoProfile.focusAreas.length > 0 && (
+                {selectedNgo.focusAreas.length > 0 && (
                   <div className="mt-3">
                     <p className="text-xs text-gray-500 mb-1">Focus Areas:</p>
                     <div className="flex flex-wrap gap-1">
-                      {selectedNgo.ngoProfile.focusAreas.map((area: string, index: number) => (
+                      {selectedNgo.focusAreas.map((area: string, index: number) => (
                         <span key={index} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                           {area}
                         </span>
@@ -3749,7 +3718,7 @@ export default function AdminPage() {
                   </div>
                   <div>
                     <span className="font-medium text-gray-700">Creator:</span>
-                    <span className="ml-2 text-gray-600">{selectedEvent.createdBy.ngoProfile.organizationName || 'Unknown'}</span>
+                    <span className="ml-2 text-gray-600">{selectedEvent.organizationName || 'Unknown'}</span>
                   </div>
                   <div>
                     <span className="font-medium text-gray-700">Start Date:</span>
@@ -3834,7 +3803,7 @@ export default function AdminPage() {
                   </div>
                   <div>
                     <span className="font-medium text-gray-700">Organization:</span>
-                    <span className="ml-2 text-gray-600">{selectedVacancy.createdBy?.ngoProfile?.organizationName || 'Unknown'}</span>
+                    <span className="ml-2 text-gray-600">{selectedVacancy.organizationName || 'Unknown'}</span>
                   </div>
                   <div>
                     <span className="font-medium text-gray-700">Deadline:</span>

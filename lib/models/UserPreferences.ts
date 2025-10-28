@@ -63,14 +63,12 @@ interface IUserPreferences extends mongoose.Document {
   dashboard: {
     defaultTab: string;
     showQuickStats: boolean;
-    showDraftPreview: boolean;
     itemsPerPage: number;
     defaultView: 'grid' | 'list';
     enableAnalytics: boolean;
     showAchievements: boolean;
   };
   content: {
-    enableDrafts: boolean;
     enableTemplates: boolean;
     enableBulkOperations: boolean;
     defaultSortBy: string;
@@ -172,7 +170,6 @@ const UserPreferencesSchema = new mongoose.Schema<IUserPreferences>({
   dashboard: {
     defaultTab: { type: String, default: 'profile' },
     showQuickStats: { type: Boolean, default: true },
-    showDraftPreview: { type: Boolean, default: true },
     itemsPerPage: { type: Number, default: 10, min: 5, max: 100 },
     defaultView: { type: String, enum: ['grid', 'list'], default: 'grid' },
     enableAnalytics: { type: Boolean, default: true },
@@ -180,7 +177,6 @@ const UserPreferencesSchema = new mongoose.Schema<IUserPreferences>({
   },
   
   content: {
-    enableDrafts: { type: Boolean, default: true },
     enableTemplates: { type: Boolean, default: true },
     enableBulkOperations: { type: Boolean, default: true },
     defaultSortBy: { type: String, default: 'updatedAt' },
@@ -273,14 +269,12 @@ UserPreferencesSchema.statics.getDefaults = function() {
     dashboard: {
       defaultTab: 'profile',
       showQuickStats: true,
-      showDraftPreview: true,
       itemsPerPage: 10,
       defaultView: 'grid',
       enableAnalytics: true,
       showAchievements: true,
     },
     content: {
-      enableDrafts: true,
       enableTemplates: true,
       enableBulkOperations: true,
       defaultSortBy: 'updatedAt',

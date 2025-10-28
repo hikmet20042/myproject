@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import dbConnect from '@/lib/mongoose';
 import User from '@/lib/models/User';
+import NGO from '@/lib/models/NGO';
 import NotificationModel from '@/lib/models/Notification';
 
 // Helper function to check admin access
@@ -29,25 +30,24 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sortBy') || 'createdAt';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
 
-    // Build query for NGO users
-    const query: any = { role: 'ngo' };
+    // Build query for independent NGOs
+    const query: any = {};
     
     if (status !== 'all') {
       if (status === 'pending') {
-        query['ngoProfile.status'] = 'pending';
+        query.status = 'pending';
       } else if (status === 'approved') {
-        query['ngoProfile.status'] = 'approved';
+        query.status = 'approved';
       } else if (status === 'rejected') {
-        query['ngoProfile.status'] = 'rejected';
+        query.status = 'rejected';
       }
     }
 
     if (search) {
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
+        { organizationName: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } },
-        { 'ngoProfile.organizationName': { $regex: search, $options: 'i' } },
-        { 'ngoProfile.description': { $regex: search, $options: 'i' } }
+        { description: { $regex: search, $options: 'i' } }
       ];
     }
 
@@ -55,14 +55,15 @@ export async function GET(request: NextRequest) {
     const sortOptions: any = {};
     sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
-    const ngos = await User.find(query)
-      .select('name email ngoProfile createdAt emailVerified')
+    const ngos = await NGO.find(query)
       .sort(sortOptions)
       .skip(skip)
       .limit(limit)
+      .populate('approvedBy', 'name email')
+      .select('-password -verificationToken')
       .lean();
 
-    const total = await User.countDocuments(query);
+    const total = await NGO.countDocuments(query);
     const totalPages = Math.ceil(total / limit);
 
     // Get counts for different statuses
@@ -128,23 +129,23 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Rejection reason is required' }, { status: 400 });
     }
 
-    const ngo = await User.findOne({ _id: userId, role: 'ngo' });
+    const ngo = await NGO.findById(userId);
     if (!ngo) {
       return NextResponse.json({ error: 'NGO not found' }, { status: 404 });
     }
 
     if (action === 'approve') {
-      ngo.ngoProfile.status = 'approved';
-      ngo.ngoProfile.approvedAt = new Date();
-      ngo.ngoProfile.approvedBy = session.user.id;
+      ngo.status = 'approved';
+      ngo.approvedAt = new Date();
+      ngo.approvedBy = session.user.id;
       // Clear any previous rejection data
-      ngo.ngoProfile.adminComment = undefined;
+      ngo.adminComment = undefined;
     } else if (action === 'reject') {
-      ngo.ngoProfile.status = 'rejected';
-      ngo.ngoProfile.adminComment = rejectionReason.trim();
+      ngo.status = 'rejected';
+      ngo.adminComment = rejectionReason.trim();
       // Clear approval data
-      ngo.ngoProfile.approvedAt = undefined;
-      ngo.ngoProfile.approvedBy = undefined;
+      ngo.approvedAt = undefined;
+      ngo.approvedBy = undefined;
     }
 
     await ngo.save();
@@ -155,17 +156,17 @@ export async function PUT(request: NextRequest) {
       : 'NGO Registration Update';
     
     const notificationMessage = action === 'approve'
-      ? `Congratulations! Your NGO "${ngo.ngoProfile.organizationName}" has been approved. You can now access all NGO features.`
+      ? `Congratulations! Your NGO "${ngo.organizationName}" has been approved. You can now access all NGO features.`
       : `Your NGO registration has been reviewed. Reason: ${rejectionReason}`;
 
     await NotificationModel.create({
-      userId: ngo._id,
+      ngoId: ngo._id,
       type: action === 'approve' ? 'ngo_approved' : 'ngo_rejected',
       title: notificationTitle,
       message: notificationMessage,
       data: { 
         action,
-        organizationName: ngo.ngoProfile.organizationName,
+        organizationName: ngo.organizationName,
         ...(action === 'reject' && { rejectionReason })
       },
     });
@@ -174,9 +175,11 @@ export async function PUT(request: NextRequest) {
       message: `NGO ${action}d successfully`,
       ngo: {
         _id: ngo._id,
-        name: ngo.name,
+        organizationName: ngo.organizationName,
         email: ngo.email,
-        ngoProfile: ngo.ngoProfile
+        status: ngo.status,
+        approvedAt: ngo.approvedAt,
+        approvedBy: ngo.approvedBy
       }
     });
 
@@ -211,7 +214,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Rejection reason is required for bulk rejection' }, { status: 400 });
     }
 
-    const ngos = await User.find({ _id: { $in: ngoIds }, role: 'ngo' });
+    const ngos = await NGO.find({ _id: { $in: ngoIds } });
     
     if (ngos.length === 0) {
       return NextResponse.json({ error: 'No valid NGOs found' }, { status: 404 });
@@ -219,23 +222,23 @@ export async function PATCH(request: NextRequest) {
 
     const updateData: any = {};
     if (action === 'approve') {
-      updateData['ngoProfile.status'] = 'approved';
-      updateData['ngoProfile.approvedAt'] = new Date();
-      updateData['ngoProfile.approvedBy'] = session.user.id;
-      updateData['$unset'] = {
-        'ngoProfile.adminComment': 1
+      updateData.status = 'approved';
+      updateData.approvedAt = new Date();
+      updateData.approvedBy = session.user.id;
+      updateData.$unset = {
+        adminComment: 1
       };
     } else if (action === 'reject') {
-      updateData['ngoProfile.status'] = 'rejected';
-      updateData['ngoProfile.adminComment'] = rejectionReason.trim();
-      updateData['$unset'] = {
-        'ngoProfile.approvedAt': 1,
-        'ngoProfile.approvedBy': 1
+      updateData.status = 'rejected';
+      updateData.adminComment = rejectionReason.trim();
+      updateData.$unset = {
+        approvedAt: 1,
+        approvedBy: 1
       };
     }
 
-    await User.updateMany(
-      { _id: { $in: ngoIds }, role: 'ngo' },
+    await NGO.updateMany(
+      { _id: { $in: ngoIds } },
       updateData
     );
 
@@ -246,17 +249,17 @@ export async function PATCH(request: NextRequest) {
         : 'NGO Registration Update';
       
       const notificationMessage = action === 'approve'
-        ? `Congratulations! Your NGO "${ngo.ngoProfile.organizationName}" has been approved. You can now access all NGO features.`
+        ? `Congratulations! Your NGO "${ngo.organizationName}" has been approved. You can now access all NGO features.`
         : `Your NGO registration has been reviewed. Reason: ${rejectionReason}`;
 
       await NotificationModel.create({
-        userId: ngo._id,
+        ngoId: ngo._id,
         type: action === 'approve' ? 'ngo_approved' : 'ngo_rejected',
         title: notificationTitle,
         message: notificationMessage,
         data: { 
           action,
-          organizationName: ngo.ngoProfile.organizationName,
+          organizationName: ngo.organizationName,
           ...(action === 'reject' && { rejectionReason })
         },
       });

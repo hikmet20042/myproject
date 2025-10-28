@@ -210,12 +210,12 @@ export default function CreateVacancy() {
         <form onSubmit={handleSubmit} className="space-y-10">
           {/* Basic Information Card */}
           <div className="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-primary to-red-800 px-8 py-6">
+            <div className="bg-gradient-to-r from-primary to-blue-700 px-8 py-6">
               <h2 className="text-2xl font-bold text-white flex items-center">
                 <Users className="w-6 h-6 mr-3" />
                 Basic Information
               </h2>
-              <p className="text-red-100 mt-2">Tell us about the position you're offering</p>
+              <p className="text-blue-100 mt-2">Tell us about the position you're offering</p>
             </div>
             
             <div className="p-8 space-y-8">
@@ -340,12 +340,12 @@ export default function CreateVacancy() {
 
           {/* Location & Work Details Card */}
           <div className="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-primary to-red-700 px-8 py-6">
+            <div className="bg-gradient-to-r from-primary to-blue-700 px-8 py-6">
               <h2 className="text-2xl font-bold text-white flex items-center">
                 <MapPin className="w-6 h-6 mr-3" />
                 Location & Work Details
               </h2>
-              <p className="text-red-100 mt-2">Where will this opportunity take place?</p>
+              <p className="text-blue-100 mt-2">Where will this opportunity take place?</p>
             </div>
             
             <div className="p-8 space-y-8">
@@ -540,12 +540,12 @@ export default function CreateVacancy() {
 
           {/* Application Details Card */}
           <div className="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-primary to-red-800 px-8 py-6">
+            <div className="bg-gradient-to-r from-primary to-blue-700 px-8 py-6">
               <h2 className="text-2xl font-bold text-white flex items-center">
                 <Send className="w-6 h-6 mr-3" />
                 Application Details
               </h2>
-              <p className="text-red-100 mt-2">How should candidates apply for this opportunity?</p>
+              <p className="text-blue-100 mt-2">How should candidates apply for this opportunity?</p>
             </div>
             
             <div className="p-8 space-y-8">
@@ -701,12 +701,12 @@ export default function CreateVacancy() {
 
           {/* Responsibilities Card */}
           <div className="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-primary to-red-800 px-8 py-6">
+            <div className="bg-gradient-to-r from-primary to-blue-700 px-8 py-6">
               <h2 className="text-2xl font-bold text-white flex items-center">
                 <FileText className="w-6 h-6 mr-3" />
                 Key Responsibilities
               </h2>
-              <p className="text-red-100 mt-2">What will this person be responsible for?</p>
+              <p className="text-blue-100 mt-2">What will this person be responsible for?</p>
             </div>
             
             <div className="p-8">
@@ -732,7 +732,7 @@ export default function CreateVacancy() {
                           onClick={() => removeArrayItem(index, 'responsibilities')}
                           variant="ghost"
                           size="sm"
-                          className="flex-shrink-0 w-8 h-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
+                          className="flex-shrink-0 w-8 h-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
                         >
                           <X className="w-4 h-4" />
                         </Button>
@@ -756,12 +756,12 @@ export default function CreateVacancy() {
 
           {/* Requirements Card */}
           <div className="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-primary to-red-800 px-8 py-6">
+            <div className="bg-gradient-to-r from-primary to-blue-700 px-8 py-6">
               <h2 className="text-2xl font-bold text-white flex items-center">
                 <Users className="w-6 h-6 mr-3" />
                 Requirements
               </h2>
-              <p className="text-red-100 mt-2">What are the essential requirements for this role?</p>
+              <p className="text-blue-100 mt-2">What are the essential requirements for this role?</p>
             </div>
             
             <div className="p-8">
@@ -787,7 +787,7 @@ export default function CreateVacancy() {
                           onClick={() => removeArrayItem(index, 'requirements')}
                           variant="ghost"
                           size="sm"
-                          className="flex-shrink-0 w-8 h-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
+                          className="flex-shrink-0 w-8 h-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
                         >
                           <X className="w-4 h-4" />
                         </Button>
@@ -811,12 +811,12 @@ export default function CreateVacancy() {
 
           {/* Qualifications Card */}
           <div className="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-primary to-red-800 px-8 py-6">
+            <div className="bg-gradient-to-r from-primary to-blue-700 px-8 py-6">
               <h2 className="text-2xl font-bold text-white flex items-center">
                 <Calendar className="w-6 h-6 mr-3" />
                 Preferred Qualifications
               </h2>
-              <p className="text-red-100 mt-2">What qualifications would make a candidate stand out?</p>
+              <p className="text-blue-100 mt-2">What qualifications would make a candidate stand out?</p>
             </div>
             
             <div className="p-8">
@@ -842,7 +842,7 @@ export default function CreateVacancy() {
                           onClick={() => removeArrayItem(index, 'qualifications')}
                           variant="ghost"
                           size="sm"
-                          className="flex-shrink-0 w-8 h-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
+                          className="flex-shrink-0 w-8 h-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
                         >
                           <X className="w-4 h-4" />
                         </Button>
@@ -867,12 +867,12 @@ export default function CreateVacancy() {
           {/* Benefits Card - Only for Jobs */}
           {formData.type === 'job' && (
             <div className="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden">
-              <div className="bg-gradient-to-r from-primary to-red-800 px-8 py-6">
+              <div className="bg-gradient-to-r from-primary to-blue-700 px-8 py-6">
                 <h2 className="text-2xl font-bold text-white flex items-center">
                   <DollarSign className="w-6 h-6 mr-3" />
                   Benefits & Perks
                 </h2>
-                <p className="text-red-100 mt-2">What benefits and perks do you offer?</p>
+                <p className="text-blue-100 mt-2">What benefits and perks do you offer?</p>
               </div>
               
               <div className="p-8">
@@ -898,7 +898,7 @@ export default function CreateVacancy() {
                             onClick={() => removeArrayItem(index, 'benefits')}
                             variant="ghost"
                             size="sm"
-                            className="flex-shrink-0 w-8 h-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
+                            className="flex-shrink-0 w-8 h-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
                           >
                             <X className="w-4 h-4" />
                           </Button>
@@ -923,12 +923,12 @@ export default function CreateVacancy() {
 
           {/* Tags Card */}
           <div className="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-primary to-red-800 px-8 py-6">
+            <div className="bg-gradient-to-r from-primary to-blue-700 px-8 py-6">
               <h2 className="text-2xl font-bold text-white flex items-center">
                 <MapPin className="w-6 h-6 mr-3" />
                 Tags & Keywords
               </h2>
-              <p className="text-red-100 mt-2">Add tags to help candidates find this opportunity</p>
+              <p className="text-blue-100 mt-2">Add tags to help candidates find this opportunity</p>
             </div>
             
             <div className="p-8">
@@ -954,7 +954,7 @@ export default function CreateVacancy() {
                           onClick={() => removeArrayItem(index, 'tags')}
                           variant="ghost"
                           size="sm"
-                          className="flex-shrink-0 w-8 h-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
+                          className="flex-shrink-0 w-8 h-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
                         >
                           <X className="w-4 h-4" />
                         </Button>
@@ -1024,7 +1024,7 @@ export default function CreateVacancy() {
                   disabled={loading}
                   variant="primary"
                   size="lg"
-                  className="px-12 py-4 border-2 border-transparent rounded-xl text-lg font-bold text-white bg-gradient-to-r from-primary to-red-800 hover:from-red-700 hover:to-red-900 focus:outline-none focus:ring-4 focus:ring-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
+                  className="px-12 py-4 border-2 border-transparent rounded-xl text-lg font-bold text-white bg-gradient-to-r from-primary to-blue-700 hover:from-blue-600 hover:to-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   {loading ? (
                     <div className="flex items-center space-x-2">

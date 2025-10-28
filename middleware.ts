@@ -7,7 +7,7 @@ export default withAuth(
     const token = req.nextauth.token
 
     // Only protect admin and submit routes
-  if (pathname.startsWith('/admin') || (pathname.startsWith('/submit') && !pathname.startsWith('/submit/story'))) {
+  if (pathname.startsWith('/admin') || (pathname.startsWith('/submit') && !pathname.startsWith('/submit/blog'))) {
       // Check if user is trying to access admin routes
       if (pathname.startsWith('/admin')) {
         // Check if user has admin role
@@ -20,8 +20,8 @@ export default withAuth(
       }
 
       // Check if user is trying to access submit route
-      if (pathname.startsWith('/submit') && !pathname.startsWith('/submit/story')) {
-        // Require authentication for submit route except /submit/story
+      if (pathname.startsWith('/submit') && !pathname.startsWith('/submit/blog')) {
+        // Require authentication for submit route except /submit/blog
         if (!token) {
           const signInUrl = new URL('/auth/signin', req.url)
           signInUrl.searchParams.set('callbackUrl', pathname)
@@ -43,8 +43,8 @@ export default withAuth(
           if (pathname.startsWith('/admin')) {
             return !!token && token.role === 'admin'
           }
-          // For submit route, require any authenticated user, except /submit/story
-          if (pathname.startsWith('/submit') && !pathname.startsWith('/submit/story')) {
+          // For submit route, require any authenticated user, except /submit/blog
+          if (pathname.startsWith('/submit') && !pathname.startsWith('/submit/blog')) {
             return !!token
           }
         }

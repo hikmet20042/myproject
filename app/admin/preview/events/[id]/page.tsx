@@ -30,9 +30,6 @@ interface Event {
   createdBy: {
     _id: string
     name: string
-    ngoProfile?: {
-      organizationName: string
-    }
   }
   organizationName?: string
   status: 'pending' | 'approved' | 'rejected'
@@ -264,7 +261,7 @@ export default function AdminEventPreview() {
               <h1 className="text-3xl font-bold text-gray-900">{event.title}</h1>
               <div className="flex items-center gap-4 mt-2">
                 {getStatusBadge()}
-                <span className="text-gray-500">by {event.organizationName || event.createdBy?.ngoProfile?.organizationName || event.createdBy?.name || 'Unknown'}</span>
+                <span className="text-gray-500">by {event.organizationName || event.createdBy?.name || 'Unknown'}</span>
               </div>
             </div>
             

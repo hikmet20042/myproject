@@ -11,24 +11,35 @@ import { ArrowLeft, MapPin, Globe, Mail, Phone, ExternalLink, CheckCircle } from
 
 interface NGO {
   _id: string
-  name: string
+  organizationName: string
   description: string
-  email?: string
-  phone?: string
   website?: string
+  contactPhone?: string
   address?: string
-  location?: string
-  category?: string
-  status?: string
   registrationNumber?: string
-  focusAreas?: string[]
-  verified?: boolean
+  focusAreas: string[]
+  status: 'pending' | 'approved' | 'rejected'
+  contactPerson: {
+    name: string
+    email: string
+    phone?: string
+    position?: string
+  }
   socialMedia?: {
     facebook?: string
     twitter?: string
     instagram?: string
     linkedin?: string
+    youtube?: string
+    website?: string
   }
+  approvedBy?: {
+    _id: string
+    name: string
+    email: string
+  }
+  createdAt: string
+  updatedAt: string
 }
 
 export default function NGODetailPage() {
@@ -45,7 +56,7 @@ export default function NGODetailPage() {
           throw new Error('NGO not found')
         }
         const data = await response.json()
-        setNgo(data)
+        setNgo(data.ngo)
       } catch (err) {
         setError('Failed to load NGO details')
       } finally {
@@ -97,7 +108,7 @@ export default function NGODetailPage() {
                 { label: 'Home', href: '/' },
                 { label: 'Resources', href: '/resources' },
                 { label: 'NGOs', href: '/resources/ngos' },
-                { label: ngo.name, current: true }
+                { label: ngo.organizationName, current: true }
               ]}
             />
 
@@ -117,7 +128,7 @@ export default function NGODetailPage() {
               <div className="flex-shrink-0">
                 <div className="w-20 h-20 bg-white rounded-xl flex items-center justify-center shadow-lg">
                   <span className="text-2xl font-bold text-primary">
-                    {ngo.name.charAt(0).toUpperCase()}
+                    {ngo.organizationName.charAt(0).toUpperCase()}
                   </span>
                 </div>
               </div>
@@ -125,26 +136,26 @@ export default function NGODetailPage() {
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-4">
                   <h1 className="text-3xl lg:text-4xl font-bold text-white">
-                    {ngo.name}
+                    {ngo.organizationName}
                   </h1>
-                  {ngo.verified && (
+                  {ngo.status === 'approved' && (
                     <CheckCircle className="w-6 h-6 text-accent" />
                   )}
                 </div>
                 
                 <div className="flex flex-wrap gap-3 mb-6">
-                  {ngo.category && (
+                  {ngo.focusAreas && ngo.focusAreas.length > 0 && (
                     <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30">
-                      {ngo.category}
+                      {ngo.focusAreas[0]}
                     </Badge>
                   )}
-                  {ngo.location && (
+                  {ngo.address && (
                     <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30">
                       <MapPin className="w-4 h-4 mr-2" />
-                      {ngo.location}
+                      {ngo.address}
                     </Badge>
                   )}
-                  {ngo.verified && (
+                  {ngo.status === 'approved' && (
                     <Badge className="bg-accent/30 backdrop-blur-sm text-white border-accent/50">
                       <CheckCircle className="w-4 h-4 mr-2" />
                       Verified
@@ -157,8 +168,8 @@ export default function NGODetailPage() {
                 </p>
                 
                 <div className="flex flex-wrap gap-3">
-                  {ngo.email && (
-                    <a href={`mailto:${ngo.email}`}>
+                  {ngo.contactPerson?.email && (
+                    <a href={`mailto:${ngo.contactPerson.email}`}>
                       <Button 
                         variant="primary"
                         className="bg-white text-primary hover:bg-gray-100"
@@ -206,7 +217,7 @@ export default function NGODetailPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                       </div>
-                      <h2 className="text-xl font-semibold text-gray-900">About {ngo.name}</h2>
+                      <h2 className="text-xl font-semibold text-gray-900">About {ngo.organizationName}</h2>
                     </div>
                     <p className="text-gray-700 leading-relaxed mb-6">
                       {ngo.description}
@@ -293,21 +304,30 @@ export default function NGODetailPage() {
                       <h3 className="text-lg font-bold text-gray-900">Contact Information</h3>
                     </div>
                     <div className="space-y-4">
-                      {ngo.email && (
+                      {ngo.contactPerson?.email && (
                         <ContactCard
                           icon={Mail}
                           label="Email"
-                          value={ngo.email}
-                          href={`mailto:${ngo.email}`}
+                          value={ngo.contactPerson.email}
+                          href={`mailto:${ngo.contactPerson.email}`}
                         />
                       )}
                       
-                      {ngo.phone && (
+                      {ngo.contactPhone && (
                         <ContactCard
                           icon={Phone}
                           label="Phone"
-                          value={ngo.phone}
-                          href={`tel:${ngo.phone}`}
+                          value={ngo.contactPhone}
+                          href={`tel:${ngo.contactPhone}`}
+                        />
+                      )}
+                      
+                      {ngo.contactPerson?.phone && (
+                        <ContactCard
+                          icon={Phone}
+                          label="Contact Person Phone"
+                          value={ngo.contactPerson.phone}
+                          href={`tel:${ngo.contactPerson.phone}`}
                         />
                       )}
                       
@@ -318,6 +338,16 @@ export default function NGODetailPage() {
                           value={ngo.website}
                           href={ngo.website.startsWith('http') ? ngo.website : `https://${ngo.website}`}
                         />
+                      )}
+                      
+                      {ngo.contactPerson?.name && (
+                        <div className="p-4 bg-gray-50 rounded-lg">
+                          <p className="text-sm font-medium text-gray-600 mb-1">Contact Person</p>
+                          <p className="font-semibold text-gray-900">{ngo.contactPerson.name}</p>
+                          {ngo.contactPerson.position && (
+                            <p className="text-sm text-gray-600">{ngo.contactPerson.position}</p>
+                          )}
+                        </div>
                       )}
                     </div>
                   </CardContent>
@@ -390,27 +420,46 @@ export default function NGODetailPage() {
                           <p className="text-sm font-medium text-gray-600">Status</p>
                         </div>
                         <p className="font-semibold text-gray-900">
-                          {ngo.verified ? 'Verified Organization' : 'Pending Verification'}
+                          {ngo.status === 'approved' ? 'Verified Organization' : 
+                           ngo.status === 'pending' ? 'Pending Verification' : 'Verification Rejected'}
                         </p>
                       </div>
                       
-                      {ngo.category && (
+                      {ngo.focusAreas && ngo.focusAreas.length > 0 && (
                         <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
                           <div className="flex items-center mb-2">
                             <ExternalLink className="w-5 h-5 text-primary mr-2" />
-                            <p className="text-sm font-medium text-gray-600">Category</p>
+                            <p className="text-sm font-medium text-gray-600">Focus Areas</p>
                           </div>
-                          <p className="font-semibold text-gray-900">{ngo.category}</p>
+                          <div className="flex flex-wrap gap-2">
+                            {ngo.focusAreas.map((area, index) => (
+                              <Badge key={index} variant="secondary" className="text-xs">
+                                {area}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
                       )}
                       
-                      {ngo.location && (
+                      {ngo.address && (
                         <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
                           <div className="flex items-center mb-2">
                             <MapPin className="w-5 h-5 text-primary mr-2" />
-                            <p className="text-sm font-medium text-gray-600">Location</p>
+                            <p className="text-sm font-medium text-gray-600">Address</p>
                           </div>
-                          <p className="font-semibold text-gray-900">{ngo.location}</p>
+                          <p className="font-semibold text-gray-900">{ngo.address}</p>
+                        </div>
+                      )}
+                      
+                      {ngo.createdAt && (
+                        <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                          <div className="flex items-center mb-2">
+                            <ExternalLink className="w-5 h-5 text-primary mr-2" />
+                            <p className="text-sm font-medium text-gray-600">Established</p>
+                          </div>
+                          <p className="font-semibold text-gray-900">
+                            {new Date(ngo.createdAt).toLocaleDateString()}
+                          </p>
                         </div>
                       )}
                     </div>

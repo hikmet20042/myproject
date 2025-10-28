@@ -34,9 +34,6 @@ interface Event {
   createdBy: {
     _id: string
     name: string
-    ngoProfile?: {
-      organizationName: string
-    }
   }
   organizationName?: string
   isApproved: boolean
@@ -122,7 +119,7 @@ export default function EventsPage() {
 
   // Filter events based on search and filters
   const filteredData = events.filter(event => {
-    const organizationName = event.organizationName || event.createdBy?.ngoProfile?.organizationName || event.createdBy?.name || 'Unknown Organization';
+    const organizationName = event.organizationName || event.createdBy?.name || 'Unknown Organization';
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          event.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -338,7 +335,7 @@ export default function EventsPage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {filteredData.map((event) => {
-                    const organizationName = event.organizationName || event.createdBy?.ngoProfile?.organizationName || event.createdBy?.name || 'Unknown Organization';
+                    const organizationName = event.organizationName || event.createdBy?.name || 'Unknown Organization';
                     const hasDeadline = event.applicationDeadline;
                     const deadlinePassed = hasDeadline ? isDeadlinePassed(event.applicationDeadline!) : false;
                     const deadlineNear = hasDeadline ? isDeadlineNear(event.applicationDeadline!) : false;
