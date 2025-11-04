@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import dbConnect from '@/lib/mongoose'
 import NotificationModel from '@/lib/models/Notification'
+import { emitNotificationUpdate } from '@/lib/socket'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,6 +35,9 @@ export async function PATCH(
     if (!updated) {
       return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
     }
+
+    // Emit real-time update to user
+    emitNotificationUpdate(session.user.id, notificationId, { isRead })
 
     return NextResponse.json({
       message: `Notification marked as ${isRead ? 'read' : 'unread'}`,

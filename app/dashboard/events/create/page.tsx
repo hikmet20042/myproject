@@ -5,27 +5,34 @@ import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Calendar, MapPin, Users, Link as LinkIcon, Clock, Tag, Image as ImageIcon, Loader2 } from 'lucide-react'
 import { Input, Select, Button, TextArea } from '@/components/ui'
+import { FormSection } from '@/components/forms'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 const eventCategories = [
-  'Workshop',
-  'Conference',
-  'Seminar',
-  'Art Performance',
-  'Cultural Event',
-  'Fundraising',
-  'Community Gathering',
-  'Awareness Campaign',
-  'Protest/Rally',
-  'Educational Event',
-  'Networking',
-  'Celebration',
-  'Other'
+  'workshop',
+  'conference',
+  'seminar',
+  'art_performance',
+  'cultural_event',
+  'fundraising',
+  'community_gathering',
+  'awareness_campaign',
+  'protest_rally',
+  'educational_event',
+  'networking',
+  'celebration',
+  'other'
 ]
 
 function CreateEventContent() {
   const { data: session } = useSession()
+  const { t } = useLanguage()
   const router = useRouter()
   const searchParams = useSearchParams()
+  // Normalize field sizes for visual consistency
+  const commonInputProps = { inputSize: 'md' as const }
+  const commonSelectProps = { selectSize: 'md' as const }
+  const commonTextAreaProps = { textAreaSize: 'md' as const }
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
@@ -71,7 +78,7 @@ function CreateEventContent() {
 
   // Handle URL parameters for event type
   useEffect(() => {
-    const typeParam = searchParams.get('type')
+    const typeParam = searchParams?.get('type')
     if (typeParam && ['training', 'workshop', 'seminar'].includes(typeParam)) {
       setFormData(prev => ({
         ...prev,
@@ -181,19 +188,22 @@ function CreateEventContent() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Create New Event</h1>
-          <p className="mt-2 text-gray-600">Submit your event for admin review and approval</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('events.createNewTitle')}</h1>
+          <p className="mt-2 text-gray-600">{t('events.createNewSubtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Basic Information */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Basic Information</h2>
-            
+          <FormSection
+            title={t('events.basicInformation')}
+            gradient={false}
+            contentPadding="md"
+            spacing="md"
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Event Title *
+                  {t('events.eventTitle')}
                 </label>
                 <Input
                   type="text"
@@ -202,13 +212,14 @@ function CreateEventContent() {
                   onChange={handleInputChange}
                   required
                   maxLength={200}
-                  placeholder="Enter event title"
+                  placeholder={t('events.eventTitlePlaceholder')}
+                  {...commonInputProps}
                 />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Event Type *
+                  {t('events.eventType')}
                 </label>
                 <Select
                   name="eventType"
@@ -216,17 +227,18 @@ function CreateEventContent() {
                   onChange={handleInputChange}
                   required
                   options={[
-                    { value: 'event', label: 'Event' },
-                    { value: 'training', label: 'Training' },
-                    { value: 'workshop', label: 'Workshop' },
-                    { value: 'seminar', label: 'Seminar' }
+                    { value: 'event', label: t('events.type.event') },
+                    { value: 'training', label: t('events.type.training') },
+                    { value: 'workshop', label: t('events.type.workshop') },
+                    { value: 'seminar', label: t('events.type.seminar') }
                   ]}
+                  {...commonSelectProps}
                 />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Category *
+                  {t('events.category')}
                 </label>
                 <Select
                   name="category"
@@ -234,18 +246,19 @@ function CreateEventContent() {
                   onChange={handleInputChange}
                   required
                   options={[
-                    { value: '', label: 'Select category' },
-                    ...eventCategories.map(category => ({
-                      value: category,
-                      label: category
-                    }))
+                      { value: '', label: t('events.selectCategory') },
+                      ...eventCategories.map(category => ({
+                        value: category,
+                        label: t(`events.categoryOptions.${category}`)
+                      }))
                   ]}
+                  {...commonSelectProps}
                 />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Max Participants
+                  {t('events.maxParticipants')}
                 </label>
                 <Input
                   type="number"
@@ -253,13 +266,14 @@ function CreateEventContent() {
                   value={formData.maxParticipants}
                   onChange={handleInputChange}
                   min="1"
-                  placeholder="Leave empty for unlimited"
+                  placeholder={t('events.maxParticipantsPlaceholder')}
+                  {...commonInputProps}
                 />
               </div>
               
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description *
+                  {t('events.description')}
                 </label>
                 <TextArea
                   name="description"
@@ -268,34 +282,39 @@ function CreateEventContent() {
                   required
                   maxLength={2000}
                   rows={4}
-                  placeholder="Describe your event"
+                  placeholder={t('events.descriptionPlaceholder')}
+                  {...commonTextAreaProps}
                 />
               </div>
               
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tags
+                  {t('events.tags')}
                 </label>
                 <Input
                   type="text"
                   name="tags"
                   value={formData.tags}
                   onChange={handleInputChange}
-                  placeholder="Enter tags separated by commas (e.g., human rights, workshop, youth)"
+                  placeholder={t('events.tagsPlaceholder')}
+                  {...commonInputProps}
                 />
               </div>
             </div>
-          </div>
+          </FormSection>
 
           {/* Training-specific fields */}
           {(formData.eventType === 'training' || formData.eventType === 'workshop' || formData.eventType === 'seminar') && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Training Details</h2>
-              
+            <FormSection
+              title={t('events.trainingDetails')}
+              gradient={false}
+              contentPadding="md"
+              spacing="md"
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Duration *
+                    {t('events.duration')}
                   </label>
                   <div className="flex gap-2">
                     <Input
@@ -306,31 +325,34 @@ function CreateEventContent() {
                       required
                       min="1"
                       className="flex-1"
-                      placeholder="Duration"
+                      placeholder={t('events.durationPlaceholder')}
+                      {...commonInputProps}
                     />
                     <Select
                        name="duration.unit"
                        value={formData.duration.unit}
                        onChange={handleInputChange}
                        options={[
-                         { value: 'hours', label: 'Hours' },
-                         { value: 'days', label: 'Days' },
-                         { value: 'weeks', label: 'Weeks' }
+                         { value: 'hours', label: t('events.durationUnits.hours') },
+                         { value: 'days', label: t('events.durationUnits.days') },
+                         { value: 'weeks', label: t('events.durationUnits.weeks') }
                        ]}
+                       {...commonSelectProps}
                      />
                   </div>
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Target Audience
+                    {t('events.targetAudience')}
                   </label>
                   <Input
                     type="text"
                     name="targetAudience"
                     value={formData.targetAudience}
                     onChange={handleInputChange}
-                    placeholder="e.g., NGO staff, volunteers, students"
+                    placeholder={t('events.targetAudiencePlaceholder')}
+                    {...commonInputProps}
                   />
                 </div>
                 
@@ -338,12 +360,13 @@ function CreateEventContent() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Schedule
                   </label>
-                  <TextArea
+                    <TextArea
                     name="schedule"
                     value={formData.schedule}
                     onChange={handleInputChange}
                     rows={3}
-                    placeholder="Describe the training schedule (e.g., Day 1: Introduction, Day 2: Practical exercises)"
+                    placeholder={t('events.schedulePlaceholder')}
+                    {...commonTextAreaProps}
                   />
                 </div>
                 
@@ -351,24 +374,26 @@ function CreateEventContent() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Prerequisites
                   </label>
-                  <Input
-                    type="text"
-                    value={formData.prerequisites.join(', ')}
-                    onChange={(e) => handleArrayInputChange('prerequisites', e.target.value)}
-                    placeholder="Enter prerequisites separated by commas (e.g., Basic computer skills, Previous NGO experience)"
-                  />
+                    <Input
+                      type="text"
+                      value={formData.prerequisites.join(', ')}
+                      onChange={(e) => handleArrayInputChange('prerequisites', e.target.value)}
+                      placeholder={t('events.prerequisitesPlaceholder')}
+                      {...commonInputProps}
+                    />
                 </div>
                 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Learning Outcomes
                   </label>
-                  <Input
-                    type="text"
-                    value={formData.learningOutcomes.join(', ')}
-                    onChange={(e) => handleArrayInputChange('learningOutcomes', e.target.value)}
-                    placeholder="Enter learning outcomes separated by commas (e.g., Understand fundraising basics, Create grant proposals)"
-                  />
+                    <Input
+                      type="text"
+                      value={formData.learningOutcomes.join(', ')}
+                      onChange={(e) => handleArrayInputChange('learningOutcomes', e.target.value)}
+                      placeholder={t('events.learningOutcomesPlaceholder')}
+                      {...commonInputProps}
+                    />
                 </div>
                 
                 <div className="md:col-span-2">
@@ -380,13 +405,14 @@ function CreateEventContent() {
                     value={formData.syllabus}
                     onChange={handleInputChange}
                     rows={4}
-                    placeholder="Detailed syllabus or curriculum outline"
+                    placeholder={t('events.syllabusPlaceholder')}
+                    {...commonTextAreaProps}
                   />
                 </div>
                 
                 {/* Cost Information */}
                 <div className="md:col-span-2">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Cost Information</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">{t('events.costInformation')}</h3>
                   <div className="space-y-4">
                     <div className="flex items-center">
                       <input
@@ -397,7 +423,7 @@ function CreateEventContent() {
                         className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                       />
                       <label className="ml-2 block text-sm text-gray-700">
-                        This training is free
+                        {t('events.thisTrainingIsFree')}
                       </label>
                     </div>
                     
@@ -411,7 +437,8 @@ function CreateEventContent() {
                           min="0"
                           step="0.01"
                           className="flex-1"
-                          placeholder="Amount"
+                          placeholder={t('events.amountPlaceholder')}
+                          {...commonInputProps}
                         />
                         <Select
                           name="cost.currency"
@@ -423,6 +450,7 @@ function CreateEventContent() {
                             { value: 'GBP', label: 'GBP' },
                             { value: 'CAD', label: 'CAD' }
                           ]}
+                          {...commonSelectProps}
                         />
                       </div>
                     )}
@@ -431,7 +459,7 @@ function CreateEventContent() {
                 
                 {/* Certification */}
                 <div className="md:col-span-2">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Certification</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">{t('events.certification')}</h3>
                   <div className="space-y-4">
                     <div className="flex items-center">
                       <input
@@ -442,7 +470,7 @@ function CreateEventContent() {
                         className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                       />
                       <label className="ml-2 block text-sm text-gray-700">
-                        Certificate will be provided
+                        {t('events.certificateProvided')}
                       </label>
                     </div>
                     
@@ -450,7 +478,7 @@ function CreateEventContent() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Certificate Type
+                            {t('events.certificateType')}
                           </label>
                           <Input
                             type="text"
@@ -458,12 +486,13 @@ function CreateEventContent() {
                             value={formData.certification.type}
                             onChange={handleInputChange}
                             placeholder="e.g., Certificate of Completion, Professional Certificate"
+                            {...commonInputProps}
                           />
                         </div>
                         
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Accredited By
+                            {t('events.accreditedBy')}
                           </label>
                           <Input
                             type="text"
@@ -471,6 +500,7 @@ function CreateEventContent() {
                             value={formData.certification.accreditedBy}
                             onChange={handleInputChange}
                             placeholder="Accrediting organization (optional)"
+                            {...commonInputProps}
                           />
                         </div>
                       </div>
@@ -478,20 +508,21 @@ function CreateEventContent() {
                   </div>
                 </div>
               </div>
-            </div>
+            </FormSection>
           )}
 
           {/* Date & Time */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <Calendar className="w-5 h-5 mr-2" />
-              Date & Time
-            </h2>
-            
+          <FormSection
+            title={t('events.dateTime')}
+            icon={Calendar}
+            gradient={false}
+            contentPadding="md"
+            spacing="md"
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Start Date *
+                  {t('events.startDate')}
                 </label>
                 <Input
                   type="date"
@@ -499,46 +530,50 @@ function CreateEventContent() {
                   value={formData.eventDate}
                   onChange={handleInputChange}
                   required
+                  {...commonInputProps}
                 />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  End Date
+                  {t('events.endDate')}
                 </label>
                 <Input
                   type="date"
                   name="endDate"
                   value={formData.endDate}
                   onChange={handleInputChange}
+                  {...commonInputProps}
                 />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Application Deadline (with time)
+                  {t('events.applicationDeadline')}
                 </label>
                 <Input
                   type="datetime-local"
                   name="applicationDeadline"
                   value={formData.applicationDeadline}
                   onChange={handleInputChange}
+                  {...commonInputProps}
                 />
               </div>
             </div>
-          </div>
+          </FormSection>
 
           {/* Location */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <MapPin className="w-5 h-5 mr-2" />
-              Location
-            </h2>
-            
+          <FormSection
+            title={t('events.locationLabel')}
+            icon={MapPin}
+            gradient={false}
+            contentPadding="md"
+            spacing="md"
+          >
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Location Type *
+                  {t('events.locationType')}
                 </label>
                 <Select
                   name="location.type"
@@ -546,10 +581,11 @@ function CreateEventContent() {
                   onChange={handleInputChange}
                   required
                   options={[
-                    { value: 'physical', label: 'Physical Location' },
-                    { value: 'online', label: 'Online Event' },
-                    { value: 'hybrid', label: 'Hybrid (Physical + Online)' }
+                    { value: 'physical', label: t('events.locationTypes.physical') },
+                    { value: 'online', label: t('events.locationTypes.online') },
+                    { value: 'hybrid', label: t('events.locationTypes.hybrid') }
                   ]}
+                  {...commonSelectProps}
                 />
               </div>
               
@@ -557,40 +593,43 @@ function CreateEventContent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Address
+                      {t('events.address')}
                     </label>
                     <Input
                       type="text"
                       name="location.address"
                       value={formData.location.address}
                       onChange={handleInputChange}
-                      placeholder="Street address"
+                      placeholder={t('events.addressPlaceholder')}
+                      {...commonInputProps}
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      City
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t('events.city')}
                     </label>
                     <Input
                       type="text"
                       name="location.city"
                       value={formData.location.city}
                       onChange={handleInputChange}
-                      placeholder="City"
+                      placeholder={t('events.cityPlaceholder')}
+                      {...commonInputProps}
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Country
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {t('events.country')}
                     </label>
                     <Input
                       type="text"
                       name="location.country"
                       value={formData.location.country}
                       onChange={handleInputChange}
-                      placeholder="Country"
+                      placeholder={t('events.countryPlaceholder')}
+                      {...commonInputProps}
                     />
                   </div>
                 </div>
@@ -599,28 +638,33 @@ function CreateEventContent() {
               {(formData.location.type === 'online' || formData.location.type === 'hybrid') && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Online Meeting Link
+                    {t('events.onlineLink')}
                   </label>
                   <Input
                     type="url"
                     name="location.onlineLink"
                     value={formData.location.onlineLink}
                     onChange={handleInputChange}
-                    placeholder="https://zoom.us/j/..."
+                    placeholder={t('events.onlineLinkPlaceholder')}
+                    {...commonInputProps}
                   />
                 </div>
               )}
             </div>
-          </div>
+          </FormSection>
 
           {/* Additional Information */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Additional Information</h2>
-            
+          <FormSection
+            title={t('events.additionalInformation')}
+            icon={Tag}
+            gradient={false}
+            contentPadding="md"
+            spacing="md"
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Application/Registration Link
+                  {t('events.applicationLink')}
                 </label>
                 <Input
                   type="url"
@@ -628,12 +672,13 @@ function CreateEventContent() {
                   value={formData.applicationLink}
                   onChange={handleInputChange}
                   placeholder="https://..."
+                  {...commonInputProps}
                 />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Event Image URL
+                  {t('events.imageUrl')}
                 </label>
                 <Input
                   type="url"
@@ -641,10 +686,11 @@ function CreateEventContent() {
                   value={formData.imageUrl}
                   onChange={handleInputChange}
                   placeholder="https://..."
+                  {...commonInputProps}
                 />
               </div>
             </div>
-          </div>
+          </FormSection>
 
           {/* Submit */}
           <div className="flex justify-end gap-4">
@@ -653,13 +699,13 @@ function CreateEventContent() {
               onClick={() => router.back()}
               variant="outline"
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
               disabled={loading}
             >
-              {loading ? 'Creating...' : 'Submit for Review'}
+              {loading ? t('events.creating') : t('events.submitForReview')}
             </Button>
           </div>
         </form>

@@ -22,37 +22,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Handle NGO users - they don't have User documents, they're in NGO collection
-    if (session.user.role === 'ngo') {
-      const ngo = await NGO.findById(session.user.id);
-      
-      if (!ngo) {
-        return NextResponse.json({ error: 'NGO not found' }, { status: 404 });
-      }
-      
-      // Return basic stats for NGO users (they don't have blogs)
-      return NextResponse.json({
-        stats: {
-          totalStories: 0,
-          publishedStories: 0,
-          totalViews: 0,
-          totalUniqueViews: 0,
-          totalLikes: 0,
-          totalWordCount: 0,
-          averageReadTime: 0,
-          engagementRate: 0,
-          growthRate: 0,
-          recentActivity: [],
-          activityStats: {
-            thisWeek: 0,
-            lastWeek: 0,
-            thisMonth: 0,
-            lastMonth: 0
-          }
-        },
-        analytics: null,
-        isNGO: true
-      });
+    // Redirect NGO users - they should use NGO-specific endpoints
+    if (session.user.isApprovedNGO) {
+      return NextResponse.json({ 
+        error: 'NGO stats should use /api/ngo/stats endpoint',
+        redirect: '/api/ngo/stats'
+      }, { status: 400 });
     }
     
     const user = await User.findById(session.user.id);
@@ -223,31 +198,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ stats: cachedStats });
   } catch (error) {
     console.error('Profile stats error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
-
-// Update user preferences/settings
-export async function PUT(request: NextRequest) {
-  try {
-    await dbConnect();
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const body = await request.json();
-    const { preferences } = body;
-
-    // In a real app, you'd store preferences in a UserPreferences model
-    // For now, we'll just return success
-    
-    return NextResponse.json({ 
-      message: 'Preferences updated successfully',
-      preferences 
-    });
-  } catch (error) {
-    console.error('Preferences update error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

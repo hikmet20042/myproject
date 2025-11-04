@@ -44,23 +44,23 @@ export async function POST(request: NextRequest) {
     await transporter.sendMail({
       from: process.env.EMAIL_FROM,
       to: user.email,
-      subject: 'Verify your email address',
+      subject: 'E-poçt ünvanınızı təsdiqləyin - icma360',
       html: `
         <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
-          <h2 style="color: #333; text-align: center;">Welcome to Gender Equality Azerbaijan!</h2>
-          <p>Hello ${user.name || user.email},</p>
-          <p>Thank you for registering with us. Please click the button below to verify your email address:</p>
+          <h2 style="color: #333; text-align: center;">icma360-a xoş gəlmisiniz!</h2>
+          <p>Salam ${user.name || user.email},</p>
+          <p>Qeydiyyatdan keçdiyiniz üçün təşəkkür edirik. E-poçt ünvanınızı təsdiqləmək üçün aşağıdakı düyməni klikləyin:</p>
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${verifyUrl}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">Verify Email Address</a>
+            <a href="${verifyUrl}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">E-poçtu Təsdiqlə</a>
           </div>
-          <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+          <p>Düymə işləmirsə, bu linki brauzeriziə kopyalayıb yapışdıra bilərsiniz:</p>
           <p style="word-break: break-all; color: #007bff;">${verifyUrl}</p>
-          <p>This verification link will expire in 24 hours.</p>
-          <p>If you didn't create this account, please ignore this email.</p>
+          <p>Bu təsdiqləmə linki 24 saat ərzində etibarsız olacaq.</p>
+          <p>Bu hesabı siz yaratmamısınızsa, bu e-poçtu nəzərə almayın.</p>
           <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
           <p style="font-size: 12px; color: #666; text-align: center;">
-            This email was sent from Gender Equality Azerbaijan<br>
-            If you have any questions, please contact us at hikmat.mammadlii@gmail.com
+            Bu e-poçt icma360 tərəfindən göndərilib<br>
+            Sualınız varsa, bizimlə əlaqə saxlayın: support@icma360.az
           </p>
         </div>
       `

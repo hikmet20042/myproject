@@ -5,12 +5,19 @@ interface IUser extends mongoose.Document {
   email: string
   password?: string
   image?: string
+  profileImage?: {
+    url: string
+    publicId: string
+  }
   emailVerified?: Date | null
   verificationToken?: string
   verificationEmailLastSent?: Date | null
   passwordResetToken?: string
   passwordResetExpires?: Date
-  role: 'user' | 'admin' | 'ngo'
+  role: 'user' | 'admin'
+  authProvider: 'credentials' | 'google' // Track how user registered
+  savedEvents: mongoose.Types.ObjectId[]
+  savedVacancies: mongoose.Types.ObjectId[]
   // Social media accounts for all users
   socialMedia?: {
     facebook?: string
@@ -42,6 +49,14 @@ const UserSchema = new mongoose.Schema({
   image: {
     type: String,
   },
+  profileImage: {
+    url: {
+      type: String,
+    },
+    publicId: {
+      type: String,
+    }
+  },
   emailVerified: {
     type: Date,
     default: null,
@@ -61,9 +76,23 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'admin', 'ngo'],
+    enum: ['user', 'admin'],
     default: 'user',
   },
+  authProvider: {
+    type: String,
+    enum: ['credentials', 'google'],
+    required: true,
+    default: 'credentials'
+  },
+  savedEvents: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Event'
+  }],
+  savedVacancies: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Vacancy'
+  }],
   // Social media accounts for all users
   socialMedia: {
     facebook: String,
@@ -79,7 +108,7 @@ const UserSchema = new mongoose.Schema({
 
 // Check if email is admin email and set role accordingly
 UserSchema.pre('save', function(this: IUser) {
-  if (this.email === 'hikmat@mammadli.space') {
+  if (this.email === 'hikmat.mammadlii@gmail.com') {
     this.role = 'admin'
   }
 })

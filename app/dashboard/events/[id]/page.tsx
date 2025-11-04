@@ -6,6 +6,9 @@ import { useRouter, useParams } from 'next/navigation'
 import Image from 'next/image'
 import { Calendar, Clock, MapPin, Users, Link as LinkIcon, Tag, Edit, Trash2, CheckCircle, XCircle, AlertCircle, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { LoadingState, ErrorState } from '@/components/shared'
 
 interface Event {
   _id: string
@@ -45,6 +48,8 @@ interface Event {
 }
 
 export default function EventDetail() {
+  const { t, language } = useLanguage()
+  const localePath = useLocalizedPath()
   const { data: session } = useSession()
   const router = useRouter()
   const params = useParams()
@@ -57,7 +62,8 @@ export default function EventDetail() {
   const loadEvent = useCallback(async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/events/${params.id}`)
+      
+  const response = await fetch(`/api/events/${params?.id}`)
       const data = await response.json()
       
       if (response.ok) {
@@ -71,23 +77,23 @@ export default function EventDetail() {
     } finally {
       setLoading(false)
     }
-  }, [params.id])
+  }, [params?.id])
 
   useEffect(() => {
-    if (params.id) {
+    if (params?.id) {
       loadEvent()
     }
-  }, [loadEvent, params.id])
+  }, [loadEvent, params?.id])
 
   const handleDelete = async () => {
     try {
       setDeleting(true)
-      const response = await fetch(`/api/events/${params.id}`, {
+      const response = await fetch(`/api/events/${params?.id}`, {
         method: 'DELETE'
       })
       
       if (response.ok) {
-        router.push('/dashboard/events?deleted=true')
+        router.push(localePath("/dashboard/events?deleted=true"))
       } else {
         const data = await response.json()
         alert('Failed to delete event: ' + data.error)
@@ -107,7 +113,7 @@ export default function EventDetail() {
       return (
         <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
           <XCircle className="w-4 h-4 mr-2" />
-          Rejected
+          {t('events.status.rejected')}
         </span>
       )
     }
@@ -115,53 +121,48 @@ export default function EventDetail() {
       return (
         <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
           <CheckCircle className="w-4 h-4 mr-2" />
-          Approved & Published
+          {t('events.status.approvedPublished')}
         </span>
       )
     }
     return (
       <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
         <AlertCircle className="w-4 h-4 mr-2" />
-        Pending Review
+        {t('events.status.pendingReview')}
       </span>
     )
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    const opts: Intl.DateTimeFormatOptions = {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
-    })
+    }
+    try {
+      return new Date(dateString).toLocaleDateString(language || undefined, opts)
+    } catch (e) {
+      return new Date(dateString).toLocaleString()
+    }
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
-    )
+    return <LoadingState text={t('events.loadingEvent') || 'Loading event...'} gradientFrom="from-blue-500" gradientVia="via-indigo-500" gradientTo="to-purple-500" />
   }
 
-  if (!event) {
+  if (error || !event) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Event Not Found</h2>
-          <Button
-            onClick={() => router.push('/dashboard/events')}
-            variant="primary"
-          >
-            Back to Events
-          </Button>
-        </div>
-      </div>
+      <ErrorState 
+        title={t('events.notFound') || 'Event Not Found'}
+        message={error || t('events.notFoundMessage') || 'The event you are looking for could not be found.'}
+        retryText={t('events.backToEvents') || 'Back to Events'}
+        onRetry={() => router.push(localePath("/dashboard/events"))}
+      />
     )
   }
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -170,7 +171,7 @@ export default function EventDetail() {
           <div className="flex justify-between items-start">
             <div className="flex-1">
               <Button
-                onClick={() => router.push('/dashboard/events')}
+                onClick={() => router.push(localePath("/dashboard/events"))}
                 variant="ghost"
                 className="text-blue-600 hover:text-blue-800 mb-4 inline-flex items-center"
               >
@@ -190,7 +191,7 @@ export default function EventDetail() {
                 className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
               >
                 <Edit className="w-4 h-4 mr-2" />
-                Edit
+                {t('events.editEvent')}
               </Button>
               <Button
                 onClick={() => setShowDeleteModal(true)}
@@ -198,7 +199,7 @@ export default function EventDetail() {
                 className="inline-flex items-center px-4 py-2 border border-red-300 rounded-md text-red-700 hover:bg-red-50"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Delete
+                {t('events.deleteEvent')}
               </Button>
             </div>
           </div>
@@ -207,12 +208,12 @@ export default function EventDetail() {
         {/* Rejection Notice */}
         {event.rejectionReason && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
-            <h3 className="text-lg font-medium text-red-900 mb-2">Event Rejected</h3>
+            <h3 className="text-lg font-medium text-red-900 mb-2">{t('events.rejectedTitle')}</h3>
             <p className="text-red-800">
-              <strong>Reason:</strong> {event.rejectionReason}
+              <strong>{t('events.rejectionReasonLabel')}:</strong> {event.rejectionReason}
             </p>
             <p className="text-red-700 mt-2 text-sm">
-              You can edit and resubmit this event for review.
+              {t('events.rejectedHelp')}
             </p>
           </div>
         )}
@@ -234,7 +235,7 @@ export default function EventDetail() {
           <div className="lg:col-span-2 space-y-8">
             {/* Description */}
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Description</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('events.description')}</h2>
               <p className="text-gray-700 whitespace-pre-wrap">{event.description}</p>
             </div>
 
@@ -260,13 +261,13 @@ export default function EventDetail() {
 
             {/* Location Details */}
             <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
                 <MapPin className="w-5 h-5 mr-2" />
-                Location
+                {t('events.locationLabel')}
               </h2>
               <div className="space-y-3">
                 <div>
-                  <span className="font-medium text-gray-700">Type:</span>
+                  <span className="font-medium text-gray-700">{t('events.typeLabel')}:</span>
                   <span className="ml-2 capitalize">{event.location.type}</span>
                 </div>
                 
@@ -274,19 +275,19 @@ export default function EventDetail() {
                   <>
                     {event.location.address && (
                       <div>
-                        <span className="font-medium text-gray-700">Address:</span>
+                        <span className="font-medium text-gray-700">{t('events.address')}:</span>
                         <span className="ml-2">{event.location.address}</span>
                       </div>
                     )}
                     {event.location.city && (
                       <div>
-                        <span className="font-medium text-gray-700">City:</span>
+                        <span className="font-medium text-gray-700">{t('labels.city_1')}</span>
                         <span className="ml-2">{event.location.city}</span>
                       </div>
                     )}
                     {event.location.country && (
                       <div>
-                        <span className="font-medium text-gray-700">Country:</span>
+                        <span className="font-medium text-gray-700">{t('labels.country_1')}</span>
                         <span className="ml-2">{event.location.country}</span>
                       </div>
                     )}
@@ -295,7 +296,7 @@ export default function EventDetail() {
                 
                 {(event.location.type === 'online' || event.location.type === 'hybrid') && event.location.onlineLink && (
                   <div>
-                    <span className="font-medium text-gray-700">Online Link:</span>
+                    <span className="font-medium text-gray-700">{t('events.onlineLink')}:</span>
                     <a
                       href={event.location.onlineLink}
                       target="_blank"
@@ -315,12 +316,12 @@ export default function EventDetail() {
           <div className="space-y-6">
             {/* Event Details */}
             <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Event Details</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('events.eventDetails')}</h3>
               <div className="space-y-4">
                 <div className="flex items-start">
                   <Calendar className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                   <div>
-                    <p className="font-medium text-gray-900">Start Date</p>
+                    <p className="font-medium text-gray-900">{t('events.startDate')}</p>
                     <p className="text-gray-600 text-sm">{formatDate(event.eventDate)}</p>
                   </div>
                 </div>
@@ -329,7 +330,7 @@ export default function EventDetail() {
                   <div className="flex items-start">
                     <Clock className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                     <div>
-                      <p className="font-medium text-gray-900">End Date</p>
+                      <p className="font-medium text-gray-900">{t('events.endDate')}</p>
                       <p className="text-gray-600 text-sm">{formatDate(event.endDate)}</p>
                     </div>
                   </div>
@@ -339,7 +340,7 @@ export default function EventDetail() {
                   <div className="flex items-start">
                     <AlertCircle className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                     <div>
-                      <p className="font-medium text-gray-900">Application Deadline</p>
+                      <p className="font-medium text-gray-900">{t('events.applicationDeadline')}</p>
                       <p className="text-gray-600 text-sm">{formatDate(event.applicationDeadline)}</p>
                     </div>
                   </div>
@@ -349,9 +350,9 @@ export default function EventDetail() {
                   <div className="flex items-start">
                     <Users className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                     <div>
-                      <p className="font-medium text-gray-900">Capacity</p>
+                      <p className="font-medium text-gray-900">{t('events.capacity')}</p>
                       <p className="text-gray-600 text-sm">
-                        {event.currentParticipants} / {event.maxParticipants} participants
+                        {event.currentParticipants} / {event.maxParticipants} {t('events.participants')}
                       </p>
                     </div>
                   </div>
@@ -361,7 +362,7 @@ export default function EventDetail() {
                   <div className="flex items-start">
                     <LinkIcon className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                     <div>
-                      <p className="font-medium text-gray-900">Registration</p>
+                      <p className="font-medium text-gray-900">{t('titles.registration')}</p>
                       <a
                         href={event.applicationLink}
                         target="_blank"
@@ -382,7 +383,7 @@ export default function EventDetail() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Status Information</h3>
               <div className="space-y-3 text-sm">
                 <div>
-                  <span className="font-medium text-gray-700">Created:</span>
+                  <span className="font-medium text-gray-700">{t('buttons.created')}</span>
                   <span className="ml-2">{new Date(event.createdAt).toLocaleDateString()}</span>
                 </div>
                 <div>
@@ -391,7 +392,7 @@ export default function EventDetail() {
                 </div>
                 {event.approvedAt && (
                   <div>
-                    <span className="font-medium text-gray-700">Approved:</span>
+                    <span className="font-medium text-gray-700">{t('status.approved_1')}</span>
                     <span className="ml-2">{new Date(event.approvedAt).toLocaleDateString()}</span>
                     {event.approvedBy && (
                       <p className="text-gray-600 text-xs mt-1">by {event.approvedBy.name}</p>
@@ -400,7 +401,7 @@ export default function EventDetail() {
                 )}
                 {event.rejectedAt && (
                   <div>
-                    <span className="font-medium text-gray-700">Rejected:</span>
+                    <span className="font-medium text-gray-700">{t('status.rejected_1')}</span>
                     <span className="ml-2">{new Date(event.rejectedAt).toLocaleDateString()}</span>
                   </div>
                 )}
@@ -412,8 +413,14 @@ export default function EventDetail() {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+          onClick={() => setShowDeleteModal(false)}
+        >
+          <div 
+            className="bg-white rounded-lg max-w-md w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="text-lg font-medium text-gray-900 mb-4">Delete Event</h3>
             <p className="text-gray-600 mb-6">
               Are you sure you want to delete "{event.title}"? This action cannot be undone.

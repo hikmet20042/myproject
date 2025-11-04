@@ -1,164 +1,230 @@
+"use client"
+
 import Link from 'next/link';
-import { BookOpen, Users, Briefcase, Calendar, ChevronRight, AlertTriangle } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext'
+import { BookOpen, Users, Briefcase, Calendar, ArrowRight, AlertTriangle, Sparkles, Target, TrendingUp } from 'lucide-react';
 import { Button, Card, CardContent } from '@/components/ui';
+import { AnimatedBackground } from '@/components/shared';
 
 export default function ResourcesPage() {
+  const { t } = useLanguage()
+
   const resourceCategories = [
     {
-      title: "Educational Materials",
-      description: "Access comprehensive toolkits, courses, videos, and downloadable guides for social justice advocacy and education.",
-      href: "/resources/materials",
-      icon: <BookOpen className="w-8 h-8" />,
-      color: "primary"
+      key: 'educationalMaterials',
+      title: t('resources.categories.educationalMaterials.title'),
+      description: t('resources.categories.educationalMaterials.description'),
+      href: '/resources/materials',
+      icon: BookOpen,
+      gradient: 'from-blue-500 to-blue-700',
+      hoverGradient: 'from-blue-600 to-blue-800',
+      bgLight: 'bg-blue-50'
     },
     {
-      title: "NGO Directory",
-      description: "Discover and connect with non-governmental organizations working on social justice initiatives in your area.",
-      href: "/resources/ngos",
-      icon: <Users className="w-8 h-8" />,
-      color: "accent"
+      key: 'ngoDirectory',
+      title: t('resources.categories.ngoDirectory.title'),
+      description: t('resources.categories.ngoDirectory.description'),
+      href: '/resources/ngos',
+      icon: Users,
+      gradient: 'from-indigo-500 to-indigo-700',
+      hoverGradient: 'from-indigo-600 to-indigo-800',
+      bgLight: 'bg-indigo-50'
     },
     {
-      title: "Job Opportunities",
-      description: "Find employment, volunteering, and internship opportunities with organizations focused on social justice.",
-      href: "/resources/vacancies",
-      icon: <Briefcase className="w-8 h-8" />,
-      color: "primary"
+      key: 'jobOpportunities',
+      title: t('resources.categories.jobOpportunities.title'),
+      description: t('resources.categories.jobOpportunities.description'),
+      href: '/resources/vacancies',
+      icon: Briefcase,
+      gradient: 'from-purple-500 to-purple-700',
+      hoverGradient: 'from-purple-600 to-purple-800',
+      bgLight: 'bg-purple-50'
     },
     {
-      title: "Events",
-      description: "Discover upcoming events, workshops, and programs to enhance your social justice advocacy skills.",
-      href: "/resources/events",
-      icon: <Calendar className="w-8 h-8" />,
-      color: "accent"
+      key: 'events',
+      title: t('resources.categories.events.title'),
+      description: t('resources.categories.events.description'),
+      href: '/resources/events',
+      icon: Calendar,
+      gradient: 'from-pink-500 to-pink-700',
+      hoverGradient: 'from-pink-600 to-pink-800',
+      bgLight: 'bg-pink-50'
     }
-  ];
+  ]
 
   return (
-    <div className="min-h-screen bg-gray-50 transition-colors duration-200">
-      {/* Header */}
-      <section className="bg-primary text-white py-20 transition-colors duration-200">
-        <div className="section-padding">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl lg:text-5xl font-bold mb-6">
-              Social Justice Resources
-            </h1>
-            <p className="text-xl text-gray-100 leading-relaxed">
-              Comprehensive resources, tools, and opportunities to support social justice advocacy and community engagement.
-            </p>
-          </div>
-        </div>
-      </section>
+    <div className="min-h-screen bg-gray-50">
+      {/* Engaging Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-900 text-white py-16 sm:py-20 lg:py-24">
+        {/* Animated Blobs */}
+        <AnimatedBackground
+          colors={{
+            blob1: 'bg-blue-400',
+            blob2: 'bg-purple-400',
+            blob3: 'bg-pink-400'
+          }}
+        />
 
-      {/* Resource Categories */}
-      <section className="py-16">
-        <div className="section-padding">
-          <div className="max-w-6xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {resourceCategories.map((category, index) => (
-                <Link
-                  key={index}
-                  href={category.href}
-                  className="group block"
+        <div className="section-padding relative z-10">
+          <div className="max-w-5xl mx-auto text-center">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 mb-4 sm:mb-6 animate-fade-in">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300" />
+              <span className="text-xs sm:text-sm font-bold uppercase tracking-wide">Discover Resources</span>
+            </div>
+
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-4 sm:mb-6 leading-tight animate-slide-up px-4">
+              {t('resources.hero.title')}
+            </h1>
+            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/95 leading-relaxed max-w-3xl mx-auto mb-6 sm:mb-8 animate-fade-in px-4">
+              {t('resources.hero.subtitle')}
+            </p>
+
+            {/* Quick Stats */}
+            <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4 lg:gap-6 animate-scale-in px-4">
+              {[
+                { icon: BookOpen, label: 'Materials', value: '100+' },
+                { icon: Users, label: 'NGOs', value: '50+' },
+                { icon: Briefcase, label: 'Jobs', value: '200+' },
+                { icon: Calendar, label: 'Events', value: '75+' }
+              ].map((stat, idx) => (
+                <div 
+                  key={idx} 
+                  className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 sm:hover:scale-110 w-full sm:w-auto"
+                  style={{ animationDelay: `${idx * 0.1}s` }}
                 >
-                  <Card className="hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                    <CardContent className="p-6">
-                      <div className="flex items-start">
-                        <div className={`w-16 h-16 ${category.color === 'primary' ? 'bg-primary/10 text-primary group-hover:bg-primary/20' : 'bg-accent/20 text-primary group-hover:bg-accent/30'} rounded-lg flex items-center justify-center mr-6 flex-shrink-0 transition-colors duration-200`}>
-                          {category.icon}
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-primary transition-colors duration-200">
-                            {category.title}
-                          </h3>
-                          <p className="text-gray-600 leading-relaxed mb-4">
-                            {category.description}
-                          </p>
-                          <div className="flex items-center text-primary font-medium group-hover:text-primary-dark transition-colors duration-200">
-                            Explore
-                            <ChevronRight className="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition-transform duration-200" />
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
+                  <stat.icon className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300 flex-shrink-0" />
+                  <div className="text-left">
+                    <div className="text-lg sm:text-xl font-black">{stat.value}</div>
+                    <div className="text-xs text-white/80">{stat.label}</div>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
         </div>
+
       </section>
 
-      {/* Quick Access Section */}
-      <section className="py-16 bg-white">
-        <div className="section-padding">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl font-bold text-gray-900 mb-8">
-              Quick Access
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Link href="/resources/materials">
-                 <Button className="text-center py-3 px-6">
-                   Browse Materials
-                 </Button>
-               </Link>
-              <Link href="/resources/ngos">
-                 <Button variant="outline" className="text-center py-3 px-6">
-                   Find NGOs
-                 </Button>
-               </Link>
-              <Link href="/resources/vacancies">
-                 <Button className="text-center py-3 px-6">
-                   Find Vacancies
-                 </Button>
-               </Link>
-              <Link href="/resources/events">
-                 <Button variant="outline" className="text-center py-3 px-6">
-                   Upcoming Events
-                 </Button>
-               </Link>
+      {/* Resource Categories - Enhanced Grid */}
+      <section className="py-12 sm:py-16 lg:py-20 relative">
+        {/* Background Decoration */}
+        <div className="absolute top-0 right-0 w-64 sm:w-96 h-64 sm:h-96 bg-purple-100 rounded-full filter blur-3xl opacity-20"></div>
+        
+        <div className="section-padding relative z-10">
+          <div className="max-w-7xl mx-auto">
+            {/* Section Header */}
+            <div className="text-center mb-8 sm:mb-12 animate-fade-in">
+              <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full mb-3 sm:mb-4">
+                <Target className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                <span className="text-xs sm:text-sm font-bold text-blue-600 uppercase tracking-wide">Explore Categories</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 mb-2 sm:mb-3 px-4">
+                Find What You <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">{t('titles.need')}</span>
+              </h2>
+              <p className="text-sm sm:text-base lg:text-lg text-gray-600 max-w-2xl mx-auto px-4">
+                Access comprehensive resources tailored for your journey
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+              {resourceCategories.map((category, index) => {
+                const Icon = category.icon
+                return (
+                  <Link
+                    key={index}
+                    href={category.href}
+                    className="group block animate-fade-in"
+                    style={{ animationDelay: `${index * 0.1}s` }}
+                  >
+                    <div className="relative h-full bg-gradient-to-br from-white to-gray-50 rounded-2xl p-6 sm:p-8 border-2 border-gray-200 hover:border-transparent hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden">
+                      {/* Gradient Overlay */}
+                      <div className={`absolute inset-0 bg-gradient-to-br ${category.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500 rounded-2xl`}></div>
+                      
+                      {/* Shine Effect */}
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                      </div>
+
+                      <div className="relative z-10">
+                        <div className="flex items-start gap-4 sm:gap-6">
+                          <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br ${category.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 flex-shrink-0`}>
+                            <Icon className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 transition-all duration-300">
+                              {category.title}
+                            </h3>
+                            <p className="text-sm sm:text-base text-gray-600 leading-relaxed mb-4 sm:mb-6">
+                              {category.description}
+                            </p>
+                            
+                            {/* CTA */}
+                            <div className="flex items-center gap-2 text-blue-600 font-bold group-hover:gap-4 transition-all duration-300">
+                              <span className="text-sm sm:text-base">{t('resources.explore')}</span>
+                              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-2 transition-transform duration-300" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Corner Decoration */}
+                      <div className={`absolute top-0 right-0 w-24 sm:w-32 h-24 sm:h-32 ${category.bgLight} rounded-full -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-50 transition-opacity duration-500`}></div>
+                    </div>
+                  </Link>
+                )
+              })}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Emergency Support Section */}
-      <section className="py-16">
+      {/* Quick Access Section - Enhanced */}
+      <section className="py-12 sm:py-16 bg-gradient-to-br from-white via-blue-50/30 to-white relative">
         <div className="section-padding">
-          <div className="max-w-4xl mx-auto">
-            <Card className="bg-red-50 border-l-4 border-red-500">
-              <CardContent className="p-6">
-                <div className="flex items-start">
-                  <div className="flex-shrink-0">
-                    <AlertTriangle className="w-8 h-8 text-red-500" />
-                  </div>
-                  <div className="ml-4">
-                    <h3 className="text-xl font-semibold text-red-900 mb-3">
-                      Need Immediate Help?
-                    </h3>
-                    <p className="text-red-800 mb-4 leading-relaxed">
-                      If you or someone you know is experiencing injustice or needs immediate support, help is available 24/7. 
-                      Contact emergency services or specialized support organizations.
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <Button className="bg-red-600 hover:bg-red-700 text-white">
-                        <a href="tel:112">
-                          Emergency: 112
-                        </a>
-                      </Button>
-                      <Button variant="outline" className="bg-red-100 hover:bg-red-200 text-red-800 border-red-300">
-                        <a href="tel:+994125551234">
-                          Support Hotline: +994 12 555 1234
-                        </a>
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="max-w-5xl mx-auto text-center">
+            <div className="mb-6 sm:mb-8 animate-fade-in">
+              <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-100 rounded-full mb-3 sm:mb-4">
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                <span className="text-xs sm:text-sm font-bold text-blue-600 uppercase tracking-wide">Quick Access</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 px-4">
+                Jump Right In
+              </h2>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 px-4">
+              {[
+                { href: '/resources/materials', label: t('resources.quickAccess.browseMaterials'), icon: BookOpen, variant: 'primary' as const },
+                { href: '/resources/ngos', label: t('resources.quickAccess.findNgos'), icon: Users, variant: 'outline' as const },
+                { href: '/resources/vacancies', label: t('resources.quickAccess.findVacancies'), icon: Briefcase, variant: 'primary' as const },
+                { href: '/resources/events', label: t('resources.quickAccess.upcomingEvents'), icon: Calendar, variant: 'outline' as const }
+              ].map((item, idx) => {
+                const Icon = item.icon
+                return (
+                  <Link 
+                    key={idx} 
+                    href={item.href}
+                    className="w-full animate-scale-in"
+                    style={{ animationDelay: `${idx * 0.1}s` }}
+                  >
+                    <Button 
+                      variant={item.variant} 
+                      size="lg"
+                      className="w-full group py-4 sm:py-5 rounded-xl font-bold hover:scale-105 transition-all duration-300 text-sm sm:text-base"
+                    >
+                      <Icon className="w-4 h-4 sm:w-5 sm:h-5 mr-2 group-hover:rotate-12 transition-transform" />
+                      <span className="line-clamp-1">{item.label}</span>
+                    </Button>
+                  </Link>
+                )
+              })}
+            </div>
           </div>
         </div>
       </section>
+
+      
     </div>
   );
 }

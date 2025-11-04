@@ -140,7 +140,7 @@ export async function migrateProfileAvatars(): Promise<MigrationResult> {
 /**
  * Migrate article images - DISABLED (Article model removed, only Blog exists)
  */
-async function migrateArticleImages(): Promise<MigrationResult> {
+export async function migrateArticleImages(): Promise<MigrationResult> {
   // Articles have been replaced by Blogs
   // This function is kept for reference but returns empty result
   const result: MigrationResult = {

@@ -87,16 +87,14 @@ export async function GET(request: NextRequest) {
     
     // Transform data for frontend
     const transformedNgos = ngos.map(ngo => ({
+      // Keep field names consistent with frontend expectations
       _id: ngo._id,
-      name: ngo.organizationName,
+      organizationName: ngo.organizationName,
       description: ngo.description,
-      category: ngo.focusAreas?.[0] || 'Other',
       focusAreas: ngo.focusAreas || [],
-      location: ngo.address || 'Not specified',
+      address: ngo.address || 'Not specified',
       website: ngo.website || '',
-      email: ngo.contactPerson?.email || '',
-      phone: ngo.contactPhone || '',
-      verified: ngo.status === 'approved',
+      contactPhone: ngo.contactPhone || '',
       contactPerson: ngo.contactPerson,
       socialMedia: ngo.socialMedia,
       registrationNumber: ngo.registrationNumber,

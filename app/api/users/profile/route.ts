@@ -22,43 +22,15 @@ export async function GET(request: NextRequest) {
 
     console.log('Profile GET - Session user ID:', session.user.id, 'Type:', typeof session.user.id);
     console.log('Profile GET - Session user role:', session.user.role);
+    console.log('Profile GET - Is NGO:', session.user.isApprovedNGO);
     console.log('Profile GET - Is valid ObjectId:', mongoose.Types.ObjectId.isValid(session.user.id));
 
-    // Check if user is NGO - if so, fetch directly from NGO collection
-    if (session.user.role === 'ngo') {
-      const ngoProfile = await NGO.findById(session.user.id);
-      console.log('Profile GET - NGO query result:', ngoProfile ? 'Found' : 'Not found');
-      
-      if (!ngoProfile) {
-        console.log('Profile GET - NGO not found. Searched for ID:', session.user.id);
-        return NextResponse.json({ error: 'NGO profile not found' }, { status: 404 });
-      }
-      
-      return NextResponse.json({
-        user: {
-          id: (ngoProfile._id as mongoose.Types.ObjectId).toString(),
-          email: ngoProfile.email,
-          name: ngoProfile.organizationName,
-          image: null,
-          role: 'ngo',
-          emailVerified: ngoProfile.emailVerified,
-          createdAt: ngoProfile.createdAt
-        },
-        profile: {
-          bio: ngoProfile.description,
-          location: ngoProfile.address,
-          website: ngoProfile.website,
-          phone: ngoProfile.contactPhone,
-          organization: ngoProfile.organizationName,
-          socialMedia: ngoProfile.socialMedia,
-          // Map NGO fields to profile structure
-          registrationNumber: ngoProfile.registrationNumber,
-          focusAreas: ngoProfile.focusAreas,
-          status: ngoProfile.status,
-          contactPerson: ngoProfile.contactPerson
-        },
-        isNGO: true
-      });
+    // Check if user is NGO - if so, redirect to NGO-specific profile endpoint
+    if (session.user.isApprovedNGO) {
+      return NextResponse.json({ 
+        error: 'NGO profiles should use /api/ngo/profile endpoint',
+        redirect: '/api/ngo/profile'
+      }, { status: 400 });
     }
 
     // Handle regular users
@@ -101,6 +73,16 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
+
+    // Reject NGO profile updates - they should use NGO-specific endpoints
+    if (session.user.isApprovedNGO) {
+      return NextResponse.json({ 
+        error: 'NGO profiles should use /api/ngo/profile endpoint',
+        redirect: '/api/ngo/profile'
+      }, { status: 400 });
+    }
+
+    // Handle regular user profile updates
     const { name, bio, location, website, phone, dateOfBirth, gender, occupation, organization, interests, avatar, socialLinks, socialMedia } = body;
 
     // Update user basic info

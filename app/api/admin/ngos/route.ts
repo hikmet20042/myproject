@@ -8,7 +8,7 @@ import NotificationModel from '@/lib/models/Notification';
 
 // Helper function to check admin access
 async function isAdmin(session: any) {
-  return session?.user?.email === 'hikmat@mammadli.space' || session?.user?.role === 'admin';
+  return session?.user?.email === 'hikmat.mammadlii@gmail.com' || session?.user?.role === 'admin';
 }
 
 // GET - Fetch all NGO registrations for admin review
@@ -66,21 +66,10 @@ export async function GET(request: NextRequest) {
     const total = await NGO.countDocuments(query);
     const totalPages = Math.ceil(total / limit);
 
-    // Get counts for different statuses
-    const pendingCount = await User.countDocuments({
-      role: 'ngo',
-      'ngoProfile.status': 'pending'
-    });
-    
-    const approvedCount = await User.countDocuments({
-      role: 'ngo',
-      'ngoProfile.status': 'approved'
-    });
-    
-    const rejectedCount = await User.countDocuments({
-      role: 'ngo',
-      'ngoProfile.status': 'rejected'
-    });
+    // Get counts for different statuses from NGO collection
+    const pendingCount = await NGO.countDocuments({ status: 'pending' });
+    const approvedCount = await NGO.countDocuments({ status: 'approved' });
+    const rejectedCount = await NGO.countDocuments({ status: 'rejected' });
 
     return NextResponse.json({
       ngos,
@@ -152,12 +141,12 @@ export async function PUT(request: NextRequest) {
 
     // Send notification to NGO
     const notificationTitle = action === 'approve' 
-      ? 'NGO Registration Approved!' 
-      : 'NGO Registration Update';
+      ? 'QHT qeydiyyatı təsdiqləndi!' 
+      : 'QHT qeydiyyatı yeniləndi';
     
     const notificationMessage = action === 'approve'
-      ? `Congratulations! Your NGO "${ngo.organizationName}" has been approved. You can now access all NGO features.`
-      : `Your NGO registration has been reviewed. Reason: ${rejectionReason}`;
+      ? `Təbriklər! "${ngo.organizationName}" QHT-niz təsdiqləndi. İndi bütün QHT funksiyalarına çıxışınız var.`
+      : `QHT qeydiyyatınız nəzərdən keçirildi. Səbəb: ${rejectionReason}`;
 
     await NotificationModel.create({
       ngoId: ngo._id,
@@ -245,12 +234,12 @@ export async function PATCH(request: NextRequest) {
     // Send notifications to all affected NGOs
     for (const ngo of ngos) {
       const notificationTitle = action === 'approve' 
-        ? 'NGO Registration Approved!' 
-        : 'NGO Registration Update';
+        ? 'QHT qeydiyyatı təsdiqləndi!' 
+        : 'QHT qeydiyyatı yeniləndi';
       
       const notificationMessage = action === 'approve'
-        ? `Congratulations! Your NGO "${ngo.organizationName}" has been approved. You can now access all NGO features.`
-        : `Your NGO registration has been reviewed. Reason: ${rejectionReason}`;
+        ? `Təbriklər! "${ngo.organizationName}" QHT-niz təsdiqləndi. İndi bütün QHT funksiyalarına çıxışınız var.`
+        : `QHT qeydiyyatınız nəzərdən keçirildi. Səbəb: ${rejectionReason}`;
 
       await NotificationModel.create({
         ngoId: ngo._id,

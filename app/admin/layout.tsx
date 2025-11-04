@@ -3,6 +3,8 @@
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { LoadingState, ErrorState } from '@/components/shared'
 
 export default function AdminLayout({
   children,
@@ -11,6 +13,7 @@ export default function AdminLayout({
 }) {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const { t } = useLanguage()
 
   useEffect(() => {
     if (status === 'loading') return // Still loading
@@ -28,28 +31,24 @@ export default function AdminLayout({
 
   if (status === 'loading') {
     return (
-  <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
-      </div>
+      <LoadingState 
+        text={t('common.loading')}
+        gradientFrom="from-red-50"
+        gradientVia="via-pink-50"
+        gradientTo="to-purple-50"
+        spinnerColor="border-red-600"
+      />
     )
   }
 
   if (!session || session.user?.role !== 'admin') {
     return (
-  <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-            <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h2 className="mt-6 text-2xl font-bold text-gray-900">Access Denied</h2>
-          <p className="mt-2 text-gray-600">You don't have permission to access this area.</p>
-        </div>
-      </div>
+      <ErrorState 
+        title={t('admin.accessDenied') || 'Access Denied'}
+        message={t('admin.noPermission') || 'You do not have permission to access this area.'}
+        retryText={t('common.goHome') || 'Go to Homepage'}
+        onRetry={() => router.push('/')}
+      />
     )
   }
 
@@ -59,12 +58,12 @@ export default function AdminLayout({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-gray-600">Manage your Social Justice Platform</p>
+              <h1 className="text-2xl font-bold text-gray-900">{t('admin.title')}</h1>
+              <p className="text-gray-600">{t('admin.platformManagement')}</p>
             </div>
             <div className="flex items-center space-x-3">
               <div className="text-sm text-gray-600">
-                Welcome, {session.user?.name || 'Admin'}
+                {t('admin.welcome')}, {session.user?.name || t('admin.defaultName')}
               </div>
             </div>
           </div>

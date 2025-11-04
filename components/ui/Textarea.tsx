@@ -16,7 +16,7 @@ const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
     description,
     error,
     variant = 'default',
-    textAreaSize = 'lg',
+    textAreaSize = 'md',
     id,
     required,
     rows = 4,
@@ -34,22 +34,22 @@ const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
     };
     
     const sizes = {
-      sm: 'px-3 py-2 text-sm',
-      md: 'px-4 py-3 text-base',
-      lg: 'px-4 py-4 text-lg'
+      sm: 'px-3 py-1.5 text-sm',
+      md: 'px-3.5 py-2 text-sm',
+      lg: 'px-4 py-2.5 text-base'
     };
     
     return (
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {label && (
-          <label htmlFor={textAreaId} className="block text-lg font-semibold text-gray-800">
+          <label htmlFor={textAreaId} className="block text-sm font-medium text-gray-700">
             {label}
             {required && <span className="text-red-500 ml-1">*</span>}
           </label>
         )}
         
         {description && (
-          <p className="text-sm text-gray-600 mb-3">{description}</p>
+          <p className="text-xs text-gray-600 mb-2">{description}</p>
         )}
         
         <textarea

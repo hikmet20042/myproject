@@ -5,21 +5,24 @@ import { useSession } from 'next-auth/react'
 import { useRouter, useParams } from 'next/navigation'
 import { Calendar, MapPin, Users, Link as LinkIcon, Clock, Tag, Image as ImageIcon } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { LoadingState, ErrorState } from '@/components/shared'
 
 const eventCategories = [
-  'Workshop',
-  'Conference',
-  'Seminar',
-  'Art Performance',
-  'Cultural Event',
-  'Fundraising',
-  'Community Gathering',
-  'Awareness Campaign',
-  'Protest/Rally',
-  'Educational Event',
-  'Networking',
-  'Celebration',
-  'Other'
+  'workshop',
+  'conference',
+  'seminar',
+  'art_performance',
+  'cultural_event',
+  'fundraising',
+  'community_gathering',
+  'awareness_campaign',
+  'protest_rally',
+  'educational_event',
+  'networking',
+  'celebration',
+  'other'
 ]
 
 interface Event {
@@ -60,6 +63,7 @@ export default function EditEvent() {
   const [loadingEvent, setLoadingEvent] = useState(true)
   const [event, setEvent] = useState<Event | null>(null)
   const [error, setError] = useState('')
+  const localePath = useLocalizedPath()
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -80,10 +84,12 @@ export default function EditEvent() {
     imageUrl: ''
   })
 
+  const { t } = useLanguage()
+
   const loadEvent = useCallback(async () => {
     try {
       setLoadingEvent(true)
-      const response = await fetch(`/api/events/${params.id}`)
+      const response = await fetch(`/api/events/${params?.id}`)
       const data = await response.json()
       
       if (response.ok) {
@@ -117,13 +123,13 @@ export default function EditEvent() {
     } finally {
       setLoadingEvent(false)
     }
-  }, [params.id])
+  }, [params?.id])
 
   useEffect(() => {
-    if (params.id) {
+    if (params?.id) {
       loadEvent()
     }
-  }, [loadEvent, params.id])
+  }, [loadEvent, params?.id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -140,7 +146,7 @@ export default function EditEvent() {
         applicationDeadline: formData.applicationDeadline ? new Date(formData.applicationDeadline).toISOString() : undefined
       }
 
-      const response = await fetch(`/api/events/${params.id}`, {
+      const response = await fetch(`/api/events/${params?.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -151,7 +157,7 @@ export default function EditEvent() {
       const data = await response.json()
 
       if (response.ok) {
-        router.push('/dashboard/events?updated=true')
+        router.push(localePath("/dashboard/events?updated=true"))
       } else {
         alert('Error updating event: ' + data.error)
       }
@@ -184,26 +190,17 @@ export default function EditEvent() {
   }
 
   if (loadingEvent) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
-    )
+    return <LoadingState text={t('events.loadingEvent') || 'Loading event...'} gradientFrom="from-blue-500" gradientVia="via-indigo-500" gradientTo="to-purple-500" />
   }
 
-  if (!event) {
+  if (error || !event) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Event Not Found</h2>
-          <Button
-            onClick={() => router.push('/dashboard/events')}
-            variant="primary"
-          >
-            Back to Events
-          </Button>
-        </div>
-      </div>
+      <ErrorState 
+        title={t('events.notFound') || 'Event Not Found'}
+        message={error || t('events.notFoundMessage') || 'The event you are looking for could not be found.'}
+        retryText={t('events.backToEvents') || 'Back to Events'}
+        onRetry={() => router.push(localePath("/dashboard/events"))}
+      />
     )
   }
 
@@ -212,18 +209,18 @@ export default function EditEvent() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Edit Event</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{t('events.editTitle')}</h1>
           <p className="mt-2 text-gray-600">
             {event.isApproved 
-              ? 'Editing this event will require re-approval from admin'
-              : 'Update your event details'
+              ? t('events.editRequiresReapproval')
+              : t('events.updateYourEventDetails')
             }
           </p>
           
           {event.rejectionReason && (
             <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
               <p className="text-sm text-red-800">
-                <strong>Previous Rejection Reason:</strong> {event.rejectionReason}
+                <strong>{t('events.previousRejectionReason')}</strong> {event.rejectionReason}
               </p>
             </div>
           )}
@@ -232,12 +229,12 @@ export default function EditEvent() {
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Basic Information */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Basic Information</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('events.basicInformation')}</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Event Title *
+                  {t('events.eventTitle')} *
                 </label>
                 <input
                   type="text"
@@ -247,13 +244,13 @@ export default function EditEvent() {
                   required
                   maxLength={200}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter event title"
+                  placeholder={t('events.eventTitlePlaceholder')}
                 />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Category *
+                  {t('events.category')} *
                 </label>
                 <select
                   name="category"
@@ -262,16 +259,16 @@ export default function EditEvent() {
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">Select category</option>
+                  <option value="">{t('events.selectCategory')}</option>
                   {eventCategories.map(category => (
-                    <option key={category} value={category}>{category}</option>
+                    <option key={category} value={category}>{t(`events.categoryOptions.${category}`)}</option>
                   ))}
                 </select>
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Max Participants
+                  {t('events.maxParticipants')}
                 </label>
                 <input
                   type="number"
@@ -280,13 +277,13 @@ export default function EditEvent() {
                   onChange={handleInputChange}
                   min="1"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Leave empty for unlimited"
+                  placeholder={t('events.maxParticipantsPlaceholder')}
                 />
               </div>
               
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description *
+                  {t('events.description')} *
                 </label>
                 <textarea
                   name="description"
@@ -296,13 +293,13 @@ export default function EditEvent() {
                   maxLength={2000}
                   rows={4}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Describe your event"
+                  placeholder={t('events.descriptionPlaceholder')}
                 />
               </div>
               
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tags
+                  {t('events.tags')}
                 </label>
                 <input
                   type="text"
@@ -310,7 +307,7 @@ export default function EditEvent() {
                   value={formData.tags}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter tags separated by commas (e.g., human rights, workshop, youth)"
+                  placeholder={t('events.tagsPlaceholder')}
                 />
               </div>
             </div>
@@ -319,14 +316,14 @@ export default function EditEvent() {
           {/* Date & Time */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <Calendar className="w-5 h-5 mr-2" />
-              Date & Time
-            </h2>
+                <Calendar className="w-5 h-5 mr-2" />
+                {t('events.dateTime')}
+              </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Start Date *
+                  {t('events.startDate')} *
                 </label>
                 <input
                   type="date"
@@ -340,7 +337,7 @@ export default function EditEvent() {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  End Date
+                  {t('events.endDate')}
                 </label>
                 <input
                   type="date"
@@ -353,7 +350,7 @@ export default function EditEvent() {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Application Deadline (with time)
+                  {t('events.applicationDeadline')}
                 </label>
                 <input
                   type="datetime-local"
@@ -370,13 +367,13 @@ export default function EditEvent() {
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
               <MapPin className="w-5 h-5 mr-2" />
-              Location
+              {t('events.locationLabel')}
             </h2>
             
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Location Type *
+                  {t('events.locationType')} *
                 </label>
                 <select
                   name="location.type"
@@ -385,9 +382,9 @@ export default function EditEvent() {
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="physical">Physical Location</option>
-                  <option value="online">Online Event</option>
-                  <option value="hybrid">Hybrid (Physical + Online)</option>
+                  <option value="physical">{t('events.locationTypes.physical')}</option>
+                  <option value="online">{t('events.locationTypes.online')}</option>
+                  <option value="hybrid">{t('events.locationTypes.hybrid')}</option>
                 </select>
               </div>
               
@@ -395,7 +392,7 @@ export default function EditEvent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Address
+                      {t('events.address')}
                     </label>
                     <input
                       type="text"
@@ -403,13 +400,13 @@ export default function EditEvent() {
                       value={formData.location.address}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Street address"
+                      placeholder={t('events.addressPlaceholder')}
                     />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      City
+                      {t('events.city')}
                     </label>
                     <input
                       type="text"
@@ -417,13 +414,13 @@ export default function EditEvent() {
                       value={formData.location.city}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="City"
+                      placeholder={t('events.cityPlaceholder')}
                     />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Country
+                      {t('events.country')}
                     </label>
                     <input
                       type="text"
@@ -431,7 +428,7 @@ export default function EditEvent() {
                       value={formData.location.country}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Country"
+                      placeholder={t('events.countryPlaceholder')}
                     />
                   </div>
                 </div>
@@ -440,7 +437,7 @@ export default function EditEvent() {
               {(formData.location.type === 'online' || formData.location.type === 'hybrid') && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Online Meeting Link
+                    {t('events.onlineLink')}
                   </label>
                   <input
                     type="url"
@@ -448,7 +445,7 @@ export default function EditEvent() {
                     value={formData.location.onlineLink}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="https://zoom.us/j/..."
+                    placeholder={t('events.onlineLinkPlaceholder')}
                   />
                 </div>
               )}
@@ -457,12 +454,12 @@ export default function EditEvent() {
 
           {/* Additional Information */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Additional Information</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('events.additionalInformation')}</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Application/Registration Link
+                  {t('events.applicationLink')}
                 </label>
                 <input
                   type="url"
@@ -470,13 +467,13 @@ export default function EditEvent() {
                   value={formData.applicationLink}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="https://..."
+                  placeholder={t('events.urlPlaceholder')}
                 />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Event Image URL
+                  {t('events.imageUrl')}
                 </label>
                 <input
                   type="url"
@@ -484,7 +481,7 @@ export default function EditEvent() {
                   value={formData.imageUrl}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="https://..."
+                  placeholder={t('events.urlPlaceholder')}
                 />
               </div>
             </div>
@@ -497,14 +494,14 @@ export default function EditEvent() {
               onClick={() => router.back()}
               variant="outline"
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
               disabled={loading}
               variant="primary"
             >
-              {loading ? 'Updating...' : 'Update Event'}
+              {loading ? t('events.updating') : t('events.updateEvent')}
             </Button>
           </div>
         </form>

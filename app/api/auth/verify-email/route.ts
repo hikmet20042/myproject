@@ -48,14 +48,14 @@ export async function GET(request: NextRequest) {
       await NotificationModel.create({
         userId: account._id,
         type: 'email_verification',
-        title: 'Email Verified Successfully!',
-        message: 'Your email has been verified. You can now sign in to your account.',
+        title: 'E-poçt uğurla təsdiqləndi!',
+        message: 'E-poçtunuz təsdiqləndi. İndi hesabınıza daxil ola bilərsiniz.',
         data: { type: 'email_verification' },
       });
     }
     const message = isNGO 
-      ? 'Email verified successfully! Your NGO registration is now pending admin approval.'
-      : 'Email verified successfully! You can now sign in.';
+      ? 'E-poçt uğurla təsdiqləndi! QHT qeydiyyatınız indi admin təsdiqi gözləyir.'
+      : 'E-poçt uğurla təsdiqləndi! İndi daxil ola bilərsiniz.';
       
     return NextResponse.json({
       message,

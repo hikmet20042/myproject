@@ -26,42 +26,77 @@ export async function POST(
     // Get user agent for analytics
     const userAgent = request.headers.get('user-agent') || 'unknown';
     
+    // Parse request body for client-side tracking info
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      body = {};
+    }
+    
+    const { isFirstView = true } = body;
+    
     // Find the blog
     const blog = await Blog.findById(blogId);
     if (!blog) {
       return NextResponse.json({ error: 'Blog not found' }, { status: 404 });
     }
 
+    // Only track views for approved blogs
+    if (blog.status !== 'approved') {
+      return NextResponse.json({
+        success: false,
+        message: 'Views only tracked for approved content',
+        views: blog.views || 0,
+        uniqueViews: blog.uniqueViews || 0,
+        viewIncremented: false
+      });
+    }
+
     // Check if this is a unique view
     let isUniqueView = false;
+    let viewIncremented = false;
     
     if (viewerId) {
       // For logged-in users, check if they haven't viewed this blog before
-      if (!blog.viewedBy.includes(viewerId)) {
+      const alreadyViewed = blog.viewedBy?.some(
+        (id: any) => id.toString() === viewerId.toString()
+      );
+      
+      if (!alreadyViewed) {
         isUniqueView = true;
+        if (!blog.viewedBy) blog.viewedBy = [];
         blog.viewedBy.push(viewerId);
         blog.uniqueViews = (blog.uniqueViews || 0) + 1;
       }
+      
+      // Always increment total views for authenticated users
+      blog.views = (blog.views || 0) + 1;
+      viewIncremented = true;
+      
     } else {
-      // For anonymous users, we'll count it as unique for now
-      isUniqueView = true;
-      blog.uniqueViews = (blog.uniqueViews || 0) + 1;
+      // For anonymous users, rely on client-side tracking (session storage)
+      if (isFirstView) {
+        isUniqueView = true;
+        blog.uniqueViews = (blog.uniqueViews || 0) + 1;
+        blog.views = (blog.views || 0) + 1;
+        viewIncremented = true;
+      }
     }
     
-    // Always increment total views
-    blog.views = (blog.views || 0) + 1;
-    
-    // Calculate engagement score
-    const engagementScore = (blog.views * 1) + (blog.likes * 3) + (blog.shares * 5);
-    blog.engagementScore = engagementScore;
-    
-    // Save the blog
-    await blog.save();
-    
-
+    // Calculate engagement score (views * 1 + likes * 3 - dislikes * 2)
+    if (viewIncremented) {
+      const engagementScore = (blog.views * 1) + 
+                             ((blog.likes || 0) * 3) - 
+                             ((blog.dislikes || 0) * 2);
+      blog.engagementScore = Math.max(0, engagementScore);
+      
+      // Save the blog
+      await blog.save();
+    }
     
     // Update user analytics if the blog has an owner
-    if (blog.author) {
+    if (blog.author && viewIncremented) {
       try {
         await UserAnalytics.findOneAndUpdate(
           { userId: blog.author },
@@ -82,11 +117,13 @@ export async function POST(
     // Return updated stats
     return NextResponse.json({
       success: true,
-      views: blog.views,
-      uniqueViews: blog.uniqueViews,
-      likes: blog.likes,
-      engagementScore: blog.engagementScore,
-      isUniqueView
+      views: blog.views || 0,
+      uniqueViews: blog.uniqueViews || 0,
+      likes: blog.likes || 0,
+      dislikes: blog.dislikes || 0,
+      engagementScore: blog.engagementScore || 0,
+      isUniqueView,
+      viewIncremented
     });
     
   } catch (error) {
@@ -105,7 +142,7 @@ export async function GET(
     
     const blogId = params.id;
     
-    const blog = await Blog.findById(blogId).select('views uniqueViews likes shares engagementScore');
+    const blog = await Blog.findById(blogId).select('views uniqueViews likes engagementScore');
     if (!blog) {
       return NextResponse.json({ error: 'Blog not found' }, { status: 404 });
     }
@@ -120,7 +157,6 @@ export async function GET(
       views: blog.views || 0,
       uniqueViews: blog.uniqueViews || 0,
       likes: blog.likes || 0,
-      shares: blog.shares || 0,
       engagementScore: blog.engagementScore || 0,
       dailyAnalytics: viewAnalytics
     });

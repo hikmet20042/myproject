@@ -34,10 +34,12 @@ interface IImageBlob extends mongoose.Document {
       responsive?: Array<{ width: number; id: string }>; // Responsive variants
     };
     // Storage information
-    storage?: 'blob' | 'imgbb'; // Storage type
-    imgbbUrl?: string; // ImgBB direct URL
-    deleteUrl?: string; // ImgBB delete URL
-    context?: string; // Usage context (article, story, profile, etc.)
+    storage?: 'blob' | 'imgbb' | 'cloudinary'; // Storage type
+    imgbbUrl?: string; // ImgBB direct URL (deprecated)
+    deleteUrl?: string; // ImgBB delete URL (deprecated)
+    cloudinaryUrl?: string; // Cloudinary URL
+    cloudinaryPublicId?: string; // Cloudinary public ID for transformations/deletion
+    context?: string; // Usage context (article, story, profile, event, etc.)
     // Image characteristics
     format?: string; // Original format detected by Sharp
     space?: string; // Color space
@@ -162,11 +164,13 @@ const ImageBlobSchema = new mongoose.Schema<IImageBlob>({
     // Storage information
     storage: {
       type: String,
-      enum: ['blob', 'imgbb'],
-      default: 'blob'
+      enum: ['blob', 'imgbb', 'cloudinary'],
+      default: 'cloudinary'
     },
     imgbbUrl: String,
     deleteUrl: String,
+    cloudinaryUrl: String,
+    cloudinaryPublicId: String,
     context: String,
     // Image characteristics
     format: String,

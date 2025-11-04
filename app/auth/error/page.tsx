@@ -3,28 +3,15 @@
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import Link from 'next/link'
-
-const errorMessages: { [key: string]: string } = {
-  'Configuration': 'There is a problem with the server configuration.',
-  'AccessDenied': 'Access denied. You do not have permission to sign in.',
-  'Verification': 'The verification token has expired or has already been used.',
-  'Default': 'An unexpected error occurred during authentication.',
-  'Signin': 'Error during sign in process.',
-  'OAuthSignin': 'Error in constructing an OAuth authorization URL.',
-  'OAuthCallback': 'Error in handling the response from an OAuth provider.',
-  'OAuthCreateAccount': 'Could not create OAuth account in the database.',
-  'EmailCreateAccount': 'Could not create email account in the database.',
-  'Callback': 'Error in the OAuth callback handler route.',
-  'OAuthAccountNotLinked': 'To confirm your identity, sign in with the same account you used originally.',
-  'EmailSignin': 'Sending the e-mail with the verification token failed.',
-  'CredentialsSignin': 'The authorize callback returned null in the Credentials provider.',
-  'SessionRequired': 'The content of this page requires you to be signed in at all times.',
-}
+import { useLanguage } from '@/contexts/LanguageContext'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
 
 function ErrorContent() {
+  const { t } = useLanguage()
+  const localePath = useLocalizedPath()
   const searchParams = useSearchParams()
-  const error = searchParams.get('error') || 'Default'
-  const errorMessage = errorMessages[error] || errorMessages['Default']
+  const error = searchParams?.get('error') || 'Default'
+  const errorMessage = t(`auth.errors.${error}`) || t('auth.errors.Default')
 
   return (
   <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -38,7 +25,7 @@ function ErrorContent() {
             </div>
             
             <h2 className="mt-6 text-2xl font-bold text-gray-900">
-              Authentication Error
+              {t('auth.errorTitle')}
             </h2>
             
             <p className="mt-2 text-sm text-gray-600">
@@ -48,25 +35,22 @@ function ErrorContent() {
             {error === 'OAuthAccountNotLinked' && (
               <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
                 <p className="text-sm text-yellow-800">
-                  It looks like you have an existing account with a different sign-in method. 
-                  Please use the same method you used when you first created your account.
+                  {t('auth.errors.OAuthAccountNotLinkedExtra')}
                 </p>
               </div>
             )}
             
             <div className="mt-6 space-y-3">
-              <Link 
-                href="/auth/signin"
+              <Link href={localePath("/auth/signin")}
                 className="block w-full bg-primary hover:bg-primary-dark text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 text-center"
               >
-                Try signing in again
+                {t('auth.trySigningInAgain')}
               </Link>
               
-              <Link 
-                href="/"
+              <Link href={localePath("/")}
                 className="block text-gray-600 hover:text-primary text-sm"
               >
-                ← Return to homepage
+                ← {t('auth.returnToHomepage')}
               </Link>
             </div>
             

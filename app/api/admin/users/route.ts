@@ -12,7 +12,7 @@ import mongoose from 'mongoose';
 export const dynamic = 'force-dynamic';
 
 async function isAdmin(session: any) {
-  return session?.user?.email === 'hikmat@mammadli.space' || session?.user?.role === 'admin';
+  return session?.user?.email === 'hikmat.mammadlii@gmail.com' || session?.user?.role === 'admin';
 }
 
 // Get all users with pagination, search, and filtering
@@ -34,7 +34,10 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Build query
-    const query: any = {};
+    const query: any = {
+      // Exclude NGOs - they have a separate management interface
+      role: { $in: ['user', 'admin'] }
+    };
     
     if (search) {
       query.$or = [
@@ -47,8 +50,16 @@ export async function GET(request: NextRequest) {
       query.role = role;
     }
 
-    // Get total count
+    // Get total count (only users and admins, not NGOs)
     const total = await User.countDocuments(query);
+    
+    // Calculate overall user statistics (not filtered, but exclude NGOs)
+    // emailVerified is a Date field, not boolean - null means not verified, any date means verified
+    const [totalUsers, verifiedUsers, adminUsers] = await Promise.all([
+      User.countDocuments({ role: { $in: ['user', 'admin'] } }),
+      User.countDocuments({ role: { $in: ['user', 'admin'] }, emailVerified: { $ne: null } }),
+      User.countDocuments({ role: 'admin' })
+    ]);
 
     // Get users with profiles
     const users = await User.aggregate([
@@ -89,16 +100,15 @@ export async function GET(request: NextRequest) {
     // Get user statistics
     const userStats = await Promise.all(
       users.map(async (user) => {
-        const [articleCount, storyCount] = await Promise.all([
-          Article.countDocuments({ userId: user._id }),
+        const [storyCount] = await Promise.all([
           Blog.countDocuments({ author: user._id })
         ]);
         return {
           ...user,
           stats: {
-            articles: articleCount,
+            
             blogs: storyCount,
-            totalContent: articleCount + storyCount
+            
           }
         };
       })
@@ -111,6 +121,11 @@ export async function GET(request: NextRequest) {
         page,
         limit,
         totalPages: Math.ceil(total / limit)
+      },
+      stats: {
+        total: totalUsers,
+        verified: verifiedUsers,
+        admin: adminUsers
       },
       filters: {
         search,
@@ -222,30 +237,19 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Soft delete - mark as deleted instead of actually deleting
-    user.deleted = true;
-    user.deletedAt = new Date();
-    user.deletedBy = session.user.id;
-    await user.save();
+    // Prevent deletion of NGOs through this endpoint - they should be managed through NGO API
+    if (user.role === 'ngo') {
+      return NextResponse.json({ error: 'NGOs cannot be deleted through this endpoint. Use the NGO management interface.' }, { status: 400 });
+    }
 
-    // Also soft delete user's content
+    // Delete the user (hard delete since soft delete fields don't exist in schema)
+    await User.findByIdAndDelete(userId);
+
+    // Also delete user's related content
     await Promise.all([
-      Article.updateMany(
-        { userId: new mongoose.Types.ObjectId(userId) },
-        { 
-          deleted: true,
-          deletedAt: new Date(),
-          deletedBy: session.user.id
-        }
-      ),
-      Blog.updateMany(
-        { author: new mongoose.Types.ObjectId(userId) },
-        { 
-          deleted: true,
-          deletedAt: new Date(),
-          deletedBy: session.user.id
-        }
-      )
+      UserProfile.deleteOne({ userId: new mongoose.Types.ObjectId(userId) }),
+      Blog.deleteMany({ author: new mongoose.Types.ObjectId(userId) }),
+      Notification.deleteMany({ userId: new mongoose.Types.ObjectId(userId) })
     ]);
 
     return NextResponse.json({ message: 'User deleted successfully' });

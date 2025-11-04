@@ -41,6 +41,12 @@ interface IEvent extends mongoose.Document {
   currentParticipants: number
   tags: string[]
   imageUrl?: string
+  images?: Array<{
+    url: string
+    publicId: string
+    alt?: string
+    isPrimary?: boolean
+  }>
   createdBy: mongoose.Types.ObjectId
   organizationName?: string
   status: 'pending' | 'approved' | 'rejected'
@@ -51,6 +57,10 @@ interface IEvent extends mongoose.Document {
   adminComment?: string
   isPublished: boolean
   isFeatured: boolean
+  views: number
+  uniqueViews: number
+  viewedBy: mongoose.Types.ObjectId[]
+  engagementScore: number
 }
 
 const EventSchema = new mongoose.Schema<IEvent>({
@@ -201,6 +211,23 @@ const EventSchema = new mongoose.Schema<IEvent>({
     trim: true
   }],
   imageUrl: String,
+  images: [{
+    url: {
+      type: String,
+      required: true
+    },
+    publicId: {
+      type: String,
+      required: true
+    },
+    alt: {
+      type: String
+    },
+    isPrimary: {
+      type: Boolean,
+      default: false
+    }
+  }],
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -232,6 +259,22 @@ const EventSchema = new mongoose.Schema<IEvent>({
   isFeatured: {
     type: Boolean,
     default: false
+  },
+  views: {
+    type: Number,
+    default: 0
+  },
+  uniqueViews: {
+    type: Number,
+    default: 0
+  },
+  viewedBy: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  engagementScore: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: true,

@@ -3,14 +3,18 @@
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { Calendar, MapPin, Users, Plus, X, Briefcase, DollarSign, Clock, FileText, Send } from 'lucide-react'
 import { Input,Select,Button,TextArea } from '@/components/ui'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
 
 
 export default function CreateVacancy() {
   const { data: session } = useSession()
   const router = useRouter()
+  const { t } = useLanguage()
   const [loading, setLoading] = useState(false)
+  const localePath = useLocalizedPath()
   const [formData, setFormData] = useState({
     title: '',
     type: 'job' as 'job' | 'volunteer' | 'internship',
@@ -43,19 +47,19 @@ export default function CreateVacancy() {
 
     // Validation
     if (!formData.title || !formData.description) {
-      alert('Please fill in all required fields')
+      alert(t('vacancies.validation.fillRequired'))
       setLoading(false)
       return
     }
 
     if (!formData.category) {
-      alert('Please select a category')
+      alert(t('vacancies.validation.selectCategory'))
       setLoading(false)
       return
     }
 
     if (!formData.experienceLevel) {
-      alert('Please select an experience level')
+      alert(t('vacancies.validation.selectExperience'))
       setLoading(false)
       return
     }
@@ -74,26 +78,26 @@ export default function CreateVacancy() {
     // }
 
     if (!formData.applicationDeadline) {
-      alert('Please select an application deadline')
+      alert(t('vacancies.validation.selectDeadline'))
       setLoading(false)
       return
     }
 
     if (!formData.applicationInstructions.trim()) {
-      alert('Please enter application instructions')
+      alert(t('vacancies.validation.enterInstructions'))
       setLoading(false)
       return
     }
 
     // Validate application method specific fields
     if (formData.applicationMethod === 'link' && !formData.applicationLink) {
-      alert('Please provide an application link')
+      alert(t('vacancies.validation.provideApplicationLink'))
       setLoading(false)
       return
     }
 
     if (formData.applicationMethod === 'email' && !formData.applicationEmail) {
-      alert('Please provide an application email')
+      alert(t('vacancies.validation.provideApplicationEmail'))
       setLoading(false)
       return
     }
@@ -156,14 +160,14 @@ export default function CreateVacancy() {
       })
 
       if (response.ok) {
-        router.push('/dashboard')
+        router.push(localePath("/dashboard"))
       } else {
         const error = await response.json()
-        alert(error.error || 'Failed to create vacancy')
+        alert(error.error || t('vacancies.error.failedCreate'))
       }
     } catch (error) {
       console.error('Error creating vacancy:', error)
-      alert('Failed to create vacancy')
+      alert(t('vacancies.error.failedCreate'))
     } finally {
       setLoading(false)
     }
@@ -203,8 +207,8 @@ export default function CreateVacancy() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-6">
             <Briefcase className="w-8 h-8 text-blue-600" />
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Create New Vacancy</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">Share opportunities that make a difference. Post jobs, volunteer positions, and internships to connect with passionate individuals.</p>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">{t('vacancies.createTitle')}</h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">{t('vacancies.createSubtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-10">
@@ -213,18 +217,18 @@ export default function CreateVacancy() {
             <div className="bg-gradient-to-r from-primary to-blue-700 px-8 py-6">
               <h2 className="text-2xl font-bold text-white flex items-center">
                 <Users className="w-6 h-6 mr-3" />
-                Basic Information
+                {t('vacancies.basicInformation')}
               </h2>
-              <p className="text-blue-100 mt-2">Tell us about the position you're offering</p>
+              <p className="text-blue-100 mt-2">{t('vacancies.basicInformationSubtitle')}</p>
             </div>
             
             <div className="p-8 space-y-8">
               {/* Position Title */}
               <div className="space-y-2">
                 <label htmlFor="title" className="block text-lg font-semibold text-gray-800">
-                  Position Title *
+                  {t('vacancies.positionTitleLabel')}
                 </label>
-                <p className="text-sm text-gray-600 mb-3">What role are you looking to fill?</p>
+                <p className="text-sm text-gray-600 mb-3">{t('vacancies.positionTitleHint')}</p>
                 <input
                   type="text"
                   id="title"
@@ -241,9 +245,9 @@ export default function CreateVacancy() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-2">
                   <label htmlFor="type" className="block text-lg font-semibold text-gray-800">
-                    Opportunity Type *
+                    {t('vacancies.opportunityTypeLabel')}
                   </label>
-                  <p className="text-sm text-gray-600 mb-3">What kind of opportunity is this?</p>
+                  <p className="text-sm text-gray-600 mb-3">{t('vacancies.opportunityTypeHint')}</p>
                   <select
                     id="type"
                     name="type"
@@ -252,17 +256,17 @@ export default function CreateVacancy() {
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 text-lg border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-red-100 focus:border-primary transition-all duration-200"
                   >
-                    <option value="job">Paid Job Position</option>
-                <option value="volunteer">Volunteer Opportunity</option>
-                <option value="internship">Internship Program</option>
+                    <option value="job">{t('vacancies.type.job')}</option>
+                <option value="volunteer">{t('vacancies.type.volunteer')}</option>
+                <option value="internship">{t('vacancies.type.internship')}</option>
                   </select>
                 </div>
 
                 <div className="space-y-2">
                   <label htmlFor="experienceLevel" className="block text-lg font-semibold text-gray-800">
-                    Experience Level *
+                    {t('vacancies.experienceLevelLabel')}
                   </label>
-                  <p className="text-sm text-gray-600 mb-3">What level of experience do you need?</p>
+                  <p className="text-sm text-gray-600 mb-3">{t('vacancies.experienceLevelHint')}</p>
                   <select
                     id="experienceLevel"
                     name="experienceLevel"
@@ -271,11 +275,11 @@ export default function CreateVacancy() {
                     onChange={handleInputChange}
                     className="w-full px-4 py-4 text-lg border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
                   >
-                    <option value="">Choose experience level...</option>
-                    <option value="entry">Entry Level (0-2 years)</option>
-                <option value="mid">Mid Level (2-5 years)</option>
-                <option value="senior">Senior Level (5+ years)</option>
-                <option value="any">Any Level Welcome</option>
+                    <option value="">{t('vacancies.chooseExperience')}</option>
+                    <option value="entry">{t('vacancies.experience.entry')}</option>
+                <option value="mid">{t('vacancies.experience.mid')}</option>
+                <option value="senior">{t('vacancies.experience.senior')}</option>
+                <option value="any">{t('vacancies.experience.any')}</option>
                   </select>
                 </div>
               </div>
@@ -283,9 +287,9 @@ export default function CreateVacancy() {
               {/* Description */}
               <div className="space-y-2">
                 <label htmlFor="description" className="block text-lg font-semibold text-gray-800">
-                  Position Description *
+                  {t('vacancies.descriptionLabel')}
                 </label>
-                <p className="text-sm text-gray-600 mb-3">Describe the role, your organization, and what makes this opportunity special</p>
+                <p className="text-sm text-gray-600 mb-3">{t('vacancies.descriptionHint')}</p>
                 <textarea
                   id="description"
                   name="description"
@@ -300,10 +304,10 @@ export default function CreateVacancy() {
 
               {/* Category */}
               <div className="space-y-2">
-                <label htmlFor="category" className="block text-lg font-semibold text-gray-800">
-                  Category *
+                  <label htmlFor="category" className="block text-lg font-semibold text-gray-800">
+                  {t('vacancies.categoryLabel')}
                 </label>
-                <p className="text-sm text-gray-600 mb-3">Which area best describes this position?</p>
+                <p className="text-sm text-gray-600 mb-3">{t('vacancies.categoryHint')}</p>
                 <select
                   id="category"
                   name="category"
@@ -312,7 +316,7 @@ export default function CreateVacancy() {
                   onChange={handleInputChange}
                   className="w-full px-4 py-4 text-lg border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
                 >
-                  <option value="">Select a category...</option>
+                  <option value="">{t('vacancies.selectCategoryPlaceholder')}</option>
                   <option value="Program Management">Program Management</option>
                   <option value="Project Coordination">Project Coordination</option>
                 <option value="Research & Analysis">Research & Analysis</option>
@@ -327,12 +331,12 @@ export default function CreateVacancy() {
                   <option value="Education & Training">Education & Training</option>
                   <option value="Healthcare & Medical">Healthcare & Medical</option>
                   <option value="Social Work">Social Work</option>
-                  <option value="Environmental">Environmental</option>
+                  <option value="Environmental">{t('titles.environmental')}</option>
                   <option value="Emergency Response">Emergency Response</option>
                   <option value="Monitoring & Evaluation">Monitoring & Evaluation</option>
                   <option value="Grant Writing">Grant Writing</option>
                   <option value="Marketing & Design">Marketing & Design</option>
-                  <option value="Other">Other</option>
+                  <option value="Other">{t('titles.other')}</option>
                 </select>
               </div>
             </div>
@@ -581,8 +585,8 @@ export default function CreateVacancy() {
                           )}
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-800">🔗 Application Link</h3>
-                          <p className="text-sm text-gray-600">Direct candidates to an external application form</p>
+                          <h3 className="font-semibold text-gray-800">{t('vacancies.application.linkTitle')}</h3>
+                          <p className="text-sm text-gray-600">{t('vacancies.application.linkHint')}</p>
                         </div>
                       </div>
                     </div>
@@ -613,8 +617,8 @@ export default function CreateVacancy() {
                           )}
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-800">📧 Application Email</h3>
-                          <p className="text-sm text-gray-600">Receive applications via email</p>
+                          <h3 className="font-semibold text-gray-800">{t('vacancies.application.emailTitle')}</h3>
+                          <p className="text-sm text-gray-600">{t('vacancies.application.emailHint')}</p>
                         </div>
                       </div>
                     </div>
@@ -625,10 +629,10 @@ export default function CreateVacancy() {
               {/* Application Link/Email Input */}
               {formData.applicationMethod === 'link' && (
                 <div className="space-y-2">
-                  <label htmlFor="applicationLink" className="block text-lg font-semibold text-gray-800">
-                    Application Link *
+                    <label htmlFor="applicationLink" className="block text-lg font-semibold text-gray-800">
+                    {t('vacancies.application.linkLabel')}
                   </label>
-                  <p className="text-sm text-gray-600 mb-3">Provide the URL where candidates can apply</p>
+                  <p className="text-sm text-gray-600 mb-3">{t('vacancies.application.linkHint')}</p>
                   <Input
                     type="url"
                     id="applicationLink"
@@ -637,7 +641,7 @@ export default function CreateVacancy() {
                     value={formData.applicationLink}
                     onChange={handleInputChange}
                     className="w-full px-4 py-4 text-lg"
-                    placeholder="https://your-organization.com/apply"
+                    placeholder={t('vacancies.application.linkPlaceholder')}
                   />
                 </div>
               )}
@@ -645,9 +649,9 @@ export default function CreateVacancy() {
               {formData.applicationMethod === 'email' && (
                 <div className="space-y-2">
                   <label htmlFor="applicationEmail" className="block text-lg font-semibold text-gray-800">
-                    Application Email *
+                    {t('vacancies.application.emailLabel')}
                   </label>
-                  <p className="text-sm text-gray-600 mb-3">Email address where applications should be sent</p>
+                  <p className="text-sm text-gray-600 mb-3">{t('vacancies.application.emailHint')}</p>
                   <Input
                     type="email"
                     id="applicationEmail"
@@ -656,7 +660,7 @@ export default function CreateVacancy() {
                     value={formData.applicationEmail}
                     onChange={handleInputChange}
                     className="w-full px-4 py-4 text-lg"
-                    placeholder="applications@your-organization.com"
+                    placeholder={t('vacancies.application.emailPlaceholder')}
                   />
                 </div>
               )}
@@ -1005,8 +1009,8 @@ export default function CreateVacancy() {
           <div className="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden">
             <div className="p-8">
               <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Ready to Post Your Opportunity?</h3>
-                <p className="text-gray-600">Review your information and publish your vacancy to start connecting with talented candidates.</p>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">{t('vacancies.submitSection.readyTitle')}</h3>
+                <p className="text-gray-600">{t('vacancies.submitSection.readySubtitle')}</p>
               </div>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -1017,7 +1021,7 @@ export default function CreateVacancy() {
                   size="lg"
                   className="px-8 py-4 border-2 border-gray-300 rounded-xl text-lg font-semibold text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-100 transition-all duration-200"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
                 <Button
                   type="submit"
@@ -1026,15 +1030,15 @@ export default function CreateVacancy() {
                   size="lg"
                   className="px-12 py-4 border-2 border-transparent rounded-xl text-lg font-bold text-white bg-gradient-to-r from-primary to-blue-700 hover:from-blue-600 hover:to-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
-                  {loading ? (
+                      {loading ? (
                     <div className="flex items-center space-x-2">
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>Creating Vacancy...</span>
+                      <span>{t('vacancies.creating')}</span>
                     </div>
                   ) : (
                     <div className="flex items-center space-x-2">
                       <Send className="w-5 h-5" />
-                      <span>Publish Vacancy</span>
+                      <span>{t('vacancies.publishButton')}</span>
                     </div>
                   )}
                 </Button>

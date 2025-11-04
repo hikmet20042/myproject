@@ -22,7 +22,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     icon: Icon,
     iconPosition = 'left',
     variant = 'default',
-    inputSize = 'lg',
+    inputSize = 'md',
     id,
     required,
     ...props
@@ -39,28 +39,28 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     };
     
     const sizes = {
-      sm: 'px-3 py-2 text-sm',
+      sm: 'px-3 py-1.5 text-sm',
       md: 'px-4 py-3 text-base',
-      lg: 'px-4 py-4 text-lg'
+      lg: 'px-4 py-2.5 text-base'
     };
     
     const iconSizes = {
       sm: 'w-4 h-4',
-      md: 'w-5 h-5',
+      md: 'w-4 h-4',
       lg: 'w-5 h-5'
     };
     
     return (
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {label && (
-          <label htmlFor={inputId} className="block text-lg font-semibold text-gray-800">
+          <label htmlFor={inputId} className="block text-sm font-medium text-gray-700">
             {label}
             {required && <span className="text-red-500 ml-1">*</span>}
           </label>
         )}
         
         {description && (
-          <p className="text-sm text-gray-600 mb-3">{description}</p>
+          <p className="text-xs text-gray-600 mb-2">{description}</p>
         )}
         
         <div className="relative">

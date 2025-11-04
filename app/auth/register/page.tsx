@@ -3,12 +3,36 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, User, Mail, Lock, Building, Globe, Phone, MapPin, FileText, Tag, Users } from 'lucide-react'
+import { Eye, EyeOff, User, Mail, Lock, Building, Globe, Phone, MapPin, FileText, Tag, Users, Shield, Sparkles, Heart, CheckCircle, ArrowRight } from 'lucide-react'
 import { Input, Button, TextArea } from '@/components/ui'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { AnimatedBackground } from '@/components/shared'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
 
 export default function RegisterPage() {
+  const { t } = useLanguage();
   const router = useRouter()
   const [registrationType, setRegistrationType] = useState<'user' | 'ngo'>('user')
+  
+  // Focus areas with translation keys
+  const localePath = useLocalizedPath()
+  const focusAreasOptions = [
+    { key: 'Human Rights', translation: 'auth.focusAreas_humanRights' },
+    { key: 'Women Rights', translation: 'auth.focusAreas_womenRights' },
+    { key: 'Children Rights', translation: 'auth.focusAreas_childrenRights' },
+    { key: 'Education', translation: 'auth.focusAreas_education' },
+    { key: 'Healthcare', translation: 'auth.focusAreas_healthcare' },
+    { key: 'Environment', translation: 'auth.focusAreas_environment' },
+    { key: 'Poverty Alleviation', translation: 'auth.focusAreas_povertyAlleviation' },
+    { key: 'Legal Aid', translation: 'auth.focusAreas_legalAid' },
+    { key: 'Community Development', translation: 'auth.focusAreas_communityDevelopment' },
+    { key: 'Youth Development', translation: 'auth.focusAreas_youthDevelopment' },
+    { key: 'Elderly Care', translation: 'auth.focusAreas_elderlyCare' },
+    { key: 'Disability Rights', translation: 'auth.focusAreas_disabilityRights' },
+    { key: 'LGBTQ+ Rights', translation: 'auth.focusAreas_lgbtqRights' },
+    { key: 'Mental Health', translation: 'auth.focusAreas_mentalHealth' },
+    { key: 'Other', translation: 'auth.focusAreas_other' }
+  ];
   
   const [formData, setFormData] = useState({
     name: '',
@@ -88,49 +112,49 @@ export default function RegisterPage() {
 
     // Name validation only for regular users
     if (registrationType === 'user' && !formData.name.trim()) {
-      newErrors.name = 'Name is required'
+      newErrors.name = t('auth.validation_nameRequired')
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = 'Email is required'
+      newErrors.email = t('auth.validation_emailRequired')
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address'
+      newErrors.email = t('auth.validation_invalidEmail')
     }
 
     if (!formData.password) {
-      newErrors.password = 'Password is required'
+      newErrors.password = t('auth.validation_passwordRequired')
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters long'
+      newErrors.password = t('auth.validation_passwordMinLength')
     }
 
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password'
+      newErrors.confirmPassword = t('auth.validation_confirmPasswordRequired')
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match'
+      newErrors.confirmPassword = t('auth.validation_passwordsNotMatch')
     }
 
     // NGO-specific validation
     if (registrationType === 'ngo') {
       if (!formData.organizationName.trim()) {
-        newErrors.organizationName = 'Organization name is required'
+        newErrors.organizationName = t('auth.validation_orgNameRequired')
       }
       if (!formData.description.trim()) {
-        newErrors.description = 'Organization description is required'
+        newErrors.description = t('auth.validation_descriptionRequired')
       }
       if (formData.focusAreas.length === 0) {
-        newErrors.focusAreas = 'Please select at least one focus area'
+        newErrors.focusAreas = t('auth.validation_focusAreasRequired')
       }
       if (formData.website && !/^https?:\/\/.+/.test(formData.website)) {
-        newErrors.website = 'Please enter a valid website URL'
+        newErrors.website = t('auth.validation_invalidWebsite')
       }
       // Contact person validation
       if (!formData.contactPersonName.trim()) {
-        newErrors.contactPersonName = 'Contact person name is required'
+        newErrors.contactPersonName = t('auth.validation_contactPersonNameRequired')
       }
       if (!formData.contactPersonEmail.trim()) {
-        newErrors.contactPersonEmail = 'Contact person email is required'
+        newErrors.contactPersonEmail = t('auth.validation_contactPersonEmailRequired')
       } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactPersonEmail)) {
-        newErrors.contactPersonEmail = 'Please enter a valid contact person email'
+        newErrors.contactPersonEmail = t('auth.validation_invalidContactEmail')
       }
     }
 
@@ -210,23 +234,26 @@ export default function RegisterPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          <div className="bg-white p-8 rounded-lg shadow-md text-center">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-              <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-              </svg>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full animate-scale-in">
+          <div className="bg-white p-8 sm:p-10 rounded-2xl shadow-2xl border-2 border-green-200 text-center">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-green-500 to-green-700 mb-6 shadow-lg animate-pulse-glow">
+              <CheckCircle className="h-8 w-8 text-white" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Registration Successful!</h3>
-            <p className="text-gray-600 mb-6">
-              We've sent a verification email to your address. Please check your email and click the verification link to activate your account.
+            <h3 className="text-2xl font-black text-gray-900 mb-3">{t('auth.registrationSuccessful')}</h3>
+            <p className="text-gray-600 mb-8 text-sm sm:text-base leading-relaxed">
+              {t('auth.verificationEmailSent')}
             </p>
-            <Link
-              href="/auth/signin"
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Go to Sign In
+            <Link href={localePath("/auth/signin")}>
+              <Button 
+                variant="primary" 
+                size="lg"
+                fullWidth
+                className="group"
+              >
+                <span>{t('auth.goToSignIn')}</span>
+                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              </Button>
             </Link>
           </div>
         </div>
@@ -235,60 +262,67 @@ export default function RegisterPage() {
   }
 
   return (
-  <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-  <div className="sm:mx-auto sm:w-full sm:max-w-md animate-fadein">
-        <div className="text-center">
-          <div className="flex items-center justify-center mb-2">
-            <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">GE</span>
+  <div className="min-h-screen bg-gray-50 lg:bg-white flex">
+    {/* Left Side - Form */}
+    <div className="flex-1 flex flex-col justify-center py-8 sm:py-12 px-4 sm:px-6 lg:px-20 xl:px-24">
+      <div className="w-full max-w-2xl mx-auto lg:mx-0">
+        {/* Logo and Header */}
+        <div className="mb-6 sm:mb-8 animate-fade-in">
+          <Link href={localePath("/")} className="inline-flex items-center gap-2 mb-6 group">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-red-500 to-red-700 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+              <span className="text-white font-bold text-base sm:text-lg">GE</span>
             </div>
+            <span className="text-lg sm:text-xl font-bold text-gray-900">{t('common.platformName')}</span>
+          </Link>
+          
+          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-purple-100 rounded-full mb-3 sm:mb-4">
+            <Sparkles className="w-4 h-4 text-purple-600" />
+            <span className="text-xs sm:text-sm font-bold text-purple-600 uppercase tracking-wide">{t('auth.joinUs')}</span>
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">
-              {registrationType === 'ngo' ? 'Register Your NGO' : 'Create your account'}
-            </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 mb-2">
+            {registrationType === 'ngo' ? t('auth.registerNGO') : t('auth.signUp')}
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600">
             {registrationType === 'ngo' 
-              ? 'Join our network of social justice organizations'
-              : 'Access your Social Justice Platform dashboard'
+              ? t('auth.registerNGOSubtitle')
+              : t('auth.signUpSubtitle')
             }
           </p>
         </div>
-      </div>
 
-      {/* Registration Type Tabs */}
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-1 mb-6">
+        {/* Registration Type Tabs */}
+        <div className="bg-white rounded-xl shadow-md border-2 border-gray-200 p-1 mb-6 animate-fade-in animation-delay-200">
           <div className="grid grid-cols-2 gap-1">
             <button
               type="button"
               onClick={() => setRegistrationType('user')}
-              className={`flex items-center justify-center px-4 py-3 text-sm font-medium rounded-md transition-all duration-200 ${
+              className={`flex items-center justify-center px-4 py-3 text-sm font-bold rounded-lg transition-all duration-300 ${
                 registrationType === 'user'
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg scale-105'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
               <User className="w-4 h-4 mr-2" />
-              Individual User
+              {t('auth.individualUser')}
             </button>
             <button
               type="button"
               onClick={() => setRegistrationType('ngo')}
-              className={`flex items-center justify-center px-4 py-3 text-sm font-medium rounded-md transition-all duration-200 ${
+              className={`flex items-center justify-center px-4 py-3 text-sm font-bold rounded-lg transition-all duration-300 ${
                 registrationType === 'ngo'
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg scale-105'
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
               <Building className="w-4 h-4 mr-2" />
-              NGO/Organization
+              {t('auth.ngoOrganization')}
             </button>
           </div>
         </div>
-      </div>
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-  <div className="bg-white py-8 px-4 shadow-xl border border-gray-200 sm:rounded-lg sm:px-10 transition-all duration-500 animate-fadein">
+        {/* Form Card */}
+        <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl border-2 border-gray-200 animate-fade-in animation-delay-400">
           {errors.submit && (
             <div className="rounded-md bg-red-50 p-4 mb-4">
               <div className="flex">
@@ -305,59 +339,62 @@ export default function RegisterPage() {
               </div>
             </div>
           )}
-          <form className="space-y-6" onSubmit={handleSubmit} autoComplete="off">
+          <form className="space-y-5" onSubmit={handleSubmit} autoComplete="off">
             {/* User Registration Fields */}
             {registrationType === 'user' && (
               <>
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">Full Name</label>
-                  <div className="mt-1 relative">
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">{t('auth.fullName')}</label>
+                  <div className="mt-1">
                     <Input
                       id="name"
                       name="name"
                       type="text"
                       required
-                      placeholder="Enter your full name"
+                      placeholder={t('auth.enterFullName')}
                       value={formData.name}
                       onChange={handleChange}
                       autoComplete="name"
                       icon={User}
+                      inputSize="md"
                     />
                   </div>
                   {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
                 </div>
 
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email address</label>
-                  <div className="mt-1 relative">
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">{t('auth.emailAddress')}</label>
+                  <div className="mt-1">
                     <Input
                       id="email"
                       name="email"
                       type="email"
                       required
-                      placeholder="Enter your email address"
+                      placeholder={t('auth.enterEmail')}
                       value={formData.email}
                       onChange={handleChange}
                       autoComplete="email"
                       icon={Mail}
+                      inputSize="md"
                     />
                   </div>
                   {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
                 </div>
 
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">{t('auth.password')}</label>
                   <div className="mt-1 relative">
                     <Input
                       id="password"
                       name="password"
                       type={showPassword ? 'text' : 'password'}
                       required
-                      placeholder="Password (min. 6 characters)"
+                      placeholder={t('auth.passwordMinLength')}
                       value={formData.password}
                       onChange={handleChange}
                       autoComplete="new-password"
                       icon={Lock}
+                      inputSize="md"
                     />
                     <button type="button" tabIndex={-1} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600" onClick={() => setShowPassword(v => !v)}>
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -367,19 +404,19 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">Confirm Password</label>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">{t('auth.confirmPassword')}</label>
                   <div className="mt-1 relative">
                     <Input
                       id="confirmPassword"
                       name="confirmPassword"
                       type={showConfirmPassword ? 'text' : 'password'}
                       required
-                      placeholder="Confirm Password"
+                      placeholder={t('auth.confirmPassword')}
                       value={formData.confirmPassword}
                       onChange={handleChange}
                       autoComplete="new-password"
                       icon={Lock}
-                    />
+                    inputSize="md"/>
                     <button type="button" tabIndex={-1} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600" onClick={() => setShowConfirmPassword(v => !v)}>
                       {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -393,58 +430,58 @@ export default function RegisterPage() {
             {registrationType === 'ngo' && (
               <>
                 <div className="border-t pt-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Organization Information</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">{t('auth.organizationInfo')}</h3>
                 </div>
                 
                 <div>
-                  <label htmlFor="organizationName" className="block text-sm font-medium text-gray-700">Organization Name *</label>
+                  <label htmlFor="organizationName" className="block text-sm font-medium text-gray-700">{t('auth.organizationName')} {t('auth.required')}</label>
                   <div className="mt-1 relative">
                     <Input
                       id="organizationName"
                       name="organizationName"
                       type="text"
                       required
-                      placeholder="Enter your organization name"
+                      placeholder={t('auth.enterOrgName')}
                       value={formData.organizationName}
                       onChange={handleChange}
                       icon={Building}
-                    />
+                    inputSize="md"/>
                   </div>
                   {errors.organizationName && <p className="mt-1 text-sm text-red-600">{errors.organizationName}</p>}
                 </div>
                 
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email address</label>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">{t('auth.emailAddress')}</label>
                   <div className="mt-1 relative">
                     <Input
                       id="email"
                       name="email"
                       type="email"
                       required
-                      placeholder="Enter your email address"
+                      placeholder={t('auth.enterEmail')}
                       value={formData.email}
                       onChange={handleChange}
                       autoComplete="email"
                       icon={Mail}
-                    />
+                    inputSize="md"/>
                   </div>
                   {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
                 </div>
                 
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">{t('auth.password')}</label>
                   <div className="mt-1 relative">
                     <Input
                       id="password"
                       name="password"
                       type={showPassword ? 'text' : 'password'}
                       required
-                      placeholder="Password (min. 6 characters)"
+                      placeholder={t('auth.passwordMinLength')}
                       value={formData.password}
                       onChange={handleChange}
                       autoComplete="new-password"
                       icon={Lock}
-                    />
+                    inputSize="md"/>
                     <button type="button" tabIndex={-1} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600" onClick={() => setShowPassword(v => !v)}>
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -453,19 +490,19 @@ export default function RegisterPage() {
                 </div>
                 
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">Confirm Password</label>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">{t('auth.confirmPassword')}</label>
                   <div className="mt-1 relative">
                     <Input
                       id="confirmPassword"
                       name="confirmPassword"
                       type={showConfirmPassword ? 'text' : 'password'}
                       required
-                      placeholder="Confirm Password"
+                      placeholder={t('auth.confirmPassword')}
                       value={formData.confirmPassword}
                       onChange={handleChange}
                       autoComplete="new-password"
                       icon={Lock}
-                    />
+                    inputSize="md"/>
                     <button type="button" tabIndex={-1} className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600" onClick={() => setShowConfirmPassword(v => !v)}>
                       {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
@@ -479,20 +516,21 @@ export default function RegisterPage() {
             {registrationType === 'ngo' && (
               <>
                 <div className="border-t pt-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Organization Details</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">{t('auth.organizationDetails')}</h3>
                 </div>
 
                 <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700">Organization Description *</label>
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-700">{t('auth.organizationDescription')} {t('auth.required')}</label>
                   <div className="mt-1">
                     <TextArea
                       id="description"
                       name="description"
                       rows={4}
                       required
-                      placeholder="Describe your organization's mission and activities"
+                      placeholder={t('auth.describeOrganization')}
                       value={formData.description}
                       onChange={handleChange}
+                      textAreaSize="md"
                     />
                   </div>
                   {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
@@ -500,84 +538,79 @@ export default function RegisterPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="website" className="block text-sm font-medium text-gray-700">Website</label>
+                    <label htmlFor="website" className="block text-sm font-medium text-gray-700">{t('auth.website')}</label>
                     <div className="mt-1 relative">
                       <Input
                         id="website"
                         name="website"
                         type="url"
-                        placeholder="https://yourorganization.org"
+                        placeholder={t('auth.websitePlaceholder')}
                         value={formData.website}
                         onChange={handleChange}
                         icon={Globe}
-                      />
+                      inputSize="md"/>
                     </div>
                     {errors.website && <p className="mt-1 text-sm text-red-600">{errors.website}</p>}
                   </div>
 
                   <div>
-                    <label htmlFor="contactPhone" className="block text-sm font-medium text-gray-700">Organization Phone</label>
+                    <label htmlFor="contactPhone" className="block text-sm font-medium text-gray-700">{t('auth.organizationPhone')}</label>
                     <div className="mt-1 relative">
                       <Input
                         id="contactPhone"
                         name="contactPhone"
                         type="tel"
-                        placeholder="+1 (555) 123-4567"
+                        placeholder={t('auth.phonePlaceholder')}
                         value={formData.contactPhone}
                         onChange={handleChange}
                         icon={Phone}
-                      />
+                      inputSize="md"/>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="address" className="block text-sm font-medium text-gray-700">Address</label>
+                  <label htmlFor="address" className="block text-sm font-medium text-gray-700">{t('auth.address')}</label>
                   <div className="mt-1 relative">
                     <Input
                       id="address"
                       name="address"
                       type="text"
-                      placeholder="Organization address"
+                      placeholder={t('auth.addressPlaceholder')}
                       value={formData.address}
                       onChange={handleChange}
                       icon={MapPin}
-                    />
+                    inputSize="md"/>
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="registrationNumber" className="block text-sm font-medium text-gray-700">Registration Number</label>
+                  <label htmlFor="registrationNumber" className="block text-sm font-medium text-gray-700">{t('auth.registrationNumber')}</label>
                   <div className="mt-1 relative">
                     <Input
                       id="registrationNumber"
                       name="registrationNumber"
                       type="text"
-                      placeholder="Official registration number"
+                      placeholder={t('auth.registrationNumberPlaceholder')}
                       value={formData.registrationNumber}
                       onChange={handleChange}
                       icon={FileText}
-                    />
+                    inputSize="md"/>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">Focus Areas *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">{t('auth.focusAreas')} {t('auth.required')}</label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {[
-                      'Human Rights', 'Women Rights', 'Children Rights', 'Education',
-                      'Healthcare', 'Environment', 'Poverty Alleviation', 'Legal Aid',
-                      'Community Development', 'Youth Development', 'Elderly Care',
-                      'Disability Rights', 'LGBTQ+ Rights', 'Mental Health', 'Other'
-                    ].map((area) => (
-                      <label key={area} className="flex items-center space-x-2 text-sm">
+                    {focusAreasOptions.map((area) => (
+                      <label key={area.key} className="flex items-center space-x-2 text-sm">
                         <input
                           type="checkbox"
-                          checked={formData.focusAreas.includes(area)}
-                          onChange={() => handleFocusAreaChange(area)}
+                          checked={formData.focusAreas.includes(area.key)}
+                          onChange={() => handleFocusAreaChange(area.key)}
                           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
-                        <span className="text-gray-700">{area}</span>
+                        <span className="text-gray-700">{t(area.translation)}</span>
                       </label>
                     ))}
                   </div>
@@ -585,40 +618,40 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="border-t pt-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Contact Person Information</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">{t('auth.contactPersonInfo')}</h3>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="contactPersonName" className="block text-sm font-medium text-gray-700">Contact Person Name *</label>
+                    <label htmlFor="contactPersonName" className="block text-sm font-medium text-gray-700">{t('auth.contactPersonName')} {t('auth.required')}</label>
                     <div className="mt-1 relative">
                       <Input
                         id="contactPersonName"
                         name="contactPersonName"
                         type="text"
                         required
-                        placeholder="Full name of contact person"
+                        placeholder={t('auth.contactPersonNamePlaceholder')}
                         value={formData.contactPersonName}
                         onChange={handleChange}
                         icon={User}
-                      />
+                      inputSize="md"/>
                     </div>
                     {errors.contactPersonName && <p className="mt-1 text-sm text-red-600">{errors.contactPersonName}</p>}
                   </div>
 
                   <div>
-                    <label htmlFor="contactPersonEmail" className="block text-sm font-medium text-gray-700">Contact Person Email *</label>
+                    <label htmlFor="contactPersonEmail" className="block text-sm font-medium text-gray-700">{t('auth.contactPersonEmail')} {t('auth.required')}</label>
                     <div className="mt-1 relative">
                       <Input
                         id="contactPersonEmail"
                         name="contactPersonEmail"
                         type="email"
                         required
-                        placeholder="contact@organization.org"
+                        placeholder={t('auth.contactPersonEmailPlaceholder')}
                         value={formData.contactPersonEmail}
                         onChange={handleChange}
                         icon={Mail}
-                      />
+                      inputSize="md"/>
                     </div>
                     {errors.contactPersonEmail && <p className="mt-1 text-sm text-red-600">{errors.contactPersonEmail}</p>}
                   </div>
@@ -626,32 +659,32 @@ export default function RegisterPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="contactPersonPhone" className="block text-sm font-medium text-gray-700">Contact Person Phone</label>
+                    <label htmlFor="contactPersonPhone" className="block text-sm font-medium text-gray-700">{t('auth.contactPersonPhone')}</label>
                     <div className="mt-1 relative">
                       <Input
                         id="contactPersonPhone"
                         name="contactPersonPhone"
                         type="tel"
-                        placeholder="+1 (555) 123-4567"
+                        placeholder={t('auth.phonePlaceholder')}
                         value={formData.contactPersonPhone}
                         onChange={handleChange}
                         icon={Phone}
-                      />
+                      inputSize="md"/>
                     </div>
                   </div>
 
                   <div>
-                    <label htmlFor="contactPersonPosition" className="block text-sm font-medium text-gray-700">Position/Title</label>
+                    <label htmlFor="contactPersonPosition" className="block text-sm font-medium text-gray-700">{t('auth.contactPersonPosition')}</label>
                     <div className="mt-1 relative">
                       <Input
                         id="contactPersonPosition"
                         name="contactPersonPosition"
                         type="text"
-                        placeholder="Director, Manager, etc."
+                        placeholder={t('auth.positionPlaceholder')}
                         value={formData.contactPersonPosition}
                         onChange={handleChange}
                         icon={Users}
-                      />
+                      inputSize="md"/>
                     </div>
                   </div>
                 </div>
@@ -666,9 +699,9 @@ export default function RegisterPage() {
                       </svg>
                     </div>
                     <div className="ml-3">
-                      <h3 className="text-sm font-medium text-yellow-800">Approval Required</h3>
+                      <h3 className="text-sm font-medium text-yellow-800">{t('auth.approvalRequired')}</h3>
                       <div className="mt-2 text-sm text-yellow-700">
-                        <p>Your NGO registration will be reviewed by our admin team. You'll receive an email notification once approved.</p>
+                        <p>{t('auth.approvalRequiredText')}</p>
                       </div>
                     </div>
                   </div>
@@ -683,25 +716,96 @@ export default function RegisterPage() {
                 fullWidth
                 loading={loading}
               >
-                {loading ? 'Creating Account...' : 'Create Account'}
+                {loading ? t('auth.creatingAccount') : t('auth.createAccount')}
               </Button>
             </div>
           </form>
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Already have an account?{' '}
-              <Link href="/auth/signin" className="font-medium text-blue-600 hover:text-blue-500">
-                Sign in here
+              {t('auth.alreadyHaveAccount')}{' '}
+              <Link href={localePath("/auth/signin")} className="font-medium text-blue-600 hover:text-blue-500">
+                {t('auth.signInHere')}
               </Link>
             </p>
           </div>
+          
           <div className="mt-6 text-center">
-            <Link href="/" className="text-sm text-gray-600 hover:text-blue-500">
-              ← Back to homepage
+            <Link href={localePath("/")} 
+              className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600 transition-colors group"
+            >
+              <span>←</span>
+              <span className="group-hover:translate-x-1 transition-transform">{t('auth.backToHomepage')}</span>
             </Link>
           </div>
         </div>
       </div>
     </div>
+
+    {/* Right Side - Engaging Visual Panel (Hidden on mobile) */}
+    <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-purple-600 via-indigo-700 to-blue-900 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <AnimatedBackground
+        colors={{
+          blob1: 'bg-pink-500',
+          blob2: 'bg-blue-400',
+          blob3: 'bg-purple-500'
+        }}
+      />
+
+      {/* Content */}
+      <div className="relative z-10 flex flex-col justify-center px-12 xl:px-20 py-12">
+        <div className="max-w-lg">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md rounded-full mb-6">
+            <Heart className="w-5 h-5 text-pink-300" />
+            <span className="text-sm font-bold text-white uppercase tracking-wide">Start Your Journey</span>
+          </div>
+
+          <h2 className="text-3xl xl:text-4xl font-black text-white mb-6">
+            {t('auth.registerWelcome')}
+          </h2>
+          
+          <p className="text-lg text-purple-100 mb-8 leading-relaxed">
+            {t('auth.registerDescription')}
+          </p>
+
+          {/* Benefits List */}
+          <div className="space-y-4 mb-8">
+            {[
+              { icon: Shield, text: t('auth.benefit1') || 'Free Account & Full Access' },
+              { icon: Users, text: t('auth.benefit2') || 'Connect with Community' },
+              { icon: Sparkles, text: t('auth.benefit3') || 'Share Your Impact' },
+              { icon: CheckCircle, text: t('auth.benefit4') || 'Verified Resources' }
+            ].map((benefit, idx) => (
+              <div key={idx} className="flex items-center gap-4 group animate-fade-in" style={{ animationDelay: `${idx * 0.1}s` }}>
+                <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <benefit.icon className="w-6 h-6 text-purple-300" />
+                </div>
+                <span className="text-white font-medium">{benefit.text}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Trust Indicators */}
+          <div className="bg-white/10 backdrop-blur-md rounded-xl p-6">
+            <p className="text-purple-100 text-sm mb-4">
+              {t('auth.trustedBy')}
+            </p>
+            <div className="grid grid-cols-3 gap-4">
+              {[
+                { value: '10K+', label: 'Members' },
+                { value: '500+', label: 'NGOs' },
+                { value: '100%', label: 'Free' }
+              ].map((stat, idx) => (
+                <div key={idx} className="text-center">
+                  <div className="text-2xl font-black text-white mb-1">{stat.value}</div>
+                  <div className="text-xs text-purple-200">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   )
 }

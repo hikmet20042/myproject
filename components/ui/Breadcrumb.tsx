@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { ChevronRight } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export interface BreadcrumbItem {
   label: string;
@@ -23,6 +24,7 @@ const Breadcrumb = React.forwardRef<HTMLElement, BreadcrumbProps>(
     variant = 'default',
     ...props
   }, ref) => {
+    const { t } = useLanguage();
     const variants = {
       default: 'text-gray-600',
       light: 'text-white/80'
@@ -42,7 +44,7 @@ const Breadcrumb = React.forwardRef<HTMLElement, BreadcrumbProps>(
       <nav
         ref={ref}
         className={cn('flex items-center space-x-2', variants[variant], className)}
-        aria-label="Breadcrumb"
+        aria-label={t('buttons.breadcrumb')}
         {...props}
       >
         {items.map((item, index) => (

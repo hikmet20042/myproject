@@ -5,8 +5,7 @@ import dbConnect from '@/lib/mongoose'
 import ImageBlob from '@/lib/models/ImageBlob'
 import mongoose from 'mongoose'
 import sharp from 'sharp'
-import { generateImageVariants, saveImageVariants, getOptimalFormat } from '@/lib/services/imageProcessingService'
-import ImgBBService from '@/lib/services/imgbbService'
+import cloudinaryService from '@/lib/services/cloudinaryService'
 
 export const dynamic = 'force-dynamic'
 
@@ -254,27 +253,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Check if Cloudinary is configured
+    if (!cloudinaryService.isConfigured()) {
+      return NextResponse.json(
+        { error: 'Image upload service is not configured' },
+        { status: 503 }
+      );
+    }
+
     const formData = await request.formData()
     const file = formData.get('file') as unknown as File | null
     const description = formData.get('description') as string || ''
     const alt = formData.get('alt') as string || ''
     const tags = formData.get('tags') as string || ''
-    const context = formData.get('context') as string || 'general' // article, story, profile, etc.
+    const context = formData.get('context') as string || 'general' // article, story, profile, event, etc.
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
-    if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ error: 'Invalid file type. Only images are allowed.' }, { status: 400 });
-    }
-
-    // Validate file size (10MB limit)
-    const maxSize = 10 * 1024 * 1024;
-    if (file.size > maxSize) {
-      return NextResponse.json({ error: 'File too large. Maximum size is 10MB.' }, { status: 400 });
+    // Validate file
+    const validation = cloudinaryService.validateImageFile(file, 10);
+    if (!validation.valid) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
     const bytes = await file.arrayBuffer()
@@ -283,138 +284,96 @@ export async function POST(request: Request) {
     // Parse tags
     const tagArray = tags ? tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0) : [];
 
-    // Determine if we should use ImgBB or blob storage
-    const useImgBB = ImgBBService.shouldUseImgBB(context);
+    // Get image dimensions for metadata
+    const dimensions = await getImageDimensions(buffer, file.type);
 
-    if (useImgBB) {
-      // Upload to ImgBB for public images
-      try {
-        const base64Data = await ImgBBService.fileToBase64(file);
-        const uploadResult = await ImgBBService.uploadImage(base64Data, file.name);
-
-        if (!uploadResult.success) {
-          return NextResponse.json({ error: uploadResult.error || 'ImgBB upload failed' }, { status: 500 });
-        }
-
-        // Get image dimensions for metadata
-        const dimensions = await getImageDimensions(buffer, file.type);
-
-        // Save metadata to database (without binary data)
-        const imageBlob = new ImageBlob({
-          filename: file.name,
-          originalName: file.name,
-          mimetype: file.type,
-          size: file.size,
-          data: null, // No binary data for ImgBB images
-          uploadedBy: new mongoose.Types.ObjectId(session.user.id),
-          uploadedAt: new Date(),
-          description: description || undefined,
-          alt: alt || undefined,
-          tags: tagArray.length > 0 ? tagArray : undefined,
-          width: dimensions.width,
-          height: dimensions.height,
-          isCompressed: false,
-          originalSize: file.size,
-          metadata: {
-            context,
-            storage: 'imgbb',
-            imgbbUrl: uploadResult.url,
-            deleteUrl: uploadResult.deleteUrl
-          }
+    // Upload to Cloudinary based on context
+    let uploadResult;
+    
+    switch (context) {
+      case 'profile':
+        uploadResult = await cloudinaryService.uploadProfileImage(buffer, session.user.id);
+        break;
+      case 'blog':
+      case 'article':
+        uploadResult = await cloudinaryService.uploadBlogImage(buffer, file.name);
+        break;
+      case 'event':
+        // For events, we'll use a temporary ID that will be updated later
+        uploadResult = await cloudinaryService.uploadImage(buffer, {
+          folder: 'events',
+          tags: ['event', ...tagArray],
         });
-
-        await imageBlob.save();
-
-        return NextResponse.json({
-          id: imageBlob._id,
-          filename: imageBlob.filename,
-          originalName: imageBlob.originalName,
-          mimetype: imageBlob.mimetype,
-          size: imageBlob.size,
-          url: uploadResult.url, // Direct ImgBB URL
-          width: imageBlob.width,
-          height: imageBlob.height,
-          description: imageBlob.description,
-          alt: imageBlob.alt,
-          tags: imageBlob.tags,
-          uploadedAt: imageBlob.uploadedAt,
-          isCompressed: imageBlob.isCompressed,
-          originalSize: imageBlob.originalSize,
-          storage: 'imgbb',
-          metadata: imageBlob.metadata
+        break;
+      case 'material':
+        uploadResult = await cloudinaryService.uploadMaterialImage(buffer);
+        break;
+      default:
+        uploadResult = await cloudinaryService.uploadImage(buffer, {
+          folder: 'general',
+          tags: tagArray,
         });
-      } catch (error) {
-        console.error('ImgBB upload error:', error);
-        return NextResponse.json({ error: 'ImgBB upload failed' }, { status: 500 });
-      }
-    } else {
-      // Use blob storage for private images
-      // Get optimal format based on user agent
-      const userAgent = request.headers.get('user-agent') || undefined;
-      const optimalFormat = getOptimalFormat(userAgent);
-
-      // Generate image variants with optimization
-      const variants = await generateImageVariants(buffer, file.type, {
-        generateThumbnail: true,
-        generateMedium: true,
-        optimizeForWeb: true,
-        maxWidth: 1920,
-        maxHeight: 1080,
-        quality: 85,
-        format: optimalFormat
-      });
-
-      // Save all variants to database
-      const savedIds = await saveImageVariants(
-        variants,
-        file.name,
-        new mongoose.Types.ObjectId(session.user.id),
-        {
-          description: description || undefined,
-          alt: alt || undefined,
-          tags: tagArray.length > 0 ? tagArray : undefined
-        }
-      );
-
-      // Update the original image blob with context and storage metadata
-      await ImageBlob.findByIdAndUpdate(savedIds.original, {
-        $set: {
-          'metadata.context': context,
-          'metadata.storage': 'blob'
-        }
-      });
-
-      // Get the main image blob for response
-      const imageBlob = await ImageBlob.findById(savedIds.original);
-
-      if (!imageBlob) {
-        return NextResponse.json({ error: 'Failed to save image' }, { status: 500 });
-      }
-
-      // Return metadata without binary data
-      return NextResponse.json({
-        id: imageBlob._id,
-        filename: imageBlob.filename,
-        originalName: imageBlob.originalName,
-        mimetype: imageBlob.mimetype,
-        size: imageBlob.size,
-        url: `/api/images/${imageBlob._id}`,
-        width: imageBlob.width,
-        height: imageBlob.height,
-        description: imageBlob.description,
-        alt: imageBlob.alt,
-        tags: imageBlob.tags,
-        uploadedAt: imageBlob.uploadedAt,
-        isCompressed: imageBlob.isCompressed,
-        originalSize: imageBlob.originalSize,
-        storage: 'blob',
-        variants: {
-          thumbnail: savedIds.thumbnail ? `/api/images/${savedIds.thumbnail}` : undefined,
-          medium: savedIds.medium ? `/api/images/${savedIds.medium}` : undefined
-        },
-        metadata: imageBlob.metadata
-      });
     }
+
+    if (!uploadResult.success) {
+      return NextResponse.json(
+        { error: uploadResult.error || 'Image upload failed' },
+        { status: 500 }
+      );
+    }
+
+    // Save metadata to database
+    const imageBlob = new ImageBlob({
+      filename: file.name,
+      originalName: file.name,
+      mimetype: file.type,
+      size: uploadResult.bytes || file.size,
+      data: null, // No binary data for Cloudinary images
+      uploadedBy: new mongoose.Types.ObjectId(session.user.id),
+      uploadedAt: new Date(),
+      description: description || undefined,
+      alt: alt || undefined,
+      tags: tagArray.length > 0 ? tagArray : undefined,
+      width: uploadResult.width || dimensions.width,
+      height: uploadResult.height || dimensions.height,
+      isCompressed: false,
+      originalSize: file.size,
+      metadata: {
+        context,
+        storage: 'cloudinary',
+        cloudinaryUrl: uploadResult.secureUrl,
+        cloudinaryPublicId: uploadResult.publicId,
+        format: uploadResult.format,
+      }
+    });
+
+    await imageBlob.save();
+
+    // Generate thumbnail URL
+    const thumbnailUrl = uploadResult.publicId 
+      ? cloudinaryService.getThumbnailUrl(uploadResult.publicId, 300)
+      : uploadResult.secureUrl;
+
+    return NextResponse.json({
+      id: imageBlob._id,
+      filename: imageBlob.filename,
+      originalName: imageBlob.originalName,
+      mimetype: imageBlob.mimetype,
+      size: imageBlob.size,
+      url: uploadResult.secureUrl, // Direct Cloudinary URL
+      publicId: uploadResult.publicId,
+      width: imageBlob.width,
+      height: imageBlob.height,
+      description: imageBlob.description,
+      alt: imageBlob.alt,
+      tags: imageBlob.tags,
+      uploadedAt: imageBlob.uploadedAt,
+      isCompressed: imageBlob.isCompressed,
+      originalSize: imageBlob.originalSize,
+      storage: 'cloudinary',
+      thumbnailUrl,
+      metadata: imageBlob.metadata
+    });
   } catch (error) {
     console.error('Upload error:', error)
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 })

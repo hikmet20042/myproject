@@ -1,0 +1,926 @@
+'use client'
+
+import { useState, useEffect } from 'react';
+import Image from 'next/image';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { CardContent } from '@/components/ui/Card';
+import { ExternalLink, BookOpen, Sparkles, Target, Filter, Search, AlertTriangle, Eye } from 'lucide-react';
+import Link from 'next/link';
+import { useLanguage } from '@/contexts/LanguageContext'
+import { AnimatedBackground, LoadingState, ErrorState } from '@/components/shared';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+
+interface Material {
+  _id: string;
+  title: string;
+  description: string;
+  category: 'toolkit' | 'course' | 'video' | 'downloadable' | 'other';
+  type: string;
+  url: string;
+  thumbnail?: string;
+  source?: string;
+  duration?: string;
+  fileSize?: string;
+  tags: string[];
+  featured: boolean;
+  isActive: boolean;
+  order: number;
+  metadata?: {
+    institution?: string;
+    instructor?: string;
+    language?: string;
+    level?: string;
+    certificateAvailable?: boolean;
+    contentWarning?: boolean;
+    warningMessage?: string;
+  };
+  views: number;
+  createdAt: string;
+}
+
+export default function Resources() {
+  const { t } = useLanguage();
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  useEffect(() => {
+    fetchMaterials();
+  }, []);
+
+  const fetchMaterials = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/materials?limit=100');
+      if (!response.ok) throw new Error('Failed to fetch materials');
+      const data = await response.json();
+      setMaterials(data.materials || []);
+    } catch (err) {
+      console.error('Error fetching materials:', err);
+      setError('Failed to load materials');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter materials
+  const filteredMaterials = materials.filter((material) => {
+    const matchesCategory = selectedCategory === 'all' || material.category === selectedCategory;
+    const matchesSearch = 
+      material.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      material.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      material.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+    return matchesCategory && matchesSearch;
+  });
+
+  // Group materials by category
+  const groupedMaterials = {
+    toolkit: filteredMaterials.filter(m => m.category === 'toolkit'),
+    course: filteredMaterials.filter(m => m.category === 'course'),
+    video: filteredMaterials.filter(m => m.category === 'video'),
+    downloadable: filteredMaterials.filter(m => m.category === 'downloadable'),
+    other: filteredMaterials.filter(m => m.category === 'other'),
+  };
+
+  const categories = [
+    { value: 'all', label: t('filters.allCategories') || 'All Categories' },
+    { value: 'toolkit', label: t('resources.materials.categories.toolkit') || 'Toolkits & Guides' },
+    { value: 'course', label: t('resources.materials.categories.course') || 'Online Courses' },
+    { value: 'video', label: t('resources.materials.categories.video') || 'Video Resources' },
+    { value: 'downloadable', label: t('resources.materials.categories.downloadable') || 'Downloadable Resources' },
+  ];
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'toolkit': return '📚';
+      case 'course': return '🎓';
+      case 'video': return '🎥';
+      case 'downloadable': return '📥';
+      default: return '📖';
+    }
+  };
+
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'toolkit': return 'from-blue-500 to-blue-700';
+      case 'course': return 'from-green-500 to-green-700';
+      case 'video': return 'from-red-500 to-red-700';
+      case 'downloadable': return 'from-orange-500 to-orange-700';
+      default: return 'from-purple-500 to-purple-700';
+    }
+  };
+
+  const getBadgeVariant = (type: string): 'primary' | 'secondary' | 'success' | 'danger' => {
+    if (type.toLowerCase().includes('free')) return 'success';
+    if (type.toLowerCase().includes('certificate')) return 'primary';
+    if (type.toLowerCase().includes('pdf')) return 'danger';
+    return 'secondary';
+  };
+
+  if (loading) {
+    return <LoadingState text={t('common.loading') || 'Loading materials...'} gradientFrom="from-blue-500" gradientVia="via-indigo-500" gradientTo="to-purple-500" />;
+  }
+
+  if (error) {
+    return (
+      <ErrorState 
+        title={t('errors.loadingFailed') || 'Loading Failed'}
+        message={error}
+        retryText={t('common.tryAgain') || 'Try Again'}
+        onRetry={fetchMaterials}
+      />
+    );
+  }
+
+  return (
+  <div className="min-h-screen bg-gray-50 transition-colors duration-200">
+      {/* Header */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-900 text-white py-16 sm:py-20 lg:py-24">
+        {/* Animated Blobs */}
+        <AnimatedBackground
+          colors={{
+            blob1: 'bg-blue-400',
+            blob2: 'bg-purple-400',
+            blob3: 'bg-pink-400'
+          }}
+        />
+
+        <div className="section-padding relative z-10">
+          <div className="max-w-5xl mx-auto text-center">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 mb-4 sm:mb-6 animate-fade-in">
+              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300" />
+              <span className="text-xs sm:text-sm font-bold uppercase tracking-wide">{t('resources.categories.educationalMaterials.badge') || 'Educational Resources'}</span>
+            </div>
+
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-4 sm:mb-6 leading-tight animate-slide-up px-4">
+              {t('resources.categories.educationalMaterials.title')}
+            </h1>
+            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/95 leading-relaxed max-w-3xl mx-auto mb-6 sm:mb-8 animate-fade-in px-4">
+              {t('resources.categories.educationalMaterials.description')}
+            </p>
+
+            {/* Quick Stats */}
+            <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4 lg:gap-6 animate-scale-in px-4">
+              {[
+                { icon: BookOpen, label: t('resources.materials.stats.guides') || 'Guides', value: `${groupedMaterials.toolkit.length + groupedMaterials.downloadable.length}+` },
+                { icon: Sparkles, label: t('resources.materials.stats.courses') || 'Courses', value: `${groupedMaterials.course.length}+` },
+                { icon: Target, label: t('resources.materials.stats.videos') || 'Videos', value: `${groupedMaterials.video.length}+` }
+              ].map((stat, idx) => (
+                <div 
+                  key={idx} 
+                  className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 sm:hover:scale-110 w-full sm:w-auto"
+                  style={{ animationDelay: `${idx * 0.1}s` }}
+                >
+                  <stat.icon className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300 flex-shrink-0" />
+                  <div className="text-left">
+                    <div className="text-lg sm:text-xl font-black">{stat.value}</div>
+                    <div className="text-xs text-white/80">{stat.label}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        
+      </section>
+
+      {/* Main Resources */}
+      <section className="py-12 sm:py-16 lg:py-20 relative">
+        {/* Background Decoration */}
+        <div className="absolute top-0 right-0 w-64 sm:w-96 h-64 sm:h-96 bg-purple-100 rounded-full filter blur-3xl opacity-20 animate-pulse"></div>
+        <div className="absolute bottom-0 left-0 w-64 sm:w-96 h-64 sm:h-96 bg-blue-100 rounded-full filter blur-3xl opacity-20 animate-pulse animation-delay-2000"></div>
+
+        <div className="section-padding relative z-10">
+          <div className="max-w-6xl mx-auto">
+            
+            {/* Search and Filter Section */}
+            <div className="mb-12 bg-white rounded-2xl shadow-xl border-2 border-indigo-100 p-6 sm:p-8 animate-fade-in">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg">
+                  <Filter className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">{t('common.filterSearch')}</h2>
+                  <p className="text-sm text-gray-600">{t('resources.materials.findResources') || 'Find the perfect resource for you'}</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Search */}
+                <div className="md:col-span-2">
+                  <Input
+                    type="text"
+                    id="search"
+                    label={t('common.search')}
+                    placeholder={t('resources.materials.searchPlaceholder') || 'Search materials...'}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    icon={Search}
+                    iconPosition="left"
+                    inputSize="md"
+                  />
+                </div>
+
+                {/* Category Filter */}
+                <div>
+                  <Select
+                    label={t('filters.category')}
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    options={categories}
+                    placeholder={t('filters.allCategories')}
+                    selectSize="md"
+                  />
+                </div>
+              </div>
+
+              {/* Results count */}
+              <div className="mt-4 text-sm text-gray-600">
+                {t('common.showing')} <span className="font-bold text-gray-900">{filteredMaterials.length}</span> {t('common.results')}
+              </div>
+            </div>
+
+            {/* Materials Grid by Category */}
+            <div className="space-y-12 sm:space-y-16">
+              {selectedCategory === 'all' ? (
+                // Show all categories
+                <>
+                  {/* Toolkits Section */}
+                  {groupedMaterials.toolkit.length > 0 && (
+                    <MaterialCategorySection
+                      title={t('resources.materials.unWomenToolkit.title') || 'Toolkits & Guides'}
+                      materials={groupedMaterials.toolkit}
+                      categoryColor="from-blue-500 to-blue-700"
+                      icon="📚"
+                      getBadgeVariant={getBadgeVariant}
+                      t={t}
+                    />
+                  )}
+
+                  {/* Online Courses Section */}
+                  {groupedMaterials.course.length > 0 && (
+                    <MaterialCategorySection
+                      title={t('resources.materials.onlineCourses.title') || 'Online Courses'}
+                      materials={groupedMaterials.course}
+                      categoryColor="from-green-500 to-green-700"
+                      icon="🎓"
+                      getBadgeVariant={getBadgeVariant}
+                      t={t}
+                    />
+                  )}
+
+                  {/* Video Resources Section */}
+                  {groupedMaterials.video.length > 0 && (
+                    <MaterialCategorySection
+                      title={t('resources.materials.videoResources.title') || 'Video Resources'}
+                      materials={groupedMaterials.video}
+                      categoryColor="from-red-500 to-red-700"
+                      icon="🎥"
+                      getBadgeVariant={getBadgeVariant}
+                      t={t}
+                    />
+                  )}
+
+                  {/* Downloadable Resources Section */}
+                  {groupedMaterials.downloadable.length > 0 && (
+                    <MaterialCategorySection
+                      title={t('resources.materials.downloadable.title') || 'Downloadable Resources'}
+                      materials={groupedMaterials.downloadable}
+                      categoryColor="from-orange-500 to-orange-700"
+                      icon="📥"
+                      getBadgeVariant={getBadgeVariant}
+                      t={t}
+                    />
+                  )}
+                </>
+              ) : (
+                // Show selected category only
+                <MaterialCategorySection
+                  title={categories.find(c => c.value === selectedCategory)?.label || ''}
+                  materials={filteredMaterials}
+                  categoryColor={getCategoryColor(selectedCategory)}
+                  icon={getCategoryIcon(selectedCategory)}
+                  getBadgeVariant={getBadgeVariant}
+                  t={t}
+                />
+              )}
+
+              {/* No results */}
+              {filteredMaterials.length === 0 && (
+                <div className="text-center py-16 animate-fade-in">
+                  <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                    <BookOpen className="w-10 h-10 text-gray-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    {t('common.noResultsFound') || 'No Materials Found'}
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    {t('resources.materials.noMaterialsMessage') || 'Try adjusting your search or filters'}
+                  </p>
+                  <Button
+                    onClick={() => {
+                      setSearchTerm('');
+                      setSelectedCategory('all');
+                    }}
+                    variant="primary"
+                  >
+                    {t('common.clearFilters') || 'Clear Filters'}
+                  </Button>
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+// Material Category Section Component
+interface MaterialCategorySectionProps {
+  title: string;
+  materials: Material[];
+  categoryColor: string;
+  icon: string;
+  getBadgeVariant: (type: string) => 'primary' | 'secondary' | 'success' | 'danger';
+  t: any;
+}
+
+function MaterialCategorySection({ 
+  title, 
+  materials, 
+  categoryColor, 
+  icon, 
+  getBadgeVariant,
+  t 
+}: MaterialCategorySectionProps) {
+  return (
+    <div className="animate-fade-in">
+      <div className="flex items-center gap-3 mb-6 sm:mb-8">
+        <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br ${categoryColor} flex items-center justify-center shadow-lg`}>
+          <span className="text-2xl sm:text-3xl">{icon}</span>
+        </div>
+        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r ${categoryColor}">
+          {title}
+        </h2>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {materials.map((material) => (
+          <MaterialCard
+            key={material._id}
+            material={material}
+            getBadgeVariant={getBadgeVariant}
+            t={t}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Material Card Component
+interface MaterialCardProps {
+  material: Material;
+  getBadgeVariant: (type: string) => 'primary' | 'secondary' | 'success' | 'danger';
+  t: any;
+}
+
+function MaterialCard({ material, getBadgeVariant, t }: MaterialCardProps) {
+  const isVideo = material.category === 'video';
+  const isYouTubeVideo = material.url.includes('youtube.com') || material.url.includes('youtu.be');
+  
+  // Extract YouTube video ID for embed
+  const getYouTubeEmbedUrl = (url: string) => {
+    const videoId = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/)?.[1];
+    return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+  };
+
+  return (
+    <Card className="group hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-2 hover:border-blue-300 flex flex-col h-full">
+      <CardContent className="relative overflow-hidden p-0 flex flex-col h-full">
+        {/* Shine Effect */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 z-10">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+        </div>
+        
+        {/* Video Embed or Thumbnail */}
+        {isVideo && isYouTubeVideo ? (
+          <div className="aspect-video overflow-hidden">
+            <iframe
+              width="100%"
+              height="100%"
+              src={getYouTubeEmbedUrl(material.url) || ''}
+              title={material.title}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="w-full h-full"
+            ></iframe>
+          </div>
+        ) : material.thumbnail && (
+          <div className="h-48 bg-gradient-to-br from-blue-100 to-indigo-100 overflow-hidden relative">
+            <Image
+              src={material.thumbnail}
+              alt={material.title}
+              fill
+              className="object-cover group-hover:scale-110 transition-transform duration-500"
+            />
+          </div>
+        )}
+        
+        <div className="p-6 flex flex-col flex-1">
+          <div className="relative z-10 flex-1 flex flex-col">
+            {/* Badge and Source */}
+            <div className="flex items-center justify-between mb-3">
+              <Badge variant={getBadgeVariant(material.type)} className="shadow-sm">
+                {material.type}
+              </Badge>
+              {material.views > 0 && (
+                <div className="flex items-center text-xs text-gray-500">
+                  <Eye className="w-3 h-3 mr-1" />
+                  {material.views}
+                </div>
+              )}
+            </div>
+
+            {/* Title */}
+            <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors line-clamp-2">
+              {material.title}
+            </h3>
+            
+            {/* Description */}
+            <p className="text-gray-600 text-xs sm:text-sm mb-4 leading-relaxed line-clamp-3 flex-1">
+              {material.description}
+            </p>
+
+            {/* Metadata */}
+            <div className="space-y-2 mb-4">
+              {material.source && (
+                <div className="flex items-center text-xs sm:text-sm text-gray-500">
+                  <span className="font-medium">{t('common.source')}:</span>
+                  <span className="ml-2">{material.source}</span>
+                </div>
+              )}
+              {material.duration && (
+                <div className="flex items-center text-xs sm:text-sm text-gray-500">
+                  <span className="font-medium">{t('common.duration')}:</span>
+                  <span className="ml-2">{material.duration}</span>
+                </div>
+              )}
+              {material.fileSize && (
+                <div className="flex items-center text-xs sm:text-sm text-gray-500">
+                  <span className="font-medium">{t('common.size')}:</span>
+                  <span className="ml-2">{material.fileSize}</span>
+                </div>
+              )}
+              {material.metadata?.institution && (
+                <div className="flex items-center text-xs sm:text-sm text-gray-500">
+                  <span className="font-medium">{t('common.institution')}:</span>
+                  <span className="ml-2">{material.metadata.institution}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Content Warning */}
+            {material.metadata?.contentWarning && (
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="flex items-start text-xs">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 mr-2 flex-shrink-0 mt-0.5" />
+                  <p className="text-amber-800">
+                    {material.metadata.warningMessage || t('resources.materials.contentWarning')}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Tags */}
+            {material.tags && material.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {material.tags.slice(0, 3).map((tag, index) => (
+                  <span key={index} className="px-2 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-lg border border-blue-200">
+                    #{tag}
+                  </span>
+                ))}
+                {material.tags.length > 3 && (
+                  <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-semibold rounded-lg">
+                    +{material.tags.length - 3}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Action Button */}
+            <a
+              href={material.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full mt-auto"
+            >
+              <Button 
+                variant="primary" 
+                icon={ExternalLink} 
+                className="w-full justify-center group-hover:scale-105 transition-transform duration-300"
+              >
+                {material.category === 'video' ? t('common.watch') : 
+                 material.category === 'course' ? t('common.enroll') :
+                 material.category === 'downloadable' ? t('common.download') :
+                 t('common.view')}
+              </Button>
+            </a>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+            <div className="animate-fade-in animation-delay-200">
+              <div className="flex items-center gap-3 mb-6 sm:mb-8">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center shadow-lg">
+                  <svg className="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                  </svg>
+                </div>
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-600">
+                  {t('resources.materials.onlineCourses.title')}
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <Card className="group hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-2 hover:border-green-300">
+                  <CardContent className="relative overflow-hidden">
+                    {/* Shine Effect */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                    </div>
+                    
+                    <div className="relative z-10">
+                      <div className="flex items-center mb-4">
+                        <Image src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Coursera-Logo_600x600.svg/1200px-Coursera-Logo_600x600.svg.png" alt={t('titles.coursera')} width={32} height={32} className="w-8 h-8 mr-3 rounded" />
+                        <Badge variant="primary" className="shadow-sm">
+                          Free Course
+                        </Badge>
+                      </div>
+                      <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3 group-hover:text-green-600 transition-colors">
+                        {t('resources.materials.onlineCourses.course1.title')}
+                      </h3>
+                      <p className="text-gray-600 text-xs sm:text-sm mb-4 leading-relaxed">
+                        {t('resources.materials.onlineCourses.course1.description')}
+                      </p>
+                      <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500 mb-4">
+                        <span>{t('resources.materials.onlineCourses.course1.institution')}</span>
+                        <span>{t('resources.materials.onlineCourses.course1.duration')}</span>
+                      </div>
+                      <a
+                        href="https://www.coursera.org/learn/gender-development"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full"
+                      >
+                        <Button variant="primary" icon={ExternalLink} className="w-full justify-center group-hover:scale-105 transition-transform duration-300">
+                          {t('resources.materials.onlineCourses.course1.cta')}
+                        </Button>
+                      </a>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="group hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-2 hover:border-green-300">
+                  <CardContent className="relative overflow-hidden">
+                    {/* Shine Effect */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                    </div>
+                    
+                    <div className="relative z-10">
+                      <div className="flex items-center mb-4">
+                        <Image src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Coursera-Logo_600x600.svg/1200px-Coursera-Logo_600x600.svg.png" alt={t('titles.coursera')} width={32} height={32} className="w-8 h-8 mr-3 rounded" />
+                        <Badge variant="success" className="shadow-sm">
+                          Certificate
+                        </Badge>
+                      </div>
+                      <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3 group-hover:text-green-600 transition-colors">
+                        {t('resources.materials.onlineCourses.course2.title')}
+                      </h3>
+                      <p className="text-gray-600 text-xs sm:text-sm mb-4 leading-relaxed">
+                        {t('resources.materials.onlineCourses.course2.description')}
+                      </p>
+                      <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500 mb-4">
+                        <span>{t('resources.materials.onlineCourses.course2.institution')}</span>
+                        <span>{t('resources.materials.onlineCourses.course2.duration')}</span>
+                      </div>
+                      <a
+                        href="https://www.coursera.org/learn/human-rights"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full"
+                      >
+                        <Button variant="primary" icon={ExternalLink} className="w-full justify-center group-hover:scale-105 transition-transform duration-300">
+                          {t('resources.materials.onlineCourses.course2.cta')}
+                        </Button>
+                      </a>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="group hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-2 hover:border-green-300">
+                  <CardContent className="relative overflow-hidden">
+                    {/* Shine Effect */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                    </div>
+                    
+                    <div className="relative z-10">
+                      <div className="flex items-center mb-4">
+                        <Image src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/Coursera-Logo_600x600.svg/1200px-Coursera-Logo_600x600.svg.png" alt={t('titles.coursera')} width={32} height={32} className="w-8 h-8 mr-3 rounded" />
+                        <Badge variant="secondary" className="shadow-sm">
+                          Specialization
+                        </Badge>
+                      </div>
+                      <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3 group-hover:text-green-600 transition-colors">
+                        {t('resources.materials.onlineCourses.course3.title')}
+                      </h3>
+                      <p className="text-gray-600 text-xs sm:text-sm mb-4 leading-relaxed">
+                        {t('resources.materials.onlineCourses.course3.description')}
+                      </p>
+                      <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500 mb-4">
+                        <span>{t('resources.materials.onlineCourses.course3.institution')}</span>
+                        <span>{t('resources.materials.onlineCourses.course3.duration')}</span>
+                      </div>
+                      <a
+                        href="https://www.coursera.org/specializations/entrepreneurship"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full"
+                      >
+                        <Button variant="primary" icon={ExternalLink} className="w-full justify-center group-hover:scale-105 transition-transform duration-300">
+                          {t('resources.materials.onlineCourses.course3.cta')}
+                        </Button>
+                      </a>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            {/* Video Resources Section */}
+            <div className="animate-fade-in animation-delay-400">
+              <div className="flex items-center gap-3 mb-6 sm:mb-8">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg">
+                  <svg className="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-pink-600">
+                  {t('resources.materials.videoResources.title')}
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+                <Card className="group hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-2 hover:border-red-300">
+                  <CardContent className="relative overflow-hidden">
+                    {/* Shine Effect */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                    </div>
+                    
+                    <div className="relative z-10">
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 group-hover:text-red-600 transition-colors">
+                        {t('resources.materials.videoResources.featured.title')}
+                      </h3>
+                      <div className="aspect-video rounded-xl overflow-hidden mb-4 shadow-lg">
+                        <iframe
+                          width="100%"
+                          height="100%"
+                          src="https://www.youtube.com/embed/KQQVcBGvWrk"
+                          title={t('resources.materials.videoResources.featured.title')}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="w-full h-full"
+                        ></iframe>
+                      </div>
+                      <p className="text-gray-600 text-xs sm:text-sm leading-relaxed">
+                        {t('resources.materials.videoResources.featured.description')}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="space-y-6">
+                  <Card className="group hover:shadow-xl transition-all duration-300 border-2 hover:border-amber-300">
+                    <CardContent className="relative overflow-hidden">
+                      <div className="relative z-10">
+                        <div className="flex items-start">
+                          <div className="w-16 h-16 sm:w-20 sm:h-16 bg-gradient-to-br from-amber-100 to-amber-200 rounded-xl flex items-center justify-center mr-4 flex-shrink-0 shadow-md">
+                            <svg className="w-7 h-7 sm:w-8 sm:h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-1.964-1.333-2.732 0L3.732 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-2">
+                              Content Warning
+                            </h4>
+                            <p className="text-gray-600 text-xs sm:text-sm">
+                              This video discusses sensitive topics related to gender-based violence. 
+                              Viewer discretion is advised.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="group hover:shadow-xl transition-all duration-300 border-2 hover:border-blue-300">
+                    <CardContent className="relative overflow-hidden">
+                      <div className="relative z-10">
+                        <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-3">
+                          {t('resources.materials.videoResources.additional.title')}
+                        </h4>
+                        <ul className="space-y-3">
+                          <li>
+                            <a
+                              href="https://www.youtube.com/watch?v=hg3umXU_qWc"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-700 hover:underline text-xs sm:text-sm flex items-center font-medium transition-colors"
+                            >
+                              {t('resources.materials.videoResources.additional.links.heforshe')}
+                              <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                            </a>
+                          </li>
+                          <li>
+                            <a
+                              href="https://www.youtube.com/watch?v=D3O1MC1AqhM"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-700 hover:underline text-xs sm:text-sm flex items-center font-medium transition-colors"
+                            >
+                              {t('resources.materials.videoResources.additional.links.economicEmpowerment')}
+                              <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                            </a>
+                          </li>
+                          <li>
+                            <a
+                              href="https://www.youtube.com/watch?v=bhOo-bAz3g8"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-700 hover:underline text-xs sm:text-sm flex items-center font-medium transition-colors"
+                            >
+                              {t('resources.materials.videoResources.additional.links.genderEqualityEducation')}
+                              <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                            </a>
+                          </li>
+                        </ul>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </div>
+
+            {/* Downloadable Resources Section */}
+            <div className="animate-fade-in animation-delay-600">
+              <div className="flex items-center gap-3 mb-6 sm:mb-8">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center shadow-lg">
+                  <svg className="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-red-600">
+                  {t('resources.materials.downloadable.title')}
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <Card className="group hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-2 hover:border-red-300">
+                  <CardContent className="relative overflow-hidden">
+                    {/* Shine Effect */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                    </div>
+                    
+                    <div className="relative z-10">
+                      <div className="flex items-center mb-4">
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-red-100 to-red-200 rounded-xl flex items-center justify-center mr-3 shadow-md">
+                          <svg className="w-6 h-6 sm:w-7 sm:h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <Badge variant="danger" className="shadow-sm">
+                          PDF Guide
+                        </Badge>
+                      </div>
+                      <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3 group-hover:text-red-600 transition-colors">
+                        {t('resources.materials.downloadable.guide1.title')}
+                      </h3>
+                      <p className="text-gray-600 text-xs sm:text-sm mb-4 leading-relaxed">
+                        {t('resources.materials.downloadable.guide1.description')}
+                      </p>
+                      <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500 mb-4">
+                        <span>{t('resources.materials.downloadable.guide1.source')}</span>
+                        <span>{t('resources.materials.downloadable.guide1.size')}</span>
+                      </div>
+                      <a
+                        href="https://www.who.int/publications/i/item/9789241564007"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full"
+                      >
+                        <Button variant="primary" icon={ExternalLink} className="w-full justify-center group-hover:scale-105 transition-transform duration-300">
+                          {t('resources.materials.downloadable.guide1.cta')}
+                        </Button>
+                      </a>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="group hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-2 hover:border-blue-300">
+                  <CardContent className="relative overflow-hidden">
+                    {/* Shine Effect */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                    </div>
+                    
+                    <div className="relative z-10">
+                      <div className="flex items-center mb-4">
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center mr-3 shadow-md">
+                          <svg className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <Badge variant="primary" className="shadow-sm">
+                          PDF Handbook
+                        </Badge>
+                      </div>
+                      <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
+                        {t('resources.materials.downloadable.guide2.title')}
+                      </h3>
+                      <p className="text-gray-600 text-xs sm:text-sm mb-4 leading-relaxed">
+                        {t('resources.materials.downloadable.guide2.description')}
+                      </p>
+                      <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500 mb-4">
+                        <span>{t('resources.materials.downloadable.guide2.source')}</span>
+                        <span>{t('resources.materials.downloadable.guide2.size')}</span>
+                      </div>
+                      <Button variant="secondary" disabled className="w-full justify-center">
+                        {t('resources.materials.downloadable.guide2.cta')}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="group hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-2 hover:border-green-300">
+                  <CardContent className="relative overflow-hidden">
+                    {/* Shine Effect */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                    </div>
+                    
+                    <div className="relative z-10">
+                      <div className="flex items-center mb-4">
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center mr-3 shadow-md">
+                          <svg className="w-6 h-6 sm:w-7 sm:h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <Badge variant="success" className="shadow-sm">
+                          PDF Report
+                        </Badge>
+                      </div>
+                      <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-3 group-hover:text-green-600 transition-colors">
+                        {t('resources.materials.downloadable.report.title')}
+                      </h3>
+                      <p className="text-gray-600 text-xs sm:text-sm mb-4 leading-relaxed">
+                        {t('resources.materials.downloadable.report.description')}
+                      </p>
+                      <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500 mb-4">
+                        <span>{t('resources.materials.downloadable.report.source')}</span>
+                        <span>{t('resources.materials.downloadable.report.size')}</span>
+                      </div>
+                      <a
+                        href="https://www.weforum.org/publications/global-gender-gap-report-2024/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full"
+                      >
+                        <Button variant="primary" icon={ExternalLink} className="w-full justify-center group-hover:scale-105 transition-transform duration-300">
+                          {t('resources.materials.downloadable.report.cta')}
+                        </Button>
+                      </a>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>

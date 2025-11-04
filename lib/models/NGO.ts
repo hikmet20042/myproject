@@ -4,12 +4,16 @@ interface INGO extends mongoose.Document {
   organizationName: string
   email: string
   password: string
+  profileImage?: {
+    url: string
+    publicId: string
+  }
   description: string
   website?: string
   contactPhone?: string
   address?: string
   registrationNumber?: string
-  focusAreas: string[]
+  focusAreas?: string[]
   status: 'pending' | 'approved' | 'rejected'
   approvedAt?: Date
   approvedBy?: mongoose.Types.ObjectId
@@ -50,6 +54,14 @@ const NGOSchema = new mongoose.Schema({
   password: {
     type: String,
     required: true
+  },
+  profileImage: {
+    url: {
+      type: String,
+    },
+    publicId: {
+      type: String,
+    }
   },
   verificationToken: {
     type: String

@@ -1,13 +1,13 @@
 export const passwordResetEmailTemplate = (name: string, resetUrl: string) => {
   return {
-    subject: 'Reset Your Password - Social Justice Platform',
+    subject: 'Şifrənizi sıfırlayın - icma360',
     html: `
       <!DOCTYPE html>
-      <html lang="en">
+      <html lang="az">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Reset Your Password</title>
+        <title>Şifrənizi sıfırlayın</title>
         <style>
           body {
             margin: 0;
@@ -138,52 +138,47 @@ export const passwordResetEmailTemplate = (name: string, resetUrl: string) => {
           </div>
           
           <div class="content">
-            <div class="greeting">
-              Hello ${name},
-            </div>
-            
+            <div class="greeting">Salam ${name},</div>
             <div class="message">
-              We received a request to reset your password for your Social Justice Platform account. 
-              If you made this request, click the button below to create a new password.
+              icma360 hesabınız üçün şifrə sıfırlama tələbi aldıq. 
+              Bu tələbi siz etdinizsə, yeni şifrə yaratmaq üçün aşağıdakı düyməni klikləyin.
             </div>
             
             <div style="text-align: center; margin: 30px 0;">
               <a href="${resetUrl}" class="reset-button">
-                Reset My Password
+                Şifrəmi Sıfırla
               </a>
             </div>
             
             <div class="message">
-              If the button above doesn't work, you can copy and paste the following link into your browser:
-            </div>
-            
-            <div class="alternative-link">
+              Yuxarıdakı düymə işləmirsə, aşağıdakı linki brauzeriziə kopyalayıb yapışdıra bilərsiniz:
+            </div>            <div class="alternative-link">
               ${resetUrl}
             </div>
             
             <div class="security-notice">
-              <h3>🛡️ Security Notice</h3>
+              <h3>🛡️ Təhlükəsizlik Bildirişi</h3>
               <p>
-                This password reset link will expire in 1 hour for your security. 
-                If you didn't request this password reset, please ignore this email or 
-                contact our support team if you have concerns.
+                Təhlükəsizliyiniz üçün bu şifrə sıfırlama linki 1 saat ərzində etibarsız olacaq. 
+                Bu şifrə sıfırlamasını siz tələb etməmisinizsə, bu e-poçtu nəzərə almayın və ya 
+                narahatlıqlarınız varsa dəstək komandamızla əlaqə saxlayın.
               </p>
             </div>
             
             <div class="message">
-              For your security, this link can only be used once and will expire after 1 hour.
+              Təhlükəsizliyiniz üçün bu link yalnız bir dəfə istifadə oluna bilər və 1 saat sonra etibarsız olacaq.
             </div>
           </div>
           
           <div class="footer">
-            <p><strong>Social Justice Platform</strong></p>
-            <p>Empowering voices, driving change</p>
+            <p><strong>icma360</strong></p>
+            <p style="margin: 5px 0; color: #6b7280; font-size: 14px;">Gənclərin və icmaların inkişafına dəstək platforması</p>
             <p>
-              If you have any questions, please contact us at 
-              <a href="mailto:support@socialjusticeplatform.com">support@socialjusticeplatform.com</a>
+              Sualınız varsa, bizimlə əlaqə saxlayın: 
+              <a href="mailto:support@icma360.az">support@icma360.az</a>
             </p>
             <p style="margin-top: 20px; font-size: 12px; color: #9ca3af;">
-              This is an automated message. Please do not reply to this email.
+              Bu avtomatik mesajdır. Zəhmət olmasa bu e-poçta cavab verməyin.
             </p>
           </div>
         </div>
@@ -191,36 +186,36 @@ export const passwordResetEmailTemplate = (name: string, resetUrl: string) => {
       </html>
     `,
     text: `
-      Hello ${name},
-      
-      We received a request to reset your password for your Social Justice Platform account.
-      
-      To reset your password, please visit the following link:
+      Salam ${name},
+
+      icma360 hesabınız üçün şifrə sıfırlama tələbi aldıq.
+
+      Şifrənizi sıfırlamaq üçün zəhmət olmasa aşağıdakı linkə daxil olun:
       ${resetUrl}
       
-      This link will expire in 1 hour for your security.
+      Təhlükəsizliyiniz üçün bu link 1 saat ərzində etibarsız olacaq.
       
-      If you didn't request this password reset, please ignore this email.
+      Bu şifrə sıfırlamasını siz tələb etməmisinizsə, bu e-poçtu nəzərə almayın.
       
-      Best regards,
-      Social Justice Platform Team
+      Hörmətlə,
+      icma360 Komandası
       
       ---
-      This is an automated message. Please do not reply to this email.
+      Bu avtomatik mesajdır. Zəhmət olmasa bu e-poçta cavab verməyin.
     `
   }
 }
 
-export const passwordChangeConfirmationTemplate = (name: string) => {
+export const passwordChangedEmailTemplate = (name: string) => {
   return {
-    subject: 'Password Changed Successfully - Social Justice Platform',
+    subject: 'Şifrə uğurla dəyişdirildi - icma360',
     html: `
       <!DOCTYPE html>
-      <html lang="en">
+      <html lang="az">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Password Changed</title>
+        <title>Şifrə Dəyişdirildi</title>
         <style>
           body {
             margin: 0;
@@ -330,55 +325,55 @@ export const passwordChangeConfirmationTemplate = (name: string) => {
       <body>
         <div class="container">
           <div class="header">
-            <h1>✅ Password Updated</h1>
+            <h1>✅ Şifrə Yeniləndi</h1>
           </div>
           
           <div class="content">
             <div class="greeting">
-              Hello ${name},
+              Salam ${name},
             </div>
             
             <div class="success-notice">
-              <h3>🎉 Success!</h3>
+              <h3>🎉 Uğurlu!</h3>
               <p>
-                Your password has been successfully changed. Your account is now secured with your new password.
+                Şifrəniz uğurla dəyişdirildi. Hesabınız indi yeni şifrə ilə təhlükəsizdir.
               </p>
             </div>
             
             <div class="message">
-              This email confirms that your password was changed on ${new Date().toLocaleDateString('en-US', {
+              Bu e-poçt şifrənizin ${new Date().toLocaleDateString('az-AZ', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit',
                 timeZoneName: 'short'
-              })}.
+              })} tarixində dəyişdirildiyini təsdiqləyir.
             </div>
             
             <div class="security-notice">
-              <h3>🛡️ Security Notice</h3>
+              <h3>🛡️ Təhlükəsizlik Bildirişi</h3>
               <p>
-                If you didn't make this change, please contact our support team immediately. 
-                Your account security is important to us.
+                Əgər bu dəyişikliyi siz etməmisinizsə, dərhal dəstək komandamızla əlaqə saxlayın. 
+                Hesabınızın təhlükəsizliyi bizim üçün vacibdir.
               </p>
             </div>
             
             <div class="message">
-              You can now sign in to your account using your new password. 
-              Thank you for keeping your account secure!
+              İndi yeni şifrənizlə hesabınıza daxil ola bilərsiniz. 
+              Hesabınızı təhlükəsiz saxladığınız üçün təşəkkür edirik!
             </div>
           </div>
           
           <div class="footer">
-            <p><strong>Social Justice Platform</strong></p>
-            <p>Empowering voices, driving change</p>
+            <p><strong>icma360</strong></p>
+            <p style="margin: 5px 0; color: #6b7280; font-size: 14px;">Gənclərin və icmaların inkişafına dəstək platforması</p>
             <p>
-              If you have any questions, please contact us at 
-              <a href="mailto:support@socialjusticeplatform.com">support@socialjusticeplatform.com</a>
+              Sualınız varsa, bizimlə əlaqə saxlayın: 
+              <a href="mailto:support@icma360.az">support@icma360.az</a>
             </p>
             <p style="margin-top: 20px; font-size: 12px; color: #9ca3af;">
-              This is an automated message. Please do not reply to this email.
+              Bu avtomatik mesajdır. Zəhmət olmasa bu e-poçta cavab verməyin.
             </p>
           </div>
         </div>
@@ -386,26 +381,26 @@ export const passwordChangeConfirmationTemplate = (name: string) => {
       </html>
     `,
     text: `
-      Hello ${name},
+      Salam ${name},
       
-      Your password has been successfully changed.
+      Şifrəniz uğurla dəyişdirildi.
       
-      This change was made on ${new Date().toLocaleDateString('en-US', {
+      Bu dəyişiklik ${new Date().toLocaleDateString('az-AZ', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
         timeZoneName: 'short'
-      })}.
+      })} tarixində edildi.
       
-      If you didn't make this change, please contact our support team immediately.
+      Əgər bu dəyişikliyi siz etməmisinizsə, dərhal dəstək komandamızla əlaqə saxlayın.
       
-      Best regards,
-      Social Justice Platform Team
+      Hörmətlə,
+      icma360 Komandası
       
       ---
-      This is an automated message. Please do not reply to this email.
+      Bu avtomatik mesajdır. Zəhmət olmasa bu e-poçta cavab verməyin.
     `
   }
 }

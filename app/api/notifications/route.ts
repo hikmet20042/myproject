@@ -15,10 +15,25 @@ export async function GET(request: NextRequest) {
     }
     const url = new URL(request.url);
     const unreadOnly = url.searchParams.get('unread') === 'true';
-    let query: any = { userId: session.user.id };
+    
+    // Build query based on account type (NGO or User)
+    let query: any = {};
+    if (session.user.isApprovedNGO) {
+      query.ngoId = session.user.id;
+    } else {
+      query.userId = session.user.id;
+    }
+    
     if (unreadOnly) query.isRead = false;
+    
     let notifications = await NotificationModel.find(query).sort({ createdAt: -1 }).lean();
-    const unreadCount = await NotificationModel.countDocuments({ userId: session.user.id, isRead: false });
+    
+    // Count unread notifications for the correct account type
+    const unreadCountQuery = session.user.isApprovedNGO 
+      ? { ngoId: session.user.id, isRead: false }
+      : { userId: session.user.id, isRead: false };
+    const unreadCount = await NotificationModel.countDocuments(unreadCountQuery);
+    
     return NextResponse.json({
       notifications,
       unreadCount
@@ -38,12 +53,21 @@ export async function PUT(request: NextRequest) {
     }
     const body = await request.json();
     const { notificationId, markAllAsRead, isRead } = body;
+    
+    // Build query based on account type
+    const ownerQuery = session.user.isApprovedNGO 
+      ? { ngoId: session.user.id }
+      : { userId: session.user.id };
+    
     if (markAllAsRead) {
-      await NotificationModel.updateMany({ userId: session.user.id, isRead: false }, { $set: { isRead: true } });
+      await NotificationModel.updateMany(
+        { ...ownerQuery, isRead: false }, 
+        { $set: { isRead: true } }
+      );
       return NextResponse.json({ message: 'All notifications marked as read' });
     } else if (notificationId && typeof isRead === 'boolean') {
       const updated = await NotificationModel.findOneAndUpdate(
-        { _id: notificationId, userId: session.user.id },
+        { _id: notificationId, ...ownerQuery },
         { isRead },
         { new: true }
       );
@@ -74,7 +98,13 @@ export async function DELETE(request: NextRequest) {
     if (!notificationId) {
       return NextResponse.json({ error: 'Notification ID required' }, { status: 400 });
     }
-  await NotificationModel.findOneAndDelete({ _id: notificationId, userId: session.user.id });
+    
+    // Build query based on account type
+    const ownerQuery = session.user.isApprovedNGO 
+      ? { ngoId: session.user.id }
+      : { userId: session.user.id };
+    
+    await NotificationModel.findOneAndDelete({ _id: notificationId, ...ownerQuery });
     return NextResponse.json({ message: 'Notification deleted successfully' });
   } catch (error) {
     console.error('Notification delete error:', error);

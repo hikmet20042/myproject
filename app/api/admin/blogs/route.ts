@@ -62,7 +62,12 @@ export async function GET(request: NextRequest) {
     sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
 
     const total = await Blog.countDocuments(query);
-    const blogs = await Blog.find(query).sort(sort).skip(skip).limit(limit).lean();
+    const blogs = await Blog.find(query)
+      .sort(sort)
+      .skip(skip)
+      .limit(limit)
+      .populate('author', 'name email _id') // Populate author with name, email, and _id
+      .lean();
     
     // Get unique authors for filtering
     const allAuthors = await Blog.distinct('author');

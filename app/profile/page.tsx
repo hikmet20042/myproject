@@ -3,18 +3,21 @@
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { useLanguage } from '@/contexts/LanguageContext'
 import {
- 
   CheckCircle,
   XCircle,
   Clock,
   Trash2,
- 
   Shield,
- 
   Plus,
-  
   Loader2,
+  Sparkles,
+  TrendingUp,
+  Award,
+  Edit3,
+  Mail,
+  AlertCircle
 } from 'lucide-react'
 import Stats from '@/components/Profile/Stats'
 import TabNavigation from '@/components/Profile/TabNavigation'
@@ -23,6 +26,8 @@ import Blogs from '@/components/Profile/Blogs'
 import Notifications from '@/components/Profile/Notifications'
 import SettingsTab from '@/components/Profile/SettingsTab'
 import { Button } from '@/components/ui/Button'
+import { LoadingState, ErrorState, AnimatedBackground, StatusBadge } from '@/components/shared'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
 
 interface UserProfile {
   user: {
@@ -75,6 +80,9 @@ interface Notification {
 }
 
 function ProfilePageContent() {
+  const { t } = useLanguage();
+  const localePath = useLocalizedPath();
+  
   // Notification modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [modalNotification, setModalNotification] = useState<Notification | null>(null);
@@ -89,7 +97,7 @@ function ProfilePageContent() {
 
   // Get active tab from URL, default to 'profile'
   const getActiveTabFromUrl = useCallback(() => {
-    const tab = searchParams.get('tab')
+    const tab = searchParams?.get('tab')
     if (tab && ['profile', 'blogs', 'notifications', 'settings'].includes(tab)) {
       return tab
     }
@@ -106,11 +114,9 @@ function ProfilePageContent() {
   })
 
   const [achievements, setAchievements] = useState<any[]>([])
-  const [preferences, setPreferences] = useState<any>(null)
 
   // Main loading state
   const [loading, setLoading] = useState(true)
-  const [preferencesLoading, setPreferencesLoading] = useState(true)
 
   // Tab switching state - track which tab is being loaded
   const [loadingTab, setLoadingTab] = useState<string | null>(null)
@@ -141,41 +147,9 @@ function ProfilePageContent() {
     } catch (error) {
       console.error('Error loading profile stats:', error)
     }
-  }, [])
+  }, [blogs.length, profile?.user?.createdAt])
 
-  const loadPreferences = useCallback(async () => {
-    try {
-      setPreferencesLoading(true)
-      const response = await fetch('/api/users/preferences')
-      if (response.ok) {
-        const data = await response.json()
-        setPreferences(data.preferences)
-      } else {
-        // Set default preferences if API fails
-        setPreferences({
-          privacy: {
-            publicProfile: true,
-            showEmail: false,
-            showPhone: false,
-            showLocation: true
-          },
-          notifications: {
-            email: true,
-            push: true,
-            marketing: false
-          },
-          display: {
-            theme: 'light',
-            language: 'en'
-          }
-        })
-      }
-    } catch (error) {
-      console.error('Error loading preferences:', error)
-    } finally {
-      setPreferencesLoading(false)
-    }
-  }, [])
+
 
   
   const loadUserBlogs = useCallback(async () => {
@@ -215,13 +189,8 @@ function ProfilePageContent() {
           await loadNotifications()
         }
         break
-      case 'settings':
-        if (!preferences) {
-          await loadPreferences()
-        }
-        break
     }
-  }, [blogs.length, notifications.length, preferences, loadUserBlogs, loadNotifications])
+  }, [blogs.length, notifications.length, loadUserBlogs, loadNotifications])
 
   // Handle tab change with URL update and loading state
   const handleTabChange = (tab: string) => {
@@ -272,30 +241,6 @@ function ProfilePageContent() {
 
 
 
-  const savePreferences = async (section?: string) => {
-    try {
-      const response = await fetch('/api/users/preferences', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          preferences: section ? preferences[section] : preferences,
-          section
-        }),
-      })
-
-      if (response.ok) {
-        // Show success message
-        console.log('Preferences saved successfully')
-      } else {
-        console.error('Failed to save preferences')
-      }
-    } catch (error) {
-      console.error('Error saving preferences:', error)
-    }
-  }
-
   const deleteBlog = async (id: string) => {
     setDeleting(true)
     try {
@@ -307,11 +252,11 @@ function ProfilePageContent() {
         setDeleteConfirm(null)
       } else {
         const data = await response.json()
-        alert(data.error || 'Failed to delete blog')
+        alert(data.error || t('profile.deleteFailed'))
       }
     } catch (error) {
       console.error('Error deleting blog:', error)
-      alert('Failed to delete blog')
+      alert(t('profile.deleteFailed'))
     } finally {
       setDeleting(false)
     }
@@ -325,11 +270,11 @@ function ProfilePageContent() {
       // Load data for the new tab
       loadTabData(newTab)
     }
-  }, [getActiveTabFromUrl, searchParams, activeTab, loadingTab])
+  }, [getActiveTabFromUrl, searchParams, activeTab, loadingTab,loadTabData])
 
   // Handle notification parameter from URL (when coming from header dropdown)
   useEffect(() => {
-    const notificationId = searchParams.get('notification')
+    const notificationId = searchParams?.get('notification')
     if (notificationId && notifications.length > 0) {
       const notification = notifications.find(n => (n.id || n._id) === notificationId)
       if (notification) {
@@ -346,7 +291,7 @@ function ProfilePageContent() {
   useEffect(() => {
     if (status === 'loading') return
     if (status === 'unauthenticated') {
-      router.push('/auth/signin')
+      router.push(localePath("/auth/signin"))
       return
     }
 
@@ -357,7 +302,6 @@ function ProfilePageContent() {
     const loadEssentialData = async () => {
       await Promise.all([
         loadProfile(),
-        loadPreferences(),
         loadProfileStats() // Load stats initially for the profile tab
       ])
 
@@ -366,7 +310,7 @@ function ProfilePageContent() {
     }
 
     loadEssentialData()
-  }, [status, session, router]) // Removed activeTab, loadProfileStats, loadTabData, loadPreferences from dependencies
+  }, [status, session, router, activeTab,loadProfileStats,loadTabData,localePath]) // Removed activeTab, loadProfileStats, loadTabData, loadPreferences from dependencies
 
   const loadProfile = async () => {
     try {
@@ -428,14 +372,14 @@ function ProfilePageContent() {
         setEditing(false)
         await loadProfile()
         // Show success message
-        alert('Profile updated successfully!')
+        alert(t('profile.profileUpdated'))
       } else {
         console.error('Save failed:', result)
-        alert(`Failed to save profile: ${result.error || 'Unknown error'}`)
+        alert(`${t('profile.failedToSave')}: ${result.error || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('Error saving profile:', error)
-      alert('Failed to save profile. Please try again.')
+      alert(t('profile.failedToSave'))
     }
   }
 
@@ -459,6 +403,22 @@ function ProfilePageContent() {
       }
     } catch (error) {
       // Optionally show error
+    }
+  };
+
+  // Mark all notifications as read
+  const markAllAsRead = async () => {
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markAllAsRead: true })
+      });
+      if (res.ok) {
+        setNotifications((prev) => prev.map(n => ({ ...n, isRead: true })));
+      }
+    } catch (error) {
+      console.error('Error marking all as read:', error);
     }
   };
 
@@ -486,33 +446,27 @@ function ProfilePageContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              <div className="lg:col-span-1">
-                <div className="h-64 bg-gray-200 rounded"></div>
-              </div>
-              <div className="lg:col-span-3">
-                <div className="h-96 bg-gray-200 rounded"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <LoadingState
+        text={t('common.loading')}
+        gradientFrom="from-blue-50"
+        gradientVia="via-indigo-50"
+        gradientTo="to-purple-50"
+        spinnerColor="border-blue-600"
+      />
     )
   }
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900">Profile not found</h1>
-          </div>
-        </div>
-      </div>
+      <ErrorState
+        title={t('profile.profileNotFound')}
+        message={t('profile.profileNotFoundMessage') || 'Unable to load profile information.'}
+        onRetry={() => router.push(localePath("/"))}
+        retryText={t('common.backToHome')}
+        gradientFrom="from-red-50"
+        gradientVia="via-orange-50"
+        gradientTo="to-yellow-50"
+      />
     )
   }
 
@@ -525,12 +479,12 @@ function ProfilePageContent() {
       const res = await fetch('/api/auth/verify-request', { method: 'POST' });
       const data = await res.json();
       if (res.ok) {
-        setResendSuccess('Verification email sent! Please check your inbox.');
+        setResendSuccess(t('profile.verificationEmailSent'));
       } else {
-        setResendError(data.error || 'Failed to send verification email');
+        setResendError(data.error || t('profile.failedToSend'));
       }
     } catch (e) {
-      setResendError('Failed to send verification email');
+      setResendError(t('profile.failedToSend'));
     } finally {
       setResendLoading(false);
     }
@@ -546,70 +500,120 @@ function ProfilePageContent() {
   // Only one main return at the end of the component
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          {/* Enhanced Profile Header */}
-          <div className="bg-white shadow rounded-lg mb-8">
-            <div className="px-6 py-8">
-              <div className="flex items-center space-x-6">
-                <div className="flex-shrink-0">
-                  <div className="h-20 w-20 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-white text-2xl font-bold">
-                    {profile.user.name?.charAt(0).toUpperCase() || 'U'}
-                  </div>
+      {/* Engaging Hero Header with Gradient Banner */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-900">
+        {/* Animated Background */}
+        <AnimatedBackground
+          colors={{
+            blob1: 'bg-pink-500',
+            blob2: 'bg-blue-400',
+            blob3: 'bg-purple-500'
+          }}
+        />
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-12 pb-16 sm:pb-20">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+            {/* Avatar */}
+            <div className="relative group animate-fade-in">
+              <div className="absolute -inset-1 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-300"></div>
+              <div className="relative h-24 w-24 sm:h-32 sm:w-32 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-3xl sm:text-5xl font-black shadow-2xl ring-4 ring-white">
+                {profile.user.name?.charAt(0).toUpperCase() || 'U'}
+              </div>
+              {profile.user.role === 'admin' && (
+                <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center shadow-lg ring-4 ring-white">
+                  <Shield className="w-5 h-5 text-white" />
                 </div>
-                <div className="flex-1">
-                  <h1 className="text-3xl font-bold text-gray-900">{profile.user.name}</h1>
-                  <p className="text-gray-600">{profile.user.email}</p>
-                  {profile.profile?.bio && (
-                    <p className="text-gray-700 mt-2">{profile.profile.bio}</p>
-                  )}
-                  <div className="flex items-center space-x-4 mt-3">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      <span className="w-2 h-2 bg-green-400 rounded-full mr-1"></span>
-                      Active
-                    </span>
-                    {profile.user.role === 'admin' && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                        <Shield className="w-3 h-3 mr-1" />
-                        Admin
-                      </span>
-                    )}
-                    <span className="text-sm text-gray-500">
-                      Joined {new Date(profileStats.joinedDate || Date.now()).toLocaleDateString()}
-                    </span>
+              )}
+            </div>
+
+            {/* Info */}
+            <div className="flex-1 animate-fade-in animation-delay-200">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-3">
+                <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-full mb-2">
+                    <Sparkles className="w-4 h-4 text-blue-300" />
+                    <span className="text-xs font-bold text-white uppercase tracking-wide">{t('profile.yourProfile')}</span>
                   </div>
+                  <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white mb-2">
+                    {profile.user.name}
+                  </h1>
+                  <p className="text-sm sm:text-base text-blue-100 flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    {profile.user.email}
+                  </p>
                 </div>
               </div>
 
-              {/* Quick Stats */}
-              <Stats profileStats={profileStats}/>
+              {profile.profile?.bio && (
+                <p className="text-sm sm:text-base text-blue-100 mb-4 max-w-2xl leading-relaxed">
+                  {profile.profile.bio}
+                </p>
+              )}
+
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-green-100 text-green-800">
+                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                  {t('profile.active')}
+                </span>
+                {profile.user.role === 'admin' && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-purple-100 text-purple-800">
+                    <Shield className="w-4 h-4" />
+                    {t('profile.admin')}
+                  </span>
+                )}
+                {session?.user?.isApprovedNGO && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-indigo-100 text-indigo-800">
+                    <Award className="w-4 h-4" />
+                    {t('profile.ngoAccount')}
+                  </span>
+                )}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-white/20 backdrop-blur-md text-white">
+                  {t('profile.joined')} {new Date(profileStats.joinedDate || Date.now()).toLocaleDateString()}
+                </span>
+              </div>
             </div>
           </div>
+
+          
+        </div>
+
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-10">
+        <div className="pb-6 sm:pb-12">
+          {/* Email Verification Banner */}
           {isUnverified && (
-            <div className="mb-8 bg-yellow-50 border border-yellow-300 rounded-md p-4 flex items-center">
-              <svg className="h-6 w-6 text-yellow-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z" />
-              </svg>
-              <div className="flex-1">
-                <div className="text-sm text-yellow-800">
-                  <strong>Your email is not verified.</strong> You cannot submit blogs until you verify your email.<br />
-                  <span className="block mt-1">Please check your inbox (and spam folder) for a verification email.</span>
+            <div className="mb-6 bg-yellow-50 border-2 border-yellow-300 rounded-xl p-4 sm:p-6 shadow-lg animate-fade-in">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">
+                  <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <AlertCircle className="w-6 h-6 text-yellow-600" />
+                  </div>
                 </div>
-                <Button
-                  onClick={handleResendVerification}
-                  disabled={resendLoading}
-                  className="mt-3 bg-yellow-500 hover:bg-yellow-600 focus:ring-yellow-500"
-                >
-                  {resendLoading ? 'Sending...' : 'Resend Verification Email'}
-                </Button>
-                {resendSuccess && <div className="mt-2 text-green-700">{resendSuccess}</div>}
-                {resendError && <div className="mt-2 text-blue-700">{resendError}</div>}
+                <div className="flex-1">
+                  <div className="text-sm sm:text-base text-yellow-900">
+                    <strong className="font-bold">{t('profile.emailNotVerified')}</strong>
+                    <span className="block mt-1">{t('profile.cannotSubmitBlogs')}</span>
+                    <span className="block mt-1 text-yellow-800">{t('profile.checkInbox')}</span>
+                  </div>
+                  <Button
+                    onClick={handleResendVerification}
+                    disabled={resendLoading}
+                    variant="primary"
+                    size="sm"
+                    className="mt-4 bg-yellow-500 hover:bg-yellow-600"
+                  >
+                    {resendLoading ? t('profile.sending') : t('profile.resendVerificationEmail')}
+                  </Button>
+                  {resendSuccess && <div className="mt-2 text-sm text-green-700 font-medium">{resendSuccess}</div>}
+                  {resendError && <div className="mt-2 text-sm text-blue-700 font-medium">{resendError}</div>}
+                </div>
               </div>
             </div>
           )}
 
           {/* Tab Navigation */}
-          <TabNavigation handleTabChange={handleTabChange} loadingTab= {loadingTab } activeTab={activeTab} notifications={notifications} userRole={profile?.user?.role}/>
+          <TabNavigation handleTabChange={handleTabChange} loadingTab= {loadingTab } activeTab={activeTab} notifications={notifications} userRole={profile?.user?.role} isNGO={session?.user?.isApprovedNGO}/>
 
           {/* Profile Tab */}
           {activeTab === 'profile' && (
@@ -620,7 +624,7 @@ function ProfilePageContent() {
 
 
           {/* Blogs Tab */}
-          {activeTab === 'blogs' && profile?.user?.role !== 'ngo' && (
+          {activeTab === 'blogs' && !session?.user?.isApprovedNGO && (
            <Blogs loadingTab={loadingTab} blogs={blogs} getStatusIcon={getStatusIcon} getStatusColor={getStatusColor} setDeleteConfirm={setDeleteConfirm} />
 
           )}
@@ -634,6 +638,7 @@ function ProfilePageContent() {
             modalNotification={modalNotification}
             modalOpen={modalOpen}
             toggleNotificationRead={toggleNotificationRead}
+            markAllAsRead={markAllAsRead}
             loadingTab={loadingTab}
             />
           )}
@@ -642,9 +647,6 @@ function ProfilePageContent() {
           {activeTab === 'settings' && (
             <SettingsTab
             loadingTab={loadingTab}
-            preferences={preferences}
-            setPreferences={setPreferences}
-            savePreferences={savePreferences}
             
 
             />
@@ -654,34 +656,79 @@ function ProfilePageContent() {
 
       {/* Delete Confirmation Dialog */}
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3 text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
-                <Trash2 className="h-6 w-6 text-blue-600" />
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setDeleteConfirm(null)}
+        >
+          <div 
+            className="relative w-full max-w-md mx-auto animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Enhanced modal with gradient border effect */}
+            <div className="relative bg-white rounded-2xl shadow-2xl border-2 border-gray-200 overflow-hidden">
+              {/* Gradient header */}
+              <div className="relative h-32 bg-gradient-to-br from-red-600 via-red-700 to-pink-800 overflow-hidden">
+                {/* Animated background blobs */}
+                <div className="absolute top-0 right-0 w-40 h-40 bg-pink-500 rounded-full mix-blend-multiply filter blur-2xl opacity-50 animate-blob"></div>
+                <div className="absolute bottom-0 left-0 w-40 h-40 bg-red-500 rounded-full mix-blend-multiply filter blur-2xl opacity-50 animate-blob animation-delay-2000"></div>
+                
+                {/* Icon container */}
+                <div className="relative h-full flex items-center justify-center">
+                  <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-xl">
+                    <Trash2 className="w-10 h-10 text-white" />
+                  </div>
+                </div>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mt-4">
-                Delete Blog
-              </h3>
-              <div className="mt-2 px-7 py-3">
-                <p className="text-sm text-gray-500">
-                  Are you sure you want to delete "{deleteConfirm.title}"? This action cannot be undone.
-                </p>
-              </div>
-              <div className="flex justify-center space-x-4 mt-4">
-                <Button
-                  onClick={() => setDeleteConfirm(null)}
-                  variant="secondary"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={() => deleteBlog(deleteConfirm.id)}
-                  disabled={deleting}
-                  variant="danger"
-                >
-                  {deleting ? 'Deleting...' : 'Delete'}
-                </Button>
+              
+              {/* Content */}
+              <div className="p-8 space-y-4">
+                <div className="text-center space-y-2">
+                  <h3 className="text-2xl font-black text-gray-900">
+                    {t('profile.deleteBlog')}
+                  </h3>
+                  <p className="text-sm text-gray-600 leading-relaxed px-2">
+                    {t('profile.deleteConfirmation', { title: deleteConfirm.title })}
+                  </p>
+                </div>
+                
+                {/* Warning badge */}
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-400">
+                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                    <AlertCircle className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <p className="text-xs text-amber-800 font-medium">
+                    This action cannot be undone. All data will be permanently deleted.
+                  </p>
+                </div>
+                
+                {/* Action buttons */}
+                <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
+                  <Button
+                    onClick={() => setDeleteConfirm(null)}
+                    variant="secondary"
+                    className="w-full sm:w-auto order-2 sm:order-1"
+                  >
+                    {t('profile.cancel')}
+                  </Button>
+                  <Button
+                    onClick={() => deleteBlog(deleteConfirm.id)}
+                    disabled={deleting}
+                    variant="danger"
+                    className="w-full sm:w-auto order-1 sm:order-2 bg-gradient-to-r from-red-600 to-pink-700 hover:from-red-700 hover:to-pink-800 disabled:from-gray-400 disabled:to-gray-500"
+                  >
+                    {deleting ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                        {t('profile.deleting')}
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        {t('profile.delete')}
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -692,6 +739,7 @@ function ProfilePageContent() {
 }
 
 export default function ProfilePage() {
+  const localePath = useLocalizedPath()
   return (
     <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
       <ProfilePageContent />

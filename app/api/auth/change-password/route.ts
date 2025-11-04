@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs'
 import nodemailer from 'nodemailer'
 import dbConnect from '@/lib/mongoose'
 import User from '@/lib/models/User'
-import { passwordChangeConfirmationTemplate } from '@/lib/email-templates/password-reset'
+import { passwordChangedEmailTemplate } from '@/lib/email-templates/password-reset'
 
 export async function POST(request: NextRequest) {
   try {
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      const emailTemplate = passwordChangeConfirmationTemplate(user.name)
+  const emailTemplate = passwordChangedEmailTemplate(user.name)
 
       await transporter.sendMail({
         from: process.env.EMAIL_FROM,

@@ -3,10 +3,13 @@
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { useLanguage } from '@/contexts/LanguageContext'
 import BlocknoteEditor from '@/components/BlocknoteEditor'
-import { ArrowLeft, Send, Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft, Send, Eye, EyeOff, FileText, CheckCircle, Sparkles, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { LoadingState, ProgressIndicator, AnimatedBackground, SuccessState } from '@/components/shared'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
 
 interface Step2Props {
   searchParams: { [key: string]: string | string[] | undefined }
@@ -15,8 +18,10 @@ interface Step2Props {
 function Step2Page({ searchParams }: Step2Props) {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t } = useLanguage()
+  const localePath = useLocalizedPath();
   const urlSearchParams = useSearchParams();
-  const editId = urlSearchParams.get('edit');
+  const editId = urlSearchParams?.get('edit');
   const [content, setContent] = useState<any>(null); // BlockNote JSON
   const [contentHtml, setContentHtml] = useState('');
   const [characterCount, setCharacterCount] = useState(0);
@@ -202,9 +207,9 @@ function Step2Page({ searchParams }: Step2Props) {
   useEffect(() => {
     if (!init || status === 'loading') return;
     if (!title) {
-      router.push('/submit/blog/step1');
+      router.push(localePath("/submit/blog/step1"));
     }
-  }, [init, title, router, status]);
+  }, [init, title, router, status,localePath]);
 
   const handleEditorChange = (json: any, html: string, text: string) => {
     setContent(json)
@@ -238,15 +243,15 @@ function Step2Page({ searchParams }: Step2Props) {
       isContentEmpty = true;
     }
     if (isContentEmpty) {
-      setError('Please add some content before submitting');
+      setError(t('submitBlog.error.noContent'))
       return;
     }
     if (characterCount < 100) {
-      setError('Your blog must be at least 100 characters long');
+      setError(t('submitBlog.error.tooShort'))
       return;
     }
     if (!isAnonymous && showAuthorNameInput && (!authorName || !authorName.trim())) {
-      setError('Please enter your name or choose to submit anonymously');
+      setError(t('submitBlog.error.enterName'))
       return;
     }
     setIsSubmitting(true);
@@ -275,15 +280,15 @@ function Step2Page({ searchParams }: Step2Props) {
         
         setSuccess(true);
         setTimeout(() => {
-          router.push('/profile');
+          router.push(localePath("/profile"));
         }, 2000);
       } else {
         const data = await response.json();
-        setError(data.error || 'Failed to submit blog');
+        setError(data.error || t('submitBlog.error.failedSubmit'));
       }
     } catch (error) {
       console.error('Error submitting blog:', error);
-      setError('An error occurred while submitting');
+      setError(t('submitBlog.error.generic'));
     } finally {
       setIsSubmitting(false);
     }
@@ -291,187 +296,258 @@ function Step2Page({ searchParams }: Step2Props) {
 
   if (!init || status === 'loading') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
+      <LoadingState
+        text="Loading editor..."
+        gradientFrom="from-blue-50"
+        gradientVia="via-indigo-50"
+        gradientTo="to-purple-100"
+        spinnerColor="border-blue-500"
+      />
     );
   }
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-            <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h3 className="mt-4 text-lg font-medium text-gray-900">Blog Submitted Successfully!</h3>
-          <p className="mt-2 text-sm text-gray-500">
-            Your blog has been submitted for review. You'll receive a notification once it's approved.
-          </p>
-        </div>
-      </div>
+      <SuccessState
+        title={t('submitBlog.submittedSuccessTitle')}
+        message={t('submitBlog.submittedSuccessBody')}
+        gradientFrom="from-green-50"
+        gradientVia="via-emerald-50"
+        gradientTo="to-teal-50"
+        actions={
+          <>
+            <Button
+              onClick={() => router.push(localePath("/profile"))}
+              variant="primary"
+              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+            >
+              View My Profile
+            </Button>
+            <Button
+              onClick={() => router.push(localePath("/blogs"))}
+              variant="secondary"
+            >
+              Browse Blogs
+            </Button>
+          </>
+        }
+      />
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Write Your Blog</h1>
-                <p className="mt-2 text-gray-600">
-                  Share your personal experience or community blog
-                </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100">
+      {/* Animated Background */}
+      <AnimatedBackground
+        colors={{
+          blob1: 'bg-blue-300',
+          blob2: 'bg-indigo-300',
+          blob3: 'bg-purple-300'
+        }}
+      />
+
+      <div className="relative max-w-5xl mx-auto py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
+        {/* Progress Indicator */}
+        <ProgressIndicator currentStep={2} totalSteps={2} percentage={100} />
+
+        {/* Header */}
+        <div className="mb-6 sm:mb-8 animate-fade-in animation-delay-200">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/60 backdrop-blur-md rounded-full border border-blue-200 mb-3">
+                <Sparkles className="w-4 h-4 text-blue-600" />
+                <span className="text-sm font-semibold text-blue-700">Write Your Content</span>
               </div>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  // Save current state to localStorage before going back
-                  if (typeof window !== 'undefined') {
-                    const saved = localStorage.getItem('draftBlog')
-                    const base = saved ? JSON.parse(saved) : {}
-                    const updatedDraft = {
-                      ...base,
-                      title,
-                      tags,
-                      isAnonymous,
-                      authorName,
-                      content,
-                      contentHtml,
-                      characterCount,
-                      ...(editId && { editId })
-                    }
-                    localStorage.setItem('draftBlog', JSON.stringify(updatedDraft))
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900">{t('submitBlog.writeYourBlog')}</h1>
+              <p className="mt-2 text-base text-gray-600">
+                {t('submitBlog.writeSubtitle')}
+              </p>
+            </div>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                // Save current state to localStorage before going back
+                if (typeof window !== 'undefined') {
+                  const saved = localStorage.getItem('draftBlog')
+                  const base = saved ? JSON.parse(saved) : {}
+                  const updatedDraft = {
+                    ...base,
+                    title,
+                    tags,
+                    isAnonymous,
+                    authorName,
+                    content,
+                    contentHtml,
+                    characterCount,
+                    ...(editId && { editId })
                   }
-                  const backUrl = editId ? `/submit/blog/step1?edit=${editId}` : '/submit/blog/step1'
-                  router.push(backUrl)
-                }}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-            </div>
-            
-            
+                  localStorage.setItem('draftBlog', JSON.stringify(updatedDraft))
+                }
+                const backUrl = editId ? `/submit/blog/step1?edit=${editId}` : '/submit/blog/step1'
+                router.push(backUrl)
+              }}
+              className="inline-flex items-center px-4 py-2.5 border-2 border-gray-300 rounded-xl shadow-sm text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 hover:border-blue-300 transition-all duration-300"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              {t('submitBlog.back')}
+            </Button>
           </div>
+        </div>
 
-          {/* Blog Details */}
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Blog Details</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Title</label>
-                <p className="mt-1 text-sm text-gray-900">{title}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Author</label>
-                {isAnonymous ? (
-                  <p className="mt-1 text-sm text-gray-900">Anonymous</p>
-                ) : showAuthorNameInput ? (
-                  <Input
-                    type="text"
-                    className="mt-1 block w-full focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                    placeholder="Your name"
-                    value={authorName}
-                    onChange={e => setAuthorName(e.target.value)}
-                  />
-                ) : (
-                  <p className="mt-1 text-sm text-gray-900">{authorName || session?.user?.name || 'Community Member'}</p>
-                )}
-              </div>
+        {/* Blog Details Card */}
+        <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 p-6 mb-6 animate-fade-in animation-delay-400">
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <FileText className="w-6 h-6 text-indigo-600" />
+            {t('submitBlog.blogDetails')}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200">
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('submitBlog.titleLabel')}</label>
+              <p className="text-base font-semibold text-gray-900">{title}</p>
             </div>
-          </div>
-
-          {/* Editor */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900">Blog Content</h2>
-                <div className="flex items-center space-x-4">
-                  <span className="text-sm text-gray-500">
-                    {characterCount} characters
-                  </span>
-                  <Button
-                    onClick={() => setShowPreview(!showPreview)}
-                    variant="secondary"
-                    size="sm"
-                  >
-                    {showPreview ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
-                    {showPreview ? 'Hide Preview' : 'Show Preview'}
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6">
-              {showPreview ? (
-                <div className="prose max-w-none">
-                  <div dangerouslySetInnerHTML={{ __html: contentHtml }} />
-                </div>
-              ) : (
-                <BlocknoteEditor
-                  key={title || 'empty'}
-                  initialJSON={content}
-                  onChange={handleEditorChange}
-                  context="blog"
+            <div className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200">
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t('submitBlog.authorLabel')}</label>
+              {isAnonymous ? (
+                <p className="text-base font-semibold text-gray-900">{t('submitBlog.anonymous')}</p>
+              ) : showAuthorNameInput ? (
+                <Input
+                  type="text"
+                  className="mt-1 block w-full focus:border-indigo-500 focus:ring-indigo-100 text-base"
+                  placeholder={t('submitBlog.yourNamePlaceholder')}
+                  value={authorName}
+                  onChange={e => setAuthorName(e.target.value)}
                 />
+              ) : (
+                <p className="text-base font-semibold text-gray-900">{authorName || session?.user?.name || t('submitBlog.communityMember')}</p>
               )}
             </div>
           </div>
+        </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="mt-4 bg-blue-50 border border-blue-200 rounded-md p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
+        {/* Editor Card */}
+        <div className="bg-white rounded-2xl shadow-2xl border-2 border-gray-100 overflow-hidden animate-fade-in animation-delay-600">
+          <div className="px-6 py-5 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border-b-2 border-gray-100">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <FileText className="w-6 h-6 text-blue-600" />
+                {t('submitBlog.blogContent')}
+              </h2>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-white/80 backdrop-blur-sm rounded-lg border border-gray-200">
+                  <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
+                  <span className="text-sm font-semibold text-gray-700">
+                    {characterCount} {t('submitBlog.characters')}
+                  </span>
                 </div>
-                <div className="ml-3">
-                  <p className="text-sm text-blue-700">{error}</p>
-                </div>
+                <Button
+                  onClick={() => setShowPreview(!showPreview)}
+                  variant="secondary"
+                  size="sm"
+                  className="hover:scale-105 transition-transform"
+                >
+                  {showPreview ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
+                  {showPreview ? t('submitBlog.hidePreview') : t('submitBlog.showPreview')}
+                </Button>
               </div>
             </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="mt-8 flex justify-end space-x-4">
-            <Button
-              onClick={handleSubmit}
-              disabled={
-                isSubmitting ||
-                (
-                  (typeof content === 'string' && (!content || !content.trim())) ||
-                  (typeof content !== 'string' && (!content || !JSON.stringify(content).trim() || JSON.stringify(content).trim() === '{}'))
-                ) ||
-                characterCount < 100
-              }
-              variant="primary"
-              loading={isSubmitting}
-            >
-              <Send className="w-4 h-4 mr-2" />
-              {isSubmitting ? 'Submitting...' : 'Submit Blog'}
-            </Button>
           </div>
 
-          {/* Guidelines */}
-          <div className="mt-8 bg-blue-50 border border-blue-200 rounded-md p-4">
-            <h3 className="text-sm font-medium text-blue-800 mb-2">Blog Guidelines</h3>
-            <ul className="text-sm text-blue-700 space-y-1">
-              <li>• Share personal experiences, challenges, or victories related to social justice and equality</li>
-              <li>• Be respectful and constructive in your narrative</li>
-              <li>• Minimum 100 characters required</li>
-              <li>• Your blog will be reviewed before publication</li>
-              <li>• You can choose to remain anonymous</li>
-            </ul>
+          <div className="p-6 min-h-[400px]">
+            {showPreview ? (
+              <div className="prose max-w-none">
+                <div dangerouslySetInnerHTML={{ __html: contentHtml }} />
+              </div>
+            ) : (
+              <BlocknoteEditor
+                key={title || 'empty'}
+                initialJSON={content}
+                onChange={handleEditorChange}
+                context="blog"
+              />
+            )}
           </div>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="mt-6 p-4 bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-200 rounded-2xl animate-shake">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <AlertCircle className="w-5 h-5 text-red-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-red-700">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4 animate-fade-in animation-delay-800">
+          <div className="text-sm text-gray-600 order-2 sm:order-1">
+            {characterCount < 100 && (
+              <span className="text-amber-600 font-semibold">
+                Minimum 100 characters required ({100 - characterCount} more)
+              </span>
+            )}
+          </div>
+          <Button
+            onClick={handleSubmit}
+            disabled={
+              isSubmitting ||
+              (
+                (typeof content === 'string' && (!content || !content.trim())) ||
+                (typeof content !== 'string' && (!content || !JSON.stringify(content).trim() || JSON.stringify(content).trim() === '{}'))
+              ) ||
+              characterCount < 100
+            }
+            variant="primary"
+            loading={isSubmitting}
+            className="w-full sm:w-auto order-1 sm:order-2 px-8 py-4 text-base font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed disabled:hover:scale-100"
+          >
+            <Send className="w-5 h-5 mr-2" />
+            {isSubmitting ? t('submitBlog.submitting') : t('submitBlog.submitBlog')}
+          </Button>
+        </div>
+
+        {/* Guidelines */}
+        <div className="mt-8 p-6 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-2 border-blue-200 rounded-2xl animate-fade-in animation-delay-1000">
+          <h3 className="text-lg font-bold text-blue-900 mb-4 flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-blue-600" />
+            {t('submitBlog.guidelines.title')}
+          </h3>
+          <ul className="space-y-2.5">
+            <li className="flex items-start gap-3 text-sm text-blue-800">
+              <span className="w-6 h-6 rounded-full bg-blue-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <CheckCircle className="w-4 h-4 text-blue-700" />
+              </span>
+              <span>{t('submitBlog.guidelines.line1')}</span>
+            </li>
+            <li className="flex items-start gap-3 text-sm text-blue-800">
+              <span className="w-6 h-6 rounded-full bg-blue-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <CheckCircle className="w-4 h-4 text-blue-700" />
+              </span>
+              <span>{t('submitBlog.guidelines.line2')}</span>
+            </li>
+            <li className="flex items-start gap-3 text-sm text-blue-800">
+              <span className="w-6 h-6 rounded-full bg-blue-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <CheckCircle className="w-4 h-4 text-blue-700" />
+              </span>
+              <span>{t('submitBlog.guidelines.line3')}</span>
+            </li>
+            <li className="flex items-start gap-3 text-sm text-blue-800">
+              <span className="w-6 h-6 rounded-full bg-blue-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <CheckCircle className="w-4 h-4 text-blue-700" />
+              </span>
+              <span>{t('submitBlog.guidelines.line4')}</span>
+            </li>
+            <li className="flex items-start gap-3 text-sm text-blue-800">
+              <span className="w-6 h-6 rounded-full bg-blue-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <CheckCircle className="w-4 h-4 text-blue-700" />
+              </span>
+              <span>{t('submitBlog.guidelines.line5')}</span>
+            </li>
+          </ul>
         </div>
       </div>
     </div>
@@ -479,6 +555,7 @@ function Step2Page({ searchParams }: Step2Props) {
 }
 
 export default function Step2PageWrapper({ searchParams }: Step2Props) {
+  const localePath = useLocalizedPath()
   return (
     <Suspense fallback={<div className="flex justify-center items-center min-h-screen"><div className="text-lg">Loading...</div></div>}>
       <Step2Page searchParams={searchParams} />

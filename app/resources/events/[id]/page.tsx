@@ -4,12 +4,15 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { CalendarIcon, MapPinIcon, UserGroupIcon, ClockIcon, LinkIcon, TagIcon } from '@heroicons/react/24/outline'
-import { ArrowLeft, Calendar, MapPin, Users, Clock, ExternalLink, Tag } from 'lucide-react'
+import { ArrowLeft, Calendar, MapPin, Users, Clock, ExternalLink, Tag, Sparkles, CheckCircle, AlertCircle, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Breadcrumb, ContactCard, Loading } from '@/components/ui'
+import SaveButton from '@/components/SaveButton'
+import ViewTracker from '@/components/ViewTracker'
+import { LoadingState, ErrorState, AnimatedBackground } from '@/components/shared'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Event {
   _id: string
@@ -41,9 +44,12 @@ interface Event {
   isFeatured: boolean
   createdAt: string
   updatedAt: string
+  views?: number
 }
 
 export default function EventDetailPage() {
+  const { t } = useLanguage()
+
   const params = useParams()
   const router = useRouter()
   const [event, setEvent] = useState<Event | null>(null)
@@ -51,10 +57,10 @@ export default function EventDetailPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (params.id) {
+    if (params?.id) {
       fetchEvent(params.id as string)
     }
-  }, [params.id])
+  }, [params?.id])
 
   const fetchEvent = async (id: string) => {
     try {
@@ -63,7 +69,10 @@ export default function EventDetailPage() {
         throw new Error('Event not found')
       }
       const data = await response.json()
-      setEvent(data.event)
+      setEvent({
+        ...data.event,
+        views: data.event.views || 0
+      })
     } catch (error) {
       console.error('Error fetching event:', error)
       setError('Failed to load event details')
@@ -134,44 +143,44 @@ export default function EventDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loading size="xl" text="Loading event details..." />
-        </div>
-      </div>
+      <LoadingState
+        text={t("events.loadingDetails") || "Loading event details..."}
+        gradientFrom="from-blue-50"
+        gradientVia="via-indigo-50"
+        gradientTo="to-purple-100"
+        spinnerColor="border-blue-500"
+      />
     )
   }
 
   if (error || !event) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="shadow-lg max-w-md mx-4">
-          <CardContent className="p-8 text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <ExternalLink className="w-8 h-8 text-red-600" />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Event Not Found</h1>
-            <p className="text-gray-600 mb-6">{error || 'The event you are looking for does not exist.'}</p>
-            <Button
-              onClick={() => router.back()}
-              variant="primary"
-              size="lg"
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Go Back
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <ErrorState
+        title={t("events.notFound") || "Event Not Found"}
+        message={error || t('events.notFoundMessage') || 'The event you are looking for does not exist.'}
+        onRetry={() => router.back()}
+        retryText={t('events.goBack') || "Go Back"}
+        gradientFrom="from-red-50"
+        gradientVia="via-orange-50"
+        gradientTo="to-yellow-50"
+      />
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100">
+      {/* Animated Background */}
+      <AnimatedBackground
+        colors={{
+          blob1: 'bg-blue-300',
+          blob2: 'bg-indigo-300',
+          blob3: 'bg-purple-300'
+        }}
+      />
+
+      <div className="relative max-w-6xl mx-auto px-4 py-8">
         {/* Breadcrumb Navigation */}
-        <div className="mb-6">
+        <div className="mb-6 animate-fade-in">
           <Breadcrumb
             items={[
               { label: 'Home', href: '/' },
@@ -182,86 +191,161 @@ export default function EventDetailPage() {
         </div>
 
         {/* Back Button */}
-        <div className="mb-6">
+        <div className="mb-6 animate-fade-in animation-delay-200">
           <Button
             variant="outline"
             onClick={() => router.back()}
-            className="inline-flex items-center gap-2"
+            className="inline-flex items-center gap-2 hover:scale-105 transition-transform border-2 border-blue-300 hover:bg-blue-50 hover:border-blue-400 font-semibold"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Events
+            {t('events.backTo')}
           </Button>
         </div>
 
-        {/* Header */}
-        <Card className="shadow-lg mb-8">
-          <CardContent className="p-8">
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex-1">
-                <h1 className="text-4xl font-bold text-gray-900 mb-4">{event.title}</h1>
-                <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
-                  <Badge variant="primary" className="text-sm">
-                    {event.category}
-                  </Badge>
-                  <span>Organized by {event.createdBy?._id ? (
-                    <Link 
-                      href={`/resources/ngos/${event.createdBy._id}`}
-                      className="text-primary hover:text-primary-dark transition-colors duration-200 hover:underline font-medium"
-                    >
-                      {event.organizationName || event.createdBy?.name || 'Unknown'}
-                    </Link>
-                  ) : (
-                    <span className="font-medium">{event.organizationName || event.createdBy?.name || 'Unknown'}</span>
-                  )}</span>
+        {/* View Tracker */}
+        <ViewTracker itemId={event._id} itemType="event" />
+
+        {/* Header Card with Hero Image */}
+        <Card className="shadow-2xl mb-8 overflow-hidden border-2 border-blue-100 animate-scale-in">
+          {event.imageUrl && (
+            <div className="relative h-80 sm:h-96 lg:h-[28rem] overflow-hidden group">
+              <Image
+                src={event.imageUrl}
+                alt={event.title}
+                fill
+                className="object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              {/* Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-blue-900/90 via-indigo-900/50 to-transparent"></div>
+              
+              {/* Featured Badge */}
+              {event.isFeatured && (
+                <div className="absolute top-6 right-6 px-4 py-2 bg-gradient-to-r from-yellow-300 to-yellow-500 rounded-xl shadow-xl animate-pulse">
+                  <span className="text-sm font-bold text-blue-900 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    {t('events.featured')}
+                  </span>
+                </div>
+              )}
+
+              {/* Content Overlay */}
+              <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                  <div className="flex-1">
+                    <Badge variant="primary" className="text-sm mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 font-bold shadow-lg">
+                      {event.category}
+                    </Badge>
+                    <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white mb-3 drop-shadow-lg">
+                      {event.title}
+                    </h1>
+                    <div className="flex flex-wrap items-center gap-3 text-sm text-white/90">
+                      <span className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-md rounded-xl border border-white/30 shadow-lg font-semibold">
+                        <Users className="w-4 h-4" />
+                        {t('events.organizedBy')} {event.createdBy?._id ? (
+                          <Link 
+                            href={`/resources/ngos/${event.createdBy._id}`}
+                            className="text-white hover:text-yellow-300 transition-colors duration-200 hover:underline font-bold"
+                          >
+                            {event.organizationName || event.createdBy?.name || t('events.unknown')}
+                          </Link>
+                        ) : (
+                          <span className="font-bold">{event.organizationName || event.createdBy?.name || t('events.unknown')}</span>
+                        )}
+                      </span>
+                      <span className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-md rounded-xl border border-white/30 shadow-lg font-semibold">
+                        <TrendingUp className="w-4 h-4" />
+                        {event.views || 0} {t('events.views')}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <SaveButton
+                      itemId={event._id}
+                      itemType="event"
+                      itemTitle={event.title}
+                      size="lg"
+                      showText={false}
+                      className="bg-white/20 backdrop-blur-md hover:bg-white/30 border-2 border-white/40 shadow-lg hover:scale-110 transition-all duration-300"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
+          )}
 
-            {event.imageUrl && (
-              <div className="mb-6 relative h-80">
-                <Image
-                  src={event.imageUrl}
-                  alt={event.title}
-                  fill
-                  className="object-cover rounded-xl"
-                />
+          {!event.imageUrl && (
+            <CardContent className="p-6 sm:p-8 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-3 mb-4">
+                    <Badge variant="primary" className="text-sm bg-white/20 backdrop-blur-md text-white border border-white/30 font-bold">
+                      {event.category}
+                    </Badge>
+                    <span className="text-sm text-white/90 flex items-center gap-2">
+                      <Users className="w-4 h-4" />
+                      {t('events.organizedBy')} {event.createdBy?._id ? (
+                        <Link 
+                          href={`/resources/ngos/${event.createdBy._id}`}
+                          className="text-white hover:text-yellow-300 transition-colors duration-200 hover:underline font-bold"
+                        >
+                          {event.organizationName || event.createdBy?.name || t('events.unknown')}
+                        </Link>
+                      ) : (
+                        <span className="font-bold">{event.organizationName || event.createdBy?.name || t('events.unknown')}</span>
+                      )}
+                    </span>
+                  </div>
+                  <h1 className="text-3xl sm:text-4xl font-black text-white mb-4 drop-shadow-lg">{event.title}</h1>
+                </div>
+                <div className="flex items-center gap-2">
+                  <SaveButton
+                    itemId={event._id}
+                    itemType="event"
+                    itemTitle={event.title}
+                    size="lg"
+                    showText={false}
+                    className="bg-white/20 backdrop-blur-md hover:bg-white/30 border-2 border-white/40"
+                  />
+                </div>
               </div>
-            )}
-          </CardContent>
+            </CardContent>
+          )}
         </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             {/* About Section */}
-            <Card className="shadow-lg">
+            <Card className="shadow-xl border-2 border-blue-100 animate-fade-in">
               <CardContent className="p-8">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                    <Tag className="w-5 h-5 text-primary" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <Tag className="w-6 h-6 text-white" />
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-900">Event Description</h2>
+                  <h2 className="text-2xl font-black text-gray-900">{t('events.eventDescription')}</h2>
                 </div>
                 <div className="prose max-w-none text-gray-700 leading-relaxed">
                   {event.description.split('\n').map((paragraph, index) => (
-                    <p key={index} className="mb-4">{paragraph}</p>
+                    <p key={index} className="mb-4 text-base">{paragraph}</p>
                   ))}
                 </div>
 
                 {event.tags && event.tags.length > 0 && (
-                  <div className="mt-8 pt-6 border-t border-gray-200">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                      <Tag className="h-5 w-5 mr-2 text-primary" />
-                      Tags
+                  <div className="mt-8 pt-6 border-t-2 border-blue-100">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow-md">
+                        <Tag className="h-4 w-4 text-white" />
+                      </div>
+                      {t('events.tags')}
                     </h3>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-3">
                       {event.tags.map((tag, index) => (
                         <Badge
                           key={index}
                           variant="secondary"
-                          className="text-sm"
+                          className="text-sm px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 font-semibold rounded-xl border-2 border-blue-200 shadow-sm hover:shadow-md hover:scale-105 transition-all duration-200"
                         >
-                          {tag}
+                          #{tag}
                         </Badge>
                       ))}
                     </div>
@@ -273,39 +357,50 @@ export default function EventDetailPage() {
 
           {/* Sidebar */}
           <div className="space-y-8">
-            {/* Event Details */}
-            <Card className="shadow-lg">
+            {/* {t('events.eventDetails')} */}
+            <Card className="shadow-xl border-2 border-blue-100 animate-fade-in animation-delay-200">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-primary" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <Calendar className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900">Event Details</h3>
+                  <h3 className="text-xl font-black text-gray-900">{t('events.eventDetails')}</h3>
                 </div>
-                <div className="space-y-6">
-                  {/* Date & Time */}
-                  <div className="flex items-start gap-4">
-                    <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                      <Calendar className="h-4 w-4 text-primary" />
+                <div className="space-y-5">
+                  {/* View Count */}
+                  <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-100">
+                    <ViewTracker
+                      itemId={event._id}
+                      itemType="event"
+                      initialViews={event.views || 0}
+                      showCount={true}
+                      className="w-full"
+                    />
+                  </div>
+
+                  {/* {t('events.dateTime')} */}
+                  <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md">
+                      <Calendar className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900">{formatDate(event.eventDate)}</p>
-                      <p className="text-sm text-gray-600">{formatTime(event.eventDate)}</p>
+                      <p className="font-bold text-gray-900 text-base">{formatDate(event.eventDate)}</p>
+                      <p className="text-sm text-gray-600 font-medium">{formatTime(event.eventDate)}</p>
                       {event.endDate && (
-                        <p className="text-sm text-gray-600">Until: {formatDate(event.endDate)} at {formatTime(event.endDate)}</p>
+                        <p className="text-sm text-gray-600 mt-1">{t('events.until')}: {formatDate(event.endDate)} at {formatTime(event.endDate)}</p>
                       )}
                     </div>
                   </div>
 
-                  {/* Location */}
-                  <div className="flex items-start gap-4">
-                    <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                      <MapPin className="h-4 w-4 text-primary" />
+                  {/* {t('filters.location')} */}
+                  <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200">
+                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md">
+                      <MapPin className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900 capitalize">{event.location.type}</p>
+                      <p className="font-bold text-gray-900 capitalize text-base">{event.location.type}</p>
                       {event.location.type === 'physical' && event.location.address && (
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-gray-600 font-medium">
                           {event.location.address}
                           {event.location.city && `, ${event.location.city}`}
                           {event.location.country && `, ${event.location.country}`}
@@ -316,9 +411,9 @@ export default function EventDetailPage() {
                           href={event.location.onlineLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm text-primary hover:text-primary-dark underline"
+                          className="text-sm text-blue-600 hover:text-blue-700 underline font-semibold mt-1 inline-block"
                         >
-                          Join Online
+                          {t('events.joinOnline')} →
                         </a>
                       )}
                     </div>
@@ -326,34 +421,38 @@ export default function EventDetailPage() {
 
                   {/* Participants */}
                   {event.maxParticipants && (
-                    <div className="flex items-start gap-4">
-                      <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                        <Users className="h-4 w-4 text-primary" />
+                    <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200">
+                      <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md">
+                        <Users className="h-5 w-5 text-white" />
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-900">Participants</p>
-                        <p className="text-sm text-gray-600">
-                          {event.currentParticipants} / {event.maxParticipants} registered
+                        <p className="font-bold text-gray-900 text-base">{t('titles.participants')}</p>
+                        <p className="text-sm text-gray-600 font-medium">
+                          {event.currentParticipants} / {event.maxParticipants} {t('events.registered')}
                         </p>
                       </div>
                     </div>
                   )}
 
-                  {/* Application Deadline */}
+                  {/* {t('events.applicationDeadline')} */}
                   {event.applicationDeadline && (
-                    <div className="flex items-start gap-4">
-                      <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                        <Clock className="h-4 w-4 text-primary" />
+                    <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200">
+                      <div className={`w-10 h-10 bg-gradient-to-br ${
+                        isDeadlinePassed(event.applicationDeadline)
+                          ? 'from-red-500 to-red-600'
+                          : 'from-indigo-500 to-indigo-600'
+                      } rounded-xl flex items-center justify-center flex-shrink-0 shadow-md`}>
+                        <Clock className="h-5 w-5 text-white" />
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-900">Application Deadline</p>
-                        <p className={`text-sm ${
+                        <p className="font-bold text-gray-900 text-base">{t('events.applicationDeadline')}</p>
+                        <p className={`text-sm font-semibold ${
                           isDeadlinePassed(event.applicationDeadline) 
-                            ? 'text-red-600 font-medium' 
+                            ? 'text-red-600' 
                             : 'text-gray-600'
                         }`}>
                           {formatDateTime(event.applicationDeadline)}
-                          {isDeadlinePassed(event.applicationDeadline) && ' (Expired)'}
+                          {isDeadlinePassed(event.applicationDeadline) && ` (${t('events.deadlinePassed')})`}
                         </p>
                       </div>
                     </div>
@@ -364,46 +463,46 @@ export default function EventDetailPage() {
 
             {/* Application Link */}
             {event.applicationLink && !isDeadlinePassed(event.applicationDeadline || '') && (
-              <Card className="shadow-lg">
+              <Card className="shadow-xl border-2 border-blue-100 animate-fade-in animation-delay-400">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <ExternalLink className="w-5 h-5 text-primary" />
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <ExternalLink className="w-6 h-6 text-white" />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900">Apply Now</h3>
+                    <h3 className="text-xl font-black text-gray-900">{t('events.applyNow')}</h3>
                   </div>
                   <a
                     href={event.applicationLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full flex items-center justify-center gap-2 px-8 py-4 text-lg font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-4 text-white bg-gradient-to-r from-primary to-red-800 hover:from-red-700 hover:to-red-900 focus:ring-red-100 shadow-lg hover:shadow-xl border-2 border-transparent"
+                    className="w-full flex items-center justify-center gap-2 px-8 py-4 text-lg font-bold rounded-xl transition-all duration-300 focus:outline-none focus:ring-4 text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:ring-blue-100 shadow-lg hover:shadow-xl hover:scale-105"
                   >
                     <ExternalLink className="h-5 w-5" />
-                    Apply for Event
+                    {t('events.applyNow')}
                   </a>
                 </CardContent>
               </Card>
             )}
 
-            {/* Organizer Info */}
-            <Card className="shadow-lg">
+            {/* {t('events.organizer')} Info */}
+            <Card className="shadow-xl border-2 border-blue-100 animate-fade-in animation-delay-600">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                    <Users className="w-5 h-5 text-primary" />
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <Users className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900">Organized by</h3>
+                  <h3 className="text-xl font-black text-gray-900">Organized by</h3>
                 </div>
-                <div className="space-y-3">
-                  <div>
-                    <p className="font-semibold text-gray-900 text-lg">
+                <div className="space-y-4">
+                  <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-100">
+                    <p className="font-bold text-gray-900 text-lg">
                       {event.organizationName || 'Unknown Organization'}
                     </p>
-                    <p className="text-sm text-gray-600">Contact: {event.createdBy?.name}</p>
+                    <p className="text-sm text-gray-600 font-medium mt-1">Contact: {event.createdBy?.name}</p>
                   </div>
                   {event.createdBy?._id && (
                     <Link href={`/resources/ngos/${event.createdBy._id}`}>
-                      <Button variant="outline" size="sm" className="mt-3">
+                      <Button variant="outline" size="sm" className="w-full mt-3 border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-bold shadow-sm hover:shadow-md hover:scale-105 transition-all duration-300">
                         View Organization Profile
                       </Button>
                     </Link>

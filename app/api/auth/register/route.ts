@@ -87,15 +87,16 @@ export async function POST(request: NextRequest) {
         password: hashedPassword,
         verificationToken,
         emailVerified: null,
-        role: 'user'
+        role: 'user',
+        authProvider: 'credentials' as const
       };
       
       createdAccount = await User.create(userData);
     }
     // Create welcome notification
     const welcomeMessage = type === 'ngo' 
-      ? 'Thank you for registering your NGO. Please verify your email and wait for admin approval to access NGO features.'
-      : 'Thank you for joining our community. Please verify your email to get started.';
+      ? 'QHT qeydiyyatınız üçün təşəkkür edirik. Zəhmət olmasa e-poçtunuzu təsdiqləyin və QHT funksiyalarına çıxış əldə etmək üçün admin təsdiqini gözləyin.'
+      : 'İcmamıza qoşulduğunuz üçün təşəkkür edirik. Başlamaq üçün zəhmət olmasa e-poçtunuzu təsdiqləyin.';
     
     if (type === 'ngo') {
       // For NGOs, we'll handle notifications after email verification
@@ -104,7 +105,7 @@ export async function POST(request: NextRequest) {
       await NotificationModel.create({
         userId: createdAccount._id,
         type: 'welcome',
-        title: 'Welcome to Social Justice Platform!',
+        title: 'icma360-a xoş gəlmisiniz!',
         message: welcomeMessage,
         data: { type: 'welcome', userType: type },
       });
@@ -117,8 +118,8 @@ export async function POST(request: NextRequest) {
         await NotificationModel.create({
           userId: admin._id,
           type: 'admin_action_required',
-          title: 'New NGO Registration Pending',
-          message: `${ngoProfile?.organizationName} has registered as an NGO and requires approval.`,
+          title: 'Yeni QHT qeydiyyatı gözləyir',
+          message: `${ngoProfile?.organizationName} QHT kimi qeydiyyatdan keçib və təsdiq gözləyir.`,
           data: { 
             type: 'ngo_approval_required', 
             ngoId: createdAccount._id,
@@ -157,26 +158,26 @@ export async function POST(request: NextRequest) {
       const info = await transporter.sendMail({
         from: process.env.EMAIL_FROM,
         to: email,
-        subject: 'Verify your email address',
+        subject: 'E-poçt ünvanınızı təsdiqləyin - icma360',
         html: `
           <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
-            <h2 style="color: #333; text-align: center;">Welcome to Social Justice Platform!</h2>
-            <p>Hello ${name},</p>
+            <h2 style="color: #333; text-align: center;">icma360-a xoş gəlmisiniz!</h2>
+            <p>Salam ${type === 'ngo' ? ngoProfile?.organizationName : name},</p>
             <p>${type === 'ngo' 
-              ? `Thank you for registering your NGO "${ngoProfile?.organizationName || 'your organization'}". Please click the button below to verify your email address. After verification, your NGO registration will be reviewed by our admin team.`
-              : 'Thank you for registering with us. Please click the button below to verify your email address:'
+              ? `QHT qeydiyyatınız üçün təşəkkür edirik "${ngoProfile?.organizationName || 'təşkilatınız'}". E-poçt ünvanınızı təsdiqləmək üçün aşağıdakı düyməni klikləyin. Təsdiqdən sonra QHT qeydiyyatınız admin komandamız tərəfindən nəzərdən keçiriləcək.`
+              : 'Qeydiyyatdan keçdiyiniz üçün təşəkkür edirik. E-poçt ünvanınızı təsdiqləmək üçün aşağıdakı düyməni klikləyin:'
             }</p>
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${verificationUrl}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">Verify Email Address</a>
+              <a href="${verificationUrl}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">E-poçtu təsdiqləyin</a>
             </div>
-            <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+            <p>Əgər düymə işləmirsə, bu linki brauzerdə açın:</p>
             <p style="word-break: break-all; color: #007bff;">${verificationUrl}</p>
-            <p>This verification link will expire in 24 hours.</p>
-            <p>If you didn't create this account, please ignore this email.</p>
+            <p>Bu təsdiq linki 24 saat ərzində etibarlıdır.</p>
+            <p>Əgər bu hesabı siz yaratmamısınızsa, bu e-poçtu nəzərə almayın.</p>
             <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
             <p style="font-size: 12px; color: #666; text-align: center;">
-              This email was sent from Social Justice Platform<br>
-              If you have any questions, please contact us at hikmat.mammadlii@gmail.com
+              Bu e-poçt icma360 platformasından göndərilib<br>
+              Suallarınız varsa, bizimlə əlaqə saxlayın: hikmat.mammadlii@gmail.com
             </p>
           </div>
         `

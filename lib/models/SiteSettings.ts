@@ -155,13 +155,13 @@ interface ISiteSettings extends mongoose.Document {
 
 const SiteSettingsSchema = new mongoose.Schema<ISiteSettings>({
   siteInfo: {
-    siteName: { type: String, required: true, default: 'Social Justice Platform' },
-    siteDescription: { type: String, required: true, default: 'Platform for social justice advocacy and community empowerment' },
-    siteUrl: { type: String, required: true, default: 'https://genderequality.az' },
+    siteName: { type: String, required: true, default: 'icma360' },
+    siteDescription: { type: String, required: true, default: 'Gənclərin və icmaların inkişafına dəstək platforması' },
+    siteUrl: { type: String, required: true, default: 'https://icma360.az' },
     logoUrl: { type: String },
     faviconUrl: { type: String },
-    contactEmail: { type: String, required: true, default: 'contact@genderequality.az' },
-    supportEmail: { type: String, required: true, default: 'support@genderequality.az' },
+    contactEmail: { type: String, required: true, default: 'contact@icma360.az' },
+    supportEmail: { type: String, required: true, default: 'support@icma360.az' },
     socialLinks: {
       facebook: { type: String },
       twitter: { type: String },
@@ -304,11 +304,11 @@ SiteSettingsSchema.index({ version: 1 });
 SiteSettingsSchema.statics.getDefaults = function() {
   return {
     siteInfo: {
-      siteName: 'Social Justice Platform',
-      siteDescription: 'Platform for social justice advocacy and community empowerment',
-      siteUrl: 'https://genderequality.az',
-      contactEmail: 'contact@genderequality.az',
-      supportEmail: 'support@genderequality.az',
+      siteName: 'icma360',
+      siteDescription: 'Gənclərin və icmaların inkişafına dəstək platforması',
+      siteUrl: 'https://icma360.az',
+      contactEmail: 'contact@icma360.az',
+      supportEmail: 'support@icma360.az',
       socialLinks: {},
     },
     contentPolicies: {

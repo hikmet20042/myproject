@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
       );
     }
     const body = await request.json();
-    const { title, content, contentHtml, tags, abstract, isAnonymous, media, featuredImage } = body;
+    const { title, content, contentHtml, tags, abstract, isAnonymous, authorName, media, featuredImage } = body;
     if (!title || title.length < 5 || title.length > 200) {
       return NextResponse.json(
         { error: 'Title must be between 5 and 200 characters' },
@@ -184,11 +184,15 @@ export async function POST(request: NextRequest) {
     // Process featured image
     const featuredImageBlobId = getFeaturedImageBlobId(featuredImage);
 
-    // Handle author assignment similar to articles
+    // Handle author name assignment
     let finalAuthorName = '';
     if (isAnonymous) {
       finalAuthorName = 'Anonymous';
+    } else if (authorName && authorName.trim()) {
+      // Use custom author name if provided
+      finalAuthorName = authorName.trim();
     } else if (session?.user?.name) {
+      // Fall back to session user name
       finalAuthorName = session.user.name;
     } else {
       finalAuthorName = 'Anonymous';
@@ -268,7 +272,20 @@ export async function PATCH(request: NextRequest) {
     if (tags !== undefined) updateData.tags = tags;
     if (abstract !== undefined) updateData.abstract = abstract;
     if (isAnonymous !== undefined) updateData.isAnonymous = isAnonymous;
-    if (authorName !== undefined) updateData.authorName = isAnonymous ? 'Anonymous' : authorName;
+    
+    // Handle authorName with same logic as POST
+    if (authorName !== undefined) {
+      if (isAnonymous) {
+        updateData.authorName = 'Anonymous';
+      } else if (authorName && authorName.trim()) {
+        updateData.authorName = authorName.trim();
+      } else if (session?.user?.name) {
+        updateData.authorName = session.user.name;
+      } else {
+        updateData.authorName = 'Anonymous';
+      }
+    }
+    
     if (media !== undefined) updateData.media = media;
     if (featuredImage !== undefined) updateData.featuredImage = featuredImage;
     if (reqStatus !== undefined) updateData.status = reqStatus;

@@ -152,20 +152,10 @@ export async function POST(request: NextRequest) {
     
     await dbConnect()
     
-    const user = await User.findById(session.user.id)
-    
-    // Check if user is NGO or admin
-    if (user?.role !== 'ngo' && user?.role !== 'admin') {
+    // Check if user is an approved NGO
+    if (!session.user.isApprovedNGO && session.user.role !== 'admin') {
       return NextResponse.json(
-        { error: 'Only NGOs can create vacancies' },
-        { status: 403 }
-      )
-    }
-    
-    // Check if NGO is approved
-    if (user.role === 'ngo' && user.ngoProfile?.status !== 'approved') {
-      return NextResponse.json(
-        { error: 'NGO must be approved to create vacancies' },
+        { error: 'Only approved NGOs can create vacancies' },
         { status: 403 }
       )
     }
@@ -321,8 +311,8 @@ export async function POST(request: NextRequest) {
       benefits: body.benefits || [],
       tags: body.tags || [],
       createdBy: session.user.id,
-      status: user.role === 'admin' ? 'approved' : 'pending',
-      isPublished: user.role === 'admin'
+      status: session.user.role === 'admin' ? 'approved' : 'pending',
+      isPublished: session.user.role === 'admin'
     }
 
     const vacancy = new Vacancy(vacancyData)

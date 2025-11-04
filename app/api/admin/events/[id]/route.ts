@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import dbConnect from '@/lib/mongoose'
 import Event from '@/lib/models/Event'
 import mongoose from 'mongoose'
+import { NotificationService } from '@/lib/services/notificationService'
 
 // PATCH /api/admin/events/[id] - Admin approve/reject event
 export async function PATCH(
@@ -30,7 +31,7 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { action, rejectionReason } = body
+    const { action, adminComment } = body
 
     if (!action || !['approve', 'reject'].includes(action)) {
       return NextResponse.json(
@@ -52,25 +53,27 @@ export async function PATCH(
 
     if (action === 'approve') {
       updateData = {
-        isApproved: true,
+        status: 'approved',
         approvedAt: new Date(),
         approvedBy: session.user.id,
         isPublished: true,
         rejectedAt: undefined,
-        rejectionReason: undefined
+        rejectionReason: undefined,
+        adminComment: adminComment || undefined
       }
     } else if (action === 'reject') {
-      if (!rejectionReason || !rejectionReason.trim()) {
+      if (!adminComment || !adminComment.trim()) {
         return NextResponse.json(
-          { error: 'Rejection reason is required' },
+          { error: 'Admin comment is required for rejection' },
           { status: 400 }
         )
       }
       
       updateData = {
-        isApproved: false,
+        status: 'rejected',
         rejectedAt: new Date(),
-        rejectionReason: rejectionReason.trim(),
+        rejectionReason: adminComment.trim(),
+        adminComment: adminComment.trim(),
         isPublished: false,
         approvedAt: undefined,
         approvedBy: undefined
@@ -84,6 +87,26 @@ export async function PATCH(
     )
       .populate('createdBy', 'name ngoProfile email')
       .populate('approvedBy', 'name')
+
+    // Send notification to event creator
+    if (updatedEvent && updatedEvent.createdBy) {
+      try {
+        const creatorId = typeof updatedEvent.createdBy === 'object' && '_id' in updatedEvent.createdBy
+          ? updatedEvent.createdBy._id.toString()
+          : updatedEvent.createdBy.toString()
+        
+        await NotificationService.notifyEventStatus(
+          creatorId,
+          updatedEvent._id.toString(),
+          updatedEvent.title,
+          action,
+          adminComment
+        )
+      } catch (notifError) {
+        console.error('Failed to send notification:', notifError)
+        // Don't fail the request if notification fails
+      }
+    }
 
     return NextResponse.json({
       message: `Event ${action}d successfully`,

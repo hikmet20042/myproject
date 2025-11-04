@@ -27,7 +27,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     options,
     placeholder = 'Select an option...',
     variant = 'default',
-    selectSize = 'lg',
+    selectSize = 'md',
     id,
     required,
     ...props
@@ -50,9 +50,9 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     };
     
     return (
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {label && (
-          <label htmlFor={selectId} className="block text-lg font-semibold text-gray-800">
+          <label htmlFor={selectId} className="block text-sm font-medium text-gray-700">
             {label}
             {required && <span className="text-red-500 ml-1">*</span>}
           </label>
@@ -76,11 +76,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             )}
             {...props}
           >
-            {placeholder && (
-              <option value="" disabled>
-                {placeholder}
-              </option>
-            )}
+            
             {options.map((option) => (
               <option
                 key={option.value}

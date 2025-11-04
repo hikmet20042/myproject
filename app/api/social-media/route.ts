@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import dbConnect from '@/lib/mongoose'
 import User from '@/lib/models/User'
+import NGO from '@/lib/models/NGO'
 
 // Force dynamic rendering due to session usage
 export const dynamic = 'force-dynamic'
@@ -84,8 +85,8 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    if (type === 'ngo' && session.user.role === 'ngo') {
-      // Update NGO's social media
+    if (type === 'ngo' && session.user.isApprovedNGO) {
+      // Update NGO's social media directly in NGO collection
       if (ngoSocialMedia) {
         // Validate URLs
         for (const [platform, url] of Object.entries(ngoSocialMedia)) {
@@ -96,7 +97,18 @@ export async function PUT(request: NextRequest) {
             )
           }
         }
-        updateData['ngoProfile.socialMedia'] = ngoSocialMedia
+        
+        // Update NGO collection
+        const ngo = await NGO.findOne({ email: session.user.email })
+        if (ngo) {
+          ngo.socialMedia = ngoSocialMedia
+          await ngo.save()
+          return NextResponse.json({ 
+            message: 'Social media updated successfully', 
+            socialMedia: {}, 
+            ngoSocialMedia 
+          })
+        }
       }
     }
 

@@ -4,8 +4,12 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useSession, signOut } from 'next-auth/react'
-import { Menu, X, User, Bell, Check, CheckCheck, ChevronDown } from 'lucide-react'
+import { Menu, X, User, ChevronDown, ArrowRight } from 'lucide-react'
 import { useNotificationContext } from './NotificationContext'
+import { LanguageSwitcher } from './LanguageSwitcher'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import NotificationBell from './NotificationBell'
 
 interface NavigationItem {
   name: string
@@ -13,168 +17,98 @@ interface NavigationItem {
   dropdown?: { name: string; href: string }[]
 }
 
-interface Notification {
-  _id: string
-  title: string
-  message: string
-  isRead: boolean
-  createdAt: string
-  type: string
-}
-
-const navigation: NavigationItem[] = [
-  { name: 'Home', href: '/' },
-  { name: 'Blogs', href: '/blogs' },
-  { 
-    name: 'Resources', 
-    href: '/resources',
-    dropdown: [
-      { name: 'All Resources', href: '/resources' },
-      { name: 'NGOs', href: '/resources/ngos' },
-      { name: 'Events', href: '/resources/events' },
-      
-      { name: 'Vacancies', href: '/resources/vacancies' },
-      { name: 'Materials', href: '/resources/materials' }
-    ]
-  }
-]
-
 export default function Header() {
+  const { t, language } = useLanguage();
+  const localePath = useLocalizedPath();
   const { data: session } = useSession()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [loading, setLoading] = useState(false)
-  const { unreadCount, refreshNotifications } = useNotificationContext()
-  const notificationsRef = useRef<HTMLDivElement>(null)
+  const { unreadCount } = useNotificationContext()
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Load notifications when dropdown opens
-  const loadNotifications = async () => {
-    if (!session?.user?.id) return
-    setLoading(true)
-    try {
-      const response = await fetch('/api/notifications')
-      if (response.ok) {
-        const data = await response.json()
-        setNotifications(data.notifications || [])
-      }
-    } catch (error) {
-      console.error('Error loading notifications:', error)
-    } finally {
-      setLoading(false)
+  // Navigation items with translations
+  const navigation: NavigationItem[] = [
+    { name: t('header.home'), href: localePath('/') },
+    { name: t('header.about'), href: localePath('/about') },
+    { name: t('header.blogs'), href: localePath('/blogs') },
+    { 
+      name: t('header.resources'), 
+      href: localePath('/resources'),
+      dropdown: [
+        { name: t('header.allResources'), href: localePath('/resources') },
+        { name: t('header.ngos'), href: localePath('/resources/ngos') },
+        { name: t('header.events'), href: localePath('/resources/events') },
+        { name: t('header.vacancies'), href: localePath('/resources/vacancies') },
+        { name: t('header.materials'), href: localePath('/resources/materials') }
+      ]
     }
-  }
+  ];
 
-  // Toggle notification read status
-  const toggleNotificationRead = async (notificationId: string, isRead: boolean) => {
-    try {
-      const response = await fetch(`/api/notifications/${notificationId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isRead })
-      })
-      if (response.ok) {
-        // Update local state
-        setNotifications(prev =>
-          prev.map(notif =>
-            notif._id === notificationId ? { ...notif, isRead } : notif
-          )
-        )
-        // Refresh unread count
-        refreshNotifications()
-      }
-    } catch (error) {
-      console.error('Error updating notification:', error)
-    }
-  }
-
-  // Handle notifications dropdown toggle
-  const handleNotificationsToggle = () => {
-    if (!notificationsOpen) {
-      loadNotifications()
-    }
-    setNotificationsOpen(!notificationsOpen)
-  }
-
-  // Handle clicking on a notification
-  const handleNotificationClick = (notification: Notification) => {
-    // Mark as read if unread
-    if (!notification.isRead) {
-      toggleNotificationRead(notification._id, true)
-    }
-    // Close dropdown
-    setNotificationsOpen(false)
-    // Redirect to profile notifications tab with modal
-    window.location.href = `/profile?tab=notifications&notification=${notification._id}`
-  }
-
-  // Close notifications and dropdowns when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
-        setNotificationsOpen(false)
-      }
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setActiveDropdown(null)
       }
     }
     
-    if (notificationsOpen || activeDropdown) {
+    if (activeDropdown) {
       document.addEventListener('mousedown', handleClickOutside)
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [notificationsOpen, activeDropdown])
+  }, [activeDropdown])
 
   return (
-  <header className="bg-white shadow-sm border-b border-gray-200">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between p-4 lg:px-8" aria-label="Global">
-        <div className="flex lg:flex-1">
-          <Link href="/" className="-m-1.5 p-1.5">
-            <span className="sr-only">Social Justice Platform</span>
-            <div className="flex items-center">
-              <Image
-                src="/logo.png"
-                alt="Social Justice Platform Logo"
-                width={32}
-                height={32}
-                className="w-8 h-8"
-              />
-              <span className="ml-2 text-xl font-bold text-gray-900">Social Justice Platform</span>
+    <header className="sticky top-0 z-40 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 shadow-xl border-b border-white/10">
+      <nav className="mx-auto flex max-w-7xl items-center justify-between py-4 px-4 lg:px-8" aria-label={t('titles.global')}>
+        <div className="flex lg:flex-1 lg:justify-start">
+          <Link href={localePath('/')} className="-m-1.5 p-1.5 group">
+            <span className="sr-only">icma360</span>
+            <div className="flex items-center gap-3">
+              <div className="relative w-12 h-12 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/20 group-hover:scale-110 transition-transform duration-300">
+                <Image
+                  src="/logo.png"
+                  alt="icma360 Logo"
+                  width={32}
+                  height={32}
+                  className="w-8 h-8"
+                />
+              </div>
+              <span className="text-xl font-bold text-white hidden sm:block">icma360</span>
             </div>
           </Link>
         </div>
-        <div className="flex lg:hidden">
+        <div className="flex lg:hidden gap-3 items-center">
+          {session && <NotificationBell />}
           <button
             type="button"
-            className="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-700"
+            className="-m-2.5 inline-flex items-center justify-center rounded-lg p-2 text-white hover:bg-white/10 backdrop-blur-sm transition-all duration-300"
             onClick={() => setMobileMenuOpen(true)}
           >
-            <span className="sr-only">Open main menu</span>
+            <span className="sr-only">{t('header.openMenu')}</span>
             <Menu className="h-6 w-6" aria-hidden="true" />
           </button>
         </div>
-        <div className="hidden lg:flex lg:gap-x-8" ref={dropdownRef}>
+        <div className="hidden lg:flex lg:gap-x-8 lg:absolute lg:left-1/2 lg:transform lg:-translate-x-1/2" ref={dropdownRef}>
           {navigation.map((item) => (
             <div key={item.name} className="relative">
               {item.dropdown ? (
                 <>
                   <button
                     onClick={() => setActiveDropdown(activeDropdown === item.name ? null : item.name)}
-                    className="flex items-center text-sm font-semibold leading-6 text-gray-900 hover:text-blue-600"
+                    className="flex items-center gap-1.5 text-sm font-semibold leading-6 text-white hover:text-yellow-300 transition-colors duration-200"
                   >
                     {item.name}
-                    <ChevronDown className="ml-1 h-4 w-4" />
+                    <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${activeDropdown === item.name ? 'rotate-180' : ''}`} />
                   </button>
                   {activeDropdown === item.name && (
-                    <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
-                      {item.dropdown.map((dropdownItem) => (
+                    <div className="absolute top-full left-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl py-2 z-50 border border-gray-100 animate-in fade-in-0 zoom-in-95 duration-200 overflow-hidden">
+                      {item.dropdown.map((dropdownItem, idx) => (
                         <Link
                           key={dropdownItem.name}
                           href={dropdownItem.href}
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          className={`block px-4 py-3 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-blue-600 transition-all duration-200 font-medium ${idx === 0 ? 'rounded-t-2xl' : ''} ${idx === item.dropdown!.length - 1 ? 'rounded-b-2xl' : ''}`}
                           onClick={() => setActiveDropdown(null)}
                         >
                           {dropdownItem.name}
@@ -186,179 +120,103 @@ export default function Header() {
               ) : (
                 <Link
                   href={item.href}
-                  className="text-sm font-semibold leading-6 text-gray-900 hover:text-blue-600"
+                  className="text-sm font-semibold leading-6 text-white hover:text-yellow-300 transition-colors duration-200 relative group"
                 >
                   {item.name}
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-yellow-300 transition-all duration-200 group-hover:w-full"></span>
                 </Link>
               )}
             </div>
           ))}
         </div>
-        <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:gap-x-4">
+        <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:gap-x-3">
           {session ? (
-            <div className="flex items-center space-x-4">
+            <>
+              {/* Language Switcher */}
+              <LanguageSwitcher />
+              
               {/* Notifications */}
-              <div className="relative" ref={notificationsRef}>
-                <button
-                  onClick={handleNotificationsToggle}
-                  className="relative flex items-center justify-center p-2 text-gray-700 hover:text-blue-600"
-                >
-                  <Bell className="h-5 w-5" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </button>
-
-                {/* Notifications Dropdown */}
-                {notificationsOpen && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200 max-h-96 overflow-y-auto">
-                    <div className="px-4 py-2 border-b border-gray-200">
-                      <div className="flex justify-between items-center">
-                        <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
-                        <Link
-                          href="/profile?tab=notifications"
-                          className="text-xs text-blue-600 hover:text-blue-700"
-                          onClick={() => setNotificationsOpen(false)}
-                        >
-                          View All
-                        </Link>
-                      </div>
-                    </div>
-
-                    {loading ? (
-                      <div className="px-4 py-8 text-center text-gray-500">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
-                        <p className="mt-2 text-sm">Loading...</p>
-                      </div>
-                    ) : notifications.length === 0 ? (
-                      <div className="px-4 py-8 text-center text-gray-500">
-                        <Bell className="h-8 w-8 mx-auto text-gray-300 mb-2" />
-                        <p className="text-sm">No notifications yet</p>
-                      </div>
-                    ) : (
-                      <div className="max-h-80 overflow-y-auto">
-                        {notifications.slice(0, 10).map((notification) => (
-                          <div
-                            key={notification._id}
-                            className={`px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 ${
-                              !notification.isRead ? 'bg-blue-50' : ''
-                            }`}
-                          >
-                            <div className="flex justify-between items-start">
-                              <div
-                                className="flex-1 min-w-0"
-                                onClick={() => handleNotificationClick(notification)}
-                              >
-                                <p className={`text-sm ${!notification.isRead ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
-                                  {notification.title}
-                                </p>
-                                <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                                  {notification.message}
-                                </p>
-                                <p className="text-xs text-gray-400 mt-1">
-                                  {new Date(notification.createdAt).toLocaleDateString()}
-                                </p>
-                              </div>
-                              <div className="flex items-center space-x-1 ml-2">
-                                {!notification.isRead ? (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      toggleNotificationRead(notification._id, true)
-                                    }}
-                                    className="p-1 text-blue-600 hover:text-blue-700"
-                                    title="Mark as read"
-                                  >
-                                    <Check className="h-3 w-3" />
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      toggleNotificationRead(notification._id, false)
-                                    }}
-                                    className="p-1 text-gray-400 hover:text-gray-600"
-                                    title="Mark as unread"
-                                  >
-                                    <CheckCheck className="h-3 w-3" />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              <NotificationBell />
               
               {/* User Menu */}
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center space-x-2 text-sm font-semibold leading-6 text-gray-900 hover:text-blue-600"
+                  className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-white/10 backdrop-blur-md hover:bg-white/20 border border-white/20 transition-all duration-200 hover:scale-105"
                 >
-                  <User className="h-5 w-5" />
-                  <span>{session.user?.name || 'User'}</span>
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-300 to-yellow-500 flex items-center justify-center text-blue-900 font-bold shadow-lg">
+                    {session.user?.name?.charAt(0).toUpperCase() || <User className="h-4 w-4" />}
+                  </div>
+                  <span className="max-w-[100px] truncate">{session.user?.name || 'User'}</span>
+                  <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
                 
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+                  <div className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-2xl py-2 z-50 border border-gray-100 animate-in fade-in-0 zoom-in-95 duration-200 overflow-hidden">
+                    <div className="px-4 py-4 bg-gradient-to-br from-blue-50 to-purple-50 border-b border-gray-100">
+                      <p className="text-sm font-bold text-gray-900 truncate">{session.user?.name}</p>
+                      <p className="text-xs text-gray-600 truncate mt-0.5">{session.user?.email}</p>
+                    </div>
                     <Link
-                      href="/profile"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      href={localePath('/profile')}
+                      className="block px-4 py-3 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-blue-600 transition-all duration-200 font-medium"
                       onClick={() => setUserMenuOpen(false)}
                     >
-                      My Profile
+                      {t('header.myProfile')}
                     </Link>
                     {session.user?.role === 'admin' && (
                       <Link
-                        href="/admin"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        href={localePath('/admin')}
+                        className="block px-4 py-3 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-blue-600 transition-all duration-200 font-medium"
                         onClick={() => setUserMenuOpen(false)}
                       >
-                        Admin Dashboard
+                        {t('header.adminDashboard')}
                       </Link>
                     )}
-                    {session.user?.role === 'ngo' && (
+                    {session.user?.isApprovedNGO && (
                       <Link
-                        href="/dashboard"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        href={localePath('/dashboard')}
+                        className="block px-4 py-3 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-blue-600 transition-all duration-200 font-medium"
                         onClick={() => setUserMenuOpen(false)}
                       >
-                        NGO Dashboard
+                        {t('header.ngoDashboard')}
                       </Link>
                     )}
                     <Link
-                      href="/submit/blog"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      href={localePath('/submit/blog')}
+                      className="block px-4 py-3 text-sm text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:text-blue-600 transition-all duration-200 font-medium"
                       onClick={() => setUserMenuOpen(false)}
                     >
-                      Share Blog
+                      {t('header.shareBlog')}
                     </Link>
-                    <button
-                      onClick={() => {
-                        signOut({ callbackUrl: '/' })
-                        setUserMenuOpen(false)
-                      }}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      Sign out
-                    </button>
+                    <div className="border-t border-gray-100 mt-1">
+                      <button
+                        onClick={() => {
+                          signOut({ callbackUrl: localePath('/') })
+                          setUserMenuOpen(false)
+                        }}
+                        className="block w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-all duration-200 rounded-b-2xl font-medium"
+                      >
+                        {t('header.signOut')}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
-            </div>
+            </>
           ) : (
-            <Link
-              href="/auth/signin"
-              className="text-sm font-semibold leading-6 text-gray-900 hover:text-blue-600"
-            >
-              Sign in
-            </Link>
+            <>
+              {/* Language Switcher */}
+              <LanguageSwitcher />
+              
+              <Link
+                href={localePath('/auth/signin')}
+                className="group px-6 py-2.5 text-sm font-bold text-blue-900 bg-white rounded-xl hover:bg-yellow-300 hover:text-blue-900 shadow-lg hover:shadow-yellow-300/50 transition-all duration-300 hover:scale-105"
+              >
+                {t('header.signIn')}
+                <ArrowRight className="inline-block w-4 h-4 ml-2 group-hover:translate-x-2 transition-transform" />
+              </Link>
+            </>
           )}
         </div>
       </nav>
@@ -366,33 +224,35 @@ export default function Header() {
       {/* Mobile menu */}
       {mobileMenuOpen && (
         <div className="lg:hidden">
-          <div className="fixed inset-0 z-50" />
-          <div className="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-white px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">
-            <div className="flex items-center justify-between">
-              <Link href="/" className="-m-1.5 p-1.5">
-                <span className="sr-only">Social Justice Platform</span>
-                <div className="flex items-center">
-                  <Image
-                    src="/logo.png"
-                    alt="Social Justice Platform Logo"
-                    width={32}
-                    height={32}
-                    className="w-8 h-8"
-                  />
-                  <span className="ml-2 text-xl font-bold text-gray-900">Social Justice Platform</span>
+          <div className="fixed inset-0 z-50 bg-gray-900/80 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
+          <div className="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 px-6 py-6 sm:max-w-sm shadow-2xl">
+            <div className="flex items-center justify-between pb-6 border-b border-white/20">
+              <Link href={localePath('/')} className="-m-1.5 p-1.5" onClick={() => setMobileMenuOpen(false)}>
+                <span className="sr-only">icma360</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/20">
+                    <Image
+                      src="/logo.png"
+                      alt="icma360 Logo"
+                      width={32}
+                      height={32}
+                      className="w-8 h-8"
+                    />
+                  </div>
+                  <span className="text-xl font-bold text-white">icma360</span>
                 </div>
               </Link>
               <button
                 type="button"
-                className="-m-2.5 rounded-md p-2.5 text-gray-700"
+                className="-m-2.5 rounded-lg p-2 text-white hover:bg-white/10 transition-colors"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                <span className="sr-only">Close menu</span>
+                <span className="sr-only">{t('header.closeMenu')}</span>
                 <X className="h-6 w-6" aria-hidden="true" />
               </button>
             </div>
             <div className="mt-6 flow-root">
-              <div className="-my-6 divide-y divide-gray-500/10">
+              <div className="-my-6 divide-y divide-white/10">
                 <div className="space-y-2 py-6">
                   {navigation.map((item) => (
                     <div key={item.name}>
@@ -400,17 +260,17 @@ export default function Header() {
                         <>
                           <Link
                             href={item.href}
-                            className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                            className="-mx-3 block rounded-xl px-4 py-3 text-base font-bold leading-7 text-white hover:bg-white/10 backdrop-blur-sm transition-all"
                             onClick={() => setMobileMenuOpen(false)}
                           >
                             {item.name}
                           </Link>
-                          <div className="ml-4 space-y-1">
+                          <div className="ml-4 space-y-1 mt-1">
                             {item.dropdown.slice(1).map((dropdownItem) => (
                               <Link
                                 key={dropdownItem.name}
                                 href={dropdownItem.href}
-                                className="-mx-3 block rounded-lg px-3 py-1.5 text-sm leading-6 text-gray-600 hover:bg-gray-50"
+                                className="-mx-3 block rounded-lg px-4 py-2.5 text-sm leading-6 text-white/80 hover:bg-white/10 hover:text-white transition-all font-medium"
                                 onClick={() => setMobileMenuOpen(false)}
                               >
                                 {dropdownItem.name}
@@ -421,7 +281,7 @@ export default function Header() {
                       ) : (
                         <Link
                           href={item.href}
-                          className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                          className="-mx-3 block rounded-xl px-4 py-3 text-base font-bold leading-7 text-white hover:bg-white/10 backdrop-blur-sm transition-all"
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           {item.name}
@@ -430,65 +290,81 @@ export default function Header() {
                     </div>
                   ))}
                 </div>
+                
+                {/* Mobile User Section */}
                 <div className="py-6">
                   {session ? (
                     <div className="space-y-2">
+                      <div className="flex items-center gap-3 px-4 py-4 mb-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-300 to-yellow-500 flex items-center justify-center text-blue-900 font-bold text-lg shadow-lg">
+                          {session.user?.name?.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-base font-bold text-white">{session.user?.name}</p>
+                          <p className="text-xs text-white/70">{session.user?.email}</p>
+                        </div>
+                      </div>
                       <Link
-                        href="/profile"
-                        className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                        href={localePath('/profile')}
+                        className="-mx-3 flex items-center justify-between rounded-xl px-4 py-3 text-base font-bold leading-7 text-white hover:bg-white/10 transition-all"
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        My Profile
+                        {t('header.myProfile')}
                         {unreadCount > 0 && (
-                          <span className="ml-2 bg-blue-500 text-white text-xs rounded-full px-2 py-1">
+                          <span className="bg-gradient-to-r from-yellow-300 to-yellow-500 text-blue-900 text-xs rounded-full px-2.5 py-1 font-bold shadow-lg">
                             {unreadCount}
                           </span>
                         )}
                       </Link>
                       {session.user?.role === 'admin' && (
                         <Link
-                          href="/admin"
-                          className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                          href={localePath('/admin')}
+                          className="-mx-3 block rounded-xl px-4 py-3 text-base font-bold leading-7 text-white hover:bg-white/10 transition-all"
                           onClick={() => setMobileMenuOpen(false)}
                         >
-                          Admin Dashboard
+                          {t('header.adminDashboard')}
                         </Link>
                       )}
-                      {session.user?.role === 'ngo' && (
+                      {session.user?.isApprovedNGO && (
                         <Link
-                          href="/dashboard"
-                          className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                          href={localePath('/dashboard')}
+                          className="-mx-3 block rounded-xl px-4 py-3 text-base font-bold leading-7 text-white hover:bg-white/10 transition-all"
                           onClick={() => setMobileMenuOpen(false)}
                         >
-                          NGO Dashboard
+                          {t('header.ngoDashboard')}
                         </Link>
                       )}
                       <Link
-                        href="/submit/blog"
-                        className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                        href={localePath('/submit/blog')}
+                        className="-mx-3 block rounded-xl px-4 py-3 text-base font-bold leading-7 text-white hover:bg-white/10 transition-all"
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        Share Blog
+                        {t('header.shareBlog')}
                       </Link>
                       <button
                         onClick={() => {
-                          signOut({ callbackUrl: '/' })
+                          signOut({ callbackUrl: localePath('/') })
                           setMobileMenuOpen(false)
                         }}
-                        className="-mx-3 block w-full text-left rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                        className="-mx-3 block w-full text-left rounded-xl px-4 py-3 text-base font-bold leading-7 text-red-400 hover:bg-red-500/10 transition-all mt-2"
                       >
-                        Sign out
+                        {t('header.signOut')}
                       </button>
                     </div>
                   ) : (
                     <Link
-                      href="/auth/signin"
-                      className="-mx-3 block rounded-lg px-3 py-2.5 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
+                      href={localePath('/auth/signin')}
+                      className="-mx-3 block rounded-2xl px-6 py-4 text-center text-base font-bold leading-7 text-blue-900 bg-white hover:bg-yellow-300 hover:text-blue-900 shadow-lg hover:shadow-yellow-300/50 transition-all duration-300"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      Sign in
+                      {t('header.signIn')}
                     </Link>
                   )}
+                  
+                  {/* Language Switcher at bottom */}
+                  <div className="mt-6 pt-6 border-t border-white/20">
+                    <LanguageSwitcher />
+                  </div>
                 </div>
               </div>
             </div>

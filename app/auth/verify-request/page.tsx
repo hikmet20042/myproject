@@ -1,6 +1,12 @@
+'use client'
+
 import Link from 'next/link'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
 
 export default function VerifyRequest() {
+  const localePath = useLocalizedPath()
+  const { t } = useLanguage()
   return (
   <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -13,35 +19,33 @@ export default function VerifyRequest() {
             </div>
             
             <h2 className="mt-6 text-2xl font-bold text-gray-900">
-              Check your email
+              {t('auth.verifyRequest.title')}
             </h2>
             
             <p className="mt-2 text-sm text-gray-600">
-              A sign-in link has been sent to your email address.
+              {t('auth.verifyRequest.description')}
             </p>
             
             <div className="mt-6 space-y-4">
               <div className="text-sm text-gray-500">
-                <p>• Click the link in your email to sign in</p>
-                <p>• The link will expire in 24 hours</p>
-                <p>• You can close this page</p>
+                <p>• {t('auth.verifyRequest.bullet1')}</p>
+                <p>• {t('auth.verifyRequest.bullet2')}</p>
+                <p>• {t('auth.verifyRequest.bullet3')}</p>
               </div>
               
               <div className="pt-4">
-                <Link 
-                  href="/auth/signin"
+                <Link href={localePath("/auth/signin")}
                   className="text-primary hover:text-primary-dark font-medium text-sm"
                 >
-                  Try a different email
+                  {t('auth.verifyRequest.tryDifferentEmail')}
                 </Link>
               </div>
               
               <div>
-                <Link 
-                  href="/"
+                <Link href={localePath("/")}
                   className="text-gray-600 hover:text-primary text-sm"
                 >
-                  ← Return to homepage
+                  ← {t('auth.verifyRequest.returnToHomepage')}
                 </Link>
               </div>
             </div>

@@ -53,6 +53,10 @@ interface IVacancy extends mongoose.Document {
   isFeatured: boolean
   isUrgent: boolean
   applicationCount: number
+  views: number
+  uniqueViews: number
+  viewedBy: mongoose.Types.ObjectId[]
+  engagementScore: number
 }
 
 const VacancySchema = new mongoose.Schema<IVacancy>({
@@ -263,6 +267,22 @@ const VacancySchema = new mongoose.Schema<IVacancy>({
     type: Number,
     default: 0,
     min: 0
+  },
+  views: {
+    type: Number,
+    default: 0
+  },
+  uniqueViews: {
+    type: Number,
+    default: 0
+  },
+  viewedBy: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  engagementScore: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: true,

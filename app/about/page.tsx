@@ -1,340 +1,310 @@
+'use client'
+
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { CardContent } from '@/components/ui/Card';
 import Link from 'next/link';
+import { useLanguage } from '@/contexts/LanguageContext'
+import { AnimatedBackground } from '@/components/shared'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { 
+  Shield, 
+  AlertTriangle, 
+  Lightbulb, 
+  Database, 
+  Cpu, 
+  BarChart3, 
+  Eye, 
+  BookOpen, 
+  Sparkles, 
+  Target,
+  CheckCircle,
+  XCircle,
+  ArrowRight,
+  Heart,
+  Users
+} from 'lucide-react'
 
 export default function About() {
+  const localePath = useLocalizedPath()
+  const { t } = useLanguage()
+
   return (
-  <div className="min-h-screen bg-gray-50 transition-colors duration-200">
-      {/* Header Section */}
-  <section className="bg-primary text-white py-20 transition-colors duration-200">
-        <div className="section-padding">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl lg:text-5xl font-bold mb-6">
-              Our Mission
+    <div className="min-h-screen bg-gray-50">
+      {/* Engaging Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-900 text-white py-16 sm:py-20 lg:py-28">
+        {/* Animated Blobs */}
+        <AnimatedBackground
+          colors={{
+            blob1: 'bg-blue-400',
+            blob2: 'bg-purple-400',
+            blob3: 'bg-indigo-400'
+          }}
+        />
+
+        {/* Floating Particles */}
+        <div className="absolute inset-0 opacity-10">
+          {[...Array(15)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full animate-float"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 5}s`,
+                animationDuration: `${5 + Math.random() * 10}s`
+              }}
+            />
+          ))}
+        </div>
+
+        <div className="section-padding relative z-10">
+          <div className="max-w-5xl mx-auto text-center">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 mb-4 sm:mb-6 animate-fade-in">
+              <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-blue-300" />
+              <span className="text-xs sm:text-sm font-bold uppercase tracking-wide">Our Mission</span>
+            </div>
+
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-4 sm:mb-6 leading-tight animate-slide-up px-4">
+              {t('about.ourMission')}
             </h1>
-            <p className="text-xl text-gray-100 leading-relaxed">
-              Bridging the data gap in social justice through transparent technology, 
-              education, and community engagement in Azerbaijan.
+            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/95 leading-relaxed max-w-3xl mx-auto animate-fade-in px-4 font-light">
+              {t('about.missionSubtitle')}
             </p>
           </div>
         </div>
+
       </section>
 
       {/* Main Content */}
-      <section className="py-16">
+      <section className="py-12 sm:py-16 lg:py-20">
         <div className="section-padding">
-          <div className="max-w-6xl mx-auto space-y-16">
+          <div className="max-w-7xl mx-auto space-y-16 sm:space-y-20 lg:space-y-24">
             
-            {/* The Problem */}
+            {/* The Problem - Enhanced */}
             <div>
-              <div className="text-center mb-12">
-                <h2 className="text-3xl font-bold text-primary mb-4">
-                  The Data Challenge in Azerbaijan
+              <div className="text-center mb-8 sm:mb-12 animate-fade-in">
+                <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-red-100 rounded-full mb-3 sm:mb-4">
+                  <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
+                  <span className="text-xs sm:text-sm font-bold text-red-600 uppercase tracking-wide">The Challenge</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-black text-gray-900 mb-3 sm:mb-4 px-4">
+                  {t('about.dataChallenge')}
                 </h2>
-                <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-                  Understanding why reliable social justice data is scarce and how we're working to address this critical gap.
+                <p className="text-sm sm:text-base lg:text-lg text-gray-600 max-w-3xl mx-auto px-4">
+                  {t('about.dataChallengeSubtitle')}
                 </p>
               </div>
               
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <Card>
-                  <CardContent className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+                <div className="group relative bg-gradient-to-br from-white to-red-50/50 rounded-2xl p-6 sm:p-8 border-2 border-gray-200 hover:border-red-500 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 animate-fade-in">
+                  <div className="absolute inset-0 bg-gradient-to-br from-red-500/0 to-red-600/0 group-hover:from-red-500/5 group-hover:to-red-600/5 transition-all duration-500 rounded-2xl"></div>
+                  
+                  <div className="relative z-10">
                     <div className="flex items-center mb-6">
-                      <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mr-4">
-                        <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center mr-4 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                        <AlertTriangle className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
                       </div>
-                      <h3 className="text-xl font-semibold text-gray-900">
-                        Why Data is Unreliable
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-900">
+                        {t('about.whyUnreliable')}
                       </h3>
                     </div>
                     <div className="space-y-4 text-gray-600">
-                      <div className="flex items-start">
-                        <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                        <p className="text-sm leading-relaxed">
-                          <strong className="text-gray-900">Cultural stigma</strong> prevents many victims from reporting incidents to authorities, leading to significant underreporting.
-                        </p>
-                      </div>
-                      <div className="flex items-start">
-                        <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                        <p className="text-sm leading-relaxed">
-                          <strong className="text-gray-900">Institutional gaps</strong> in data collection systems result in inconsistent recording and classification of social injustice cases.
-                        </p>
-                      </div>
-                      <div className="flex items-start">
-                        <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                        <p className="text-sm leading-relaxed">
-                          <strong className="text-gray-900">Limited transparency</strong> in official statistics makes it difficult for researchers and advocates to access comprehensive data.
-                        </p>
-                      </div>
-                      <div className="flex items-start">
-                        <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-                        <p className="text-sm leading-relaxed">
-                          <strong className="text-gray-900">Resource constraints</strong> affect the ability to maintain systematic data collection and analysis across all regions.
-                        </p>
-                      </div>
+                      {[
+                        { title: t('about.culturalStigma'), text: t('about.culturalStigmaText') },
+                        { title: t('about.institutionalGaps'), text: t('about.institutionalGapsText') },
+                        { title: t('about.limitedTransparency'), text: t('about.limitedTransparencyText') },
+                        { title: t('about.resourceConstraints'), text: t('about.resourceConstraintsText') }
+                      ].map((item, idx) => (
+                        <div key={idx} className="flex items-start group/item">
+                          <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3 flex-shrink-0 group-hover/item:scale-150 transition-transform"></div>
+                          <p className="text-sm sm:text-base leading-relaxed">
+                            <strong className="text-gray-900">{item.title}:</strong> {item.text}
+                          </p>
+                        </div>
+                      ))}
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
 
-                <Card>
-                  <CardContent className="p-6">
+                <div className="group relative bg-gradient-to-br from-white to-orange-50/50 rounded-2xl p-6 sm:p-8 border-2 border-gray-200 hover:border-orange-500 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 animate-fade-in animation-delay-200">
+                  <div className="absolute inset-0 bg-gradient-to-br from-orange-500/0 to-orange-600/0 group-hover:from-orange-500/5 group-hover:to-orange-600/5 transition-all duration-500 rounded-2xl"></div>
+                  
+                  <div className="relative z-10">
                     <div className="flex items-center mb-6">
-                      <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mr-4">
-                        <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                        </svg>
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center mr-4 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                        <Lightbulb className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
                       </div>
-                      <h3 className="text-xl font-semibold text-gray-900">
-                        The Impact
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-900">
+                        {t('about.theImpact')}
                       </h3>
                     </div>
                     <div className="space-y-4 text-gray-600">
-                      <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-lg">
-                        <p className="text-sm leading-relaxed text-orange-800">
-                          Without reliable data, it becomes nearly impossible to:
+                      <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-r-xl">
+                        <p className="text-sm sm:text-base leading-relaxed text-orange-800 font-medium">
+                          {t('about.impactIntro')}
                         </p>
                       </div>
-                      <ul className="space-y-2 text-sm">
-                        <li className="flex items-center">
-                          <svg className="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                          Develop effective prevention strategies
-                        </li>
-                        <li className="flex items-center">
-                          <svg className="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                          Allocate resources to areas of greatest need
-                        </li>
-                        <li className="flex items-center">
-                          <svg className="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                          Measure progress toward social justice goals
-                        </li>
-                        <li className="flex items-center">
-                          <svg className="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                          Advocate for policy changes based on evidence
-                        </li>
+                      <ul className="space-y-3 text-sm sm:text-base">
+                        {[
+                          t('about.developStrategies'),
+                          t('about.allocateResources'),
+                          t('about.measureProgress'),
+                          t('about.advocatePolicy')
+                        ].map((item, idx) => (
+                          <li key={idx} className="flex items-center group/item">
+                            <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 mr-3 flex-shrink-0 group-hover/item:scale-110 transition-transform" />
+                            <span>{item}</span>
+                          </li>
+                        ))}
                       </ul>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-
-            {/* Our Solution */}
-            <div>
-              <div className="text-center mb-12">
-                <h2 className="text-3xl font-bold text-primary mb-4">
-                  Our Technology-Driven Approach
-                </h2>
-                <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-                  How we use AI and news analysis to create transparent, accessible data about social justice issues.
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="text-center">
-                  <CardContent className="p-6">
-                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                      <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                      News Scraping
-                    </h3>
-                    <p className="text-gray-600 text-sm leading-relaxed mb-4">
-                      We systematically collect and analyze news reports from Azerbaijani media sources to identify 
-                      publicly reported incidents of social injustice and discrimination.
-                    </p>
-                    <div className="bg-blue-50 rounded-lg p-4">
-                      <div className="text-left space-y-2 text-xs text-blue-800">
-                        <div className="flex items-center">
-                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></div>
-                          Multiple news sources daily
-                        </div>
-                        <div className="flex items-center">
-                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></div>
-                          Real-time monitoring
-                        </div>
-                        <div className="flex items-center">
-                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2"></div>
-                          Source verification
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="text-center">
-                  <CardContent className="p-6">
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                      <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                      AI Classification
-                    </h3>
-                    <p className="text-gray-600 text-sm leading-relaxed mb-4">
-                      Advanced machine learning algorithms analyze and categorize incidents by type, severity, 
-                      location, and other relevant factors to create structured, searchable data.
-                    </p>
-                    <div className="bg-green-50 rounded-lg p-4">
-                      <div className="text-left space-y-2 text-xs text-green-800">
-                        <div className="flex items-center">
-                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></div>
-                          Natural language processing
-                        </div>
-                        <div className="flex items-center">
-                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></div>
-                          Pattern recognition
-                        </div>
-                        <div className="flex items-center">
-                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></div>
-                          Human oversight
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="text-center">
-                  <CardContent className="p-6">
-                    <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                      <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                      Data Visualization
-                    </h3>
-                    <p className="text-gray-600 text-sm leading-relaxed mb-4">
-                      We transform complex data into accessible charts, maps, and trends that help everyone 
-                      understand the scope and patterns of social justice challenges.
-                    </p>
-                    <div className="bg-purple-50 rounded-lg p-4">
-                      <div className="text-left space-y-2 text-xs text-purple-800">
-                        <div className="flex items-center">
-                          <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-2"></div>
-                          Interactive charts
-                        </div>
-                        <div className="flex items-center">
-                          <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-2"></div>
-                          Regional breakdowns
-                        </div>
-                        <div className="flex items-center">
-                          <div className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-2"></div>
-                          Trend analysis
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-
-            {/* Platform Purpose */}
-            <div>
-              <div className="text-center mb-12">
-                <h2 className="text-3xl font-bold text-primary mb-4">
-                  How Our Platform Serves the Community
-                </h2>
-                <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-                  Transparency, education, and empowerment through accessible data and community engagement.
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center mb-6">
-                      <div className="w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center mr-4">
-                        <svg className="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      </div>
-                      <h3 className="text-xl font-semibold text-gray-900">
-                        Transparent Statistics
-                      </h3>
-                    </div>
-                    <ul className="space-y-3 text-gray-600">
-                      <li className="flex items-start">
-                        <svg className="w-5 h-5 text-cyan-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span className="text-sm">Open methodology - we explain exactly how data is collected and processed</span>
-                      </li>
-                      <li className="flex items-start">
-                        <svg className="w-5 h-5 text-cyan-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span className="text-sm">Source attribution - every data point is linked to its original news source</span>
-                      </li>
-                      <li className="flex items-start">
-                        <svg className="w-5 h-5 text-cyan-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span className="text-sm">Regular updates - data is refreshed continuously as new reports emerge</span>
-                      </li>
-                      <li className="flex items-start">
-                        <svg className="w-5 h-5 text-cyan-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span className="text-sm">Limitation disclosure - we clearly state what our data can and cannot tell us</span>
-                      </li>
-                    </ul>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <div className="flex items-center mb-6">
-                    <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mr-4">
-                      <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C20.832 18.477 19.246 18 17.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                      </svg>
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-900">
-                      Education & Resources
-                    </h3>
                   </div>
-                  <ul className="space-y-3 text-gray-600">
-                    <li className="flex items-start">
-                      <svg className="w-5 h-5 text-indigo-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="text-sm">Comprehensive resource library with international best practices</span>
-                    </li>
-                    <li className="flex items-start">
-                      <svg className="w-5 h-5 text-indigo-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="text-sm">Access to educational materials and online courses from leading institutions</span>
-                    </li>
-                    <li className="flex items-start">
-                      <svg className="w-5 h-5 text-indigo-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="text-sm">Community blog platform for sharing experiences and solutions</span>
-                    </li>
-                    <li className="flex items-start">
-                      <svg className="w-5 h-5 text-indigo-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="text-sm">Emergency resources and support service directories</span>
-                    </li>
-                  </ul>
-                  </Card>
                 </div>
+              </div>
+            </div>
+
+            {/* Our Solution - Enhanced */}
+            <div>
+              <div className="text-center mb-8 sm:mb-12 animate-fade-in">
+                <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-green-100 rounded-full mb-3 sm:mb-4">
+                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+                  <span className="text-xs sm:text-sm font-bold text-green-600 uppercase tracking-wide">Our Solution</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-black text-gray-900 mb-3 sm:mb-4 px-4">
+                  {t('about.technologyApproach')}
+                </h2>
+                <p className="text-sm sm:text-base lg:text-lg text-gray-600 max-w-3xl mx-auto px-4">
+                  {t('about.technologySubtitle')}
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                {[
+                  {
+                    icon: Database,
+                    title: t('about.newsScraping'),
+                    desc: t('about.newsScrapingText'),
+                    color: 'blue',
+                    features: [t('about.multipleSourcesDaily'), t('about.realTimeMonitoring'), t('about.sourceVerification')]
+                  },
+                  {
+                    icon: Cpu,
+                    title: t('about.aiClassification'),
+                    desc: t('about.aiClassificationText'),
+                    color: 'green',
+                    features: [t('about.nlp'), t('about.patternRecognition'), t('about.humanOversight')]
+                  },
+                  {
+                    icon: BarChart3,
+                    title: t('about.dataVisualization'),
+                    desc: t('about.dataVisualizationText'),
+                    color: 'purple',
+                    features: [t('about.interactiveCharts'), t('about.regionalBreakdowns'), t('about.trendAnalysis')]
+                  }
+                ].map((solution, idx) => (
+                  <div 
+                    key={idx} 
+                    className="group relative bg-gradient-to-br from-white to-gray-50/50 rounded-2xl p-6 sm:p-8 border-2 border-gray-200 hover:border-blue-500 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 animate-fade-in"
+                    style={{ animationDelay: `${idx * 0.1}s` }}
+                  >
+                    <div className={`absolute inset-0 bg-gradient-to-br from-${solution.color}-500/0 to-${solution.color}-600/0 group-hover:from-${solution.color}-500/5 group-hover:to-${solution.color}-600/5 transition-all duration-500 rounded-2xl`}></div>
+                    
+                    <div className="relative z-10">
+                      <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-br ${solution.color === 'blue' ? 'from-blue-500 to-blue-700' : solution.color === 'green' ? 'from-green-500 to-green-700' : 'from-purple-500 to-purple-700'} flex items-center justify-center mb-4 sm:mb-6 shadow-lg group-hover:scale-110 group-hover:-rotate-6 transition-all duration-300`}>
+                        <solution.icon className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+                      </div>
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 sm:mb-3 group-hover:text-blue-600 transition-colors">
+                        {solution.title}
+                      </h3>
+                      <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6 leading-relaxed">
+                        {solution.desc}
+                      </p>
+                      <div className={`bg-${solution.color === 'blue' ? 'blue' : solution.color === 'green' ? 'green' : 'purple'}-50 rounded-xl p-3 sm:p-4`}>
+                        <div className="space-y-2 sm:space-y-3">
+                          {solution.features.map((feature, fIdx) => (
+                            <div key={fIdx} className="flex items-center group/item">
+                              <div className={`w-1.5 h-1.5 ${solution.color === 'blue' ? 'bg-blue-500' : solution.color === 'green' ? 'bg-green-500' : 'bg-purple-500'} rounded-full mr-2 sm:mr-3 flex-shrink-0 group-hover/item:scale-150 transition-transform`}></div>
+                              <span className={`text-xs sm:text-sm ${solution.color === 'blue' ? 'text-blue-800' : solution.color === 'green' ? 'text-green-800' : 'text-purple-800'}`}>{feature}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Platform Purpose - Enhanced */}
+            <div>
+              <div className="text-center mb-8 sm:mb-12 animate-fade-in">
+                <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-cyan-100 rounded-full mb-3 sm:mb-4">
+                  <Target className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-600" />
+                  <span className="text-xs sm:text-sm font-bold text-cyan-600 uppercase tracking-wide">Our Purpose</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-black text-gray-900 mb-3 sm:mb-4 px-4">
+                  {t('about.platformPurpose')}
+                </h2>
+                <p className="text-sm sm:text-base lg:text-lg text-gray-600 max-w-3xl mx-auto px-4">
+                  {t('about.platformPurposeSubtitle')}
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+                {[
+                  {
+                    icon: Eye,
+                    title: 'Transparent Statistics',
+                    color: 'cyan',
+                    features: [
+                      { text: t('about.openMethodology') },
+                      { text: t('about.sourceAttribution') },
+                      { text: t('about.regularUpdates') },
+                      { text: t('about.limitationDisclosure') }
+                    ]
+                  },
+                  {
+                    icon: BookOpen,
+                    title: t('about.educationResources'),
+                    color: 'indigo',
+                    features: [
+                      { text: t('about.comprehensiveLibrary') },
+                      { text: t('about.educationalMaterials') },
+                      { text: t('about.communityBlog') },
+                      { text: t('about.emergencyResources') }
+                    ]
+                  }
+                ].map((purpose, idx) => (
+                  <div 
+                    key={idx} 
+                    className="group relative bg-gradient-to-br from-white to-gray-50/50 rounded-2xl p-6 sm:p-8 border-2 border-gray-200 hover:border-blue-500 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 animate-fade-in"
+                    style={{ animationDelay: `${idx * 0.1}s` }}
+                  >
+                    <div className={`absolute inset-0 bg-gradient-to-br from-${purpose.color}-500/0 to-${purpose.color}-600/0 group-hover:from-${purpose.color}-500/5 group-hover:to-${purpose.color}-600/5 transition-all duration-500 rounded-2xl`}></div>
+                    
+                    <div className="relative z-10">
+                      <div className="flex items-center mb-6">
+                        <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br ${purpose.color === 'cyan' ? 'from-cyan-500 to-cyan-700' : 'from-indigo-500 to-indigo-700'} flex items-center justify-center mr-4 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
+                          <purpose.icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                        </div>
+                        <h3 className="text-lg sm:text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                          {purpose.title}
+                        </h3>
+                      </div>
+                      
+                      <ul className="space-y-3 text-gray-600">
+                        {purpose.features.map((feature, fIdx) => (
+                          <li key={fIdx} className="flex items-start group/item">
+                            <CheckCircle className={`w-4 h-4 sm:w-5 sm:h-5 ${purpose.color === 'cyan' ? 'text-cyan-500' : 'text-indigo-500'} mr-3 mt-0.5 flex-shrink-0 group-hover/item:scale-110 transition-transform`} />
+                            <span className="text-sm sm:text-base">{feature.text}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -348,67 +318,99 @@ export default function About() {
                 </div>
                 <div>
                   <h3 className="text-xl font-semibold text-amber-900 mb-4">
-                    Important Limitations & Ethical Considerations
+                    {t('about.limitationsEthics')}
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-amber-800">
                     <div>
-                      <h4 className="font-semibold mb-2">Data Limitations</h4>
+                      <h4 className="font-semibold mb-2">{t('about.dataLimitations')}</h4>
                       <ul className="space-y-1 text-sm">
-                        <li>• Only captures publicly reported incidents</li>
-                        <li>• May not reflect true scale due to underreporting</li>
-                        <li>• AI classification may contain biases or errors</li>
-                        <li>• Regional coverage varies by media presence</li>
+                        <li>• {t('about.onlyPublicReports')}</li>
+                        <li>• {t('about.mayNotReflectScale')}</li>
+                        <li>• {t('about.aiMayContainBias')}</li>
+                        <li>• {t('about.regionalCoverageVaries')}</li>
                       </ul>
                     </div>
                     <div>
-                      <h4 className="font-semibold mb-2">Ethical Standards</h4>
+                      <h4 className="font-semibold mb-2">{t('about.ethicalStandards')}</h4>
                       <ul className="space-y-1 text-sm">
-                        <li>• No personal information is collected or displayed</li>
-                        <li>• Victim privacy and dignity are paramount</li>
-                        <li>• Data is used only for awareness and research</li>
-                        <li>• Platform complies with ethical AI principles</li>
+                        <li>• {t('about.noPersonalInfo')}</li>
+                        <li>• {t('about.victimPrivacy')}</li>
+                        <li>• {t('about.dataForAwareness')}</li>
+                        <li>• {t('about.aiPrinciples')}</li>
                       </ul>
                     </div>
                   </div>
                   <div className="mt-4 p-3 bg-amber-100 rounded-lg">
                     <p className="text-sm text-amber-900">
-                      <strong>Disclaimer:</strong> This data should complement, not replace, official statistics and professional expertise. 
-                      Always verify critical information with authoritative sources and consult experts for decision-making.
+                      <strong>{t('about.disclaimerTitle')}</strong> {t('about.disclaimerText')}
                     </p>
                   </div>
                 </div>
               </div>
-              </Card>
-            </div>
-      </section>
-            {/* Call to Action */}
-            <div className="text-center">
-              <div className="card bg-primary text-white">
-                <h3 className="text-2xl font-bold mb-4">Join the Movement</h3>
-                <p className="text-lg text-gray-100 mb-6 max-w-2xl mx-auto">
-                  Help us build a more informed, equitable society. Whether you're a researcher, advocate, 
-                  policymaker, or concerned citizen, there are many ways to contribute to this mission.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Link href="/submit">
-                    <Button variant="secondary" size="lg">
-                      Share Your Blog
-                    </Button>
-                  </Link>
-                  <Link href="/resources">
-                    <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-primary">
-                      Access Resources
-                    </Button>
-                  </Link>
-                  <Link href="/stats">
-                    <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-primary">
-                      View Statistics
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </div>
-
+            </Card>
           </div>
+        </div>
+      </section>
+      
+      {/* Call to Action */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-900 py-12 sm:py-16 lg:py-20">
+        {/* Animated Background Elements */}
+        <AnimatedBackground
+          colors={{
+            blob1: 'bg-pink-500',
+            blob2: 'bg-blue-400',
+            blob3: 'bg-purple-500'
+          }}
+        />
 
-  )}
+        <div className="relative z-10 section-padding">
+          <div className="max-w-5xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 backdrop-blur-md rounded-full mb-4 sm:mb-6">
+              <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-pink-300" />
+              <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide">Join The Movement</span>
+            </div>
+            
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white mb-4 sm:mb-6 px-4">
+              {t('about.joinMovement')}
+            </h2>
+            <p className="text-base sm:text-lg lg:text-xl text-blue-100 mb-8 sm:mb-10 max-w-3xl mx-auto px-4">
+              {t('about.joinMovementText')}
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8 sm:mb-12 px-4">
+              <Link href={localePath("/submit")}>
+                <Button variant="secondary" size="lg" className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 hover:scale-105 sm:hover:scale-110 transition-all">
+                  {t('about.shareYourBlog')}
+                </Button>
+              </Link>
+              <Link href={localePath("/resources")}>
+                <Button variant="outline" size="lg" className="w-full sm:w-auto border-2 border-white text-white hover:bg-white hover:text-blue-600 text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 hover:scale-105 sm:hover:scale-110 transition-all">
+                  {t('about.accessResources')}
+                </Button>
+              </Link>
+              <Link href={localePath("/stats")}>
+                <Button variant="outline" size="lg" className="w-full sm:w-auto border-2 border-white text-white hover:bg-white hover:text-blue-600 text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 hover:scale-105 sm:hover:scale-110 transition-all">
+                  {t('about.viewStatistics')}
+                </Button>
+              </Link>
+            </div>
+
+            {/* Trust Indicators */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 px-4">
+              {[
+                { icon: Users, text: 'Growing Community' },
+                { icon: Shield, text: 'Privacy Protected' },
+                { icon: Sparkles, text: 'Always Improving' }
+              ].map((item, idx) => (
+                <div key={idx} className="flex items-center justify-center gap-2 sm:gap-3 bg-white/10 backdrop-blur-md rounded-xl px-4 sm:px-6 py-3 sm:py-4">
+                  <item.icon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-300" />
+                  <span className="text-xs sm:text-sm font-semibold text-white">{item.text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import dbConnect from '@/lib/mongoose'
 import Blog from '@/lib/models/Blog'
+import { NotificationService } from '@/lib/services/notificationService'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,7 +27,9 @@ export async function GET(
       )
     }
     
-    const blog = await Blog.findById(params.id).lean()
+    const blog = await Blog.findById(params.id)
+      .populate('author', 'name email _id') // Populate author with name, email, and _id
+      .lean()
     if (!blog) {
       return NextResponse.json(
         { error: 'Story not found' },
@@ -36,9 +39,46 @@ export async function GET(
     
     return NextResponse.json({ blog })
   } catch (error) {
-    console.error('GET /api/admin/blogs/[id] error:', error)
+    console.error('PUT /api/admin/blogs/[id] error:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch blog' },
+      { error: 'Failed to update blog' },
+      { status: 500 }
+    )
+  }
+}
+
+// DELETE /api/admin/blogs/[id] - Delete blog permanently
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    await dbConnect()
+    
+    const session = await getServerSession(authOptions)
+    if (!session || !(await isAdmin(session))) {
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      )
+    }
+    
+    const blog = await Blog.findByIdAndDelete(params.id)
+    
+    if (!blog) {
+      return NextResponse.json(
+        { error: 'Story not found' },
+        { status: 404 }
+      )
+    }
+    
+    return NextResponse.json({ 
+      message: 'Story deleted successfully'
+    })
+  } catch (error) {
+    console.error('DELETE /api/admin/blogs/[id] error:', error)
+    return NextResponse.json(
+      { error: 'Failed to delete blog' },
       { status: 500 }
     )
   }
@@ -93,6 +133,22 @@ export async function PUT(
         { error: 'Story not found' },
         { status: 404 }
       )
+    }
+
+    // Send notification to blog author about the status change
+    if (blog.authorId) {
+      try {
+        await NotificationService.notifyBlogStatus(
+          blog.authorId.toString(),
+          blog._id.toString(),
+          blog.title,
+          status,
+          adminComment
+        )
+      } catch (notifError) {
+        console.error('Failed to send notification:', notifError)
+        // Don't fail the whole request if notification fails
+      }
     }
     
     return NextResponse.json({ 

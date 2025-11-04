@@ -2,11 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '@/contexts/LanguageContext'
 import Link from 'next/link'
 import { Loader2, Mail, ArrowLeft } from 'lucide-react'
 import { Input, Button } from '@/components/ui'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
 
 export default function ForgotPasswordPage() {
+  const { t } = useLanguage()
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -20,7 +23,8 @@ export default function ForgotPasswordPage() {
     setMessage('')
 
     try {
-      const response = await fetch('/api/auth/forgot-password', {
+      
+  const response = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -34,25 +38,24 @@ export default function ForgotPasswordPage() {
         setMessage(data.message)
         setEmail('') // Clear the form
       } else {
-        setError(data.error || 'Something went wrong')
+        setError(data.error || t('forgotPassword.somethingWentWrong'))
       }
     } catch (error) {
-      setError('Network error. Please try again.')
+      setError(t('forgotPassword.networkError'))
     } finally {
       setIsLoading(false)
     }
   }
-
+  const localePath = useLocalizedPath();
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <Link
-            href="/auth/signin"
+          <Link href={localePath("/auth/signin")}
             className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-8"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Sign In
+            {t('forgotPassword.backToSignIn')}
           </Link>
         </div>
 
@@ -61,9 +64,9 @@ export default function ForgotPasswordPage() {
             <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
               <Mail className="w-6 h-6 text-red-600" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Forgot Password?</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t('forgotPassword.title')}</h1>
             <p className="text-gray-600 mt-2">
-              Enter your email address and we'll send you a link to reset your password.
+              {t('forgotPassword.description')}
             </p>
           </div>
           <div className="p-6">
@@ -85,13 +88,13 @@ export default function ForgotPasswordPage() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email Address</label>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">{t('forgotPassword.emailAddress')}</label>
                 <Input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email address"
+                  placeholder={t('forgotPassword.emailPlaceholder')}
                   required
                   disabled={isLoading}
                 />
@@ -104,18 +107,17 @@ export default function ForgotPasswordPage() {
                 disabled={isLoading || !email.trim()}
                 loading={isLoading}
               >
-                Send Reset Link
+                {t('forgotPassword.sendResetLink')}
               </Button>
             </form>
 
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
-                Remember your password?{' '}
-                <Link
-                  href="/auth/signin"
+                {t('forgotPassword.rememberPassword')}{' '}
+                <Link href={localePath("/auth/signin")}
                   className="font-medium text-red-600 hover:text-red-500"
                 >
-                  Sign in here
+                  {t('forgotPassword.signInHere')}
                 </Link>
               </p>
             </div>

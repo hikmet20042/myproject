@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import dbConnect from '@/lib/mongoose'
 import Blog from '@/lib/models/Blog'
+import { NotificationService } from '@/lib/services/notificationService'
 
 import UserAnalytics from '@/lib/models/UserAnalytics'
 
@@ -31,7 +32,16 @@ export async function POST(
     
     // Check if user already liked this blog
     const hasLiked = blog.likedBy.includes(userId);
+    // Check if user has disliked this blog
+    const hasDisliked = blog.dislikedBy?.includes(userId);
+    
     let action: 'liked' | 'unliked';
+    
+    // If user disliked it, remove the dislike first
+    if (hasDisliked) {
+      blog.dislikedBy = blog.dislikedBy.filter((id: any) => id.toString() !== userId);
+      blog.dislikes = Math.max(0, (blog.dislikes || 0) - 1);
+    }
     
     if (hasLiked) {
       // Unlike the blog
@@ -43,10 +53,21 @@ export async function POST(
       blog.likedBy.push(userId);
       blog.likes = (blog.likes || 0) + 1;
       action = 'liked';
+      
+      // Create notification for blog author (if not liking own blog)
+      if (blog.author && blog.author.toString() !== userId) {
+        NotificationService.notifyBlogLike(
+          blogId,
+          blog.title,
+          blog.author.toString(),
+          userId,
+          session.user.name || 'Someone'
+        ).catch(err => console.error('Failed to create like notification:', err));
+      }
     }
     
-    // Recalculate engagement score
-    const engagementScore = (blog.views * 1) + (blog.likes * 3) + (blog.shares * 5);
+    // Recalculate engagement score (views * 1 + likes * 3 - dislikes * 1)
+    const engagementScore = (blog.views * 1) + (blog.likes * 3) - (blog.dislikes || 0);
     blog.engagementScore = engagementScore;
     
     // Save the blog
@@ -76,7 +97,9 @@ export async function POST(
       success: true,
       action,
       likes: blog.likes,
+      dislikes: blog.dislikes || 0,
       hasLiked: !hasLiked,
+      hasDisliked: false,
       engagementScore: blog.engagementScore
     });
     

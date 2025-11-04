@@ -3,8 +3,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter, useParams } from 'next/navigation'
+import { useLanguage } from '@/contexts/LanguageContext'
 import { Calendar, MapPin, Users, Link as LinkIcon, Clock, Tag, ArrowLeft, CheckCircle, XCircle, AlertCircle, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { LoadingState, ErrorState } from '@/components/shared'
 
 interface Event {
   _id: string
@@ -73,6 +76,7 @@ interface Event {
 
 export default function AdminEventPreview() {
   const { data: session } = useSession()
+  const { t } = useLanguage()
   const router = useRouter()
   const params = useParams()
   const [event, setEvent] = useState<Event | null>(null)
@@ -82,31 +86,40 @@ export default function AdminEventPreview() {
   const [adminComment, setAdminComment] = useState('')
   const [showRejectModal, setShowRejectModal] = useState(false)
 
+  const localePath = useLocalizedPath()
   const fetchEvent = useCallback(async () => {
+    if (!params?.id) {
+      setError(t('admin.preview.events.notFound'))
+      setLoading(false)
+      return
+    }
+    
     try {
       const response = await fetch(`/api/events/${params.id}`)
       if (response.ok) {
         const data = await response.json()
         setEvent(data.event)
       } else {
-        setError('Failed to fetch event')
+        setError(t('admin.preview.events.fetchFailed'))
       }
     } catch (error) {
-      setError('Error fetching event')
+      setError(t('admin.preview.events.fetchError'))
     } finally {
       setLoading(false)
     }
-  }, [params.id])
+  }, [params?.id, t])
 
   useEffect(() => {
     if (session?.user?.role !== 'admin') {
-      router.push('/')
+      router.push(localePath("/"))
       return
     }
     fetchEvent()
-  }, [fetchEvent, router, session, params.id])
+  }, [fetchEvent, router, session, params?.id, localePath])
 
   const handleApprove = async () => {
+    if (!params?.id) return
+    
     setActionLoading(true)
     try {
       const response = await fetch(`/api/admin/events/${params.id}`, {
@@ -120,20 +133,22 @@ export default function AdminEventPreview() {
       })
 
       if (response.ok) {
-        router.push('/admin?tab=events')
+        router.push(localePath("/admin?tab=events"))
       } else {
-        setError('Failed to approve event')
+        setError(t('admin.preview.events.approveFailed'))
       }
     } catch (error) {
-      setError('Error approving event')
+      setError(t('admin.preview.events.approveError'))
     } finally {
       setActionLoading(false)
     }
   }
 
   const handleReject = async () => {
+    if (!params?.id) return
+    
     if (!adminComment.trim()) {
-      setError('Please provide an admin comment')
+      setError(t('admin.preview.events.rejectCommentRequired'))
       return
     }
 
@@ -151,22 +166,28 @@ export default function AdminEventPreview() {
       })
 
       if (response.ok) {
-        router.push('/admin?tab=events')
+        router.push(localePath("/admin?tab=events"))
       } else {
-        setError('Failed to reject event')
+        setError(t('admin.preview.events.rejectFailed'))
       }
     } catch (error) {
-      setError('Error rejecting event')
+      setError(t('admin.preview.events.rejectError'))
     } finally {
       setActionLoading(false)
       setShowRejectModal(false)
     }
   }
 
+  const formatEventType = (type: string) => {
+    if (!type) return 'Event'
+    // Convert 'workshop' to 'Workshop', 'training' to 'Training', etc.
+    return type.charAt(0).toUpperCase() + type.slice(1)
+  }
+
   const formatDate = (dateString: string) => {
-    if (!dateString) return 'Not specified'
+    if (!dateString) return t('admin.preview.notSpecified')
     const date = new Date(dateString)
-    if (isNaN(date.getTime())) return 'Invalid Date'
+    if (isNaN(date.getTime())) return t('admin.preview.invalidDate')
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -175,9 +196,9 @@ export default function AdminEventPreview() {
   }
 
   const formatDateTime = (dateString: string) => {
-    if (!dateString) return 'Not specified'
+    if (!dateString) return t('admin.preview.notSpecified')
     const date = new Date(dateString)
-    if (isNaN(date.getTime())) return 'Invalid Date'
+    if (isNaN(date.getTime())) return t('admin.preview.invalidDate')
     return date.toLocaleString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -213,31 +234,17 @@ export default function AdminEventPreview() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading event...</p>
-        </div>
-      </div>
-    )
+    return <LoadingState text={t('admin.preview.events.loading') || 'Loading event preview...'} gradientFrom="from-purple-500" gradientVia="via-pink-500" gradientTo="to-red-500" />
   }
 
   if (error || !event) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">{error || 'Event not found'}</p>
-          <Button
-            onClick={() => router.push('/admin')}
-            variant="ghost"
-            size="sm"
-            className="text-blue-600 hover:text-blue-800"
-          >
-            ← Back to Admin Panel
-          </Button>
-        </div>
-      </div>
+      <ErrorState 
+        title={t('admin.preview.events.notFound') || 'Event Not Found'}
+        message={error || t('admin.preview.events.notFoundMessage') || 'The event you are looking for could not be found.'}
+        retryText={t('admin.preview.backToAdmin') || 'Back to Admin'}
+        onRetry={() => router.push(localePath("/admin"))}
+      />
     )
   }
 
@@ -247,7 +254,7 @@ export default function AdminEventPreview() {
         {/* Header */}
         <div className="mb-8">
           <Button
-            onClick={() => router.push('/admin?tab=events')}
+            onClick={() => router.push(localePath("/admin?tab=events"))}
             variant="ghost"
             size="sm"
             className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4"
@@ -294,14 +301,14 @@ export default function AdminEventPreview() {
           <div className="lg:col-span-2 space-y-6">
             {/* Description */}
             <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Description</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('admin.preview.events.description')}</h3>
               <p className="text-gray-700 whitespace-pre-wrap">{event.description}</p>
             </div>
 
             {/* Tags */}
             {event.tags.length > 0 && (
               <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Tags</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('admin.preview.events.tags')}</h3>
                 <div className="flex flex-wrap gap-2">
                   {event.tags.map((tag, index) => (
                     <span
@@ -318,10 +325,10 @@ export default function AdminEventPreview() {
 
             {/* Location Details */}
             <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Location Details</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('admin.preview.events.locationDetails')}</h3>
               <div className="space-y-3">
                 <div>
-                  <span className="font-medium text-gray-700">Type:</span>
+                  <span className="font-medium text-gray-700">{t('admin.preview.events.type')}:</span>
                   <span className="ml-2 capitalize">{event.location.type}</span>
                 </div>
                 
@@ -329,19 +336,19 @@ export default function AdminEventPreview() {
                   <>
                     {event.location.address && (
                       <div>
-                        <span className="font-medium text-gray-700">Address:</span>
+                        <span className="font-medium text-gray-700">{t('admin.preview.events.address')}:</span>
                         <span className="ml-2">{event.location.address}</span>
                       </div>
                     )}
                     {event.location.city && (
                       <div>
-                        <span className="font-medium text-gray-700">City:</span>
+                        <span className="font-medium text-gray-700">{t('admin.preview.events.city')}:</span>
                         <span className="ml-2">{event.location.city}</span>
                       </div>
                     )}
                     {event.location.country && (
                       <div>
-                        <span className="font-medium text-gray-700">Country:</span>
+                        <span className="font-medium text-gray-700">{t('admin.preview.events.country')}:</span>
                         <span className="ml-2">{event.location.country}</span>
                       </div>
                     )}
@@ -376,14 +383,16 @@ export default function AdminEventPreview() {
                   <Tag className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                   <div>
                     <p className="font-medium text-gray-900">Event Type</p>
-                    <p className="text-gray-600 text-sm capitalize">{event.eventType}</p>
+                    <p className="text-gray-600 text-sm">
+                      {formatEventType(event.eventType)}
+                    </p>
                   </div>
                 </div>
                 
                 <div className="flex items-start">
                   <Tag className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                   <div>
-                    <p className="font-medium text-gray-900">Category</p>
+                    <p className="font-medium text-gray-900">{t('category')}</p>
                     <p className="text-gray-600 text-sm">{event.category}</p>
                   </div>
                 </div>
@@ -420,7 +429,7 @@ export default function AdminEventPreview() {
                   <div className="flex items-start">
                     <Users className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                     <div>
-                      <p className="font-medium text-gray-900">Capacity</p>
+                      <p className="font-medium text-gray-900">{t('labels.capacity')}</p>
                       <p className="text-gray-600 text-sm">
                         {event.currentParticipants} / {event.maxParticipants} participants
                       </p>
@@ -432,7 +441,7 @@ export default function AdminEventPreview() {
                   <div className="flex items-start">
                     <LinkIcon className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                     <div>
-                      <p className="font-medium text-gray-900">Registration</p>
+                      <p className="font-medium text-gray-900">{t('titles.registration')}</p>
                       <a
                         href={event.applicationLink}
                         target="_blank"
@@ -457,7 +466,7 @@ export default function AdminEventPreview() {
                     <div className="flex items-start">
                       <Clock className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                       <div>
-                        <p className="font-medium text-gray-900">Duration</p>
+                        <p className="font-medium text-gray-900">{t('titles.duration')}</p>
                         <p className="text-gray-600 text-sm">{event.duration.value} {event.duration.unit}</p>
                       </div>
                     </div>
@@ -467,7 +476,7 @@ export default function AdminEventPreview() {
                     <div className="flex items-start">
                       <Tag className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                       <div>
-                        <p className="font-medium text-gray-900">Cost</p>
+                        <p className="font-medium text-gray-900">{t('titles.cost')}</p>
                         <p className="text-gray-600 text-sm">
                           {event.cost.amount > 0 ? `${event.cost.amount} ${event.cost.currency}` : 'Free'}
                           {event.cost.scholarshipAvailable && ' (Scholarships available)'}
@@ -480,7 +489,7 @@ export default function AdminEventPreview() {
                     <div className="flex items-start">
                       <Tag className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                       <div>
-                        <p className="font-medium text-gray-900">Certification</p>
+                        <p className="font-medium text-gray-900">{t('titles.certification')}</p>
                         <p className="text-gray-600 text-sm">
                           {event.certification.type}
                           {event.certification.accreditedBy && ` (by ${event.certification.accreditedBy})`}
@@ -493,7 +502,7 @@ export default function AdminEventPreview() {
                     <div className="flex items-start">
                       <Tag className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                       <div>
-                        <p className="font-medium text-gray-900">Prerequisites</p>
+                        <p className="font-medium text-gray-900">{t('titles.prerequisites')}</p>
                         <ul className="text-gray-600 text-sm list-disc list-inside">
                           {event.prerequisites.map((prereq, index) => (
                             <li key={index}>{prereq}</li>
@@ -537,7 +546,7 @@ export default function AdminEventPreview() {
                     <div className="flex items-start">
                       <Calendar className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                       <div>
-                        <p className="font-medium text-gray-900">Schedule</p>
+                        <p className="font-medium text-gray-900">{t('titles.schedule')}</p>
                         <p className="text-gray-600 text-sm whitespace-pre-wrap">{event.schedule}</p>
                       </div>
                     </div>
@@ -551,7 +560,7 @@ export default function AdminEventPreview() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Status Information</h3>
               <div className="space-y-3 text-sm">
                 <div>
-                  <span className="font-medium text-gray-700">Created:</span>
+                  <span className="font-medium text-gray-700">{t('buttons.created')}</span>
                   <span className="ml-2">{formatDateTime(event.createdAt)}</span>
                 </div>
                 <div>
@@ -560,7 +569,7 @@ export default function AdminEventPreview() {
                 </div>
                 {event.approvedAt && (
                   <div>
-                    <span className="font-medium text-gray-700">Approved:</span>
+                    <span className="font-medium text-gray-700">{t('status.approved_1')}</span>
                     <span className="ml-2">{formatDateTime(event.approvedAt)}</span>
                   </div>
                 )}
@@ -578,8 +587,18 @@ export default function AdminEventPreview() {
 
       {/* Reject Modal */}
       {showRejectModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+          onClick={() => {
+            setShowRejectModal(false)
+            setAdminComment('')
+            setError('')
+          }}
+        >
+          <div 
+            className="bg-white rounded-lg max-w-md w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Reject Event</h3>
             <p className="text-gray-600 mb-4">Please provide a reason for rejecting this event:</p>
             <textarea

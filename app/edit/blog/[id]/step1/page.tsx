@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react'
 
 import { useSession } from 'next-auth/react'
 import { Input, Button } from '@/components/ui'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { LoadingState, ErrorState } from '@/components/shared'
 
 export default function EditBlogStep1() {
   const router = useRouter()
@@ -18,7 +20,8 @@ export default function EditBlogStep1() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   
-  const blogId = params.id as string
+  const localePath = useLocalizedPath()
+  const blogId = params?.id as string
 
   // Cleanup function to clear localStorage when leaving the blog editing flow
   const cleanupLocalStorage = () => {
@@ -175,7 +178,8 @@ export default function EditBlogStep1() {
     e.preventDefault()
     setNameError('')
     
-    if (!isAnonymous && (!authorName || !authorName.trim())) {
+    // Validation: If not anonymous and no name provided, check if session name exists
+    if (!isAnonymous && !authorName?.trim() && !session?.user?.name) {
       setNameError('Please enter your name or select anonymous submission.')
       return
     }
@@ -188,7 +192,7 @@ export default function EditBlogStep1() {
       title, 
        
       isAnonymous, 
-      authorName,
+      authorName: authorName || session?.user?.name, // Use custom name or fall back to session name
       editId: blogId
     }
     localStorage.setItem('editBlogData', JSON.stringify(storyData))
@@ -200,28 +204,21 @@ export default function EditBlogStep1() {
   }
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-64">
-        <div className="text-lg">Loading blog data...</div>
-      </div>
-    )
+    return <LoadingState text="Loading blog data..." gradientFrom="from-pink-500" gradientVia="via-purple-500" gradientTo="to-indigo-500" />
   }
   
   if (error) {
     return (
-      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <div className="text-blue-800">{error}</div>
-        <button 
-          onClick={() => {
-            cleanupLocalStorage()
-            sessionStorage.removeItem('inBlogEditFlow')
-            router.push('/profile')
-          }} 
-          className="mt-2 text-blue-600 hover:text-blue-800"
-        >
-          ← Back to Profile
-        </button>
-      </div>
+      <ErrorState 
+        title="Error Loading Blog"
+        message={error}
+        retryText="Back to Profile"
+        onRetry={() => {
+          cleanupLocalStorage()
+          sessionStorage.removeItem('inBlogEditFlow')
+          router.push(localePath("/profile"))
+        }}
+      />
     )
   }
   
@@ -246,16 +243,22 @@ export default function EditBlogStep1() {
           <label className="block text-sm font-medium text-gray-700 mb-2">Your Name</label>
           <Input
             type="text"
-            placeholder="Enter your name"
+            placeholder="Enter your name (or leave blank to use your profile name)"
             value={authorName}
             onChange={e => setAuthorName(e.target.value)}
-            disabled={isAnonymous || (session?.user?.name ? true : false)}
+            disabled={isAnonymous}
           />
           {nameError && !isAnonymous && (
-            <p className="text-xs text-blue-600 mt-1">{nameError}</p>
+            <p className="text-xs text-red-600 mt-1">{nameError}</p>
           )}
-          {session?.user?.name && !isAnonymous && (
-            <p className="text-xs text-gray-500 mt-1">This is your profile name. You cannot change it.</p>
+          {!isAnonymous && (
+            <p className="text-xs text-gray-500 mt-1">
+              {authorName && authorName !== session?.user?.name
+                ? 'Custom name will be displayed on your blog' 
+                : session?.user?.name 
+                  ? `Your profile name "${session.user.name}" will be used if left empty`
+                  : 'Enter the name you want displayed on your blog'}
+            </p>
           )}
           {isAnonymous && (
             <p className="text-xs text-gray-500 mt-1">Name is hidden when submitting anonymously.</p>

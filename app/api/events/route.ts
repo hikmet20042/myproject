@@ -4,6 +4,8 @@ import { authOptions } from '@/lib/auth';
 import dbConnect from '@/lib/mongoose'
 import Event from '@/lib/models/Event'
 import User from '@/lib/models/User'
+import NGO from '@/lib/models/NGO'
+import cloudinaryService from '@/lib/services/cloudinaryService'
 
 // GET /api/events - Get events with filtering
 export async function GET(request: NextRequest) {
@@ -181,15 +183,31 @@ export async function POST(request: NextRequest) {
     await dbConnect()
     
     // Check if user is an approved NGO
-    const user = await User.findById(session.user.id)
-    if (!user || user.role !== 'ngo' || user.ngoProfile?.status !== 'approved') {
+    if (!session.user.isApprovedNGO) {
       return NextResponse.json(
         { error: 'Only approved NGOs can create events' },
         { status: 403 }
       )
     }
     
-    const body = await request.json()
+    // Parse form data if contains files, otherwise JSON
+    const contentType = request.headers.get('content-type') || '';
+    let body;
+    let imageFiles: File[] = [];
+    
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      
+      // Extract event data
+      const eventDataStr = formData.get('eventData') as string;
+      body = eventDataStr ? JSON.parse(eventDataStr) : {};
+      
+      // Extract image files
+      const files = formData.getAll('images');
+      imageFiles = files.filter((file): file is File => file instanceof File);
+    } else {
+      body = await request.json();
+    }
     
     // Validate required fields
     const requiredFields = ['title', 'description', 'category', 'eventDate', 'location', 'eventType']
@@ -236,18 +254,75 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Create event
+    // Fetch NGO profile for organization name
+    const ngo = await NGO.findOne({ email: session.user.email })
+    if (!ngo) {
+      return NextResponse.json(
+        { error: 'NGO profile not found' },
+        { status: 404 }
+      )
+    }
+    
+    // Create event first to get ID
     const event = new Event({
       ...body,
-      eventType: body.eventType || 'event', // Default to 'event' for backward compatibility
+      eventType: body.eventType || 'event',
       createdBy: session.user.id,
-      organizationName: user.ngoProfile?.organizationName || 'Unknown Organization',
-      status: 'pending', // Requires admin approval
+      organizationName: ngo.organizationName || 'Unknown Organization',
+      status: 'pending',
       isPublished: false,
-      currentParticipants: 0
+      currentParticipants: 0,
+      images: [] // Will be populated if images are uploaded
     })
     
     await event.save()
+    
+    // Upload images to Cloudinary if provided
+    if (imageFiles.length > 0) {
+      const uploadedImages = [];
+      
+      for (let i = 0; i < imageFiles.length; i++) {
+        const file = imageFiles[i];
+        
+        // Validate file
+        const validation = cloudinaryService.validateImageFile(file, 10);
+        if (!validation.valid) {
+          console.warn(`Skipping invalid image: ${validation.error}`);
+          continue;
+        }
+        
+        try {
+          const bytes = await file.arrayBuffer();
+          const buffer = Buffer.from(bytes);
+          
+          // Upload to Cloudinary
+          const uploadResult = await cloudinaryService.uploadEventImage(
+            buffer,
+            event._id.toString(),
+            i
+          );
+          
+          if (uploadResult.success && uploadResult.secureUrl && uploadResult.publicId) {
+            uploadedImages.push({
+              url: uploadResult.secureUrl,
+              publicId: uploadResult.publicId,
+              alt: body.title || 'Event image',
+              isPrimary: i === 0 // First image is primary
+            });
+          }
+        } catch (uploadError) {
+          console.error(`Error uploading image ${i}:`, uploadError);
+        }
+      }
+      
+      // Update event with images
+      if (uploadedImages.length > 0) {
+        event.images = uploadedImages;
+        // Set imageUrl to primary image for backward compatibility
+        event.imageUrl = uploadedImages[0].url;
+        await event.save();
+      }
+    }
     
     return NextResponse.json(
       { message: 'Event created successfully. Awaiting admin approval.', event },

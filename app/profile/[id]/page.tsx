@@ -6,6 +6,9 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { LoadingState, ErrorState } from '@/components/shared'
 
 interface User {
   _id: string
@@ -22,14 +25,6 @@ interface User {
   joinedAt: string
 }
 
-interface Article {
-  _id: string
-  title: string
-  abstract: string
-  createdAt: string
-  category: string
-}
-
 interface Blog {
   _id: string
   title: string
@@ -39,9 +34,10 @@ interface Blog {
 }
 
 export default function ProfilePage() {
+  const { t } = useLanguage()
+  const localePath = useLocalizedPath()
   const params = useParams()
   const [user, setUser] = useState<User | null>(null)
-  const [articles, setArticles] = useState<Article[]>([])
   const [blogs, setBlogs] = useState<Blog[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -50,25 +46,32 @@ export default function ProfilePage() {
     const fetchUserData = async () => {
       try {
         // Fetch user profile
-        const userResponse = await fetch(`/api/users/${params.id}`)
+        const userResponse = await fetch(`/api/users/${params?.id}`)
         if (!userResponse.ok) {
           throw new Error('User not found')
         }
         const userData = await userResponse.json()
-        setUser(userData)
-
-        // Fetch user's articles
-        const articlesResponse = await fetch(`/api/articles?author=${params.id}`)
-        if (articlesResponse.ok) {
-          const articlesData = await articlesResponse.json()
-          setArticles(articlesData)
-        }
+        // API may return { user: {...} } or the user object directly — normalize both shapes
+        const normalizedUser = userData?.user ? userData.user : userData
+        setUser(normalizedUser)
 
         // Fetch user's blogs
-        const blogsResponse = await fetch(`/api/blogs?author=${params.id}`)
+        const blogsResponse = await fetch(`/api/blogs?author=${params?.id}`)
         if (blogsResponse.ok) {
           const blogsData = await blogsResponse.json()
-          setBlogs(blogsData)
+          // blogs API returns { results: [...] } for list or { blog: {...} } for single
+          if (Array.isArray(blogsData)) {
+            setBlogs(blogsData)
+          } else if (Array.isArray(blogsData.results)) {
+            setBlogs(blogsData.results)
+          } else if (Array.isArray(blogsData.blogs)) {
+            setBlogs(blogsData.blogs)
+          } else if (Array.isArray(blogsData.results?.blogs)) {
+            setBlogs(blogsData.results.blogs)
+          } else {
+            const arr = Object.values(blogsData).find(v => Array.isArray(v))
+            if (Array.isArray(arr)) setBlogs(arr as Blog[])
+          }
         }
       } catch (err) {
         setError('Failed to load user profile')
@@ -77,33 +80,23 @@ export default function ProfilePage() {
       }
     }
 
-    if (params.id) {
+    if (params?.id) {
       fetchUserData()
     }
-  }, [params.id])
+  }, [params?.id])
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading profile...</p>
-        </div>
-      </div>
-    )
+    return <LoadingState text={t('profile.loadingProfile') || 'Loading profile...'} gradientFrom="from-blue-500" gradientVia="via-purple-500" gradientTo="to-pink-500" />
   }
 
   if (error || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Profile Not Found</h1>
-          <p className="text-gray-600 mb-8">{error || 'The requested profile could not be found.'}</p>
-          <Link href="/">
-            <Button>Back to Home</Button>
-          </Link>
-        </div>
-      </div>
+      <ErrorState 
+        title={t('profile.notFound') || 'Profile Not Found'}
+        message={error || t('profile.notFoundMessage') || 'The requested profile could not be found.'}
+        retryText={t('common.backToHome') || 'Back to Home'}
+        onRetry={() => window.location.href = localePath("/")}
+      />
     )
   }
 
@@ -206,65 +199,6 @@ export default function ProfilePage() {
                   </Card>
                 )}
 
-                {/* Articles Section */}
-                <Card className="bg-white rounded-xl shadow-lg">
-                  <CardContent className="p-8">
-                    <div className="flex items-center mb-6">
-                      <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center mr-4">
-                        <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </div>
-                      <h2 className="text-2xl font-bold text-primary">Articles by {user?.name || 'User'}</h2>
-                    </div>
-                    
-                    {articles.length > 0 ? (
-                      <div className="grid gap-6">
-                        {articles.map((article) => (
-                          <div key={article._id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-                            <div className="flex justify-between items-start mb-3">
-                              <Badge className="bg-primary/10 text-primary">
-                                {article.category}
-                              </Badge>
-                              <span className="text-sm text-gray-500">
-                                {new Date(article.createdAt).toLocaleDateString('en-US', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric'
-                                })}
-                              </span>
-                            </div>
-                            <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                              <Link href={`/articles/${article._id}`} className="hover:text-primary transition-colors">
-                                {article.title}
-                              </Link>
-                            </h3>
-                            <p className="text-gray-600 leading-relaxed mb-4">
-                              {article.abstract}
-                            </p>
-                            <Link 
-                              href={`/articles/${article._id}`}
-                              className="inline-flex items-center text-primary hover:text-primary/80 font-medium"
-                            >
-                              Read More
-                              <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                              </svg>
-                            </Link>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-12">
-                        <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <p className="text-gray-500 text-lg">No articles published yet</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
                 {/* Blogs Section */}
                 <Card className="bg-white rounded-xl shadow-lg">
                   <CardContent className="p-8">
@@ -347,7 +281,7 @@ export default function ProfilePage() {
                             </svg>
                           </div>
                           <div className="flex-1">
-                            <p className="text-xs text-gray-500 font-medium">Email</p>
+                            <p className="text-xs text-gray-500 font-medium">{t('email')}</p>
                             <a href={`mailto:${user.email}`} className="text-gray-900 hover:text-primary font-medium">
                               {user.email}
                             </a>
@@ -363,7 +297,7 @@ export default function ProfilePage() {
                             </svg>
                           </div>
                           <div className="flex-1">
-                            <p className="text-xs text-gray-500 font-medium">Website</p>
+                            <p className="text-xs text-gray-500 font-medium">{t('labels.website')}</p>
                             <a 
                               href={user?.website?.startsWith('http') ? user.website : `https://${user?.website || ''}`} 
                               target="_blank" 
@@ -451,11 +385,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="space-y-4">
                       <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                        <span className="text-gray-600">Articles</span>
-                        <span className="text-primary font-semibold">{articles.length}</span>
-                      </div>
-                      <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                        <span className="text-gray-600">Blogs</span>
+                        <span className="text-gray-600">{t('titles.blogs')}</span>
                         <span className="text-primary font-semibold">{blogs.length}</span>
                       </div>
                       <div className="flex justify-between items-center py-2">

@@ -8,6 +8,9 @@ import { Card, CardContent } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Breadcrumb, ContactCard, SocialLink } from '@/components/ui'
 import { ArrowLeft, MapPin, Globe, Mail, Phone, ExternalLink, CheckCircle } from 'lucide-react'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { LoadingState, ErrorState } from '@/components/shared';
 
 interface NGO {
   _id: string
@@ -43,6 +46,8 @@ interface NGO {
 }
 
 export default function NGODetailPage() {
+  const { t } = useLanguage()
+  const localePath = useLocalizedPath();
   const params = useParams()
   const [ngo, setNgo] = useState<NGO | null>(null)
   const [loading, setLoading] = useState(true)
@@ -51,11 +56,11 @@ export default function NGODetailPage() {
   useEffect(() => {
     const fetchNGO = async () => {
       try {
-        const response = await fetch(`/api/ngos/${params.id}`)
+        const response = await fetch(`/api/ngos/${params?.id}`)
         if (!response.ok) {
           throw new Error('NGO not found')
         }
-        const data = await response.json()
+  const data = await response.json()
         setNgo(data.ngo)
       } catch (err) {
         setError('Failed to load NGO details')
@@ -64,35 +69,34 @@ export default function NGODetailPage() {
       }
     }
 
-    if (params.id) {
+    if (params?.id) {
       fetchNGO()
     }
-  }, [params.id])
+  }, [params?.id])
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading NGO details...</p>
-        </div>
-      </div>
+      <LoadingState 
+        text={t('ngos.loadingDetails') || 'Loading NGO details...'}
+        gradientFrom="from-indigo-50"
+        gradientVia="via-purple-50"
+        gradientTo="to-pink-50"
+        spinnerColor="border-indigo-600"
+      />
     )
   }
 
   if (error || !ngo) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">NGO Not Found</h1>
-          <p className="text-gray-600 mb-8">{error || 'The requested NGO could not be found.'}</p>
-          <Link href="/resources/ngos">
-            <Button>Back to NGOs</Button>
-          </Link>
-        </div>
-      </div>
+      <ErrorState 
+        title={t('ngos.notFound') || 'NGO Not Found'}
+        message={error || t('ngos.notFoundMessage') || 'The requested NGO could not be found.'}
+        retryText={t('ngos.backToList') || 'Back to NGOs'}
+        onRetry={() => window.location.href = localePath("/resources/ngos")}
+      />
     )
   }
+        
 
   return (
     <div className="min-h-screen bg-gray-50 transition-colors duration-200">
@@ -113,13 +117,13 @@ export default function NGODetailPage() {
             />
 
             {/* Back Button */}
-            <Link href="/resources/ngos" className="inline-block mb-8">
+            <Link href={localePath("/resources/ngos")} className="inline-block mb-8">
               <Button 
                 variant="outline" 
                 className="bg-white/10 border-white/30 text-white hover:bg-white/20 hover:border-white/50"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to NGOs
+                {t('ngos.backTo')}
               </Button>
             </Link>
 
@@ -158,7 +162,7 @@ export default function NGODetailPage() {
                   {ngo.status === 'approved' && (
                     <Badge className="bg-accent/30 backdrop-blur-sm text-white border-accent/50">
                       <CheckCircle className="w-4 h-4 mr-2" />
-                      Verified
+                      {t('ngos.verified')}
                     </Badge>
                   )}
                 </div>
@@ -175,7 +179,7 @@ export default function NGODetailPage() {
                         className="bg-white text-primary hover:bg-gray-100"
                       >
                         <Mail className="w-4 h-4 mr-2" />
-                        Contact
+                        {t('ngos.contact')}
                       </Button>
                     </a>
                   )}
@@ -190,7 +194,7 @@ export default function NGODetailPage() {
                         className="bg-white text-primary border-primary hover:bg-primary hover:text-white"
                       >
                         <Globe className="w-4 h-4 mr-2" />
-                        Website
+                        {t('ngos.website')}
                       </Button>
                     </a>
                   )}
@@ -217,7 +221,7 @@ export default function NGODetailPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                       </div>
-                      <h2 className="text-xl font-semibold text-gray-900">About {ngo.organizationName}</h2>
+                      <h2 className="text-xl font-semibold text-gray-900">{t('ngos.about', { name: ngo.organizationName })}</h2>
                     </div>
                     <p className="text-gray-700 leading-relaxed mb-6">
                       {ngo.description}
@@ -229,7 +233,7 @@ export default function NGODetailPage() {
                           <svg className="w-5 h-5 text-primary mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                           </svg>
-                          Focus Areas
+                          {t('ngos.focusAreas')}
                         </h3>
                         <div className="flex flex-wrap gap-2">
                           {ngo.focusAreas.map((area, index) => (
@@ -255,7 +259,7 @@ export default function NGODetailPage() {
                         <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center mr-3">
                           <MapPin className="w-4 h-4 text-primary" />
                         </div>
-                        <h2 className="text-xl font-semibold text-gray-900">Location & Address</h2>
+                        <h2 className="text-xl font-semibold text-gray-900">{t('ngos.locationAndAddress')}</h2>
                       </div>
                       <div className="bg-gray-50 rounded-lg p-4">
                         <div className="flex items-start">
@@ -275,13 +279,13 @@ export default function NGODetailPage() {
                         <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center mr-3">
                           <ExternalLink className="w-4 h-4 text-primary" />
                         </div>
-                        <h2 className="text-xl font-semibold text-gray-900">Registration Details</h2>
+                        <h2 className="text-xl font-semibold text-gray-900">{t('ngos.registrationDetails')}</h2>
                       </div>
                       <div className="bg-primary/5 rounded-lg p-4 border border-primary/10">
                         <div className="flex items-center">
                           <ExternalLink className="w-4 h-4 text-primary mr-3" />
                           <div>
-                            <p className="text-sm text-primary font-medium">Registration Number</p>
+                            <p className="text-sm text-primary font-medium">{t('ngos.registrationNumber')}</p>
                             <p className="text-lg font-semibold text-gray-900">{ngo.registrationNumber}</p>
                           </div>
                         </div>
@@ -301,13 +305,13 @@ export default function NGODetailPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                         </svg>
                       </div>
-                      <h3 className="text-lg font-bold text-gray-900">Contact Information</h3>
+                      <h3 className="text-lg font-bold text-gray-900">{t('ngos.contactInformation')}</h3>
                     </div>
                     <div className="space-y-4">
                       {ngo.contactPerson?.email && (
                         <ContactCard
                           icon={Mail}
-                          label="Email"
+                          label={t('ngos.email')}
                           value={ngo.contactPerson.email}
                           href={`mailto:${ngo.contactPerson.email}`}
                         />
@@ -316,7 +320,7 @@ export default function NGODetailPage() {
                       {ngo.contactPhone && (
                         <ContactCard
                           icon={Phone}
-                          label="Phone"
+                          label={t('ngos.phone')}
                           value={ngo.contactPhone}
                           href={`tel:${ngo.contactPhone}`}
                         />
@@ -325,7 +329,7 @@ export default function NGODetailPage() {
                       {ngo.contactPerson?.phone && (
                         <ContactCard
                           icon={Phone}
-                          label="Contact Person Phone"
+                          label={t('ngos.contactPersonPhone')}
                           value={ngo.contactPerson.phone}
                           href={`tel:${ngo.contactPerson.phone}`}
                         />
@@ -334,7 +338,7 @@ export default function NGODetailPage() {
                       {ngo.website && (
                         <ContactCard
                           icon={Globe}
-                          label="Website"
+                          label={t('labels.website')}
                           value={ngo.website}
                           href={ngo.website.startsWith('http') ? ngo.website : `https://${ngo.website}`}
                         />
@@ -342,7 +346,7 @@ export default function NGODetailPage() {
                       
                       {ngo.contactPerson?.name && (
                         <div className="p-4 bg-gray-50 rounded-lg">
-                          <p className="text-sm font-medium text-gray-600 mb-1">Contact Person</p>
+                          <p className="text-sm font-medium text-gray-600 mb-1">{t('ngos.contactPerson')}</p>
                           <p className="font-semibold text-gray-900">{ngo.contactPerson.name}</p>
                           {ngo.contactPerson.position && (
                             <p className="text-sm text-gray-600">{ngo.contactPerson.position}</p>
@@ -363,7 +367,7 @@ export default function NGODetailPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                           </svg>
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900">Follow Us</h3>
+                        <h3 className="text-lg font-bold text-gray-900">{t('ngos.followUs')}</h3>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {ngo.socialMedia.facebook && (
@@ -411,17 +415,17 @@ export default function NGODetailPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                         </svg>
                       </div>
-                      <h3 className="text-lg font-bold text-gray-900">Organization Info</h3>
+                      <h3 className="text-lg font-bold text-gray-900">{t('ngos.organizationInfo')}</h3>
                     </div>
                     <div className="space-y-4">
                       <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
                         <div className="flex items-center mb-2">
                           <CheckCircle className="w-5 h-5 text-primary mr-2" />
-                          <p className="text-sm font-medium text-gray-600">Status</p>
+                          <p className="text-sm font-medium text-gray-600">{t('status')}</p>
                         </div>
                         <p className="font-semibold text-gray-900">
-                          {ngo.status === 'approved' ? 'Verified Organization' : 
-                           ngo.status === 'pending' ? 'Pending Verification' : 'Verification Rejected'}
+                          {ngo.status === 'approved' ? t('ngos.verifiedOrganization') : 
+                           ngo.status === 'pending' ? t('ngos.pendingVerification') : t('ngos.verificationRejected')}
                         </p>
                       </div>
                       
@@ -429,7 +433,7 @@ export default function NGODetailPage() {
                         <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
                           <div className="flex items-center mb-2">
                             <ExternalLink className="w-5 h-5 text-primary mr-2" />
-                            <p className="text-sm font-medium text-gray-600">Focus Areas</p>
+                            <p className="text-sm font-medium text-gray-600">{t('ngos.focusAreas')}</p>
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {ngo.focusAreas.map((area, index) => (
@@ -445,7 +449,7 @@ export default function NGODetailPage() {
                         <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
                           <div className="flex items-center mb-2">
                             <MapPin className="w-5 h-5 text-primary mr-2" />
-                            <p className="text-sm font-medium text-gray-600">Address</p>
+                            <p className="text-sm font-medium text-gray-600">{t('labels.address')}</p>
                           </div>
                           <p className="font-semibold text-gray-900">{ngo.address}</p>
                         </div>
@@ -455,7 +459,7 @@ export default function NGODetailPage() {
                         <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
                           <div className="flex items-center mb-2">
                             <ExternalLink className="w-5 h-5 text-primary mr-2" />
-                            <p className="text-sm font-medium text-gray-600">Established</p>
+                            <p className="text-sm font-medium text-gray-600">{t('titles.established')}</p>
                           </div>
                           <p className="font-semibold text-gray-900">
                             {new Date(ngo.createdAt).toLocaleDateString()}

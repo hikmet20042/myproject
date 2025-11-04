@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
 import Link from 'next/link'
 import { Calendar, MapPin, Users, Plus, Edit, Trash2, Eye, AlertCircle, CheckCircle, XCircle, Search } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -75,6 +77,8 @@ const categoryOptions = [
 
 export default function EventManagement() {
   const { data: session } = useSession()
+  const { t } = useLanguage()
+  const localePath = useLocalizedPath()
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -143,11 +147,11 @@ export default function EventManagement() {
 
   const getStatusBadge = (event: Event) => {
     if (event.status === 'approved' && event.isPublished) {
-      return <Badge variant="success">Approved</Badge>
+      return <Badge variant="success">{t('status.approved')}</Badge>
     } else if (event.status === 'rejected') {
-      return <Badge variant="danger">Rejected</Badge>
+      return <Badge variant="danger">{t('status.rejected')}</Badge>
     } else {
-      return <Badge variant="warning">Pending</Badge>
+      return <Badge variant="warning">{t('status.pending')}</Badge>
     }
   }
 
@@ -178,15 +182,15 @@ export default function EventManagement() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Event Management</h2>
-          <p className="text-gray-600">Manage your organization's events</p>
+          <h2 className="text-2xl font-bold text-gray-900">{t('dashboard.eventManagement.title')}</h2>
+          <p className="text-gray-600">{t('dashboard.eventManagement.subtitle')}</p>
         </div>
-        <Link href="/dashboard/events/create">
+        <Link href={localePath('/dashboard/events/create')}>
           <Button
             variant="primary"
             icon={Plus}
           >
-            Create Event
+            {t('dashboard.eventManagement.createEvent')}
           </Button>
         </Link>
       </div>
@@ -195,10 +199,10 @@ export default function EventManagement() {
       <Card>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="relative">
+              <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
-                placeholder="Search events..."
+                placeholder={t('events.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -208,13 +212,13 @@ export default function EventManagement() {
               options={statusOptions}
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              placeholder="Filter by status"
+              placeholder={t('events.filterByStatus')}
             />
             <Select
               options={categoryOptions}
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              placeholder="Filter by category"
+              placeholder={t('events.filterByCategory')}
             />
           </div>
         </CardContent>
@@ -224,21 +228,21 @@ export default function EventManagement() {
       {filteredEvents.length === 0 ? (
         <Card>
           <CardContent>
-            <div className="text-center py-12">
+              <div className="text-center py-12">
               <Calendar className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No events found</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">{t('events.noEventsFound')}</h3>
               <p className="text-gray-600 mb-4">
                 {events.length === 0 
-                  ? "You haven't created any events yet." 
-                  : "No events match your current filters."}
+                  ? t('events.noEventsEmpty') 
+                  : t('events.noEventsFilters')}
               </p>
               {events.length === 0 && (
-                <Link href="/dashboard/events/create">
+                <Link href={localePath('/dashboard/events/create')}>
                   <Button
                     variant="primary"
                     icon={Plus}
                   >
-                    Create Your First Event
+                    {t('events.createFirstEvent')}
                   </Button>
                 </Link>
               )}
@@ -260,7 +264,7 @@ export default function EventManagement() {
                     
                     <p className="text-gray-600 mb-3 line-clamp-2">{event.description}</p>
                     
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm text-gray-500">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm text-gray-500">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
                         <span>{new Date(event.eventDate).toLocaleDateString()}</span>
@@ -268,15 +272,15 @@ export default function EventManagement() {
                       <div className="flex items-center gap-1">
                         <MapPin className="h-4 w-4" />
                         <span className="truncate">
-                          {event.location.type === 'online' ? 'Online' : 
-                           event.location.type === 'hybrid' ? 'Hybrid' :
-                           `${event.location.city || ''} ${event.location.country || ''}`.trim() || 'Physical'}
+                          {event.location.type === 'online' ? t('events.online') : 
+                           event.location.type === 'hybrid' ? t('events.hybrid') :
+                           `${event.location.city || ''} ${event.location.country || ''}`.trim() || t('events.physical')}
                         </span>
                       </div>
                       {event.maxParticipants && (
                         <div className="flex items-center gap-1">
                           <Users className="h-4 w-4" />
-                          <span>Max {event.maxParticipants}</span>
+                          <span>{t('events.max')} {event.maxParticipants}</span>
                         </div>
                       )}
                     </div>
@@ -287,7 +291,7 @@ export default function EventManagement() {
                         <Badge key={index} variant="secondary">{tag}</Badge>
                       ))}
                       {event.tags.length > 2 && (
-                        <Badge variant="secondary">+{event.tags.length - 2} more</Badge>
+                        <Badge variant="secondary">{`+${event.tags.length - 2} ${t('events.more')}`}</Badge>
                       )}
                     </div>
                   </div>
@@ -298,7 +302,7 @@ export default function EventManagement() {
                         variant="ghost"
                         size="sm"
                         icon={Eye}
-                        title="View Event"
+                        title={t('events.viewEvent')}
                       />
                     </Link>
                     <Link href={`/dashboard/events/${event._id}/edit`}>
@@ -306,7 +310,7 @@ export default function EventManagement() {
                         variant="ghost"
                         size="sm"
                         icon={Edit}
-                        title="Edit Event"
+                        title={t('events.editEvent')}
                       />
                     </Link>
                     <Button
@@ -314,7 +318,7 @@ export default function EventManagement() {
                       variant="ghost"
                       size="sm"
                       icon={Trash2}
-                      title="Delete Event"
+                      title={t('events.deleteEvent')}
                       className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                     />
                   </div>
@@ -329,11 +333,11 @@ export default function EventManagement() {
       <Modal
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
-        title="Delete Event"
+        title={t('events.deleteEvent')}
       >
         <div className="space-y-4">
           <p className="text-gray-600">
-            Are you sure you want to delete "{eventToDelete?.title}"? This action cannot be undone.
+            {t('events.deleteConfirmation', { title: eventToDelete?.title || '' })}
           </p>
           <div className="flex justify-end gap-3">
             <Button
@@ -341,14 +345,14 @@ export default function EventManagement() {
               onClick={() => setDeleteModalOpen(false)}
               disabled={deleting}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               variant="danger"
               onClick={confirmDelete}
               loading={deleting}
             >
-              Delete Event
+              {t('events.deleteEvent')}
             </Button>
           </div>
         </div>

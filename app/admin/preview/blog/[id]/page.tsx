@@ -3,11 +3,14 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '@/contexts/LanguageContext'
 import DOMPurify from 'dompurify'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { ArrowLeft, CheckCircle, XCircle, Clock, Eye, User, Calendar, FileText, Heart, ThumbsUp, ThumbsDown, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { LoadingState, ErrorState } from '@/components/shared'
 
 const BlocknoteReadOnly = dynamic(() => import('@/components/BlocknoteReadOnly'), { ssr: false })
 
@@ -17,7 +20,7 @@ type Blog = {
   content: any
   contentHtml?: string
   abstract?: string
-  author?: string
+  author?: string | { _id: string; name?: string; email?: string } // Can be string (ID) or populated object
   authorName?: string
   isAnonymous?: boolean
   status: 'pending' | 'approved' | 'rejected'
@@ -33,6 +36,7 @@ type Blog = {
 
 export default function AdminStoryPreview({ params }: { params: { id: string } }) {
   const { data: session, status } = useSession()
+  const { t } = useLanguage()
   const router = useRouter()
   const [blog, setBlog] = useState<Blog | null>(null)
   const [loading, setLoading] = useState(true)
@@ -40,6 +44,7 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
   const [showModal, setShowModal] = useState(false)
   const [adminComment, setAdminComment] = useState('')
   const [actionType, setActionType] = useState<'approve' | 'reject' | null>(null)
+  const localePath = useLocalizedPath()
   const [isProcessing, setIsProcessing] = useState(false)
 
   const loadStory = useCallback(async () => {
@@ -65,12 +70,12 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
     if (status === 'loading') return
     
     if (!session?.user || session.user.role !== 'admin') {
-      router.push('/admin')
+      router.push(localePath("/admin"))
       return
     }
 
     loadStory()
-  }, [loadStory, params.id, session, status, router])
+  }, [loadStory, params.id, session, status, router, localePath])
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -99,25 +104,17 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-600">Loading blog preview...</div>
-      </div>
-    )
+    return <LoadingState text={t('admin.preview.loading') || 'Loading blog preview...'} gradientFrom="from-purple-500" gradientVia="via-pink-500" gradientTo="to-red-500" />
   }
 
   if (error || !blog) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Blog not found</h1>
-          <p className="text-gray-600 mb-4">{error || 'The blog you were looking for doesn\'t exist.'}</p>
-          <Link href="/admin" className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Admin
-          </Link>
-        </div>
-      </div>
+      <ErrorState 
+        title={t('admin.preview.notFoundTitle') || 'Blog Not Found'}
+        message={error || t('admin.preview.notFoundBody') || 'The blog you are looking for could not be found.'}
+        retryText={t('admin.preview.backToAdmin') || 'Back to Admin'}
+        onRetry={() => router.push(localePath("/admin"))}
+      />
     )
   }
 
@@ -175,7 +172,14 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
   }
 
   const publishedDate = blog.publishedAt || blog.submittedAt || blog.createdAt
-  const authorDisplay = blog.isAnonymous ? 'Anonymous' : (blog.authorName || 'Unknown Author')
+  
+  // Handle author display - author is now populated with name, email, and _id
+  const authorObject = typeof blog.author === 'object' ? blog.author : null
+  const authorDisplay = blog.isAnonymous 
+    ? 'Anonymous' 
+    : (authorObject?.name || authorObject?.email || blog.authorName || 'Unknown Author')
+  
+  const authorId = authorObject?._id || null
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -183,8 +187,7 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <Link 
-              href="/admin" 
+            <Link href={localePath("/admin")} 
               className="inline-flex items-center text-gray-600 hover:text-gray-900"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -192,7 +195,7 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
             </Link>
             <div className="flex items-center space-x-3">
               {getStatusBadge(blog.status)}
-              <span className="text-sm text-gray-500">Preview Mode</span>
+              <span className="text-sm text-gray-500">{t('admin.preview.previewMode')}</span>
               {/* Admin Actions */}
               {blog.status === 'pending' && (
                 <div className="flex space-x-2">
@@ -203,7 +206,7 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
                     className="inline-flex items-center text-xs"
                   >
                     <ThumbsUp className="w-3 h-3 mr-1" />
-                    Approve
+                    {t('admin.preview.approve')}
                   </Button>
                   <Button
                     onClick={() => handleAction('reject')}
@@ -212,7 +215,7 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
                     className="inline-flex items-center text-xs"
                   >
                     <ThumbsDown className="w-3 h-3 mr-1" />
-                    Reject
+                    {t('admin.preview.reject')}
                   </Button>
                 </div>
               )}
@@ -234,7 +237,19 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-4">
               <div className="flex items-center">
                 <User className="w-4 h-4 mr-1" />
-                {authorDisplay}
+                {blog.isAnonymous ? (
+                  authorDisplay
+                ) : authorId ? (
+                  <Link 
+                    href={`/profile/${authorId}`}
+                    className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                    target="_blank"
+                  >
+                    {authorDisplay}
+                  </Link>
+                ) : (
+                  authorDisplay
+                )}
               </div>
               <div className="flex items-center">
                 <Calendar className="w-4 h-4 mr-1" />
@@ -274,7 +289,7 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
               <div className="bg-gray-50 rounded-lg p-4 mb-4">
                 <h3 className="font-semibold text-gray-900 mb-2 flex items-center">
                   <FileText className="w-4 h-4 mr-2" />
-                  Summary
+                  {t('admin.preview.summary')}
                 </h3>
                 <p className="text-gray-700 leading-relaxed">{blog.abstract}</p>
               </div>
@@ -283,7 +298,7 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
             {/* Admin Comment */}
             {blog.adminComment && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <h3 className="font-semibold text-red-800 mb-2">Admin Comment</h3>
+                <h3 className="font-semibold text-red-800 mb-2">{t('profile.adminComment')}</h3>
                 <p className="text-red-700">{blog.adminComment}</p>
               </div>
             )}
@@ -291,7 +306,7 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
 
           {/* blog Content */}
           <div className="px-6 py-8">
-            <div className="prose max-w-none">
+                <div className="prose max-w-none">
               {blog.content && typeof blog.content === 'object' ? (
                 <BlocknoteReadOnly initialJSON={blog.content} />
               ) : blog.contentHtml ? (
@@ -299,7 +314,7 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
               ) : blog.content && typeof blog.content === 'string' ? (
                 <div className="whitespace-pre-wrap leading-relaxed">{blog.content}</div>
               ) : (
-                <p className="text-gray-500 italic">No content available.</p>
+                <p className="text-gray-500 italic">{t('admin.preview.noContent')}</p>
               )}
             </div>
           </div>
@@ -308,12 +323,18 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
 
       {/* Admin Action Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div 
+          className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+          onClick={() => setShowModal(false)}
+        >
+          <div 
+            className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="mt-3">
-              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-medium text-gray-900">
-                  {actionType === 'approve' ? 'Approve Blog' : 'Reject Blog'}
+                  {actionType === 'approve' ? t('admin.modals.approveTitle') : t('admin.modals.rejectTitle')}
                 </h3>
                 <Button
                   onClick={() => setShowModal(false)}
@@ -327,14 +348,14 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
               
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {actionType === 'approve' ? 'Comment (optional)' : 'Reason for rejection (required)'}
+                  {actionType === 'approve' ? t('admin.modals.comment') + ' (' + t('admin.common.optional') + ')' : t('admin.ngos.rejectReasonPlaceholder')}
                 </label>
                 <textarea
                   value={adminComment}
                   onChange={(e) => setAdminComment(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   rows={4}
-                  placeholder={actionType === 'approve' ? 'Add a comment...' : 'Please explain why this blog is being rejected...'}
+                  placeholder={actionType === 'approve' ? t('admin.modals.commentPlaceholder') : t('admin.ngos.rejectReasonPlaceholder')}
                 />
               </div>
               
@@ -345,7 +366,7 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
                   size="sm"
                   disabled={isProcessing}
                 >
-                  Cancel
+                  {t('admin.modals.cancel')}
                 </Button>
                 <Button
                   onClick={handleSubmitAction}
@@ -353,7 +374,7 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
                   variant={actionType === 'approve' ? 'primary' : 'danger'}
                   size="sm"
                 >
-                  {isProcessing ? 'Processing...' : (actionType === 'approve' ? 'Approve' : 'Reject')}
+                  {isProcessing ? t('admin.modals.processing') : (actionType === 'approve' ? t('admin.actions.approve') : t('admin.actions.reject'))}
                 </Button>
               </div>
             </div>

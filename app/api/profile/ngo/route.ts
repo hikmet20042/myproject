@@ -12,9 +12,9 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user is an NGO
-    if (session.user.role !== 'ngo') {
-      return NextResponse.json({ error: 'Access denied. NGO role required.' }, { status: 403 })
+    // Check if user is an approved NGO
+    if (!session.user.isApprovedNGO) {
+      return NextResponse.json({ error: 'Access denied. Approved NGO account required.' }, { status: 403 })
     }
 
     await dbConnect()

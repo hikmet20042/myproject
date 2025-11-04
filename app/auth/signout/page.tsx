@@ -4,9 +4,13 @@ import { useEffect } from 'react'
 import { signOut } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
 
 export default function SignOut() {
   const router = useRouter()
+  const { t } = useLanguage()
+  const localePath = useLocalizedPath()
 
   useEffect(() => {
     const handleSignOut = async () => {
@@ -15,12 +19,12 @@ export default function SignOut() {
         redirect: false 
       })
       setTimeout(() => {
-        router.push('/')
+        router.push(localePath("/"))
       }, 2000)
     }
 
     handleSignOut()
-  }, [router])
+  }, [router, localePath])
 
   return (
   <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -34,11 +38,11 @@ export default function SignOut() {
             </div>
             
             <h2 className="mt-6 text-2xl font-bold text-gray-900">
-              Signing out...
+              {t('auth.signingOut')}
             </h2>
             
             <p className="mt-2 text-sm text-gray-600">
-              You have been successfully signed out.
+              {t('auth.signedOut')}
             </p>
             
             <div className="mt-4">
@@ -46,15 +50,14 @@ export default function SignOut() {
             </div>
             
             <p className="mt-4 text-xs text-gray-500">
-              Redirecting to homepage...
+              {t('auth.redirectingHomepage')}
             </p>
             
             <div className="mt-6">
-              <Link 
-                href="/"
+              <Link href={localePath("/")}
                 className="text-primary hover:text-primary-dark font-medium"
               >
-                Go to homepage now
+                {t('auth.goToHomepageNow')}
               </Link>
             </div>
           </div>

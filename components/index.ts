@@ -1,5 +1,8 @@
 // Component Library - Main Export
 
+// Shared Design System Components (NEW)
+export * from './shared';
+
 // UI Components
 export {
   Button,
@@ -42,3 +45,12 @@ export * from './layout';
 
 // Feedback Components
 export * from './feedback';
+
+// Comment Components
+export * from './comments';
+
+// Social Interaction Components
+export { default as BlogReactions } from './BlogReactions';
+export { default as SaveButton } from './SaveButton';
+export { default as ViewTracker } from './ViewTracker';
+export { default as NotificationBell } from './NotificationBell';

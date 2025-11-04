@@ -4,11 +4,13 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import AuthProvider from '@/components/AuthProvider'
 import { NotificationProvider } from '@/components/NotificationContext'
+import { LanguageProvider } from '@/contexts/LanguageContext'
+import { SocketProvider } from '@/components/SocketProvider'
 
 export const metadata: Metadata = {
-  title: 'Social Justice Platform',
-  description: 'Public service website promoting social justice and equality for all communities',
-  keywords: 'social justice, equality, human rights, community advocacy, public service',
+  title: 'icma360 — Youth & Community Platform',
+  description: 'Empowering youth and communities in Azerbaijan through connection, learning, and opportunities',
+  keywords: 'youth empowerment, community building, NGO network, opportunities, volunteering, Azerbaijan',
 }
 
 export default function RootLayout({
@@ -20,13 +22,17 @@ export default function RootLayout({
     <html lang="en" className="scroll-smooth">
   <body className="min-h-screen bg-gray-50 text-gray-900 transition-colors duration-200" suppressHydrationWarning={true}>
         <AuthProvider>
-          <NotificationProvider>
-            <Header />
-            <main className="min-h-screen">
-              {children}
-            </main>
-            <Footer />
-          </NotificationProvider>
+          <LanguageProvider>
+            <SocketProvider>
+              <NotificationProvider>
+                <Header />
+                <main className="min-h-screen">
+                  {children}
+                </main>
+                <Footer />
+              </NotificationProvider>
+            </SocketProvider>
+          </LanguageProvider>
         </AuthProvider>
       </body>
     </html>

@@ -5,19 +5,25 @@ import { useRouter, useParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import BlocknoteEditor from '@/components/BlocknoteEditor'
 import { ArrowLeft, Send, Eye, EyeOff } from 'lucide-react'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { LoadingState, SuccessState } from '@/components/shared'
 
 
 export default function EditBlogStep2() {
+  const { t } = useLanguage()
+
   const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
-  const blogId = params.id as string;
+  const blogId = params?.id as string;
   const [content, setContent] = useState<any>(null); // BlockNote JSON
   const [contentHtml, setContentHtml] = useState('');
   const [characterCount, setCharacterCount] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const localePath = useLocalizedPath()
   const [success, setSuccess] = useState(false);
   // Removed draft saving functionality - editing pending stories updates directly
   const [title, setTitle] = useState<string>('');
@@ -256,7 +262,7 @@ export default function EditBlogStep2() {
         sessionStorage.removeItem('inBlogEditFlow');
         setSuccess(true);
         setTimeout(() => {
-          router.push('/profile');
+          router.push(localePath("/profile"));
         }, 2000);
       } else {
         const data = await response.json();
@@ -272,27 +278,22 @@ export default function EditBlogStep2() {
 
   if (!init || status === 'loading') {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
+      <LoadingState 
+        text={t('blog.loadingEditor') || 'Loading editor...'}
+        gradientFrom="from-blue-50"
+        gradientVia="via-indigo-50"
+        gradientTo="to-purple-50"
+        spinnerColor="border-blue-600"
+      />
     );
   }
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-            <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h3 className="mt-4 text-lg font-medium text-gray-900">Blog Updated Successfully!</h3>
-          <p className="mt-2 text-sm text-gray-500">
-            Your blog has been updated and submitted for review. You'll receive a notification once it's approved.
-          </p>
-        </div>
-      </div>
+      <SuccessState 
+        title={t('blog.updated') || 'Blog Updated Successfully!'}
+        message={t('blog.updatedMessage') || "Your blog has been updated and submitted for review. You'll receive a notification once it's approved."}
+      />
     );
   }
 
@@ -346,14 +347,14 @@ export default function EditBlogStep2() {
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Blog Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Title</label>
+                <label className="block text-sm font-medium text-gray-700">{t('labels.title')}</label>
                 <p className="mt-1 text-sm text-gray-900">{title}</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Author</label>
+                <label className="block text-sm font-medium text-gray-700">{t('author')}</label>
                 {isAnonymous ? (
-                  <p className="mt-1 text-sm text-gray-900">Anonymous</p>
+                  <p className="mt-1 text-sm text-gray-900">{t('titles.anonymous')}</p>
                 ) : showAuthorNameInput ? (
                   <input
                     type="text"

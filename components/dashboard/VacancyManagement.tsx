@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
 import Link from 'next/link'
 import { Briefcase, MapPin, DollarSign, Clock, Plus, Edit, Trash2, Eye, AlertCircle, CheckCircle, XCircle, Search, Filter, Users } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -89,27 +91,30 @@ const vacancyCategories = [
   'Other'
 ]
 
-const statusOptions = [
-  { value: 'all', label: 'All Status' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'approved', label: 'Approved' },
-  { value: 'rejected', label: 'Rejected' }
-]
-
-const categoryOptions = [
-  { value: 'all', label: 'All Categories' },
-  ...vacancyCategories.map(cat => ({ value: cat, label: cat }))
-]
-
-const compensationOptions = [
-  { value: 'all', label: 'All Types' },
-  { value: 'paid', label: 'Paid' },
-  { value: 'unpaid', label: 'Unpaid' },
-  { value: 'stipend', label: 'Stipend' }
-]
+// vacancyCategories is intentionally defined above; option labels are localized inside the component
 
 export default function VacancyManagement() {
   const { data: session } = useSession()
+  const { t } = useLanguage()
+  const localePath = useLocalizedPath()
+  const localizedStatusOptions = [
+    { value: 'all', label: t('vacancies.status.all') },
+    { value: 'pending', label: t('vacancies.status.pending') },
+    { value: 'approved', label: t('vacancies.status.approved') },
+    { value: 'rejected', label: t('vacancies.status.rejected') }
+  ]
+
+  const localizedCategoryOptions = [
+    { value: 'all', label: t('vacancies.allCategories') },
+    ...vacancyCategories.map(cat => ({ value: cat, label: cat }))
+  ]
+
+  const localizedCompensationOptions = [
+    { value: 'all', label: t('vacancies.compensation.all') },
+    { value: 'paid', label: t('vacancies.compensation.paid') },
+    { value: 'unpaid', label: t('vacancies.compensation.unpaid') },
+    { value: 'stipend', label: t('vacancies.compensation.stipend') }
+  ]
   const [vacancies, setVacancies] = useState<Vacancy[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -181,33 +186,33 @@ export default function VacancyManagement() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
-        return <Badge variant="success">Approved</Badge>
+        return <Badge variant="success">{t('vacancies.status.approved')}</Badge>
       case 'rejected':
-        return <Badge variant="danger">Rejected</Badge>
+        return <Badge variant="danger">{t('vacancies.status.rejected')}</Badge>
       default:
-        return <Badge variant="warning">Pending</Badge>
+        return <Badge variant="warning">{t('vacancies.status.pending')}</Badge>
     }
   }
 
   const getCompensationBadge = (type: string, amount?: string) => {
     switch (type) {
       case 'paid':
-        return <Badge variant="success">{amount ? `$${amount}` : 'Paid'}</Badge>
+        return <Badge variant="success">{amount ? `$${amount}` : t('vacancies.compensation.paid')}</Badge>
       case 'stipend':
-        return <Badge variant="secondary">{amount ? `$${amount} stipend` : 'Stipend'}</Badge>
+        return <Badge variant="secondary">{amount ? `$${amount} ${t('vacancies.compensation.stipend')}` : t('vacancies.compensation.stipend')}</Badge>
       default:
-        return <Badge variant="secondary">Unpaid</Badge>
+        return <Badge variant="secondary">{t('vacancies.compensation.unpaid')}</Badge>
     }
   }
 
   const getLocationBadge = (locationType: string) => {
     switch (locationType) {
       case 'remote':
-        return <Badge variant="primary">Remote</Badge>
+        return <Badge variant="primary">{t('vacancies.remote')}</Badge>
       case 'hybrid':
-        return <Badge variant="secondary">Hybrid</Badge>
+        return <Badge variant="secondary">{t('vacancies.hybrid') || 'Hybrid'}</Badge>
       default:
-        return <Badge variant="secondary">On-site</Badge>
+        return <Badge variant="secondary">{t('vacancies.onsite') || 'On-site'}</Badge>
     }
   }
 
@@ -234,15 +239,15 @@ export default function VacancyManagement() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Vacancy Management</h2>
-          <p className="text-gray-600">Manage your organization's job postings</p>
+          <h2 className="text-2xl font-bold text-gray-900">{t('dashboard.vacancyManagement.title')}</h2>
+          <p className="text-gray-600">{t('dashboard.vacancyManagement.subtitle')}</p>
         </div>
-        <Link href="/dashboard/vacancies/create">
+        <Link href={localePath('/dashboard/vacancies/create')}>
           <Button
             variant="primary"
             icon={Plus}
           >
-            Create Vacancy
+            {t('dashboard.vacancyManagement.createVacancy')}
           </Button>
         </Link>
       </div>
@@ -254,29 +259,29 @@ export default function VacancyManagement() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
-                placeholder="Search vacancies..."
+                placeholder={t('vacancies.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
             <Select
-              options={statusOptions}
+              options={localizedStatusOptions}
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              placeholder="Filter by status"
+              placeholder={t('vacancies.filterByStatus')}
             />
             <Select
-              options={categoryOptions}
+              options={localizedCategoryOptions}
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              placeholder="Filter by category"
+              placeholder={t('vacancies.filterByCategory')}
             />
             <Select
-              options={compensationOptions}
+              options={localizedCompensationOptions}
               value={compensationFilter}
               onChange={(e) => setCompensationFilter(e.target.value)}
-              placeholder="Filter by compensation"
+              placeholder={t('vacancies.filterByCompensation')}
             />
           </div>
         </CardContent>
@@ -288,19 +293,19 @@ export default function VacancyManagement() {
           <CardContent>
             <div className="text-center py-12">
               <Briefcase className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No vacancies found</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">{t('vacancies.noVacanciesFound')}</h3>
               <p className="text-gray-600 mb-4">
                 {vacancies.length === 0 
-                  ? "You haven't created any vacancies yet." 
-                  : "No vacancies match your current filters."}
+                  ? t('vacancies.noVacanciesEmpty') 
+                  : t('vacancies.noVacanciesFilters')}
               </p>
               {vacancies.length === 0 && (
-                <Link href="/dashboard/vacancies/create">
+                <Link href={localePath('/dashboard/vacancies/create')}>
                   <Button
                     variant="primary"
                     icon={Plus}
                   >
-                    Create Your First Vacancy
+                    {t('dashboard.vacancyManagement.createFirstVacancy')}
                   </Button>
                 </Link>
               )}
@@ -334,7 +339,7 @@ export default function VacancyManagement() {
                         <span className="truncate">
                           {vacancy.location.city && vacancy.location.country 
                             ? `${vacancy.location.city}, ${vacancy.location.country}`
-                            : vacancy.location.city || vacancy.location.country || 'Location TBD'}
+                            : vacancy.location.city || vacancy.location.country || t('vacancies.locationTBD')}
                         </span>
                       </div>
                       <div className="flex items-center gap-1">
@@ -343,11 +348,11 @@ export default function VacancyManagement() {
                       </div>
                       <div className="flex items-center gap-1">
                         <DollarSign className="h-4 w-4" />
-                        <span>{vacancy.compensation.type}</span>
+                        <span>{t(`vacancies.compensation.${vacancy.compensation.type}`) || vacancy.compensation.type}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Users className="h-4 w-4" />
-                        <span>Deadline: {new Date(vacancy.applicationDeadline).toLocaleDateString()}</span>
+                        <span>{t('vacancies.deadline')}: {new Date(vacancy.applicationDeadline).toLocaleDateString()}</span>
                       </div>
                     </div>
                     
@@ -359,18 +364,18 @@ export default function VacancyManagement() {
                         <Badge key={index} variant="secondary">{tag}</Badge>
                       ))}
                       {vacancy.tags.length > 2 && (
-                        <Badge variant="secondary">+{vacancy.tags.length - 2} more</Badge>
+                        <Badge variant="secondary">+{vacancy.tags.length - 2} {t('vacancies.more') || 'more'}</Badge>
                       )}
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-2 ml-4">
-                    <Link href={`/resources/vacancies/${vacancy._id}`}>
+                      <Link href={`/resources/vacancies/${vacancy._id}`}>
                       <Button
                         variant="ghost"
                         size="sm"
                         icon={Eye}
-                        title="View Vacancy"
+                        title={t('vacancies.viewVacancy')}
                       />
                     </Link>
                     <Link href={`/dashboard/vacancies/${vacancy._id}/edit`}>
@@ -378,7 +383,7 @@ export default function VacancyManagement() {
                         variant="ghost"
                         size="sm"
                         icon={Edit}
-                        title="Edit Vacancy"
+                        title={t('vacancies.editVacancy')}
                       />
                     </Link>
                     <Button
@@ -386,7 +391,7 @@ export default function VacancyManagement() {
                       variant="ghost"
                       size="sm"
                       icon={Trash2}
-                      title="Delete Vacancy"
+                      title={t('vacancies.deleteVacancy')}
                       className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                     />
                   </div>
@@ -401,11 +406,11 @@ export default function VacancyManagement() {
       <Modal
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
-        title="Delete Vacancy"
+        title={t('vacancies.deleteVacancy')}
       >
         <div className="space-y-4">
           <p className="text-gray-600">
-            Are you sure you want to delete "{vacancyToDelete?.title}"? This action cannot be undone.
+            {t('vacancies.deleteConfirmation', { title: vacancyToDelete?.title || '' })}
           </p>
           <div className="flex justify-end gap-3">
             <Button
@@ -413,14 +418,14 @@ export default function VacancyManagement() {
               onClick={() => setDeleteModalOpen(false)}
               disabled={deleting}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               variant="danger"
               onClick={confirmDelete}
               loading={deleting}
             >
-              Delete Vacancy
+              {t('vacancies.deleteVacancy')}
             </Button>
           </div>
         </div>

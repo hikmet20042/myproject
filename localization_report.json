@@ -1,0 +1,1053 @@
+{
+  "scan_date": "2025-11-03",
+  "total_files_scanned": 64,
+  "total_strings_found": 302,
+  "new_translations_added": 183,
+  "files_with_hardcoded_strings": [
+    {
+      "file": "app\\edit\\blog\\layout.tsx",
+      "strings": [
+        "Two steps: details and content.",
+        "Edit Your Blog"
+      ],
+      "count": 2
+    },
+    {
+      "file": "app\\edit\\blog\\[id]\\page.tsx",
+      "strings": [
+        "Redirecting to edit flow..."
+      ],
+      "count": 1
+    },
+    {
+      "file": "app\\edit\\blog\\[id]\\step1\\page.tsx",
+      "strings": [
+        "Editing Blog",
+        "Blog Title *",
+        "Loading blog data...",
+        "Continue to writing →",
+        "Content-Type",
+        "Enter your name (or leave blank to use your profile name)",
+        "Custom name will be displayed on your blog",
+        "Enter the name you want displayed on your blog",
+        "Name is hidden when submitting anonymously.",
+        "Give your blog a compelling title...",
+        "Submit anonymously",
+        "Your Name",
+        "You are editing an existing blog. Any changes will update the original blog."
+      ],
+      "count": 13
+    },
+    {
+      "file": "app\\api\\blogs\\route.ts",
+      "strings": [
+        "Story updated successfully",
+        "Story not found or you do not have permission to edit it",
+        "Internal server error",
+        "Authentication required",
+        "Some images in the content are invalid or do not belong to you.",
+        "Failed to update blog",
+        "You can only edit your own blogs",
+        "Story deleted successfully",
+        "Story not found",
+        "Failed to process images",
+        "Failed to fetch blogs",
+        "Tags must be an array of strings",
+        "Story ID and status are required",
+        "Story ID is required",
+        "Approved blogs cannot be edited. Contact an administrator if changes are needed.",
+        "Failed to submit blog",
+        "You must verify your email before submitting blogs."
+      ],
+      "count": 17
+    },
+    {
+      "file": "app\\api\\events\\route.ts",
+      "strings": [
+        "Authentication required",
+        "Failed to create event",
+        "Cost information must specify if training is free",
+        "Valid location type is required",
+        "Failed to fetch events",
+        "Only approved NGOs can create events",
+        "Duration must include both value and unit for training events",
+        "NGO profile not found",
+        "Invalid event type"
+      ],
+      "count": 9
+    },
+    {
+      "file": "app\\api\\images\\route.ts",
+      "strings": [
+        "Failed to delete image",
+        "Invalid image ID",
+        "Image not found or not authorized",
+        "Failed to retrieve images"
+      ],
+      "count": 4
+    },
+    {
+      "file": "app\\api\\ngos\\route.ts",
+      "strings": [
+        "Failed to fetch NGOs",
+        "Internal server error",
+        "Use NGO-specific endpoints for NGO data"
+      ],
+      "count": 3
+    },
+    {
+      "file": "app\\api\\notifications\\route.ts",
+      "strings": [
+        "Internal server error",
+        "Notification deleted successfully",
+        "Notification ID required",
+        "Invalid request",
+        "Notification not found",
+        "All notifications marked as read"
+      ],
+      "count": 6
+    },
+    {
+      "file": "app\\api\\profile\\route.ts",
+      "strings": [
+        "Failed to fetch profile",
+        "User not found",
+        "NGO not found"
+      ],
+      "count": 3
+    },
+    {
+      "file": "app\\api\\social-media\\route.ts",
+      "strings": [
+        "No valid social media data provided",
+        "User not found",
+        "Failed to fetch social media accounts",
+        "Failed to update social media accounts"
+      ],
+      "count": 4
+    },
+    {
+      "file": "app\\api\\stats\\route.ts",
+      "strings": [
+        "Failed to fetch statistics"
+      ],
+      "count": 1
+    },
+    {
+      "file": "app\\api\\upload\\route.ts",
+      "strings": [
+        "Upload failed",
+        "Invalid file type. Only images are allowed.",
+        "Failed to save image",
+        "ImgBB upload failed",
+        "No file provided"
+      ],
+      "count": 5
+    },
+    {
+      "file": "app\\api\\vacancies\\route.ts",
+      "strings": [
+        "Application link is required when using link method",
+        "Only approved NGOs can create vacancies",
+        "Authentication required",
+        "Deadline must be in the future",
+        "Application email is required when using email method",
+        "Failed to create vacancy",
+        "Failed to fetch vacancies"
+      ],
+      "count": 7
+    },
+    {
+      "file": "app\\api\\vacancies\\[id]\\route.ts",
+      "strings": [
+        "Deadline must be in the future",
+        "Failed to delete vacancy",
+        "Authentication required",
+        "Failed to fetch vacancy",
+        "Permission denied",
+        "Failed to update vacancy",
+        "Admin access required",
+        "Invalid vacancy ID",
+        "Rejection reason is required",
+        "Vacancy Rejected",
+        "Vacancy deleted successfully",
+        "Vacancy not found",
+        "Vacancy Approved!",
+        "Invalid action. Must be",
+        "Failed to update vacancy status"
+      ],
+      "count": 15
+    },
+    {
+      "file": "app\\api\\vacancies\\[id]\\save\\route.ts",
+      "strings": [
+        "Internal server error",
+        "User not found",
+        "Vacancy not found",
+        "Authentication required"
+      ],
+      "count": 4
+    },
+    {
+      "file": "app\\api\\vacancies\\[id]\\view\\route.ts",
+      "strings": [
+        "Internal server error",
+        "Vacancy not found"
+      ],
+      "count": 2
+    },
+    {
+      "file": "app\\api\\users\\profile\\route.ts",
+      "strings": [
+        "User not found",
+        "Internal server error"
+      ],
+      "count": 2
+    },
+    {
+      "file": "app\\api\\users\\[id]\\route.ts",
+      "strings": [
+        "User not found",
+        "Internal server error"
+      ],
+      "count": 2
+    },
+    {
+      "file": "app\\api\\users\\profile\\stats\\route.ts",
+      "strings": [
+        "User not found",
+        "Internal server error"
+      ],
+      "count": 2
+    },
+    {
+      "file": "app\\api\\profile\\ngo\\route.ts",
+      "strings": [
+        "Organization name and description are required",
+        "Access denied. Approved NGO account required.",
+        "NGO profile not found",
+        "Failed to update NGO profile"
+      ],
+      "count": 4
+    },
+    {
+      "file": "app\\api\\notifications\\[id]\\route.ts",
+      "strings": [
+        "Internal server error",
+        "Notification not found"
+      ],
+      "count": 2
+    },
+    {
+      "file": "app\\api\\ngos\\[id]\\route.ts",
+      "strings": [
+        "Internal server error",
+        "Organization name, description, contact person name and email are required",
+        "Invalid NGO ID",
+        "Admin access required",
+        "NGO deleted successfully",
+        "Insufficient permissions",
+        "An NGO with this name already exists",
+        "NGO not found"
+      ],
+      "count": 8
+    },
+    {
+      "file": "app\\api\\ngo\\profile\\route.ts",
+      "strings": [
+        "Internal server error",
+        "NGO not found",
+        "Profile updates are only allowed for approved NGOs"
+      ],
+      "count": 3
+    },
+    {
+      "file": "app\\api\\images\\[id]\\route.ts",
+      "strings": [
+        "Invalid image ID",
+        "Image not found",
+        "Failed to retrieve image"
+      ],
+      "count": 3
+    },
+    {
+      "file": "app\\api\\events\\[id]\\route.ts",
+      "strings": [
+        "Failed to fetch event",
+        "No reason provided",
+        "Authentication required",
+        "Failed to update event",
+        "Event deleted successfully",
+        "Event not found",
+        "Permission denied",
+        "Invalid event ID",
+        "Failed to delete event"
+      ],
+      "count": 9
+    },
+    {
+      "file": "app\\api\\events\\[id]\\save\\route.ts",
+      "strings": [
+        "Event not found",
+        "User not found",
+        "Internal server error",
+        "Authentication required"
+      ],
+      "count": 4
+    },
+    {
+      "file": "app\\api\\events\\[id]\\view\\route.ts",
+      "strings": [
+        "Event not found",
+        "Internal server error"
+      ],
+      "count": 2
+    },
+    {
+      "file": "app\\api\\cron\\event-deadlines\\route.ts",
+      "strings": [
+        "Unknown error"
+      ],
+      "count": 1
+    },
+    {
+      "file": "app\\api\\comments\\[commentId]\\route.ts",
+      "strings": [
+        "Internal server error",
+        "Authentication required",
+        "Comment not found",
+        "Comment content is required",
+        "Comment deleted successfully"
+      ],
+      "count": 5
+    },
+    {
+      "file": "app\\api\\comments\\[commentId]\\dislike\\route.ts",
+      "strings": [
+        "Internal server error",
+        "Comment not found",
+        "Authentication required"
+      ],
+      "count": 3
+    },
+    {
+      "file": "app\\api\\comments\\[commentId]\\like\\route.ts",
+      "strings": [
+        "Internal server error",
+        "Comment not found",
+        "Authentication required"
+      ],
+      "count": 3
+    },
+    {
+      "file": "app\\api\\blogs\\user\\route.ts",
+      "strings": [
+        "Failed to fetch user blogs"
+      ],
+      "count": 1
+    },
+    {
+      "file": "app\\api\\blogs\\[id]\\route.ts",
+      "strings": [
+        "Failed to fetch blog",
+        "Story not found",
+        "Authentication required"
+      ],
+      "count": 3
+    },
+    {
+      "file": "app\\api\\blogs\\[id]\\comments\\route.ts",
+      "strings": [
+        "Internal server error",
+        "Authentication required",
+        "Parent comment not found",
+        "Comment content is required",
+        "Blog not found"
+      ],
+      "count": 5
+    },
+    {
+      "file": "app\\api\\blogs\\[id]\\dislike\\route.ts",
+      "strings": [
+        "Blog not found",
+        "Internal server error",
+        "Authentication required"
+      ],
+      "count": 3
+    },
+    {
+      "file": "app\\api\\blogs\\[id]\\like\\route.ts",
+      "strings": [
+        "Blog not found",
+        "Internal server error",
+        "Authentication required"
+      ],
+      "count": 3
+    },
+    {
+      "file": "app\\api\\blogs\\[id]\\view\\route.ts",
+      "strings": [
+        "Blog not found",
+        "Internal server error"
+      ],
+      "count": 2
+    },
+    {
+      "file": "app\\api\\auth\\change-password\\route.ts",
+      "strings": [
+        "Current password is incorrect",
+        "Internal server error",
+        "This account uses social login. Password change is not available.",
+        "Authentication required",
+        "Password changed successfully",
+        "User not found",
+        "New password must be at least 6 characters long",
+        "New password must be different from current password",
+        "Current password and new password are required"
+      ],
+      "count": 9
+    },
+    {
+      "file": "app\\api\\auth\\forgot-password\\route.ts",
+      "strings": [
+        "Internal server error",
+        "Email is required",
+        "If an account with that email exists, a password reset link has been sent."
+      ],
+      "count": 3
+    },
+    {
+      "file": "app\\api\\auth\\register\\route.ts",
+      "strings": [
+        "Qeydiyyatdan keçdiyiniz üçün təşəkkür edirik. E-poçt ünvanınızı təsdiqləmək üçün aşağıdakı düyməni klikləyin:",
+        "QHT qeydiyyatınız üçün təşəkkür edirik. Zəhmət olmasa e-poçtunuzu təsdiqləyin və QHT funksiyalarına çıxış əldə etmək üçün admin təsdiqini gözləyin.",
+        "Internal server error",
+        "Name, email, and password are required",
+        "An account with this email already exists",
+        "Please enter a valid email address",
+        "Organization name, email, password, description, and contact person details are required",
+        "Registration endpoint",
+        "E-poçtu təsdiqləyin",
+        "Password must be at least 6 characters long",
+        "Registration successful! Please check your email to verify your account."
+      ],
+      "count": 11
+    },
+    {
+      "file": "app\\api\\auth\\reset-password\\route.ts",
+      "strings": [
+        "Password has been reset successfully",
+        "Internal server error",
+        "Invalid or expired reset token",
+        "Token, email, and password are required",
+        "Password must be at least 6 characters long"
+      ],
+      "count": 5
+    },
+    {
+      "file": "app\\api\\auth\\verify-email\\route.ts",
+      "strings": [
+        "Internal server error",
+        "E-poçt uğurla təsdiqləndi! QHT qeydiyyatınız indi admin təsdiqi gözləyir.",
+        "Email is already verified",
+        "Invalid verification token",
+        "Verification token is required"
+      ],
+      "count": 5
+    },
+    {
+      "file": "app\\api\\auth\\verify-request\\route.ts",
+      "strings": [
+        "Qeydiyyatdan keçdiyiniz üçün təşəkkür edirik. E-poçt ünvanınızı təsdiqləmək üçün aşağıdakı düyməni klikləyin:",
+        "Verification email sent",
+        "Authentication required",
+        "Düymə işləmirsə, bu linki brauzeriziə kopyalayıb yapışdıra bilərsiniz:",
+        "Failed to send verification email",
+        "User not found",
+        "Bu hesabı siz yaratmamısınızsa, bu e-poçtu nəzərə almayın.",
+        "E-poçtu Təsdiqlə",
+        "Email already verified"
+      ],
+      "count": 9
+    },
+    {
+      "file": "app\\api\\admin\\blogs\\route.ts",
+      "strings": [
+        "Internal server error",
+        "Blog not found",
+        "Failed to perform bulk operation",
+        "Invalid action",
+        "Update failed",
+        "Admin access required",
+        "Story not found",
+        "Failed to fetch blogs",
+        "Bulk rejected",
+        "Missing required fields",
+        "Invalid status"
+      ],
+      "count": 11
+    },
+    {
+      "file": "app\\api\\admin\\cleanup-images\\route.ts",
+      "strings": [
+        "Failed to get cleanup status",
+        "Unknown error",
+        "Admin access required"
+      ],
+      "count": 3
+    },
+    {
+      "file": "app\\api\\admin\\events\\route.ts",
+      "strings": [
+        "Internal server error",
+        "Event ID and valid status are required",
+        "Event not found",
+        "Admin access required",
+        "Failed to fetch events"
+      ],
+      "count": 5
+    },
+    {
+      "file": "app\\api\\admin\\migrate-images\\route.ts",
+      "strings": [
+        "Unknown error",
+        "Admin access required",
+        "Failed to get migration status"
+      ],
+      "count": 3
+    },
+    {
+      "file": "app\\api\\admin\\ngos\\route.ts",
+      "strings": [
+        "Invalid request data",
+        "QHT qeydiyyatı təsdiqləndi!",
+        "Invalid action",
+        "Admin access required",
+        "Rejection reason is required for bulk rejection",
+        "Rejection reason is required",
+        "Failed to fetch NGOs",
+        "Failed to update NGO status",
+        "No valid NGOs found",
+        "NGO not found",
+        "Failed to process bulk NGO operation"
+      ],
+      "count": 11
+    },
+    {
+      "file": "app\\api\\admin\\notifications\\route.ts",
+      "strings": [
+        "Internal server error",
+        "Type, title, and message are required",
+        "Notification deleted successfully",
+        "Notification ID or deleteAll parameter required",
+        "Notification not found",
+        "Announcement not found",
+        "Invalid target users",
+        "Invalid request parameters",
+        "Title and message are required"
+      ],
+      "count": 9
+    },
+    {
+      "file": "app\\api\\admin\\settings\\route.ts",
+      "strings": [
+        "Settings history not available",
+        "Internal server error",
+        "Settings data required",
+        "Settings not found"
+      ],
+      "count": 4
+    },
+    {
+      "file": "app\\api\\admin\\users\\route.ts",
+      "strings": [
+        "Internal server error",
+        "User deleted successfully",
+        "User ID is required",
+        "NGOs cannot be deleted through this endpoint. Use the NGO management interface.",
+        "Invalid action",
+        "Admin access required",
+        "Failed to fetch users",
+        "User not found",
+        "Cannot modify your own role",
+        "User profile updated successfully",
+        "Cannot delete your own account",
+        "Invalid role"
+      ],
+      "count": 12
+    },
+    {
+      "file": "app\\api\\admin\\ngos\\[id]\\route.ts",
+      "strings": [
+        "Failed to delete NGO",
+        "Admin access required",
+        "NGO deleted successfully",
+        "User is not an NGO",
+        "NGO not found"
+      ],
+      "count": 5
+    },
+    {
+      "file": "app\\api\\admin\\events\\[id]\\route.ts",
+      "strings": [
+        "Failed to fetch event",
+        "Internal server error",
+        "Event not found",
+        "Admin access required",
+        "Admin comment is required for rejection",
+        "Invalid action. Must be",
+        "Invalid event ID"
+      ],
+      "count": 7
+    },
+    {
+      "file": "app\\api\\admin\\blogs\\[id]\\route.ts",
+      "strings": [
+        "Status is required",
+        "Failed to update blog",
+        "Admin access required",
+        "Failed to delete blog",
+        "Story deleted successfully",
+        "Story not found",
+        "Invalid status"
+      ],
+      "count": 7
+    },
+    {
+      "file": "components\\blockHandlePlugin.ts",
+      "strings": [
+        "Block menu"
+      ],
+      "count": 1
+    },
+    {
+      "file": "components\\BlocknoteReadOnly.tsx",
+      "strings": [
+        "No content"
+      ],
+      "count": 1
+    },
+    {
+      "file": "components\\BlogReactions.tsx",
+      "strings": [
+        "Sign in to react",
+        "Content-Type"
+      ],
+      "count": 2
+    },
+    {
+      "file": "components\\SaveButton.tsx",
+      "strings": [
+        "Content-Type"
+      ],
+      "count": 1
+    },
+    {
+      "file": "components\\ViewTracker.tsx",
+      "strings": [
+        "Content-Type"
+      ],
+      "count": 1
+    },
+    {
+      "file": "components\\comments\\CommentForm.tsx",
+      "strings": [
+        "Please sign in to join the conversation",
+        "Content-Type",
+        "Share your thoughts...",
+        "Sign In"
+      ],
+      "count": 4
+    },
+    {
+      "file": "components\\comments\\CommentSection.tsx",
+      "strings": [
+        "Be the first to share your thoughts!",
+        "No comments yet",
+        "Loading comments..."
+      ],
+      "count": 3
+    },
+    {
+      "file": "components\\forms\\DynamicList.tsx",
+      "strings": [
+        "Enter item..."
+      ],
+      "count": 1
+    },
+    {
+      "file": "components\\ui\\SearchBar.tsx",
+      "strings": [
+        "Clear search",
+        "Search by title, content, or abstract..."
+      ],
+      "count": 2
+    },
+    {
+      "file": "components\\ui\\Select.tsx",
+      "strings": [
+        "Select an option..."
+      ],
+      "count": 1
+    }
+  ],
+  "new_translation_keys": [
+    "titles.two_steps_details_and_content",
+    "buttons.blog_title_",
+    "buttons.loading_blog_data",
+    "titles.continue_to_writing_",
+    "buttons.contenttype",
+    "messages.enter_your_name_or_leave_blank_to_use_your_profile",
+    "content.custom_name_will_be_displayed_on_your_blog",
+    "content.enter_the_name_you_want_displayed_on_your_blog",
+    "content.give_your_blog_a_compelling_title",
+    "buttons.your_name",
+    "buttons.story_updated_successfully",
+    "buttons.story_not_found_or_you_do_not_have_permission_to_e",
+    "buttons.internal_server_error",
+    "buttons.authentication_required",
+    "messages.some_images_in_the_content_are_invalid_or_do_not_b",
+    "titles.failed_to_update_blog",
+    "buttons.you_can_only_edit_your_own_blogs",
+    "buttons.story_deleted_successfully",
+    "buttons.story_not_found",
+    "titles.failed_to_process_images",
+    "titles.failed_to_fetch_blogs",
+    "content.tags_must_be_an_array_of_strings",
+    "content.story_id_and_status_are_required",
+    "titles.story_id_is_required",
+    "buttons.approved_blogs_cannot_be_edited_contact_an_adminis",
+    "buttons.failed_to_submit_blog",
+    "buttons.you_must_verify_your_email_before_submitting_blogs",
+    "buttons.failed_to_create_event",
+    "content.cost_information_must_specify_if_training_is_free",
+    "titles.valid_location_type_is_required",
+    "titles.failed_to_fetch_events",
+    "buttons.only_approved_ngos_can_create_events",
+    "content.duration_must_include_both_value_and_unit_for_trai",
+    "titles.ngo_profile_not_found",
+    "buttons.invalid_event_type",
+    "buttons.failed_to_delete_image",
+    "buttons.invalid_image_id",
+    "content.image_not_found_or_not_authorized",
+    "titles.failed_to_retrieve_images",
+    "titles.failed_to_fetch_ngos",
+    "content.use_ngospecific_endpoints_for_ngo_data",
+    "buttons.notification_deleted_successfully",
+    "buttons.notification_id_required",
+    "buttons.invalid_request",
+    "buttons.notification_not_found",
+    "titles.all_notifications_marked_as_read",
+    "titles.failed_to_fetch_profile",
+    "buttons.user_not_found",
+    "buttons.ngo_not_found",
+    "content.no_valid_social_media_data_provided",
+    "content.failed_to_fetch_social_media_accounts",
+    "content.failed_to_update_social_media_accounts",
+    "titles.failed_to_fetch_statistics",
+    "buttons.upload_failed",
+    "content.invalid_file_type_only_images_are_allowed",
+    "buttons.failed_to_save_image",
+    "buttons.imgbb_upload_failed",
+    "buttons.no_file_provided",
+    "content.application_link_is_required_when_using_link_metho",
+    "buttons.only_approved_ngos_can_create_vacancies",
+    "content.deadline_must_be_in_the_future",
+    "content.application_email_is_required_when_using_email_met",
+    "buttons.failed_to_create_vacancy",
+    "titles.failed_to_fetch_vacancies",
+    "buttons.failed_to_delete_vacancy",
+    "titles.failed_to_fetch_vacancy",
+    "buttons.permission_denied",
+    "titles.failed_to_update_vacancy",
+    "buttons.admin_access_required",
+    "buttons.invalid_vacancy_id",
+    "titles.rejection_reason_is_required",
+    "buttons.vacancy_rejected",
+    "buttons.vacancy_deleted_successfully",
+    "buttons.vacancy_not_found",
+    "buttons.vacancy_approved",
+    "titles.invalid_action_must_be",
+    "titles.failed_to_update_vacancy_status",
+    "content.organization_name_and_description_are_required",
+    "content.access_denied_approved_ngo_account_required",
+    "titles.failed_to_update_ngo_profile",
+    "content.organization_name_description_contact_person_name_",
+    "buttons.invalid_ngo_id",
+    "buttons.ngo_deleted_successfully",
+    "buttons.insufficient_permissions",
+    "content.an_ngo_with_this_name_already_exists",
+    "content.profile_updates_are_only_allowed_for_approved_ngos",
+    "buttons.image_not_found",
+    "titles.failed_to_retrieve_image",
+    "titles.failed_to_fetch_event",
+    "buttons.no_reason_provided",
+    "titles.failed_to_update_event",
+    "buttons.event_deleted_successfully",
+    "buttons.event_not_found",
+    "buttons.invalid_event_id",
+    "buttons.failed_to_delete_event",
+    "buttons.unknown_error",
+    "buttons.comment_not_found",
+    "titles.comment_content_is_required",
+    "buttons.comment_deleted_successfully",
+    "titles.failed_to_fetch_user_blogs",
+    "titles.failed_to_fetch_blog",
+    "titles.parent_comment_not_found",
+    "buttons.blog_not_found",
+    "titles.current_password_is_incorrect",
+    "content.this_account_uses_social_login_password_change_is_",
+    "buttons.password_changed_successfully",
+    "content.new_password_must_be_at_least_6_characters_long",
+    "content.new_password_must_be_different_from_current_passwo",
+    "content.current_password_and_new_password_are_required",
+    "buttons.email_is_required",
+    "messages.if_an_account_with_that_email_exists_a_password_re",
+    "labels.qeydiyyatdan_keçdiyiniz_üçün_təşəkkür_edirik_epoçt",
+    "messages.qht_qeydiyyatınız_üçün_təşəkkür_edirik_zəhmət_olma",
+    "content.name_email_and_password_are_required",
+    "content.an_account_with_this_email_already_exists",
+    "buttons.please_enter_a_valid_email_address",
+    "messages.organization_name_email_password_description_and_c",
+    "buttons.registration_endpoint",
+    "buttons.epoçtu_təsdiqləyin",
+    "content.password_must_be_at_least_6_characters_long",
+    "content.registration_successful_please_check_your_email_to",
+    "titles.password_has_been_reset_successfully",
+    "titles.invalid_or_expired_reset_token",
+    "content.token_email_and_password_are_required",
+    "content.epoçt_uğurla_təsdiqləndi_qht_qeydiyyatınız_indi_ad",
+    "titles.email_is_already_verified",
+    "buttons.invalid_verification_token",
+    "titles.verification_token_is_required",
+    "buttons.verification_email_sent",
+    "labels.düymə_işləmirsə_bu_linki_brauzeriziə_kopyalayıb_ya",
+    "titles.failed_to_send_verification_email",
+    "content.bu_hesabı_siz_yaratmamısınızsa_bu_epoçtu_nəzərə_al",
+    "buttons.epoçtu_təsdiqlə",
+    "buttons.email_already_verified",
+    "titles.failed_to_perform_bulk_operation",
+    "buttons.invalid_action",
+    "buttons.update_failed",
+    "buttons.bulk_rejected",
+    "buttons.missing_required_fields",
+    "buttons.invalid_status",
+    "titles.failed_to_get_cleanup_status",
+    "content.event_id_and_valid_status_are_required",
+    "titles.failed_to_get_migration_status",
+    "buttons.invalid_request_data",
+    "buttons.qht_qeydiyyatı_təsdiqləndi",
+    "content.rejection_reason_is_required_for_bulk_rejection",
+    "titles.failed_to_update_ngo_status",
+    "titles.no_valid_ngos_found",
+    "content.failed_to_process_bulk_ngo_operation",
+    "content.type_title_and_message_are_required",
+    "buttons.notification_id_or_deleteall_parameter_required",
+    "buttons.announcement_not_found",
+    "buttons.invalid_target_users",
+    "buttons.invalid_request_parameters",
+    "titles.title_and_message_are_required",
+    "titles.settings_history_not_available",
+    "buttons.settings_data_required",
+    "buttons.settings_not_found",
+    "buttons.user_deleted_successfully",
+    "titles.user_id_is_required",
+    "buttons.ngos_cannot_be_deleted_through_this_endpoint_use_t",
+    "titles.failed_to_fetch_users",
+    "titles.cannot_modify_your_own_role",
+    "titles.user_profile_updated_successfully",
+    "buttons.cannot_delete_your_own_account",
+    "buttons.invalid_role",
+    "buttons.failed_to_delete_ngo",
+    "titles.user_is_not_an_ngo",
+    "content.admin_comment_is_required_for_rejection",
+    "buttons.status_is_required",
+    "buttons.failed_to_delete_blog",
+    "buttons.block_menu",
+    "buttons.no_content",
+    "titles.sign_in_to_react",
+    "content.please_sign_in_to_join_the_conversation",
+    "buttons.share_your_thoughts",
+    "content.be_the_first_to_share_your_thoughts",
+    "buttons.no_comments_yet",
+    "buttons.loading_comments",
+    "buttons.enter_item",
+    "buttons.clear_search",
+    "content.search_by_title_content_or_abstract",
+    "buttons.select_an_option"
+  ],
+  "needs_manual_translation": [
+    "titles.two_steps_details_and_content",
+    "buttons.blog_title_",
+    "titles.continue_to_writing_",
+    "buttons.contenttype",
+    "messages.enter_your_name_or_leave_blank_to_use_your_profile",
+    "content.custom_name_will_be_displayed_on_your_blog",
+    "content.enter_the_name_you_want_displayed_on_your_blog",
+    "content.give_your_blog_a_compelling_title",
+    "buttons.story_updated_successfully",
+    "buttons.story_not_found_or_you_do_not_have_permission_to_e",
+    "buttons.internal_server_error",
+    "buttons.authentication_required",
+    "messages.some_images_in_the_content_are_invalid_or_do_not_b",
+    "titles.failed_to_update_blog",
+    "buttons.you_can_only_edit_your_own_blogs",
+    "buttons.story_deleted_successfully",
+    "buttons.story_not_found",
+    "titles.failed_to_process_images",
+    "titles.failed_to_fetch_blogs",
+    "content.tags_must_be_an_array_of_strings",
+    "content.story_id_and_status_are_required",
+    "titles.story_id_is_required",
+    "buttons.approved_blogs_cannot_be_edited_contact_an_adminis",
+    "buttons.failed_to_submit_blog",
+    "buttons.you_must_verify_your_email_before_submitting_blogs",
+    "buttons.failed_to_create_event",
+    "content.cost_information_must_specify_if_training_is_free",
+    "titles.valid_location_type_is_required",
+    "titles.failed_to_fetch_events",
+    "buttons.only_approved_ngos_can_create_events",
+    "content.duration_must_include_both_value_and_unit_for_trai",
+    "titles.ngo_profile_not_found",
+    "buttons.invalid_event_type",
+    "buttons.failed_to_delete_image",
+    "buttons.invalid_image_id",
+    "content.image_not_found_or_not_authorized",
+    "titles.failed_to_retrieve_images",
+    "titles.failed_to_fetch_ngos",
+    "content.use_ngospecific_endpoints_for_ngo_data",
+    "buttons.notification_deleted_successfully",
+    "buttons.notification_id_required",
+    "buttons.invalid_request",
+    "buttons.notification_not_found",
+    "titles.all_notifications_marked_as_read",
+    "titles.failed_to_fetch_profile",
+    "buttons.user_not_found",
+    "content.no_valid_social_media_data_provided",
+    "content.failed_to_fetch_social_media_accounts",
+    "content.failed_to_update_social_media_accounts",
+    "titles.failed_to_fetch_statistics",
+    "buttons.upload_failed",
+    "content.invalid_file_type_only_images_are_allowed",
+    "buttons.failed_to_save_image",
+    "buttons.imgbb_upload_failed",
+    "buttons.no_file_provided",
+    "content.application_link_is_required_when_using_link_metho",
+    "buttons.only_approved_ngos_can_create_vacancies",
+    "content.deadline_must_be_in_the_future",
+    "content.application_email_is_required_when_using_email_met",
+    "buttons.failed_to_create_vacancy",
+    "titles.failed_to_fetch_vacancies",
+    "buttons.failed_to_delete_vacancy",
+    "titles.failed_to_fetch_vacancy",
+    "buttons.permission_denied",
+    "titles.failed_to_update_vacancy",
+    "buttons.admin_access_required",
+    "buttons.invalid_vacancy_id",
+    "titles.rejection_reason_is_required",
+    "buttons.vacancy_rejected",
+    "buttons.vacancy_deleted_successfully",
+    "buttons.vacancy_not_found",
+    "buttons.vacancy_approved",
+    "titles.invalid_action_must_be",
+    "titles.failed_to_update_vacancy_status",
+    "content.organization_name_and_description_are_required",
+    "content.access_denied_approved_ngo_account_required",
+    "titles.failed_to_update_ngo_profile",
+    "content.organization_name_description_contact_person_name_",
+    "buttons.invalid_ngo_id",
+    "buttons.ngo_deleted_successfully",
+    "buttons.insufficient_permissions",
+    "content.an_ngo_with_this_name_already_exists",
+    "content.profile_updates_are_only_allowed_for_approved_ngos",
+    "buttons.image_not_found",
+    "titles.failed_to_retrieve_image",
+    "titles.failed_to_fetch_event",
+    "buttons.no_reason_provided",
+    "titles.failed_to_update_event",
+    "buttons.event_deleted_successfully",
+    "buttons.invalid_event_id",
+    "buttons.failed_to_delete_event",
+    "buttons.unknown_error",
+    "buttons.comment_not_found",
+    "titles.comment_content_is_required",
+    "buttons.comment_deleted_successfully",
+    "titles.failed_to_fetch_user_blogs",
+    "titles.failed_to_fetch_blog",
+    "titles.parent_comment_not_found",
+    "buttons.blog_not_found",
+    "titles.current_password_is_incorrect",
+    "content.this_account_uses_social_login_password_change_is_",
+    "buttons.password_changed_successfully",
+    "content.new_password_must_be_at_least_6_characters_long",
+    "content.new_password_must_be_different_from_current_passwo",
+    "content.current_password_and_new_password_are_required",
+    "buttons.email_is_required",
+    "messages.if_an_account_with_that_email_exists_a_password_re",
+    "labels.qeydiyyatdan_keçdiyiniz_üçün_təşəkkür_edirik_epoçt",
+    "messages.qht_qeydiyyatınız_üçün_təşəkkür_edirik_zəhmət_olma",
+    "content.name_email_and_password_are_required",
+    "content.an_account_with_this_email_already_exists",
+    "buttons.please_enter_a_valid_email_address",
+    "messages.organization_name_email_password_description_and_c",
+    "buttons.registration_endpoint",
+    "buttons.epoçtu_təsdiqləyin",
+    "content.password_must_be_at_least_6_characters_long",
+    "content.registration_successful_please_check_your_email_to",
+    "titles.password_has_been_reset_successfully",
+    "titles.invalid_or_expired_reset_token",
+    "content.token_email_and_password_are_required",
+    "content.epoçt_uğurla_təsdiqləndi_qht_qeydiyyatınız_indi_ad",
+    "titles.email_is_already_verified",
+    "buttons.invalid_verification_token",
+    "titles.verification_token_is_required",
+    "buttons.verification_email_sent",
+    "labels.düymə_işləmirsə_bu_linki_brauzeriziə_kopyalayıb_ya",
+    "titles.failed_to_send_verification_email",
+    "content.bu_hesabı_siz_yaratmamısınızsa_bu_epoçtu_nəzərə_al",
+    "buttons.epoçtu_təsdiqlə",
+    "buttons.email_already_verified",
+    "titles.failed_to_perform_bulk_operation",
+    "buttons.invalid_action",
+    "buttons.update_failed",
+    "buttons.bulk_rejected",
+    "buttons.missing_required_fields",
+    "buttons.invalid_status",
+    "titles.failed_to_get_cleanup_status",
+    "content.event_id_and_valid_status_are_required",
+    "titles.failed_to_get_migration_status",
+    "buttons.invalid_request_data",
+    "buttons.qht_qeydiyyatı_təsdiqləndi",
+    "content.rejection_reason_is_required_for_bulk_rejection",
+    "titles.failed_to_update_ngo_status",
+    "titles.no_valid_ngos_found",
+    "content.failed_to_process_bulk_ngo_operation",
+    "content.type_title_and_message_are_required",
+    "buttons.notification_id_or_deleteall_parameter_required",
+    "buttons.announcement_not_found",
+    "buttons.invalid_target_users",
+    "buttons.invalid_request_parameters",
+    "titles.title_and_message_are_required",
+    "titles.settings_history_not_available",
+    "buttons.settings_data_required",
+    "buttons.settings_not_found",
+    "buttons.user_deleted_successfully",
+    "titles.user_id_is_required",
+    "buttons.ngos_cannot_be_deleted_through_this_endpoint_use_t",
+    "titles.failed_to_fetch_users",
+    "titles.cannot_modify_your_own_role",
+    "titles.user_profile_updated_successfully",
+    "buttons.cannot_delete_your_own_account",
+    "buttons.invalid_role",
+    "buttons.failed_to_delete_ngo",
+    "titles.user_is_not_an_ngo",
+    "content.admin_comment_is_required_for_rejection",
+    "buttons.status_is_required",
+    "buttons.failed_to_delete_blog",
+    "buttons.block_menu",
+    "buttons.share_your_thoughts",
+    "buttons.enter_item",
+    "content.search_by_title_content_or_abstract",
+    "buttons.select_an_option"
+  ]
+}

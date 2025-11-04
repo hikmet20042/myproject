@@ -2,11 +2,15 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useLanguage } from '@/contexts/LanguageContext'
 import Link from 'next/link'
 import { Loader2, Lock, Eye, EyeOff } from 'lucide-react'
 import { Input, Button } from '@/components/ui'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
 
 function ResetPasswordContent() {
+  const { t } = useLanguage()
+  const localePath = useLocalizedPath()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -21,17 +25,17 @@ function ResetPasswordContent() {
   const searchParams = useSearchParams()
 
   useEffect(() => {
-    const tokenParam = searchParams.get('token')
-    const emailParam = searchParams.get('email')
+    const tokenParam = searchParams?.get('token')
+    const emailParam = searchParams?.get('email')
     
     if (!tokenParam || !emailParam) {
-      setError('Invalid reset link. Please request a new password reset.')
+      setError(t('resetPassword.invalidLink'))
       return
     }
     
     setToken(tokenParam)
     setEmail(decodeURIComponent(emailParam))
-  }, [searchParams])
+  }, [searchParams, t])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -41,13 +45,13 @@ function ResetPasswordContent() {
 
     // Validation
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long')
+      setError(t('resetPassword.passwordTooShort'))
       setIsLoading(false)
       return
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match')
+      setError(t('resetPassword.passwordsDoNotMatch'))
       setIsLoading(false)
       return
     }
@@ -67,13 +71,13 @@ function ResetPasswordContent() {
         setMessage(data.message)
         // Redirect to sign in after 3 seconds
         setTimeout(() => {
-          router.push('/auth/signin?message=Password reset successful. Please sign in with your new password.')
+          router.push(localePath("/auth/signin?message=Password reset successful. Please sign in with your new password."))
         }, 3000)
       } else {
-        setError(data.error || 'Something went wrong')
+        setError(data.error || t('resetPassword.somethingWentWrong'))
       }
     } catch (error) {
-      setError('Network error. Please try again.')
+      setError(t('resetPassword.networkError'))
     } finally {
       setIsLoading(false)
     }
@@ -84,17 +88,16 @@ function ResetPasswordContent() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md">
           <div className="px-6 py-4 border-b text-center">
-            <h1 className="text-2xl font-bold text-red-600">Invalid Reset Link</h1>
+            <h1 className="text-2xl font-bold text-red-600">{t('resetPassword.invalidResetLink')}</h1>
           </div>
           <div className="p-6 text-center">
             <p className="text-gray-600 mb-4">
-              This password reset link is invalid or has expired.
+              {t('resetPassword.linkInvalidOrExpired')}
             </p>
-            <Link
-              href="/auth/forgot-password"
+            <Link href={localePath("/auth/forgot-password")}
               className="text-red-600 hover:text-red-500 font-medium"
             >
-              Request a new password reset
+              {t('resetPassword.requestNewReset')}
             </Link>
           </div>
         </div>
@@ -110,9 +113,9 @@ function ResetPasswordContent() {
             <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
               <Lock className="w-6 h-6 text-red-600" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Reset Password</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t('resetPassword.title')}</h1>
             <p className="text-gray-600 mt-2">
-              Enter your new password for {email}
+              {t('resetPassword.enterNewPassword', { email })}
             </p>
           </div>
           <div className="p-6">
@@ -121,7 +124,7 @@ function ResetPasswordContent() {
                 <p className="text-green-800">
                   {message}
                   <div className="mt-2 text-sm">
-                    Redirecting to sign in page...
+                    {t('resetPassword.redirecting')}
                   </div>
                 </p>
               </div>
@@ -137,14 +140,14 @@ function ResetPasswordContent() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">New Password</label>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700">{t('resetPassword.newPassword')}</label>
                 <div className="relative mt-1">
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter new password"
+                    placeholder={t('resetPassword.newPasswordPlaceholder')}
                     required
                     disabled={isLoading}
                   />
@@ -161,19 +164,19 @@ function ResetPasswordContent() {
                   </button>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  Must be at least 6 characters long
+                  {t('resetPassword.passwordMinLength')}
                 </p>
               </div>
 
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">Confirm New Password</label>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">{t('resetPassword.confirmNewPassword')}</label>
                 <div className="relative mt-1">
                   <Input
                     id="confirmPassword"
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm new password"
+                    placeholder={t('resetPassword.confirmPasswordPlaceholder')}
                     required
                     disabled={isLoading}
                   />
@@ -198,16 +201,15 @@ function ResetPasswordContent() {
                 disabled={isLoading || !password.trim() || !confirmPassword.trim()}
                 loading={isLoading}
               >
-                Reset Password
+                {t('resetPassword.resetPasswordButton')}
               </Button>
             </form>
 
             <div className="mt-6 text-center">
-              <Link
-                href="/auth/signin"
+              <Link href={localePath("/auth/signin")}
                 className="text-sm text-gray-600 hover:text-gray-900"
               >
-                Back to Sign In
+                {t('resetPassword.backToSignIn')}
               </Link>
             </div>
           </div>
@@ -218,6 +220,7 @@ function ResetPasswordContent() {
 }
 
 export default function ResetPasswordPage() {
+  const localePath = useLocalizedPath()
   return (
     <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
       <ResetPasswordContent />
