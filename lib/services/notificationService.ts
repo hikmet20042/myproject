@@ -1,6 +1,7 @@
 import NotificationModel from '@/lib/models/Notification'
 import User from '@/lib/models/User'
 import { emitNotificationToUser } from '@/lib/socket'
+import { sendNotificationToUser as sendSSENotification } from '@/lib/sse'
 
 interface CreateNotificationParams {
   userId: string
@@ -30,7 +31,7 @@ export class NotificationService {
         isRead: false
       })
       
-      // Emit real-time notification to user
+      // Emit real-time notification to user (Socket.IO when available)
       emitNotificationToUser(params.userId, {
         id: notification._id,
         type: notification.type,
@@ -41,6 +42,24 @@ export class NotificationService {
         isRead: notification.isRead,
         createdAt: notification.createdAt
       })
+      
+      // Also attempt to send via SSE (server-sent events) if a connection exists
+      try {
+        await sendSSENotification(params.userId, {
+          id: notification._id,
+          type: notification.type,
+          title: notification.title,
+          message: notification.message,
+          actionUrl: notification.actionUrl,
+          data: notification.data,
+          isRead: notification.isRead,
+          createdAt: notification.createdAt
+        })
+      } catch (err: any) {
+        // Non-fatal: SSE may not be available or user not connected to stream
+        // Keep silent but log for debugging
+        console.debug('SSE sendNotificationToUser failed or no connection:', err?.message || err)
+      }
       
       return notification
     } catch (error) {

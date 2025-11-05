@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react'
 import { useNotificationContext } from './NotificationContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useSocket } from './SocketProvider'
+import { useSSENotifications } from './SSENotificationProvider'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
 
 interface Notification {
@@ -27,6 +28,7 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
   const { t } = useLanguage()
   const { data: session } = useSession()
   const { socket, isConnected } = useSocket()
+  const { lastNotification: sseNotification, isConnected: sseConnected } = useSSENotifications()
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(false)
@@ -34,77 +36,105 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
   const localePath = useLocalizedPath()
   const notificationsRef = useRef<HTMLDivElement>(null)
 
-  // Listen for real-time notifications via Socket.IO
+  // Listen for SSE notifications
   useEffect(() => {
-    if (!socket || !session?.user?.id) return
-
-    // Handler for new notifications
-    const handleNewNotification = (notification: any) => {
-      console.log('Received real-time notification:', notification)
+    if (sseNotification) {
+      console.log('Received SSE notification in NotificationBell:', sseNotification)
       
       // Add to beginning of notifications list
-      setNotifications(prev => [{
-        _id: notification.id,
-        title: notification.title,
-        message: notification.message,
-        isRead: notification.isRead,
-        createdAt: notification.createdAt,
-        type: notification.type,
-        actionUrl: notification.actionUrl
-      }, ...prev])
+      setNotifications(prev => [sseNotification, ...prev])
       
       // Refresh unread count
       refreshNotifications()
-      
-      // Show browser notification if permission granted
-      if (Notification.permission === 'granted') {
-        new Notification(notification.title, {
-          body: notification.message,
-          icon: '/logo.png',
-          tag: notification.id
-        })
+    }
+  }, [sseNotification, refreshNotifications])
+
+  // Listen for real-time notifications via Socket.IO or polling fallback
+  useEffect(() => {
+    if (!session?.user?.id) return
+
+    if (socket && isConnected) {
+      // Use Socket.IO for real-time updates
+      console.log('Using Socket.IO for real-time notifications')
+
+      // Handler for new notifications
+      const handleNewNotification = (notification: any) => {
+        console.log('Received real-time notification:', notification)
+        
+        // Add to beginning of notifications list
+        setNotifications(prev => [{
+          _id: notification.id,
+          title: notification.title,
+          message: notification.message,
+          isRead: notification.isRead,
+          createdAt: notification.createdAt,
+          type: notification.type,
+          actionUrl: notification.actionUrl
+        }, ...prev])
+        
+        // Refresh unread count
+        refreshNotifications()
+        
+        // Show browser notification if permission granted
+        if (Notification.permission === 'granted') {
+          new Notification(notification.title, {
+            body: notification.message,
+            icon: '/logo.png',
+            tag: notification.id
+          })
+        }
       }
-    }
 
-    // Handler for notification updates (mark as read)
-    const handleNotificationUpdate = (update: any) => {
-      console.log('Received notification update:', update)
-      setNotifications(prev =>
-        prev.map(notif =>
-          notif._id === update.notificationId
-            ? { ...notif, isRead: update.isRead }
-            : notif
+      // Handler for notification updates (mark as read)
+      const handleNotificationUpdate = (update: any) => {
+        console.log('Received notification update:', update)
+        setNotifications(prev =>
+          prev.map(notif =>
+            notif._id === update.notificationId
+              ? { ...notif, isRead: update.isRead }
+              : notif
+          )
         )
-      )
-      refreshNotifications()
-    }
-
-    // Handler for bulk updates (mark all as read)
-    const handleBulkUpdate = (update: any) => {
-      console.log('Received bulk notification update')
-      if (update.markAllAsRead) {
-        setNotifications(prev => prev.map(notif => ({ ...notif, isRead: true })))
         refreshNotifications()
       }
-    }
 
-    // Register event listeners
-    socket.on('notification', handleNewNotification)
-    socket.on('notification:update', handleNotificationUpdate)
-    socket.on('notification:bulk-update', handleBulkUpdate)
+      // Handler for bulk updates (mark all as read)
+      const handleBulkUpdate = (update: any) => {
+        console.log('Received bulk notification update')
+        if (update.markAllAsRead) {
+          setNotifications(prev => prev.map(notif => ({ ...notif, isRead: true })))
+          refreshNotifications()
+        }
+      }
 
-    // Request notification permission on first load
-    if (Notification.permission === 'default') {
-      Notification.requestPermission()
-    }
+      // Register event listeners
+      socket.on('notification', handleNewNotification)
+      socket.on('notification:update', handleNotificationUpdate)
+      socket.on('notification:bulk-update', handleBulkUpdate)
 
-    // Cleanup listeners on unmount
-    return () => {
-      socket.off('notification', handleNewNotification)
-      socket.off('notification:update', handleNotificationUpdate)
-      socket.off('notification:bulk-update', handleBulkUpdate)
+      // Request notification permission on first load
+      if (Notification.permission === 'default') {
+        Notification.requestPermission()
+      }
+
+      // Cleanup listeners on unmount
+      return () => {
+        socket.off('notification', handleNewNotification)
+        socket.off('notification:update', handleNotificationUpdate)
+        socket.off('notification:bulk-update', handleBulkUpdate)
+      }
+    } else {
+      // Use polling as fallback when Socket.IO is not available (Vercel)
+      console.log('Using polling fallback for notifications (Socket.IO unavailable)')
+      
+      // Poll for new notifications every 30 seconds
+      const pollInterval = setInterval(() => {
+        refreshNotifications()
+      }, 30000) // 30 seconds
+
+      return () => clearInterval(pollInterval)
     }
-  }, [socket, session?.user?.id, refreshNotifications])
+  }, [socket, isConnected, session?.user?.id, refreshNotifications])
 
   // Load notifications when dropdown opens
   const loadNotifications = async () => {

@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth';
 import dbConnect from '@/lib/mongoose';
 import Material from '@/lib/models/Material';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // GET: Fetch all materials for admin (including unpublished)
 export async function GET(request: Request) {
   try {

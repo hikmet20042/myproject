@@ -3,6 +3,9 @@ import jwt from 'jsonwebtoken'
 import dbConnect from '@/lib/mongoose'
 import NGO from '@/lib/models/NGO'
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Helper function to verify NGO token
 function verifyNGOToken(request: NextRequest) {
   const token = request.cookies.get('ngo-token')?.value

@@ -6,6 +6,7 @@ import AuthProvider from '@/components/AuthProvider'
 import { NotificationProvider } from '@/components/NotificationContext'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import { SocketProvider } from '@/components/SocketProvider'
+import { SSENotificationProvider } from '@/components/SSENotificationProvider'
 
 export const metadata: Metadata = {
   title: 'icma360 — Youth & Community Platform',
@@ -24,13 +25,15 @@ export default function RootLayout({
         <AuthProvider>
           <LanguageProvider>
             <SocketProvider>
-              <NotificationProvider>
-                <Header />
-                <main className="min-h-screen">
-                  {children}
-                </main>
-                <Footer />
-              </NotificationProvider>
+              <SSENotificationProvider>
+                <NotificationProvider>
+                  <Header />
+                  <main className="min-h-screen">
+                    {children}
+                  </main>
+                  <Footer />
+                </NotificationProvider>
+              </SSENotificationProvider>
             </SocketProvider>
           </LanguageProvider>
         </AuthProvider>
