@@ -59,6 +59,7 @@
     "mongoose": "^8.17.0",
     "next": "^14.0.0",
     "next-auth": "^4.24.11",
+    "next-intl": "^4.4.0",
     "next-sitemap": "^4.2.3",
     "nodemailer": "^6.10.1",
     "postcss": "^8.0.0",
