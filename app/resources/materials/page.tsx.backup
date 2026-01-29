@@ -153,10 +153,7 @@ export default function Resources() {
         <div className="section-padding relative z-10">
           <div className="max-w-5xl mx-auto text-center">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 mb-4 sm:mb-6 animate-fade-in">
-              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300" />
-              <span className="text-xs sm:text-sm font-bold uppercase tracking-wide">{t('resources.categories.educationalMaterials.badge') || 'Educational Resources'}</span>
-            </div>
+            
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-4 sm:mb-6 leading-tight animate-slide-up px-4">
               {t('resources.categories.educationalMaterials.title')}

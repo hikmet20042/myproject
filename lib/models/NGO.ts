@@ -158,7 +158,6 @@ const NGOSchema = new mongoose.Schema({
 // Index for better performance
 NGOSchema.index({ organizationName: 1 })
 NGOSchema.index({ status: 1 })
-NGOSchema.index({ email: 1 })
 
 
 export default mongoose.models.NGO || mongoose.model<INGO>('NGO', NGOSchema)

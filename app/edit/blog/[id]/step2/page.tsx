@@ -8,6 +8,7 @@ import { ArrowLeft, Send, Eye, EyeOff } from 'lucide-react'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { LoadingState, SuccessState } from '@/components/shared'
+import { Button } from '@/components/ui'
 
 
 export default function EditBlogStep2() {
@@ -64,14 +65,14 @@ export default function EditBlogStep2() {
               sessionStorage.removeItem('navigatingWithinBlogFlow');
             }, 100);
           } else {
-            setError('No blog data found. Please go back to step 1.');
+            setError(t('errors.blogDataNotFound'));
           }
         } catch (error) {
           console.error('Error parsing localStorage data:', error);
-          setError('Error loading blog data. Please go back to step 1.');
+          setError(t('errors.failedToLoadBlogData'));
         }
       } else {
-        setError('No blog data found. Please go back to step 1.');
+        setError(t('errors.blogDataNotFound'));
       }
     }
     setInit(true);
@@ -226,15 +227,15 @@ export default function EditBlogStep2() {
       isContentEmpty = true;
     }
     if (isContentEmpty) {
-      setError('Please add some content before submitting');
+      setError(t('errors.pleaseAddContent'));
       return;
     }
     if (characterCount < 100) {
-      setError('Your blog must be at least 100 characters long');
+      setError(t('errors.blogMinLength'));
       return;
     }
     if (!finalData.isAnonymous && showAuthorNameInput && (!finalData.authorName || !finalData.authorName.trim())) {
-      setError('Please enter your name or choose to submit anonymously');
+      setError(t('errors.pleaseEnterNameOrAnonymous'));
       return;
     }
     setIsSubmitting(true);
@@ -266,11 +267,11 @@ export default function EditBlogStep2() {
         }, 2000);
       } else {
         const data = await response.json();
-        setError(data.error || 'Failed to update blog');
+        setError(data.error || t('errors.failedToUpdateBlog'));
       }
     } catch (error) {
       console.error('Error updating blog:', error);
-      setError('An error occurred while updating');
+      setError(t('errors.errorUpdating'));
     } finally {
       setIsSubmitting(false);
     }
@@ -311,7 +312,11 @@ export default function EditBlogStep2() {
                   Update your personal experience or community blog
                 </p>
               </div>
-              <button
+              <Button
+                variant="outline"
+                icon={ArrowLeft}
+                iconPosition="left"
+                size="sm"
                 onClick={() => {
                   // Save current state to localStorage before going back
                   if (typeof window !== 'undefined') {
@@ -332,11 +337,9 @@ export default function EditBlogStep2() {
                   sessionStorage.setItem('navigatingWithinBlogFlow', 'true');
                   router.push(`/edit/blog/${blogId}/step1`);
                 }}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
                 Back
-              </button>
+              </Button>
             </div>
             
             {/* Removed manual save warning - not needed for direct blog editing */}
@@ -379,13 +382,15 @@ export default function EditBlogStep2() {
                   <span className="text-sm text-gray-500">
                     {characterCount} characters
                   </span>
-                  <button
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon={showPreview ? EyeOff : Eye}
+                    iconPosition="left"
                     onClick={() => setShowPreview(!showPreview)}
-                    className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                   >
-                    {showPreview ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
                     {showPreview ? 'Hide Preview' : 'Show Preview'}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -424,7 +429,11 @@ export default function EditBlogStep2() {
 
           {/* Action Buttons */}
           <div className="mt-8 flex justify-end">
-            <button
+            <Button
+              variant="gradient-blue"
+              icon={Send}
+              iconPosition="left"
+              loading={isSubmitting}
               onClick={handleSubmit}
               disabled={
                 isSubmitting ||
@@ -434,11 +443,9 @@ export default function EditBlogStep2() {
                 ) ||
                 characterCount < 100
               }
-              className="inline-flex items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Send className="w-4 h-4 mr-2" />
               {isSubmitting ? 'Updating...' : 'Update Blog'}
-            </button>
+            </Button>
           </div>
 
           {/* Guidelines */}

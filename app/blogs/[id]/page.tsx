@@ -8,7 +8,6 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
 import { useLanguage } from '@/contexts/LanguageContext'
 import BlogReactions from '@/components/BlogReactions'
-import { CommentSection } from '@/components/comments'
 import { LoadingState, ErrorState, AnimatedBackground } from '@/components/shared'
 import { ArrowLeft, Calendar, User, Eye, Heart, MessageSquare, BookOpen, Sparkles } from 'lucide-react'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
@@ -21,130 +20,270 @@ const blogStyles = `
     color: #2d3748;
   }
   
-  /* Professional styling for BlocknoteReadOnly editor */
-    .bn-editor {
-      border: none !important;
-      box-shadow: none !important;
-      background: #F9FAFB !important;
-      padding: 0 !important;
-    }
-    
-    .bn-editor .ProseMirror {
-      padding: 0 !important;
-      border: none !important;
-      outline: none !important;
-      line-height: 1.8 !important;
-      color: #2d3748 !important;
-      background: #F9FAFB !important;
-    }
-    
-    /* Remove any editor-specific backgrounds */
-    .bn-editor .ProseMirror-focused {
-      background: #F9FAFB !important;
-    }
-    
-    .bn-editor .bn-block-group {
-      background: #F9FAFB !important;
-    }
-    
-    .bn-editor .bn-block {
-      background: #F9FAFB !important;
-    }
-  
-  .bn-editor .ProseMirror p {
-    margin-bottom: 1.5rem !important;
-    text-align: justify !important;
-    text-indent: 1.5rem !important;
-    line-height: 1.8 !important;
+  /* Professional Magazine-Style BlocknoteReadOnly Editor */
+  .bn-editor {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 0 !important;
   }
   
+  .bn-editor .ProseMirror {
+    padding: 0 !important;
+    border: none !important;
+    outline: none !important;
+    line-height: 1.9 !important;
+    color: #1a202c !important;
+    background: transparent !important;
+    font-size: 1.0625rem !important;
+    letter-spacing: 0.01em !important;
+  }
+  
+  /* Remove any editor-specific backgrounds */
+  .bn-editor .ProseMirror-focused {
+    background: transparent !important;
+  }
+  
+  .bn-editor .bn-block-group {
+    background: transparent !important;
+  }
+  
+  .bn-editor .bn-block {
+    background: transparent !important;
+  }
+  
+  /* Beautiful Paragraphs */
+  .bn-editor .ProseMirror p {
+    margin-bottom: 1.75rem !important;
+    text-align: justify !important;
+    line-height: 1.9 !important;
+    color: #374151 !important;
+    font-weight: 400 !important;
+    hyphens: auto !important;
+    word-spacing: 0.05em !important;
+  }
+  
+  .bn-editor .ProseMirror p:first-of-type::first-letter {
+    font-size: 3.5em !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    float: left !important;
+    margin: 0.1em 0.1em 0 0 !important;
+    color: #4F46E5 !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+  }
+  
+  /* Elegant Headings */
   .bn-editor .ProseMirror h1, 
   .bn-editor .ProseMirror h2, 
   .bn-editor .ProseMirror h3, 
   .bn-editor .ProseMirror h4, 
   .bn-editor .ProseMirror h5, 
   .bn-editor .ProseMirror h6 {
-    font-weight: 600 !important;
-    margin-top: 2rem !important;
-    margin-bottom: 1rem !important;
-    color: #1a202c !important;
+    font-weight: 700 !important;
+    margin-top: 2.5rem !important;
+    margin-bottom: 1.25rem !important;
+    color: #111827 !important;
     text-indent: 0 !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.3 !important;
+  }
+  
+  .bn-editor .ProseMirror h1 {
+    font-size: 2.25rem !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    border-bottom: 3px solid #E5E7EB !important;
+    padding-bottom: 0.75rem !important;
   }
   
   .bn-editor .ProseMirror h2 {
-    font-size: 1.5rem !important;
-    border-bottom: 2px solid #e2e8f0 !important;
-    padding-bottom: 0.5rem !important;
+    font-size: 1.875rem !important;
+    color: #1F2937 !important;
+    border-left: 4px solid #4F46E5 !important;
+    padding-left: 1rem !important;
+    border-bottom: 2px solid #E5E7EB !important;
+    padding-bottom: 0.625rem !important;
   }
   
   .bn-editor .ProseMirror h3 {
+    font-size: 1.5rem !important;
+    color: #374151 !important;
+    border-left: 3px solid #818CF8 !important;
+    padding-left: 0.875rem !important;
+  }
+  
+  .bn-editor .ProseMirro h4 {
     font-size: 1.25rem !important;
+    color: #4B5563 !important;
   }
   
+  /* Stylish Blockquotes */
   .bn-editor .ProseMirror blockquote {
-    border-left: 4px solid #3182ce !important;
-    padding-left: 1rem !important;
-    margin: 1.5rem 0 !important;
+    position: relative !important;
+    border: none !important;
+    padding: 1.5rem 2rem 1.5rem 4rem !important;
+    margin: 2rem 0 !important;
     font-style: italic !important;
-    background-color: #f7fafc !important;
-    padding: 1rem !important;
+    background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%) !important;
+    border-radius: 0.75rem !important;
     text-indent: 0 !important;
+    color: #4338CA !important;
+    font-size: 1.125rem !important;
+    line-height: 1.75 !important;
+    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.1), 0 2px 4px -1px rgba(79, 70, 229, 0.06) !important;
   }
   
+  .bn-editor .ProseMirror blockquote::before {
+    content: '"' !important;
+    position: absolute !important;
+    left: 1rem !important;
+    top: 0.5rem !important;
+    font-size: 4rem !important;
+    color: #818CF8 !important;
+    opacity: 0.3 !important;
+    font-family: Georgia, serif !important;
+    line-height: 1 !important;
+  }
   
+  /* Enhanced Lists */
   .bn-editor .ProseMirror ul, 
   .bn-editor .ProseMirror ol {
-    margin: 1rem 0 !important;
+    margin: 1.5rem 0 !important;
     padding-left: 2rem !important;
   }
   
-  .bn-editor .ProseMirror li {
-    margin-bottom: 0.5rem !important;
+  .bn-editor .ProseMirror ul li {
+    margin-bottom: 0.75rem !important;
     text-indent: 0 !important;
+    position: relative !important;
+    padding-left: 0.5rem !important;
   }
   
+  .bn-editor .ProseMirror ul li::marker {
+    color: #4F46E5 !important;
+    font-size: 1.2em !important;
+  }
+  
+  .bn-editor .ProseMirror ol li {
+    margin-bottom: 0.75rem !important;
+    text-indent: 0 !important;
+    padding-left: 0.5rem !important;
+  }
+  
+  .bn-editor .ProseMirror ol li::marker {
+    color: #4F46E5 !important;
+    font-weight: 600 !important;
+  }
+  
+  /* Inline Code */
   .bn-editor .ProseMirror code {
-    background-color: #f1f5f9 !important;
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%) !important;
+    color: #DC2626 !important;
     padding: 0.25rem 0.5rem !important;
-    border-radius: 0.25rem !important;
-    font-family: 'Monaco', 'Menlo', monospace !important;
-    font-size: 0.875rem !important;
+    border-radius: 0.375rem !important;
+    font-family: 'Monaco', 'Menlo', 'Consolas', monospace !important;
+    font-size: 0.9em !important;
+    font-weight: 500 !important;
+    border: 1px solid #E5E7EB !important;
   }
   
+  /* Code Blocks */
   .bn-editor .ProseMirror pre {
-    background-color: #1a202c !important;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
     color: #e2e8f0 !important;
-    padding: 1rem !important;
-    border-radius: 0.5rem !important;
+    padding: 1.5rem !important;
+    border-radius: 0.75rem !important;
     overflow-x: auto !important;
-    margin: 1.5rem 0 !important;
+    margin: 2rem 0 !important;
+    border: 1px solid #334155 !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2) !important;
   }
   
+  .bn-editor .ProseMirror pre code {
+    background: transparent !important;
+    color: #e2e8f0 !important;
+    border: none !important;
+    padding: 0 !important;
+    font-size: 0.9rem !important;
+  }
+  
+  /* Beautiful Images */
   .bn-editor .ProseMirror img {
     max-width: 100% !important;
     height: auto !important;
-    margin: 1.5rem auto !important;
+    margin: 2.5rem auto !important;
     display: block !important;
-    border-radius: 0.5rem !important;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+    border-radius: 1rem !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+    border: 1px solid #E5E7EB !important;
   }
   
+  /* Elegant Tables */
   .bn-editor .ProseMirror table {
     width: 100% !important;
-    border-collapse: collapse !important;
-    margin: 1.5rem 0 !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    margin: 2rem 0 !important;
+    border-radius: 0.75rem !important;
+    overflow: hidden !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
   }
   
   .bn-editor .ProseMirror th, 
   .bn-editor .ProseMirror td {
-    border: 1px solid #e2e8f0 !important;
-    padding: 0.75rem !important;
+    border: 1px solid #E5E7EB !important;
+    padding: 1rem !important;
     text-align: left !important;
   }
   
   .bn-editor .ProseMirror th {
-    background-color: #f7fafc !important;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
     font-weight: 600 !important;
+    text-transform: uppercase !important;
+    font-size: 0.875rem !important;
+    letter-spacing: 0.05em !important;
+  }
+  
+  .bn-editor .ProseMirror tr:nth-child(even) {
+    background-color: #F9FAFB !important;
+  }
+  
+  .bn-editor .ProseMirror tr:hover {
+    background-color: #F3F4F6 !important;
+  }
+  
+  /* Strong and Emphasis */
+  .bn-editor .ProseMirror strong {
+    font-weight: 700 !important;
+    color: #111827 !important;
+  }
+  
+  .bn-editor .ProseMirror em {
+    font-style: italic !important;
+    color: #4B5563 !important;
+  }
+  
+  /* Links */
+  .bn-editor .ProseMirror a {
+    color: #4F46E5 !important;
+    text-decoration: underline !important;
+    text-decoration-color: #C7D2FE !important;
+    text-decoration-thickness: 2px !important;
+    text-underline-offset: 2px !important;
+    transition: all 0.2s ease !important;
+  }
+  
+  .bn-editor .ProseMirror a:hover {
+    color: #4338CA !important;
+    text-decoration-color: #4F46E5 !important;
+    text-decoration-thickness: 3px !important;
   }
   
   /* Hide editor controls */
@@ -215,7 +354,7 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
               }, 300)
               return
             }
-          } catch {}
+          } catch { }
         }
         // 2) Try sample data
         // Try to fetch from API first
@@ -241,39 +380,18 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
               dislikes: apiData.blog.dislikes || 0,
               views: apiData.blog.views || 0
             })
-            
+
             // Give time for content to render
             setTimeout(() => {
               if (mounted) setContentReady(true)
             }, 300)
-            
-            // Track view for approved blogs
-            if (apiData.blog.status === 'approved') {
-              const viewedKey = `viewed_blog_${targetId}`
-              let isFirstView = true
-              
-              // Check if already viewed in this session
-              if (sessionStorage.getItem(viewedKey)) {
-                isFirstView = false
-              }
-              
-              // Track the view
-              fetch(`/api/blogs/${targetId}/view`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isFirstView })
-              })
-                .then(res => res.json())
-                .then(data => {
-                  if (data.viewIncremented && mounted) {
-                    // Update local blog state with new view count
-                    setBlog(prev => prev ? { ...prev, views: data.views } : null)
-                    // Mark as viewed for this session
-                    sessionStorage.setItem(viewedKey, 'true')
-                  }
-                })
-                .catch(err => console.error('Error tracking blog view:', err))
-            }
+
+
+            // Give time for content to render
+            setTimeout(() => {
+              if (mounted) setContentReady(true)
+            }, 300)
+
             return
           }
         }
@@ -304,7 +422,7 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
       <ErrorState
         title={t('blogs.blogNotFound') || 'Blog Not Found'}
         message={t('blogs.blogNotFoundText') || 'The blog you are looking for does not exist or has been removed.'}
-        onRetry={() => window.location.href = '/blogs'}
+        onRetry={() => window.location.href = localePath('/blogs')}
         retryText={t('blogs.backToBlogs') || 'Back to Blogs'}
       />
     )
@@ -316,7 +434,7 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: blogStyles }} />
-      
+
       <div className="min-h-screen bg-gray-50">
         {/* Hero Section with Gradient */}
         <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-900 text-white py-12 sm:py-16">
@@ -331,7 +449,7 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
           <div className="section-padding relative z-10">
             <div className="max-w-5xl mx-auto">
               {/* Back Button */}
-              <Link href={localePath("/blogs")} 
+              <Link href={localePath("/blogs")}
                 className="inline-flex items-center gap-2 text-white/90 hover:text-white transition-colors mb-6 sm:mb-8 group"
               >
                 <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
@@ -341,9 +459,9 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
               {/* View Tracker - Only show for approved blogs with valid IDs */}
               {blog._id && blog.status === 'approved' && isValidObjectId(blog._id) && (
                 <div className="mb-4">
-                  <ViewTracker 
-                    itemId={blog._id} 
-                    itemType="blog" 
+                  <ViewTracker
+                    itemId={blog._id}
+                    itemType="blog"
                     initialViews={blog.views || 0}
                     className="text-white/90"
                   />
@@ -352,10 +470,7 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
 
               {/* Blog Header */}
               <div className="animate-fade-in">
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 mb-4 sm:mb-6">
-                  <BookOpen className="w-4 h-4 text-pink-300" />
-                  <span className="text-sm font-bold uppercase tracking-wide">Community Story</span>
-                </div>
+
 
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-4 sm:mb-6 leading-tight">
                   {blog.title}
@@ -369,8 +484,8 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
                       <div className="flex items-center">
                         {byPre && <span className="mr-1">{byPre}</span>}
                         {!blog.isAnonymous && blog.author && isValidObjectId(blog.author) ? (
-                          <Link 
-                            href={`/profile/${blog.author}`} 
+                          <Link
+                            href={`/profile/${blog.author}`}
                             className="text-yellow-300 hover:text-yellow-200 font-semibold underline decoration-2 underline-offset-2 transition-colors"
                           >
                             {blog.authorName}
@@ -387,10 +502,10 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
                       <time className="font-medium">
-                        {new Date(publishedDate).toLocaleDateString('en-US', { 
-                          year: 'numeric', 
-                          month: 'long', 
-                          day: 'numeric' 
+                        {new Date(publishedDate).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
                         })}
                       </time>
                     </div>
@@ -414,26 +529,8 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
           <div className="max-w-4xl mx-auto">
             {/* Unified Main Content Card */}
             <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden mb-8 animate-fade-in animation-delay-200">
-              
-              {/* Abstract Section - Integrated Top */}
-              {blog.abstract && blog.abstract.trim().length > 0 && (
-                <div className="px-6 sm:px-10 pt-8 pb-6 border-b border-gray-100 bg-gradient-to-br from-blue-50/50 via-indigo-50/30 to-purple-50/20">
-                  <div className="flex items-start gap-3">
-                    <div className="w-1.5 bg-gradient-to-b from-blue-500 via-indigo-500 to-purple-500 rounded-full flex-shrink-0 h-full min-h-[60px]"></div>
-                    <div className="flex-1">
-                      <h2 className="text-sm font-bold uppercase tracking-wide text-blue-900 mb-2 flex items-center gap-2">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                        </svg>
-                        {t('blogs.abstract') || 'Abstract'}
-                      </h2>
-                      <p className="text-gray-700 leading-relaxed text-base sm:text-lg">
-                        {blog.abstract}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
+
+
 
               {/* Blog Content */}
               <div className="p-6 sm:p-10">
@@ -473,7 +570,7 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
                         <p className="text-xs text-gray-600">{t('blogs.shareReaction') || 'Share your reaction'}</p>
                       </div>
                     </div>
-                    <BlogReactions 
+                    <BlogReactions
                       blogId={blog._id || blog.id}
                       initialLikes={blog.likes || 0}
                       initialDislikes={blog.dislikes || 0}
@@ -483,16 +580,6 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
               )}
             </div>
 
-            {/* Comment Section - Connected Design */}
-            {contentReady && (blog._id || blog.id) && blog.author && blog.status === 'approved' && (
-              <div className="animate-fade-in animation-delay-400">
-                <CommentSection 
-                  blogId={blog._id || blog.id}
-                  blogAuthorId={blog.author}
-                  className="bg-white rounded-2xl shadow-xl border border-gray-100"
-                />
-              </div>
-            )}
           </div>
         </article>
       </div>

@@ -3,8 +3,9 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useSession } from 'next-auth/react'
-import { Input, Button } from '@/components/ui'
+import { Input, Button, ButtonLink } from '@/components/ui'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
 import { FileText, User, ChevronRight, Edit3, Sparkles } from 'lucide-react'
 import { AnimatedBackground, ProgressIndicator, GradientHero, LoadingState } from '@/components/shared'
 
@@ -22,6 +23,7 @@ function BlogStep1() {
   const [editId, setEditId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const { t } = useLanguage()
+  const localePath = useLocalizedPath()
 
   const loadBlogForEditing = useCallback(async (blogId: string) => {
     if (!session || status !== 'authenticated') return
@@ -118,7 +120,7 @@ function BlogStep1() {
     localStorage.setItem('draftBlog', JSON.stringify(storyData))
     
     const nextUrl = editId ? `/submit/blog/step2?edit=${editId}` : '/submit/blog/step2'
-    router.push(nextUrl)
+    router.push(localePath(nextUrl))
   }
 
   if (loading) {
@@ -167,11 +169,11 @@ function BlogStep1() {
         <div className="bg-white rounded-3xl shadow-2xl border-2 border-gray-100 overflow-hidden animate-scale-in">
           {/* Hero Header */}
           <div className="relative">
-            <GradientHero
-              icon={FileText}
-              badge={{ icon: Sparkles, text: "Share Your Story" }}
-              title={editId ? 'Edit Your Blog Post' : (t('submitBlog.step1Title') || 'Blog Details')}
-              subtitle={t('submitBlog.step1Description') || 'Let\'s start with the basics. Tell us about your blog post.'}
+          <GradientHero
+            icon={FileText}
+            badge={{ icon: Sparkles, text: t('submitBlog.shareYourStory') || "Share Your Story" }}
+            title={editId ? (t('submitBlog.editYourBlogPost') || 'Edit Your Blog Post') : (t('submitBlog.step1Title') || 'Blog Details')}
+            subtitle={t('submitBlog.step1Description') || 'Let\'s start with the basics. Tell us about your blog post.'}
               gradientFrom="from-blue-600"
               gradientVia="via-indigo-600"
               gradientTo="to-purple-700"
@@ -202,7 +204,7 @@ function BlogStep1() {
               </div>
               <p className="text-sm text-gray-600 flex items-start gap-2">
                 <Sparkles className="w-4 h-4 mt-0.5 text-blue-500 flex-shrink-0" />
-                <span>Choose a compelling title that captures your story's essence</span>
+                <span>{t('submitBlog.titleHint') || "Choose a compelling title that captures your story's essence"}</span>
               </p>
             </div>
 
@@ -260,7 +262,7 @@ function BlogStep1() {
                     {t('submitBlog.submitAnonymously')}
                   </label>
                   <p className="text-sm text-gray-600 mt-1">
-                    Your identity will be protected. Only "Anonymous" will be shown.
+                    {t('submitBlog.anonymousDescription') || 'Your identity will be protected. Only "Anonymous" will be shown.'}
                   </p>
                 </div>
               </div>
@@ -269,15 +271,19 @@ function BlogStep1() {
             {/* Submit Button */}
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 animate-fade-in animation-delay-600">
               <div className="text-sm text-gray-600 order-2 sm:order-1">
-                Next: Write your content
+                {t('submitBlog.nextWriteContent') || 'Next: Write your content'}
               </div>
               <Button 
                 type="submit" 
-                variant="primary"
-                className="w-full sm:w-auto order-1 sm:order-2 px-8 py-4 text-base font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2"
+                variant="gradient-blue"
+                size="lg"
+                icon={ChevronRight}
+                iconPosition="right"
+                shadow="lg"
+                hoverEffect="scale"
+                className="w-full sm:w-auto order-1 sm:order-2"
               >
                 {t('submitBlog.continueToWriting')}
-                <ChevronRight className="w-5 h-5" />
               </Button>
             </div>
           </form>
@@ -285,7 +291,12 @@ function BlogStep1() {
 
         {/* Help Text */}
         <div className="mt-6 text-center text-sm text-gray-600 animate-fade-in animation-delay-800">
-          <p>Need help? <a href="/resources" className="text-blue-600 hover:text-blue-700 font-semibold underline">Visit our resources</a></p>
+          <p>
+            {t('submitBlog.needHelp') || 'Need help?'}{' '}
+            <a href={localePath('/resources')} className="text-blue-600 hover:text-blue-700 font-semibold underline">
+              {t('submitBlog.visitResources') || 'Visit our resources'}
+            </a>
+          </p>
         </div>
       </div>
     </div>

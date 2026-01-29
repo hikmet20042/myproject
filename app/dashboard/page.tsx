@@ -7,7 +7,7 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import Link from 'next/link'
 import { Calendar, Users, Briefcase, BookOpen, Plus, Eye, Edit, Trash2, Settings, User, BarChart3, TrendingUp, Clock, CheckCircle, XCircle, AlertCircle, Sparkles, Shield } from 'lucide-react'
 import { IEvent } from '@/lib/models/Event'
-import { Button } from '@/components/ui/Button'
+import { Button, ButtonLink } from '@/components/ui'
 import { Tabs } from '@/components/ui/Tabs'
 import { Card, CardHeader, CardContent } from '@/components/ui/Card'
 import { Container } from '@/components/layout/Container'
@@ -401,7 +401,7 @@ export default function Dashboard() {
                   ...prev, 
                   socialMedia: { ...prev.socialMedia, facebook: (e.target as HTMLInputElement).value }
                 }))}
-                placeholder="https://facebook.com/yourpage"
+                placeholder={t('placeholders.facebookUrl')}
               />
             </div>
             <div>
@@ -413,7 +413,7 @@ export default function Dashboard() {
                   ...prev, 
                   socialMedia: { ...prev.socialMedia, twitter: (e.target as HTMLInputElement).value }
                 }))}
-                placeholder="https://twitter.com/yourhandle"
+                placeholder={t('placeholders.twitterUrl')}
               />
             </div>
             <div>
@@ -425,7 +425,7 @@ export default function Dashboard() {
                   ...prev, 
                   socialMedia: { ...prev.socialMedia, instagram: (e.target as HTMLInputElement).value }
                 }))}
-                placeholder="https://instagram.com/yourprofile"
+                placeholder={t('placeholders.instagramUrl')}
               />
             </div>
             <div>
@@ -437,7 +437,7 @@ export default function Dashboard() {
                   ...prev, 
                   socialMedia: { ...prev.socialMedia, linkedin: (e.target as HTMLInputElement).value }
                 }))}
-                placeholder="https://linkedin.com/company/yourcompany"
+                placeholder={t('placeholders.linkedinUrl')}
               />
             </div>
             <div>
@@ -449,7 +449,7 @@ export default function Dashboard() {
                   ...prev, 
                   socialMedia: { ...prev.socialMedia, youtube: (e.target as HTMLInputElement).value }
                 }))}
-                placeholder="https://youtube.com/channel/yourchannel"
+                placeholder={t('placeholders.youtubeUrl')}
               />
             </div>
           </div>
@@ -598,10 +598,7 @@ export default function Dashboard() {
         <Container size="xl" padding="lg" className="relative z-10 py-8 sm:py-12 lg:py-16">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div className="flex-1 animate-fade-in">
-              <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 backdrop-blur-md rounded-full mb-4">
-                <Sparkles className="w-4 h-4 text-blue-300" />
-                <span className="text-xs sm:text-sm font-bold uppercase tracking-wide">{t('dashboard.welcome')}</span>
-              </div>
+             
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black mb-2 sm:mb-3">
                 {t('dashboard.welcomeBack', { name: session.user?.name || ngoProfile?.organizationName || '' })}
               </h1>
@@ -612,18 +609,26 @@ export default function Dashboard() {
 
             {/* Quick Actions - Desktop */}
             <div className="hidden lg:flex items-center gap-3 animate-fade-in animation-delay-200">
-              <Link href={localePath("/dashboard/events/create")}>
-                <Button variant="secondary" size="lg" className="group">
-                  <Plus className="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform" />
-                  {t('dashboard.quickActions.createEvent')}
-                </Button>
-              </Link>
-              <Link href={localePath("/dashboard/vacancies/create")}>
-                <Button variant="outline" size="lg" className="border-2 border-white text-white hover:bg-white hover:text-blue-600">
-                  <Plus className="w-5 h-5 mr-2" />
-                  {t('dashboard.quickActions.createVacancy')}
-                </Button>
-              </Link>
+              <ButtonLink 
+                href={localePath("/dashboard/events/create")}
+                variant="secondary"
+                size="lg"
+                icon={Plus}
+                iconPosition="left"
+                hoverEffect="scale"
+              >
+                {t('dashboard.quickActions.createEvent')}
+              </ButtonLink>
+              <ButtonLink 
+                href={localePath("/dashboard/vacancies/create")}
+                variant="outline"
+                size="lg"
+                icon={Plus}
+                iconPosition="left"
+                hoverEffect="scale"
+              >
+                {t('dashboard.quickActions.createVacancy')}
+              </ButtonLink>
             </div>
           </div>
 

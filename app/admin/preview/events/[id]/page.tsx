@@ -213,7 +213,7 @@ export default function AdminEventPreview() {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
           <XCircle className="w-3 h-3 mr-1" />
-          Rejected
+          {t('admin.status.rejected') || 'Rejected'}
         </span>
       )
     }
@@ -221,14 +221,14 @@ export default function AdminEventPreview() {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
           <CheckCircle className="w-3 h-3 mr-1" />
-          Approved
+          {t('admin.status.approved') || 'Approved'}
         </span>
       )
     }
     return (
       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
         <AlertCircle className="w-3 h-3 mr-1" />
-        Pending Review
+        {t('admin.status.pendingReview') || 'Pending Review'}
       </span>
     )
   }
@@ -260,7 +260,7 @@ export default function AdminEventPreview() {
             className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Admin Panel
+            {t('admin.preview.backToAdmin') || 'Back to Admin Panel'}
           </Button>
           
           <div className="flex justify-between items-start">
@@ -268,7 +268,7 @@ export default function AdminEventPreview() {
               <h1 className="text-3xl font-bold text-gray-900">{event.title}</h1>
               <div className="flex items-center gap-4 mt-2">
                 {getStatusBadge()}
-                <span className="text-gray-500">by {event.organizationName || event.createdBy?.name || 'Unknown'}</span>
+                <span className="text-gray-500">{t('events.organizedBy') || 'Organized by'} {event.organizationName || event.createdBy?.name || (t('common.unknown') || 'Unknown')}</span>
               </div>
             </div>
             
@@ -606,7 +606,7 @@ export default function AdminEventPreview() {
               onChange={(e) => setAdminComment(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               rows={4}
-              placeholder="Enter admin comment..."
+              placeholder={t('placeholders.enterAdminComment')}
             />
             <div className="flex justify-end gap-3 mt-6">
               <Button

@@ -101,6 +101,26 @@ export async function PUT(
         )
       }
     }
+    if (body.description !== undefined) {
+      const descText = typeof body.description === 'string'
+        ? body.description.replace(/<[^>]*>/g, '').trim()
+        : ''
+      if (!descText || descText.length < 50) {
+        return NextResponse.json(
+          { error: 'Description must be at least 50 characters long' },
+          { status: 400 }
+        )
+      }
+    }
+    if (body.applicationInstructions !== undefined && typeof body.applicationInstructions === 'string') {
+      const instr = body.applicationInstructions.trim()
+      if (instr.length < 30) {
+        return NextResponse.json(
+          { error: 'Application instructions must be at least 30 characters long' },
+          { status: 400 }
+        )
+      }
+    }
     
     // Validate deadline if provided
     if (body.deadline) {

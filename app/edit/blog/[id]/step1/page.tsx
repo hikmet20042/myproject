@@ -7,11 +7,13 @@ import { useSession } from 'next-auth/react'
 import { Input, Button } from '@/components/ui'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
 import { LoadingState, ErrorState } from '@/components/shared'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function EditBlogStep1() {
   const router = useRouter()
   const params = useParams()
   const { data: session, status } = useSession()
+  const { t } = useLanguage()
   const [title, setTitle] = useState('')
 
   const [isAnonymous, setIsAnonymous] = useState(false)
@@ -200,7 +202,7 @@ export default function EditBlogStep1() {
     // Set flag to preserve data during navigation within the flow
     sessionStorage.setItem('navigatingWithinBlogFlow', 'true')
     
-    router.push(`/edit/blog/${blogId}/step2`)
+    router.push(localePath(`/edit/blog/${blogId}/step2`))
   }
 
   if (loading) {
@@ -235,7 +237,7 @@ export default function EditBlogStep1() {
             value={title} 
             onChange={(e) => setTitle(e.target.value)} 
             required 
-            placeholder="Give your blog a compelling title..." 
+            placeholder={t('placeholders.giveCompellingTitle')} 
           />
         </div>
 
@@ -243,7 +245,7 @@ export default function EditBlogStep1() {
           <label className="block text-sm font-medium text-gray-700 mb-2">Your Name</label>
           <Input
             type="text"
-            placeholder="Enter your name (or leave blank to use your profile name)"
+            placeholder={t('placeholders.enterYourName')}
             value={authorName}
             onChange={e => setAuthorName(e.target.value)}
             disabled={isAnonymous}

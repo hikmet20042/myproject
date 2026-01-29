@@ -79,6 +79,15 @@ const EventSchema = new mongoose.Schema<IEvent>({
     type: String,
     required: true,
     enum: [
+      // General categories
+      'Community Outreach',
+      'Health',
+      'Human Rights',
+      'Awareness',
+      'Education',
+      'Legal Aid',
+      'Training',
+      'Youth Development',
       // Event categories
       'Workshop',
       'Conference',

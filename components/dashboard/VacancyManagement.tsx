@@ -370,7 +370,7 @@ export default function VacancyManagement() {
                   </div>
                   
                   <div className="flex items-center gap-2 ml-4">
-                      <Link href={`/resources/vacancies/${vacancy._id}`}>
+                      <Link href={localePath(`/resources/vacancies/${vacancy._id}`)}>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -378,7 +378,7 @@ export default function VacancyManagement() {
                         title={t('vacancies.viewVacancy')}
                       />
                     </Link>
-                    <Link href={`/dashboard/vacancies/${vacancy._id}/edit`}>
+                    <Link href={localePath(`/dashboard/vacancies/${vacancy._id}/edit`)}>
                       <Button
                         variant="ghost"
                         size="sm"

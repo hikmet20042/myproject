@@ -125,7 +125,6 @@ async function runTests() {
   await testEndpoint('GET', '/api/blogs');
   await testEndpoint('POST', '/api/blogs/test-id/like');
   await testEndpoint('POST', '/api/blogs/test-id/dislike');
-  await testEndpoint('GET', '/api/blogs/test-id/comments');
 
   // Test 3: Event APIs
   logSection('Event API Endpoints');
@@ -145,19 +144,7 @@ async function runTests() {
   await testEndpoint('POST', '/api/vacancies/test-id/view');
   await testEndpoint('POST', '/api/vacancies/test-id/save');
 
-  // Test 5: Comment APIs
-  logSection('Comment API Endpoints');
-  
-  logInfo('Testing comment endpoints (these may fail without authentication)...');
-  
-  await testEndpoint('PATCH', '/api/comments/test-id', {
-    body: { content: 'Test update' }
-  });
-  await testEndpoint('DELETE', '/api/comments/test-id');
-  await testEndpoint('POST', '/api/comments/test-id/like');
-  await testEndpoint('POST', '/api/comments/test-id/dislike');
-
-  // Test 6: Notification APIs
+  // Test 5: Notification APIs
   logSection('Notification API Endpoints');
   
   logInfo('Testing notification endpoints (will fail without authentication)...');

@@ -7,6 +7,7 @@ import { Calendar, MapPin, Users, Link as LinkIcon, Clock, Tag, Image as ImageIc
 import { Input, Select, Button, TextArea } from '@/components/ui'
 import { FormSection } from '@/components/forms'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
 
 const eventCategories = [
   'workshop',
@@ -28,6 +29,7 @@ function CreateEventContent() {
   const { data: session } = useSession()
   const { t } = useLanguage()
   const router = useRouter()
+  const localePath = useLocalizedPath()
   const searchParams = useSearchParams()
   // Normalize field sizes for visual consistency
   const commonInputProps = { inputSize: 'md' as const }
@@ -115,13 +117,13 @@ function CreateEventContent() {
       const data = await response.json()
 
       if (response.ok) {
-        router.push('/dashboard/events?created=true')
+        router.push(localePath('/dashboard/events?created=true'))
       } else {
-        alert('Error creating event: ' + data.error)
+        alert(t('events.createError') || ('Error creating event: ' + data.error))
       }
     } catch (error) {
       console.error('Error creating event:', error)
-      alert('Failed to create event')
+      alert(t('events.failedCreate') || 'Failed to create event')
     } finally {
       setLoading(false)
     }
@@ -485,7 +487,7 @@ function CreateEventContent() {
                             name="certification.type"
                             value={formData.certification.type}
                             onChange={handleInputChange}
-                            placeholder="e.g., Certificate of Completion, Professional Certificate"
+                            placeholder={t('placeholders.certificateTypeExample')}
                             {...commonInputProps}
                           />
                         </div>
@@ -499,7 +501,7 @@ function CreateEventContent() {
                             name="certification.accreditedBy"
                             value={formData.certification.accreditedBy}
                             onChange={handleInputChange}
-                            placeholder="Accrediting organization (optional)"
+                            placeholder={t('placeholders.accreditingOrganization')}
                             {...commonInputProps}
                           />
                         </div>
@@ -671,7 +673,7 @@ function CreateEventContent() {
                   name="applicationLink"
                   value={formData.applicationLink}
                   onChange={handleInputChange}
-                  placeholder="https://..."
+                  placeholder={t('placeholders.httpsUrl')}
                   {...commonInputProps}
                 />
               </div>
@@ -685,7 +687,7 @@ function CreateEventContent() {
                   name="imageUrl"
                   value={formData.imageUrl}
                   onChange={handleInputChange}
-                  placeholder="https://..."
+                  placeholder={t('placeholders.httpsUrl')}
                   {...commonInputProps}
                 />
               </div>

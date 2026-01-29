@@ -26,6 +26,7 @@ import SaveButton from '@/components/SaveButton'
 import ViewTracker from '@/components/ViewTracker'
 import { LoadingState, ErrorState, AnimatedBackground } from '@/components/shared'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
 
 interface Vacancy {
   _id: string
@@ -83,6 +84,7 @@ interface Vacancy {
 
 export default function VacancyDetailPage() {
   const { t } = useLanguage()
+  const localePath = useLocalizedPath()
   const params = useParams()
   const router = useRouter()
   const [vacancy, setVacancy] = useState<Vacancy | null>(null)
@@ -112,9 +114,9 @@ export default function VacancyDetailPage() {
   }
 
   const formatDate = (dateString: string) => {
-    if (!dateString) return 'Date TBD'
+    if (!dateString) return t('events.dateTBD') || 'Date TBD'
     const date = new Date(dateString)
-    if (isNaN(date.getTime())) return 'Invalid Date'
+    if (isNaN(date.getTime())) return t('events.invalidDate') || 'Invalid Date'
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -163,10 +165,10 @@ export default function VacancyDetailPage() {
   if (error || !vacancy) {
     return (
       <ErrorState
-        title="Vacancy Not Found"
-        message={error || 'The vacancy you are looking for does not exist or has been removed.'}
-        onRetry={() => router.push('/resources/vacancies')}
-        retryText="Back to Vacancies"
+        title={t('vacancies.notFound') || 'Vacancy Not Found'}
+        message={error || (t('vacancies.notFoundText') || 'The vacancy you are looking for does not exist or has been removed.')}
+        onRetry={() => router.push(localePath('/resources/vacancies'))}
+        retryText={t('vacancies.backToVacancies') || 'Back to Vacancies'}
       />
     )
   }
@@ -190,7 +192,7 @@ export default function VacancyDetailPage() {
           <div className="max-w-6xl mx-auto">
             {/* Back Button */}
             <Button
-              onClick={() => router.push('/resources/vacancies')}
+              onClick={() => router.push(localePath('/resources/vacancies'))}
               variant="ghost"
               className="mb-6 text-white hover:bg-white/10 backdrop-blur-sm transition-all duration-300"
             >
@@ -238,7 +240,7 @@ export default function VacancyDetailPage() {
               <div className="flex flex-wrap items-center gap-4 text-sm sm:text-base text-white/90">
                 <div className="flex items-center gap-2">
                   <Building className="w-5 h-5" />
-                  <span className="font-semibold">{vacancy.createdBy?.name || 'Unknown'}</span>
+                  <span className="font-semibold">{vacancy.createdBy?.name || (t('common.unknown') || 'Unknown')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPin className="w-5 h-5" />

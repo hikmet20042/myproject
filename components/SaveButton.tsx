@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { Bookmark } from 'lucide-react'
 import { Button } from './ui/Button'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface SaveButtonProps {
   itemId: string
@@ -23,6 +24,7 @@ export default function SaveButton({
   showText = true
 }: SaveButtonProps) {
   const { data: session } = useSession()
+  const { t } = useLanguage()
   const [hasSaved, setHasSaved] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -51,7 +53,7 @@ export default function SaveButton({
 
   const handleSave = async () => {
     if (!session?.user?.id) {
-      alert(`Please sign in to save this ${itemType}`)
+      alert(t('save.pleaseSignInToSave', { type: itemType }))
       return
     }
 
@@ -73,10 +75,10 @@ export default function SaveButton({
         setHasSaved(data.hasSaved)
         
         // Show success message
-        const action = data.action === 'saved' ? 'saved' : 'removed from saved'
+        const action = data.action === 'saved' ? t('save.saved') : t('save.removed')
         const message = itemTitle 
-          ? `"${itemTitle}" ${action}!`
-          : `${itemType.charAt(0).toUpperCase() + itemType.slice(1)} ${action}!`
+          ? t('save.itemSavedWithTitle', { title: itemTitle, action })
+          : t('save.itemSaved', { type: itemType, action })
         
         // You can replace this with a toast notification
         alert(message)
@@ -85,7 +87,7 @@ export default function SaveButton({
       }
     } catch (error) {
       console.error('Error saving:', error)
-      alert(`Failed to save this ${itemType}. Please try again.`)
+      alert(t('save.failedToSave', { type: itemType }))
     } finally {
       setIsLoading(false)
     }
@@ -102,16 +104,16 @@ export default function SaveButton({
       } ${className}`}
       title={
         !session?.user?.id 
-          ? `Sign in to save this ${itemType}`
+          ? t('save.signInToSave', { type: itemType })
           : hasSaved 
-            ? `Remove from saved ${itemType}s`
-            : `Save this ${itemType}`
+            ? t('save.removeFromSaved', { type: itemType })
+            : t('save.saveThis', { type: itemType })
       }
     >
       <Bookmark className={`w-4 h-4 ${hasSaved ? 'fill-current' : ''}`} />
       {showText && (
         <span className="font-medium">
-          {hasSaved ? 'Saved' : 'Save'}
+          {hasSaved ? t('save.saved') : t('save.save')}
         </span>
       )}
     </Button>

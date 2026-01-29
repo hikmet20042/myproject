@@ -33,10 +33,13 @@ const RecentCommunityContent: React.FC = React.memo(function RecentCommunityCont
 			try {
 				setLoading(true);
 											// Fetch recent blogs from MongoDB
+											const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+											  || process.env.NEXT_PUBLIC_APP_URL
+											  || 'http://localhost:3000'
 											const blogsUrl = typeof window === 'undefined'
-											  ? `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/blogs?page=1&limit=3`
-											  : '/api/blogs?page=1&limit=3';
-											const blogsRes = await fetch(blogsUrl);
+											  ? `${baseUrl}/api/blogs?page=1&limit=3`
+											  : '/api/blogs?page=1&limit=3'
+											const blogsRes = await fetch(blogsUrl)
 				if (blogsRes.ok) {
 					const data = await blogsRes.json();
 					const publishedBlogs = (data.blogs || data.results || []).filter((blog: any) => blog.status === 'approved');

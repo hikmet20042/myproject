@@ -2,19 +2,21 @@
 
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext'
-import { BookOpen, Users, Briefcase, Calendar, ArrowRight, AlertTriangle, Sparkles, Target, TrendingUp } from 'lucide-react';
-import { Button, Card, CardContent } from '@/components/ui';
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { BookOpen, Users, Briefcase, Calendar, ArrowRight, Sparkles, Target, TrendingUp } from 'lucide-react';
+import { Button } from '@/components/ui';
 import { AnimatedBackground } from '@/components/shared';
 
 export default function ResourcesPage() {
   const { t } = useLanguage()
+  const localePath = useLocalizedPath()
 
   const resourceCategories = [
     {
       key: 'educationalMaterials',
       title: t('resources.categories.educationalMaterials.title'),
       description: t('resources.categories.educationalMaterials.description'),
-      href: '/resources/materials',
+      href: localePath('/resources/materials'),
       icon: BookOpen,
       gradient: 'from-blue-500 to-blue-700',
       hoverGradient: 'from-blue-600 to-blue-800',
@@ -24,7 +26,7 @@ export default function ResourcesPage() {
       key: 'ngoDirectory',
       title: t('resources.categories.ngoDirectory.title'),
       description: t('resources.categories.ngoDirectory.description'),
-      href: '/resources/ngos',
+      href: localePath('/resources/ngos'),
       icon: Users,
       gradient: 'from-indigo-500 to-indigo-700',
       hoverGradient: 'from-indigo-600 to-indigo-800',
@@ -34,7 +36,7 @@ export default function ResourcesPage() {
       key: 'jobOpportunities',
       title: t('resources.categories.jobOpportunities.title'),
       description: t('resources.categories.jobOpportunities.description'),
-      href: '/resources/vacancies',
+      href: localePath('/resources/vacancies'),
       icon: Briefcase,
       gradient: 'from-purple-500 to-purple-700',
       hoverGradient: 'from-purple-600 to-purple-800',
@@ -44,12 +46,19 @@ export default function ResourcesPage() {
       key: 'events',
       title: t('resources.categories.events.title'),
       description: t('resources.categories.events.description'),
-      href: '/resources/events',
+      href: localePath('/resources/events'),
       icon: Calendar,
       gradient: 'from-pink-500 to-pink-700',
       hoverGradient: 'from-pink-600 to-pink-800',
       bgLight: 'bg-pink-50'
     }
+  ]
+
+  const quickAccessItems = [
+    { href: localePath('/resources/materials'), label: t('resources.quickAccess.browseMaterials'), icon: BookOpen, variant: 'primary' as const },
+    { href: localePath('/resources/ngos'), label: t('resources.quickAccess.findNgos'), icon: Users, variant: 'outline' as const },
+    { href: localePath('/resources/vacancies'), label: t('resources.quickAccess.findVacancies'), icon: Briefcase, variant: 'primary' as const },
+    { href: localePath('/resources/events'), label: t('resources.quickAccess.upcomingEvents'), icon: Calendar, variant: 'outline' as const }
   ]
 
   return (
@@ -67,40 +76,14 @@ export default function ResourcesPage() {
 
         <div className="section-padding relative z-10">
           <div className="max-w-5xl mx-auto text-center">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 mb-4 sm:mb-6 animate-fade-in">
-              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300" />
-              <span className="text-xs sm:text-sm font-bold uppercase tracking-wide">Discover Resources</span>
-            </div>
+           
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-4 sm:mb-6 leading-tight animate-slide-up px-4">
               {t('resources.hero.title')}
             </h1>
-            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/95 leading-relaxed max-w-3xl mx-auto mb-6 sm:mb-8 animate-fade-in px-4">
+            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/95 leading-relaxed max-w-3xl mx-auto animate-fade-in px-4">
               {t('resources.hero.subtitle')}
             </p>
-
-            {/* Quick Stats */}
-            <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4 lg:gap-6 animate-scale-in px-4">
-              {[
-                { icon: BookOpen, label: 'Materials', value: '100+' },
-                { icon: Users, label: 'NGOs', value: '50+' },
-                { icon: Briefcase, label: 'Jobs', value: '200+' },
-                { icon: Calendar, label: 'Events', value: '75+' }
-              ].map((stat, idx) => (
-                <div 
-                  key={idx} 
-                  className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 sm:hover:scale-110 w-full sm:w-auto"
-                  style={{ animationDelay: `${idx * 0.1}s` }}
-                >
-                  <stat.icon className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300 flex-shrink-0" />
-                  <div className="text-left">
-                    <div className="text-lg sm:text-xl font-black">{stat.value}</div>
-                    <div className="text-xs text-white/80">{stat.label}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
 
@@ -115,15 +98,15 @@ export default function ResourcesPage() {
           <div className="max-w-7xl mx-auto">
             {/* Section Header */}
             <div className="text-center mb-8 sm:mb-12 animate-fade-in">
-              <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full mb-3 sm:mb-4">
-                <Target className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                <span className="text-xs sm:text-sm font-bold text-blue-600 uppercase tracking-wide">Explore Categories</span>
-              </div>
+              
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 mb-2 sm:mb-3 px-4">
-                Find What You <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">{t('titles.need')}</span>
+                {t('resources.categoriesSection.titleLeading')}{' '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+                  {t('resources.categoriesSection.titleHighlight')}
+                </span>
               </h2>
               <p className="text-sm sm:text-base lg:text-lg text-gray-600 max-w-2xl mx-auto px-4">
-                Access comprehensive resources tailored for your journey
+                {t('resources.categoriesSection.subtitle')}
               </p>
             </div>
 
@@ -184,22 +167,14 @@ export default function ResourcesPage() {
         <div className="section-padding">
           <div className="max-w-5xl mx-auto text-center">
             <div className="mb-6 sm:mb-8 animate-fade-in">
-              <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-100 rounded-full mb-3 sm:mb-4">
-                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                <span className="text-xs sm:text-sm font-bold text-blue-600 uppercase tracking-wide">Quick Access</span>
-              </div>
+              
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 px-4">
-                Jump Right In
+                {t('resources.quickAccess.heading')}
               </h2>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 px-4">
-              {[
-                { href: '/resources/materials', label: t('resources.quickAccess.browseMaterials'), icon: BookOpen, variant: 'primary' as const },
-                { href: '/resources/ngos', label: t('resources.quickAccess.findNgos'), icon: Users, variant: 'outline' as const },
-                { href: '/resources/vacancies', label: t('resources.quickAccess.findVacancies'), icon: Briefcase, variant: 'primary' as const },
-                { href: '/resources/events', label: t('resources.quickAccess.upcomingEvents'), icon: Calendar, variant: 'outline' as const }
-              ].map((item, idx) => {
+              {quickAccessItems.map((item, idx) => {
                 const Icon = item.icon
                 return (
                   <Link 

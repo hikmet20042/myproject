@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { Upload, X, Image as ImageIcon, Loader } from 'lucide-react'
 import Image from 'next/image'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface ImageUploadProps {
   value?: string
@@ -21,6 +22,7 @@ export default function ImageUpload({
   maxSize = 10,
   className = ''
 }: ImageUploadProps) {
+  const { t } = useLanguage()
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [preview, setPreview] = useState<string | null>(value || null)
@@ -32,13 +34,13 @@ export default function ImageUpload({
 
     // Validate file size
     if (file.size > maxSize * 1024 * 1024) {
-      setError(`File size must be less than ${maxSize}MB`)
+      setError(t('errors.fileMustBeImage'))
       return
     }
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      setError('File must be an image')
+      setError(t('errors.fileMustBeImage'))
       return
     }
 
@@ -65,7 +67,7 @@ export default function ImageUpload({
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Upload failed')
+        throw new Error(error.error || t('errors.uploadFailed'))
       }
 
       const data = await response.json()
@@ -73,7 +75,7 @@ export default function ImageUpload({
       setPreview(data.url)
     } catch (err: any) {
       console.error('Upload error:', err)
-      setError(err.message || 'Failed to upload image')
+      setError(err.message || t('errors.failedToUploadImage'))
       setPreview(null)
     } finally {
       setUploading(false)
@@ -110,7 +112,7 @@ export default function ImageUpload({
             {uploading ? (
               <>
                 <Loader className="w-12 h-12 text-blue-500 animate-spin" />
-                <p className="text-sm text-gray-600">Uploading...</p>
+                <p className="text-sm text-gray-600">{t('ui.uploading')}</p>
               </>
             ) : (
               <>
@@ -119,10 +121,10 @@ export default function ImageUpload({
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-medium text-gray-700">
-                    Click to upload image
+                    {t('upload.clickToUpload')}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    PNG, JPG, GIF up to {maxSize}MB
+                    {t('upload.fileTypes', { size: maxSize })}
                   </p>
                 </div>
               </>
@@ -153,7 +155,7 @@ export default function ImageUpload({
             disabled={uploading}
             className="absolute bottom-2 right-2 px-3 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors shadow-lg opacity-0 group-hover:opacity-100 disabled:opacity-50"
           >
-            Change Image
+            {t('upload.changeImage')}
           </button>
         </div>
       )}

@@ -3,17 +3,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Calendar, MapPin, Users, ExternalLink, Clock, Tag, Search, Filter, X } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Calendar, MapPin, Users, ExternalLink, Clock, Tag, Search, X } from 'lucide-react';
+import { Button, ButtonLink } from '@/components/ui';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { Card, CardContent } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import SaveButton from '@/components/SaveButton';
-import ViewTracker from '@/components/ViewTracker'
 import { useLocalizedPath } from '@/lib/useLocalizedPath';
-import { LoadingState, ErrorState } from '@/components/shared';
+import { LoadingState, ErrorState, ResourceFilterContainer, ActiveFilterBadges } from '@/components/shared';
 
 interface Event {
   _id: string
@@ -150,6 +147,7 @@ export default function EventsPage() {
     if (val.toLowerCase() === 'baku') return t('charts.regions.baku');
     if (val.toLowerCase() === 'ganja') return t('charts.regions.ganja');
     if (val.toLowerCase() === 'sumgayit') return t('charts.regions.sumqayit');
+    if (val.toLowerCase() === 'other') return t('charts.regions.otherRegions');
     return val;
   };
 
@@ -173,14 +171,14 @@ export default function EventsPage() {
                          organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          event.description.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesCategory = selectedCategory === 'all' || event.category === selectedCategory;
+  const matchesCategory = selectedCategory === 'all' || event.category === selectedCategory;
     
     // Event type filter
     const matchesEventType = selectedEventType === 'all' || event.eventType === selectedEventType;
     
     // Location filter - check location type and city
-    const locationString = event.location.type === 'online' ? 'online' : 
-                          event.location.city || event.location.address || 'unknown';
+  const locationString = event.location.type === 'online' ? 'online' : 
+              event.location.city || event.location.address || 'unknown';
     const matchesLocation = selectedLocation === 'all' || 
                            locationString.toLowerCase().includes(selectedLocation.toLowerCase());
     
@@ -260,108 +258,114 @@ export default function EventsPage() {
     selectedMonth !== 'all' ||
     selectedEventType !== 'all';
 
+  if (loading) {
+    return (
+      <LoadingState 
+        text={t('common.loading')}
+        gradientFrom="from-indigo-50"
+        gradientVia="via-purple-50"
+        gradientTo="to-pink-50"
+        spinnerColor="border-indigo-600"
+      />
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100">
+    <div className="min-h-screen bg-gray-50 transition-colors duration-200">
       {/* Header */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 text-white py-20">
-        {/* Animated Background Blobs */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-900 text-white py-16 sm:py-20 lg:py-24">
+        {/* Animated Blobs */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full mix-blend-overlay filter blur-3xl opacity-50 animate-blob"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full mix-blend-overlay filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
-        
+        <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-white/10 rounded-full mix-blend-overlay filter blur-3xl opacity-50 animate-blob animation-delay-4000"></div>
+
         <div className="section-padding relative z-10">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-md rounded-full border border-white/30 shadow-lg mb-6">
-              <Calendar className="w-5 h-5 text-white" />
-              <span className="text-sm font-semibold text-white">{t('events.discoverEvents')}</span>
-            </div>
-            <h1 className="text-4xl lg:text-5xl font-black mb-6">
+          <div className="max-w-5xl mx-auto text-center">
+            
+
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-4 sm:mb-6 leading-tight animate-slide-up px-4">
               {t('events.title')}
             </h1>
-            <p className="text-xl text-white/90 leading-relaxed">
+            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/95 leading-relaxed max-w-3xl mx-auto animate-fade-in px-4">
               {t('events.subtitle')}
             </p>
           </div>
         </div>
+
       </section>
 
       {/* Main Content */}
       <section className="section-padding py-16">
         <div className="max-w-7xl mx-auto">
-          {/* Search and Filters */}
-          <div className="bg-white rounded-2xl shadow-xl border-2 border-blue-100 p-6 sm:p-8 mb-8 animate-fade-in backdrop-blur-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg">
-                <Filter className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">{t('common.filterSearch')}</h2>
-                <p className="text-sm text-gray-600">{t('events.refineYourSearch')}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-              {/* Search */}
-              <div className="lg:col-span-2">
-                <Input
-                  type="text"
-                  label={t('common.search')}
-                  placeholder={t('events.searchPlaceholder')}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  icon={Search}
-                  iconPosition="left"
-                  inputSize="md"
-                  aria-label="Search events"
-                />
-              </div>
+          {/* Search and Filters - Standardized Design */}
+          <ResourceFilterContainer
+            title={t('common.filterSearch')}
+            subtitle={t('events.refineYourSearch')}
+            iconGradient="from-blue-600 to-indigo-600"
+            borderColor="border-blue-100"
+            searchInput={
+              <Input
+                type="text"
+                label={t('common.search')}
+                placeholder={t('events.searchPlaceholder')}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                icon={Search}
+                iconPosition="left"
+                inputSize="md"
+                aria-label={t('events.searchAria')}
+              />
+            }
+            filterControls={
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                {/* Category Filter */}
+                <div>
+                  <Select 
+                    label={t('filters.category')}
+                    value={selectedCategory} 
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    options={categories.map(category => ({
+                      value: category,
+                      label: getCategoryLabel(category)
+                    }))}
+                    placeholder={t('filters.allCategories')}
+                    selectSize="md"
+                  />
+                </div>
 
-              {/* Category Filter */}
-              <div>
-                <Select 
-                  label={t('filters.category')}
-                  value={selectedCategory} 
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  options={categories.map(category => ({
-                    value: category,
-                    label: getCategoryLabel(category)
-                  }))}
-                  placeholder={t('filters.allCategories')}
-                  selectSize="md"
-                />
-              </div>
+                {/* Location Filter */}
+                <div>
+                  <Select 
+                    label={t('filters.location')}
+                    value={selectedLocation} 
+                    onChange={(e) => setSelectedLocation(e.target.value)}
+                    options={locations.map(location => ({
+                      value: location,
+                      label: getLocationLabel(location)
+                    }))}
+                    placeholder={t('filters.allLocations')}
+                    selectSize="md"
+                  />
+                </div>
 
-              {/* Location Filter */}
-              <div>
-                <Select 
-                  label={t('filters.location')}
-                  value={selectedLocation} 
-                  onChange={(e) => setSelectedLocation(e.target.value)}
-                  options={locations.map(location => ({
-                    value: location,
-                    label: getLocationLabel(location)
-                  }))}
-                  placeholder={t('filters.allLocations')}
-                  selectSize="md"
-                />
-              </div>
+                {/* Month Filter */}
+                <div>
+                  <Select 
+                    label={t('filters.month')}
+                    value={selectedMonth} 
+                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    options={months.map(month => ({
+                      value: month,
+                      label: getMonthLabel(month)
+                    }))}
+                    placeholder={t('filters.allMonths')}
+                    selectSize="md"
+                  />
+                </div>
 
-              {/* Month Filter */}
-              <div>
-                <Select 
-                  label={t('filters.month')}
-                  value={selectedMonth} 
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  options={months.map(month => ({
-                    value: month,
-                    label: getMonthLabel(month)
-                  }))}
-                  placeholder={t('filters.allMonths')}
-                  selectSize="md"
-                />
-              </div>
-
-              {/* Event Type Filter */}
-              <div>
-                <Select 
+                {/* Event Type Filter */}
+                <div>
+                  <Select 
                     label={t('filters.type')}
                     value={selectedEventType} 
                     onChange={(e) => setSelectedEventType(e.target.value)}
@@ -372,70 +376,53 @@ export default function EventsPage() {
                     placeholder={t('filters.allTypes')}
                     selectSize="md"
                   />
-              </div>
-            </div>
-
-            {/* Active filters row */}
-            {hasActiveFilters && (
-              <div className="mt-6 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-100">
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                    <Filter className="w-4 h-4 text-blue-600" />
-                    {t('common.activeFilters')}:
-                  </span>
-                  {selectedCategory !== 'all' && (
-                    <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border-2 border-indigo-200 text-indigo-700 text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200">
-                      {t('filters.category')}: {getCategoryLabel(selectedCategory)}
-                      <button aria-label="Clear category filter" onClick={() => setSelectedCategory('all')} className="p-1 hover:bg-indigo-100 rounded-full transition-colors">
-                        <X className="w-4 h-4" />
-                      </button>
-                    </span>
-                  )}
-                  {selectedLocation !== 'all' && (
-                    <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border-2 border-teal-200 text-teal-700 text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200">
-                      {t('filters.location')}: {getLocationLabel(selectedLocation)}
-                      <button aria-label="Clear location filter" onClick={() => setSelectedLocation('all')} className="p-1 hover:bg-teal-100 rounded-full transition-colors">
-                        <X className="w-4 h-4" />
-                      </button>
-                    </span>
-                  )}
-                  {selectedMonth !== 'all' && (
-                    <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border-2 border-purple-200 text-purple-700 text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200">
-                      {t('filters.month')}: {getMonthLabel(selectedMonth)}
-                      <button aria-label="Clear month filter" onClick={() => setSelectedMonth('all')} className="p-1 hover:bg-purple-100 rounded-full transition-colors">
-                        <X className="w-4 h-4" />
-                      </button>
-                    </span>
-                  )}
-                  {selectedEventType !== 'all' && (
-                    <span className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border-2 border-amber-200 text-amber-700 text-sm font-semibold shadow-sm hover:shadow-md transition-all duration-200">
-                      {t('filters.type')}: {getEventTypeLabel(selectedEventType)}
-                      <button aria-label="Clear event type filter" onClick={() => setSelectedEventType('all')} className="p-1 hover:bg-amber-100 rounded-full transition-colors">
-                        <X className="w-4 h-4" />
-                      </button>
-                    </span>
-                  )}
-
-                  {/* Clear all */}
-                  <div className="ml-auto">
-                    <button
-                      onClick={() => {
-                        setSearchTerm('');
-                        setSelectedCategory('all');
-                        setSelectedLocation('all');
-                        setSelectedMonth('all');
-                        setSelectedEventType('all');
-                      }}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border-2 border-gray-300 text-gray-700 bg-white hover:bg-gray-50 hover:border-blue-300 font-semibold shadow-sm hover:shadow-md transition-all duration-200"
-                    >
-                      <X className="w-4 h-4" />
-                      {t('common.clearAll')}
-                    </button>
-                  </div>
                 </div>
               </div>
-            )}
-          </div>
+            }
+            activeFilters={
+              hasActiveFilters ? (
+                <ActiveFilterBadges
+                  badges={[
+                    ...(selectedCategory !== 'all' ? [{
+                      id: 'category',
+                      label: t('filters.category'),
+                      value: getCategoryLabel(selectedCategory),
+                      onRemove: () => setSelectedCategory('all'),
+                      colorScheme: 'indigo' as const,
+                    }] : []),
+                    ...(selectedLocation !== 'all' ? [{
+                      id: 'location',
+                      label: t('filters.location'),
+                      value: getLocationLabel(selectedLocation),
+                      onRemove: () => setSelectedLocation('all'),
+                      colorScheme: 'teal' as const,
+                    }] : []),
+                    ...(selectedMonth !== 'all' ? [{
+                      id: 'month',
+                      label: t('filters.month'),
+                      value: getMonthLabel(selectedMonth),
+                      onRemove: () => setSelectedMonth('all'),
+                      colorScheme: 'purple' as const,
+                    }] : []),
+                    ...(selectedEventType !== 'all' ? [{
+                      id: 'eventType',
+                      label: t('filters.type'),
+                      value: getEventTypeLabel(selectedEventType),
+                      onRemove: () => setSelectedEventType('all'),
+                      colorScheme: 'amber' as const,
+                    }] : []),
+                  ]}
+                  onClearAll={() => {
+                    setSearchTerm('');
+                    setSelectedCategory('all');
+                    setSelectedLocation('all');
+                    setSelectedMonth('all');
+                    setSelectedEventType('all');
+                  }}
+                />
+              ) : undefined
+            }
+          />
 
           {/* Loading State */}
           {loading && (
@@ -452,12 +439,14 @@ export default function EventsPage() {
                 <X className="w-8 h-8 text-red-600" />
               </div>
               <p className="text-red-600 mb-4 font-semibold">{error}</p>
-              <button
+              <Button
                 onClick={fetchEvents}
-                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
+                variant="gradient-blue"
+                shadow="lg"
+                hoverEffect="scale"
               >
                 {t('common.tryAgain')}
-              </button>
+              </Button>
             </div>
           )}
 
@@ -465,7 +454,7 @@ export default function EventsPage() {
           {!loading && !error && (
             <>
               {filteredData.length === 0 ? (
-                <div className="text-center py-12 animate-fade-in">
+                <div className="text-center py-16 animate-fade-in mt-12">
                   <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Calendar className="w-10 h-10 text-gray-400" />
                   </div>
@@ -473,147 +462,113 @@ export default function EventsPage() {
                   <p className="text-gray-500">{t('events.noEventsMessage')}</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12">
                   {filteredData.map((event) => {
-                    const organizationName = event.organizationName || event.createdBy?.name || 'Unknown Organization';
+                    const organizationName = event.organizationName || event.createdBy?.name || t('common.unknown');
                     const hasDeadline = event.applicationDeadline;
                     const deadlinePassed = hasDeadline ? isDeadlinePassed(event.applicationDeadline!) : false;
                     const deadlineNear = hasDeadline ? isDeadlineNear(event.applicationDeadline!) : false;
 
                     return (
-                      <div key={event._id} className="group bg-white rounded-2xl shadow-lg border-2 border-gray-200 overflow-hidden hover:shadow-2xl hover:-translate-y-2 hover:border-blue-300 transition-all duration-300 animate-fade-in flex flex-col h-full">
-                        {/* Event Image */}
-                        {event.imageUrl && (
-                          <div className="h-48 bg-gradient-to-br from-blue-100 to-indigo-100 overflow-hidden relative">
-                            <Image
-                              src={event.imageUrl}
-                              alt={event.title}
-                              fill
-                              className="object-cover group-hover:scale-110 transition-transform duration-500"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                            
-                            {/* Badge Overlay on Image */}
-                            <div className="absolute top-3 left-3 flex items-center gap-2 flex-wrap">
-                              <span className={`px-3 py-1.5 rounded-lg text-xs font-bold ${getCategoryColor(event.category)} shadow-lg backdrop-blur-sm`}>
-                                {event.category}
-                              </span>
-                            </div>
-                          </div>
-                        )}
+                      <article 
+                        key={event._id} 
+                        className="group relative overflow-hidden bg-gradient-to-br from-white to-blue-50/50 rounded-2xl border-2 border-gray-200 hover:border-blue-500 p-6 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 flex flex-col"
+                      >
+                        {/* Shine Effect */}
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                        </div>
 
-                        {/* Card Content */}
-                        <div className="p-6 flex flex-col flex-1">
-                          {/* Header Section */}
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="flex-1">
-                              <span className="inline-block text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg mb-3">
-                                {event.eventType ? getEventTypeLabel(event.eventType) : getEventTypeLabel('event')}
-                              </span>
-                              
-                              {/* Title */}
-                              <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors leading-tight">
-                                {event.title}
-                              </h3>
-                            </div>
-                            
-                            {/* Actions */}
-                            <div className="flex items-center gap-2 ml-3">
-                              <ViewTracker
-                                itemId={event._id}
-                                itemType="event"
-                                initialViews={event.views || 0}
-                                showCount={true}
+                        {/* Gradient Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-transparent to-indigo-500/0 opacity-0 group-hover:opacity-10 transition-opacity duration-500"></div>
+
+                        <div className="relative z-10 flex flex-col h-full">
+                          {/* Icon Section with Image */}
+                          <div className="relative w-14 h-14 rounded-xl overflow-hidden mb-4 shadow-lg group-hover:shadow-xl transition-shadow">
+                            {event.imageUrl ? (
+                              <Image
+                                src={event.imageUrl}
+                                alt={event.title}
+                                fill
+                                className="object-cover group-hover:scale-110 transition-transform duration-500"
                               />
-                              <SaveButton
-                                itemId={event._id}
-                                itemType="event"
-                                itemTitle={event.title}
-                                size="sm"
-                                showText={false}
-                              />
-                            </div>
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-700 flex items-center justify-center">
+                                <Calendar className="w-7 h-7 text-white" />
+                              </div>
+                            )}
                           </div>
+
+                          {/* Category & Type Badges */}
+                          <div className="flex items-center gap-2 mb-3 flex-wrap">
+                            <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg">
+                              {getCategoryLabel(event.category)}
+                            </span>
+                            <span className="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg">
+                              {event.eventType ? getEventTypeLabel(event.eventType) : getEventTypeLabel('event')}
+                            </span>
+                          </div>
+
+                          {/* Save Button - Top Right */}
+                          <div className="absolute top-6 right-6">
+                            <SaveButton
+                              itemId={event._id}
+                              itemType="event"
+                              itemTitle={event.title}
+                              size="sm"
+                              showText={false}
+                            />
+                          </div>
+                          
+                          {/* Title */}
+                          <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                            {event.title}
+                          </h3>
 
                           {/* Description */}
-                          <p className="text-gray-600 mb-4 line-clamp-2 text-sm leading-relaxed">
+                          <p className="text-sm text-gray-600 mb-4 line-clamp-2 leading-relaxed">
                             {event.description}
                           </p>
 
-                          {/* Event Details - Consistent Grid Layout */}
-                          <div className="space-y-3 mb-4 p-4 bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl border border-gray-200 flex-1">
+                          {/* Event Details */}
+                          <div className="space-y-2 mb-4 flex-1">
                             {/* Date */}
-                            <div className="flex items-center text-sm">
-                              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mr-3 flex-shrink-0 shadow-sm">
-                                <Calendar className="w-4 h-4 text-white" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs text-gray-500 font-medium">{t('events.date')}</p>
-                                <p className="text-sm font-semibold text-gray-900 truncate">{formatDateRange(event.eventDate, event.endDate)}</p>
-                              </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              <Calendar className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                              <span className="text-gray-700 font-medium">{formatDateRange(event.eventDate, event.endDate)}</span>
                             </div>
 
                             {/* Location */}
-                            <div className="flex items-center text-sm">
-                              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center mr-3 flex-shrink-0 shadow-sm">
-                                <MapPin className="w-4 h-4 text-white" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs text-gray-500 font-medium">{t('events.location')}</p>
-                                <p className="text-sm font-semibold text-gray-900 truncate">
-                                  {event.location.type === 'online' ? t('events.online') : 
-                                   event.location.city ? `${event.location.city}, ${event.location.country || 'Azerbaijan'}` :
-                                   event.location.address || t('events.locationTBD')}
-                                </p>
-                              </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              <MapPin className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                              <span className="text-gray-700 font-medium truncate">
+                                {event.location.type === 'online' ? t('events.online') : 
+                                 event.location.city || event.location.address || t('events.locationTBD')}
+                              </span>
                             </div>
 
                             {/* Organization */}
-                            <div className="flex items-center text-sm">
-                              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center mr-3 flex-shrink-0 shadow-sm">
-                                <Users className="w-4 h-4 text-white" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs text-gray-500 font-medium">{t('events.organizer')}</p>
-                                <p className="text-sm font-semibold text-gray-900 truncate">{organizationName}</p>
-                              </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              <Users className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                              <span className="text-gray-700 font-medium truncate">{organizationName}</span>
                             </div>
 
-                            {/* Participants - Only show if exists */}
-                            {event.maxParticipants && (
-                              <div className="flex items-center text-sm">
-                                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center mr-3 flex-shrink-0 shadow-sm">
-                                  <Tag className="w-4 h-4 text-white" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-xs text-gray-500 font-medium">{t('events.capacity')}</p>
-                                  <p className="text-sm font-semibold text-gray-900">{event.currentParticipants}/{event.maxParticipants} {t('events.participants')}</p>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Application Deadline - Only show if exists */}
+                            {/* Deadline - if exists */}
                             {hasDeadline && (
-                              <div className="flex items-center text-sm">
-                                <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${
-                                  deadlinePassed ? 'from-red-500 to-red-600' :
-                                  deadlineNear ? 'from-orange-500 to-orange-600' :
-                                  'from-green-500 to-green-600'
-                                } flex items-center justify-center mr-3 flex-shrink-0 shadow-sm`}>
-                                  <Clock className="w-4 h-4 text-white" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-xs text-gray-500 font-medium">{t('events.deadline')}</p>
-                                  <p className={`text-sm font-semibold truncate ${
-                                    deadlinePassed ? 'text-red-600' :
-                                    deadlineNear ? 'text-orange-600' :
-                                    'text-green-600'
-                                  }`}>
-                                    {formatDate(event.applicationDeadline!)}
-                                    {deadlinePassed && ` (${t('events.passed')})`}
-                                    {deadlineNear && !deadlinePassed && ` (${t('events.soon')})`}
-                                  </p>
-                                </div>
+                              <div className="flex items-center gap-2 text-sm">
+                                <Clock className={`w-4 h-4 flex-shrink-0 ${
+                                  deadlinePassed ? 'text-red-600' :
+                                  deadlineNear ? 'text-orange-600' :
+                                  'text-green-600'
+                                }`} />
+                                <span className={`font-medium ${
+                                  deadlinePassed ? 'text-red-600' :
+                                  deadlineNear ? 'text-orange-600' :
+                                  'text-green-600'
+                                }`}>
+                                  {formatDate(event.applicationDeadline!)}
+                                  {deadlinePassed && ` (${t('events.passed')})`}
+                                </span>
                               </div>
                             )}
                           </div>
@@ -622,39 +577,44 @@ export default function EventsPage() {
                           {event.tags && event.tags.length > 0 && (
                             <div className="flex flex-wrap gap-2 mb-4">
                               {event.tags.slice(0, 3).map((tag, index) => (
-                                <span key={index} className="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-lg border border-blue-200">
+                                <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-lg">
                                   #{tag}
                                 </span>
                               ))}
                               {event.tags.length > 3 && (
-                                <span className="px-2.5 py-1 bg-gray-100 text-gray-600 text-xs font-semibold rounded-lg border border-gray-300">
+                                <span className="px-2 py-1 bg-gray-100 text-gray-500 text-xs rounded-lg">
                                   +{event.tags.length - 3}
                                 </span>
                               )}
                             </div>
                           )}
 
-                          {/* Action Buttons - Fixed at Bottom */}
-                          <div className="flex gap-3 mt-auto pt-4 border-t border-gray-200">
-                            <Link href={`/resources/events/${event._id}`} className="flex-1">
-                              <Button variant="primary" size="sm" className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 font-bold shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300">
-                                {t('events.viewDetails')}
-                              </Button>
-                            </Link>
+                          {/* Action Buttons */}
+                          <div className="flex gap-2 pt-4 border-t border-gray-200 mt-auto">
+                            <ButtonLink 
+                              href={localePath(`/resources/events/${event._id}`)}
+                              variant="gradient-blue"
+                              size="sm"
+                              className="flex-1"
+                              shadow="sm"
+                              hoverEffect="scale"
+                            >
+                              {t('events.viewDetails')}
+                            </ButtonLink>
                             {event.applicationLink && !deadlinePassed && (
-                              <Link
+                              <ButtonLink
                                 href={event.applicationLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                <Button variant="outline" size="sm" className="border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-bold shadow-sm hover:shadow-md hover:scale-105 transition-all duration-300 px-4">
-                                  <ExternalLink className="w-4 h-4" />
-                                </Button>
-                              </Link>
+                                variant="outline"
+                                size="sm"
+                                icon={ExternalLink}
+                                iconPosition="right"
+                                hoverEffect="scale"
+                                external
+                              />
                             )}
                           </div>
                         </div>
-                      </div>
+                      </article>
                     );
                   })}
                 </div>
@@ -684,18 +644,28 @@ export default function EventsPage() {
               {t('events.hostEventText')}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href={localePath("/dashboard/events/create")}>
-                <Button variant="secondary" size="lg" className="bg-white text-blue-700 hover:bg-yellow-300 hover:text-blue-900 font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
-                  <Calendar className="w-5 h-5" />
-                  {t('events.createEvent')}
-                </Button>
-              </Link>
-              <Link href={localePath("/submit")}>
-                <Button variant="outline" size="lg" className="border-2 border-white text-white hover:bg-white hover:text-blue-700 font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
-                  <ExternalLink className="w-5 h-5" />
-                  {t('events.submitContent')}
-                </Button>
-              </Link>
+              <ButtonLink 
+                href={localePath("/dashboard/events/create")}
+                variant="white-on-dark"
+                size="lg"
+                icon={Calendar}
+                iconPosition="left"
+                shadow="lg"
+                hoverEffect="scale"
+              >
+                {t('events.createEvent')}
+              </ButtonLink>
+              <ButtonLink 
+                href={localePath("/submit")}
+                variant="outline"
+                size="lg"
+                icon={ExternalLink}
+                iconPosition="left"
+                shadow="lg"
+                hoverEffect="scale"
+              >
+                {t('events.submitContent')}
+              </ButtonLink>
             </div>
           </div>
         </div>

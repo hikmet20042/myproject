@@ -231,40 +231,72 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PATCH for user editing blogs
-export async function PATCH(request: NextRequest) {
-  try {
-    await dbConnect();
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    }
+  // PATCH for user editing blogs
+  export async function PATCH(request: NextRequest) {
+    try {
+      await dbConnect();
+      const session = await getServerSession(authOptions);
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      }
 
-    const body = await request.json();
-    const { id, title, content, contentHtml, tags, abstract, isAnonymous, authorName, media, featuredImage, status: reqStatus } = body;
+      const body = await request.json();
+      const { id, title, content, contentHtml, tags, abstract, isAnonymous, authorName, media, featuredImage, status: reqStatus } = body;
 
-    if (!id) {
-      return NextResponse.json({ error: 'Story ID is required' }, { status: 400 });
-    }
+      if (!id) {
+        return NextResponse.json({ error: 'Story ID is required' }, { status: 400 });
+      }
 
-    // Find the blog first to check its current status
-    const existingStory = await Blog.findOne({ _id: id, author: session.user.id });
-    
-    if (!existingStory) {
-      return NextResponse.json({ error: 'Story not found or you do not have permission to edit it' }, { status: 404 });
-    }
+      // Find the blog first to check its current status
+      const existingStory = await Blog.findOne({ _id: id, author: session.user.id });
+      
+      if (!existingStory) {
+        return NextResponse.json({ error: 'Story not found or you do not have permission to edit it' }, { status: 404 });
+      }
 
-    // Prevent editing of approved blogs
-    if (existingStory.status === 'approved') {
-      return NextResponse.json({ 
-        error: 'Approved blogs cannot be edited. Contact an administrator if changes are needed.' 
-      }, { status: 403 });
-    }
+      // Prevent editing of approved blogs
+      if (existingStory.status === 'approved') {
+        return NextResponse.json({ 
+          error: 'Approved blogs cannot be edited. Contact an administrator if changes are needed.' 
+        }, { status: 403 });
+      }
 
-    // Prepare update data
-    const updateData: any = {
-      updatedAt: new Date()
-    };
+      if (content !== undefined || contentHtml !== undefined) {
+        let textContent = '';
+        if (typeof content === 'string') {
+          textContent = content;
+        } else if (content && (content as any).blocks && Array.isArray((content as any).blocks)) {
+          textContent = (content as any).blocks
+            .map((block: any) => {
+              if (block.content && Array.isArray(block.content)) {
+                return block.content.map((item: any) => item.text || '').join('');
+              }
+              return '';
+            })
+            .join(' ');
+        } else if (contentHtml) {
+          textContent = contentHtml.replace(/<[^>]*>/g, '').trim();
+        }
+
+        if (!textContent || textContent.trim().length < 100) {
+          return NextResponse.json(
+            { error: 'Story content must be at least 100 characters long' },
+            { status: 400 }
+          );
+        }
+      }
+
+      if (tags !== undefined && !Array.isArray(tags)) {
+        return NextResponse.json(
+          { error: 'Tags must be an array of strings' },
+          { status: 400 }
+        );
+      }
+
+      // Prepare update data
+      const updateData: any = {
+        updatedAt: new Date()
+      };
 
     if (title !== undefined) updateData.title = title.trim();
     if (content !== undefined) updateData.content = content;

@@ -115,15 +115,15 @@ export default function EditEvent() {
           imageUrl: eventData.imageUrl || ''
         })
       } else {
-        setError(data.error || 'Failed to load event')
+        setError(data.error || t('errors.failedToLoadEvent'))
       }
     } catch (error) {
       console.error('Error loading event:', error)
-      setError('Failed to load event')
+      setError(t('errors.failedToLoadEvent'))
     } finally {
       setLoadingEvent(false)
     }
-  }, [params?.id])
+  }, [params?.id, t])
 
   useEffect(() => {
     if (params?.id) {
@@ -159,11 +159,11 @@ export default function EditEvent() {
       if (response.ok) {
         router.push(localePath("/dashboard/events?updated=true"))
       } else {
-        alert('Error updating event: ' + data.error)
+        alert(t('events.errorUpdating') + ': ' + data.error)
       }
     } catch (error) {
       console.error('Error updating event:', error)
-      alert('Failed to update event')
+      alert(t('events.failedToUpdate'))
     } finally {
       setLoading(false)
     }

@@ -2,14 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
-import { CardContent } from '@/components/ui/Card';
-import { ExternalLink, BookOpen, Sparkles, Target, Filter, Search, FileText } from 'lucide-react';
+import { Button, ButtonLink } from '@/components/ui';
+import { ExternalLink, BookOpen, Sparkles, Target, Search, FileText, Clock, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { AnimatedBackground, LoadingState, ErrorState } from '@/components/shared';
+import { useLocalizedPath } from '@/lib/useLocalizedPath';
+import { LoadingState, ErrorState, ResourceFilterContainer } from '@/components/shared';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 
@@ -31,6 +29,7 @@ interface Material {
 
 export default function Resources() {
   const { t } = useLanguage();
+  const localePath = useLocalizedPath();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -125,7 +124,15 @@ export default function Resources() {
   };
 
   if (loading) {
-    return <LoadingState text={t('common.loading') || 'Loading materials...'} gradientFrom="from-blue-500" gradientVia="via-indigo-500" gradientTo="to-purple-500" />;
+    return (
+      <LoadingState 
+        text={t('common.loading')}
+        gradientFrom="from-indigo-50"
+        gradientVia="via-purple-50"
+        gradientTo="to-pink-50"
+        spinnerColor="border-indigo-600"
+      />
+    );
   }
 
   if (error) {
@@ -142,51 +149,22 @@ export default function Resources() {
   return (
   <div className="min-h-screen bg-gray-50 transition-colors duration-200">
       {/* Header */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-900 text-white py-16 sm:py-20 lg:py-24">
+      <section className="relative overflow-hidden bg-gradient-to-br from-purple-600 via-indigo-700 to-pink-900 text-white py-16 sm:py-20 lg:py-24">
         {/* Animated Blobs */}
-        <AnimatedBackground
-          colors={{
-            blob1: 'bg-blue-400',
-            blob2: 'bg-purple-400',
-            blob3: 'bg-pink-400'
-          }}
-        />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full mix-blend-overlay filter blur-3xl opacity-50 animate-blob"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full mix-blend-overlay filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-white/10 rounded-full mix-blend-overlay filter blur-3xl opacity-50 animate-blob animation-delay-4000"></div>
 
         <div className="section-padding relative z-10">
           <div className="max-w-5xl mx-auto text-center">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 mb-4 sm:mb-6 animate-fade-in">
-              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300" />
-              <span className="text-xs sm:text-sm font-bold uppercase tracking-wide">{t('resources.categories.educationalMaterials.badge') || 'Educational Resources'}</span>
-            </div>
+            
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-4 sm:mb-6 leading-tight animate-slide-up px-4">
               {t('resources.categories.educationalMaterials.title')}
             </h1>
-            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/95 leading-relaxed max-w-3xl mx-auto mb-6 sm:mb-8 animate-fade-in px-4">
+            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/95 leading-relaxed max-w-3xl mx-auto animate-fade-in px-4">
               {t('resources.categories.educationalMaterials.description')}
             </p>
-
-            {/* Quick Stats */}
-            <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4 lg:gap-6 animate-scale-in px-4">
-              {[
-                { icon: BookOpen, label: t('resources.materials.stats.guides') || 'Guides', value: '50+' },
-                { icon: Sparkles, label: t('resources.materials.stats.courses') || 'Courses', value: '25+' },
-                { icon: Target, label: t('resources.materials.stats.videos') || 'Videos', value: '100+' }
-              ].map((stat, idx) => (
-                <div 
-                  key={idx} 
-                  className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 sm:hover:scale-110 w-full sm:w-auto"
-                  style={{ animationDelay: `${idx * 0.1}s` }}
-                >
-                  <stat.icon className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300 flex-shrink-0" />
-                  <div className="text-left">
-                    <div className="text-lg sm:text-xl font-black">{stat.value}</div>
-                    <div className="text-xs text-white/80">{stat.label}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
 
@@ -201,21 +179,14 @@ export default function Resources() {
         <div className="section-padding relative z-10">
           <div className="max-w-6xl mx-auto space-y-12 sm:space-y-16">
             
-            {/* Search and Filters */}
-            <div className="bg-white rounded-2xl shadow-xl border-2 border-indigo-100 p-6 sm:p-8 backdrop-blur-sm animate-fade-in">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg">
-                  <Filter className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">{t('common.filterSearch') || 'Filter & Search'}</h2>
-                  <p className="text-sm text-gray-600">{t('resources.materials.filterDescription') || 'Find the perfect learning resource'}</p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Search */}
-                <div>
+            {/* Search and Filters - Standardized Design */}
+            <ResourceFilterContainer
+              title={t('common.filterSearch') || 'Filter & Search'}
+              subtitle={t('resources.materials.filterDescription') || 'Find the perfect learning resource'}
+              iconGradient="from-indigo-600 to-purple-600"
+              borderColor="border-indigo-100"
+              searchInput={
+                <div className="space-y-4">
                   <Input
                     type="text"
                     label={t('common.search') || 'Search'}
@@ -225,25 +196,27 @@ export default function Resources() {
                     icon={Search}
                     iconPosition="left"
                   />
+                  {/* Results Count */}
+                  <div className="text-sm text-gray-600">
+                    {t('resources.materials.showingResults', { count: filteredMaterials.length, total: materials.length}) || 
+                      `Showing ${filteredMaterials.length} of ${materials.length} materials`}
+                  </div>
                 </div>
-
-                {/* Category Filter */}
-                <div>
-                  <Select
-                    label={t('filters.category') || 'Category'}
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    options={categories}
-                  />
+              }
+              filterControls={
+                <div className="mt-4">
+                  {/* Category Filter */}
+                  <div>
+                    <Select
+                      label={t('filters.category') || 'Category'}
+                      value={selectedCategory}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      options={categories}
+                    />
+                  </div>
                 </div>
-              </div>
-
-              {/* Results Count */}
-              <div className="mt-4 text-sm text-gray-600">
-                {t('resources.materials.showingResults', { count: filteredMaterials.length, total: materials.length }) || 
-                  `Showing ${filteredMaterials.length} of ${materials.length} materials`}
-              </div>
-            </div>
+              }
+            />
 
             {/* Materials by Category */}
             {Object.entries(groupedMaterials).map(([category, categoryMaterials]) => {
@@ -267,71 +240,87 @@ export default function Resources() {
                   
                   <div className={`grid grid-cols-1 ${categoryMaterials.length > 1 ? 'md:grid-cols-2' : ''} ${categoryMaterials.length > 2 ? 'lg:grid-cols-3' : ''} gap-6`}>
                     {categoryMaterials.map((material, index) => (
-                      <Card key={material._id} className={`group hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-2 ${getBorderColor(category)}`}>
-                        <CardContent className="relative overflow-hidden">
-                          {/* Shine Effect */}
-                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                      <article 
+                        key={material._id} 
+                        className={`group relative overflow-hidden bg-gradient-to-br from-white to-purple-50/50 rounded-2xl border-2 border-gray-200 hover:border-purple-500 p-6 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2`}
+                      >
+                        {/* Shine Effect */}
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                        </div>
+
+                        {/* Gradient Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 via-transparent to-pink-500/0 opacity-0 group-hover:opacity-10 transition-opacity duration-500"></div>
+
+                        <div className="relative z-10">
+                          {/* Icon Section */}
+                          {material.imageUrl ? (
+                            <div className="w-14 h-14 rounded-xl overflow-hidden mb-4 shadow-lg group-hover:shadow-xl transition-shadow">
+                              <Image 
+                                src={material.imageUrl} 
+                                alt={material.provider || material.title} 
+                                width={56} 
+                                height={56} 
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                              />
+                            </div>
+                          ) : (
+                            <div className={`w-14 h-14 bg-gradient-to-br ${getCategoryColor(category)} rounded-xl flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-500`}>
+                              <span className="text-2xl">{getCategoryIcon(category)}</span>
+                            </div>
+                          )}
+
+                          {/* Type Badge */}
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-lg">
+                              {material.type}
+                            </span>
+                            {material.provider && (
+                              <span className="text-xs text-gray-500">{material.provider}</span>
+                            )}
                           </div>
-                          
-                          <div className="relative z-10">
-                            {/* Header with Icon/Image */}
-                            <div className="flex items-start mb-4">
-                              {material.imageUrl ? (
-                                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden mr-4 flex-shrink-0 shadow-md">
-                                  <Image 
-                                    src={material.imageUrl} 
-                                    alt={material.provider || material.title} 
-                                    width={56} 
-                                    height={56} 
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-                              ) : (
-                                <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${getCategoryColor(category)} rounded-xl flex items-center justify-center mr-4 flex-shrink-0 shadow-md group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
-                                  <span className="text-2xl">{getCategoryIcon(category)}</span>
+
+                          {/* Title */}
+                          <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-purple-600 transition-colors line-clamp-2">
+                            {material.title}
+                          </h3>
+
+                          {/* Description */}
+                          <p className="text-sm text-gray-600 mb-4 leading-relaxed line-clamp-3">
+                            {material.description}
+                          </p>
+
+                          {/* Tags */}
+                          {material.tags && material.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mb-4">
+                              {material.tags.slice(0, 3).map((tag, idx) => (
+                                <span key={idx} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-lg">
+                                  #{tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Meta Info */}
+                          {(material.duration || material.views) && (
+                            <div className="flex items-center gap-4 text-sm text-gray-500 mb-4 pb-4 border-b border-gray-200">
+                              {material.duration && (
+                                <div className="flex items-center gap-1">
+                                  <Clock className="w-4 h-4" />
+                                  <span>{material.duration}</span>
                                 </div>
                               )}
-                              <div className="flex-1">
-                                <Badge variant="primary" className="mb-2 shadow-sm">
-                                  {material.type}
-                                </Badge>
-                                {material.provider && (
-                                  <p className="text-xs text-gray-600">{material.provider}</p>
-                                )}
-                              </div>
+                              {material.views && (
+                                <div className="flex items-center gap-1">
+                                  <Eye className="w-4 h-4" />
+                                  <span>{material.views}</span>
+                                </div>
+                              )}
                             </div>
+                          )}
 
-                            {/* Title */}
-                            <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">
-                              {material.title}
-                            </h3>
-
-                            {/* Description */}
-                            <p className="text-sm sm:text-base text-gray-600 mb-4 leading-relaxed line-clamp-3">
-                              {material.description}
-                            </p>
-
-                            {/* Meta Info */}
-                            {(material.duration || material.views) && (
-                              <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500 mb-4">
-                                {material.duration && <span>{material.duration}</span>}
-                                {material.views && <span>{material.views} {t('common.views') || 'views'}</span>}
-                              </div>
-                            )}
-
-                            {/* Tags */}
-                            {material.tags && material.tags.length > 0 && (
-                              <div className="flex flex-wrap gap-2 mb-4">
-                                {material.tags.slice(0, 3).map((tag, idx) => (
-                                  <span key={idx} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-lg">
-                                    #{tag}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-
-                            {/* CTA Button */}
+                          {/* CTA Button */}
+                          <div className="pt-4 border-t border-gray-200">
                             <a
                               href={material.url}
                               target="_blank"
@@ -347,8 +336,8 @@ export default function Resources() {
                               </Button>
                             </a>
                           </div>
-                        </CardContent>
-                      </Card>
+                        </div>
+                      </article>
                     ))}
                   </div>
                 </div>
@@ -394,57 +383,71 @@ export default function Resources() {
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 sm:gap-8">
                   {materials.map((material) => (
-                    <Card 
+                    <article
                       key={material._id} 
-                      className="group hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-2 hover:border-blue-300"
+                      className="group relative overflow-hidden bg-gradient-to-br from-white to-purple-50/50 rounded-2xl border-2 border-gray-200 hover:border-purple-500 p-6 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2"
                     >
-                      <CardContent className="relative overflow-hidden">
-                        {/* Shine Effect */}
-                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                        </div>
+                      {/* Shine Effect */}
+                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                      </div>
+
+                      {/* Gradient Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 via-transparent to-pink-500/0 opacity-0 group-hover:opacity-10 transition-opacity duration-500"></div>
                         
-                        <div className="relative z-10">
-                          <div className="flex items-start mb-4">
-                            <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${getCategoryColor(material.category)} rounded-xl flex items-center justify-center mr-4 flex-shrink-0 shadow-md group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
-                              <svg className="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={getCategoryIcon(material.category)} />
-                              </svg>
-                            </div>
-                            <div className="flex-1">
-                              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
-                                {material.title}
-                              </h3>
-                              <Badge variant="primary" className="mb-3 shadow-sm capitalize">
-                                {material.type || material.category}
-                              </Badge>
-                            </div>
-                          </div>
-                          <p className="text-sm sm:text-base text-gray-600 mb-4 leading-relaxed line-clamp-3">
-                            {material.description}
-                          </p>
-                          {material.provider && (
-                            <p className="text-xs sm:text-sm text-gray-500 mb-2">
-                              Provider: {material.provider}
-                            </p>
-                          )}
-                          {material.duration && (
-                            <p className="text-xs sm:text-sm text-gray-500 mb-4">
-                              Duration: {material.duration}
-                            </p>
-                          )}
-                          <a
-                            href={material.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <Button variant="primary" icon={ExternalLink} className="group-hover:scale-105 transition-transform duration-300 w-full">
-                              View Resource
-                            </Button>
-                          </a>
+                      <div className="relative z-10">
+                        {/* Icon Section */}
+                        <div className={`w-14 h-14 bg-gradient-to-br ${getCategoryColor(material.category)} rounded-xl flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-500`}>
+                          <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={getCategoryIcon(material.category)} />
+                          </svg>
                         </div>
-                      </CardContent>
-                    </Card>
+
+                        {/* Type Badge */}
+                        <div className="mb-3">
+                          <span className="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-lg capitalize">
+                            {material.type || material.category}
+                          </span>
+                        </div>
+
+                        {/* Title */}
+                        <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-purple-600 transition-colors line-clamp-2">
+                          {material.title}
+                        </h3>
+
+                        {/* Description */}
+                        <p className="text-sm text-gray-600 mb-4 leading-relaxed line-clamp-3">
+                          {material.description}
+                        </p>
+
+                        {/* Meta Info */}
+                        {(material.provider || material.duration) && (
+                          <div className="space-y-1 mb-4 text-sm text-gray-500">
+                            {material.provider && (
+                              <p>Provider: {material.provider}</p>
+                            )}
+                            {material.duration && (
+                              <p>Duration: {material.duration}</p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* CTA Button */}
+                        <div className="pt-4 border-t border-gray-200">
+                          <ButtonLink
+                            href={material.url}
+                            variant="primary"
+                            icon={ExternalLink}
+                            iconPosition="left"
+                            className="w-full"
+                            hoverEffect="scale"
+                            external
+                          >
+                            View Resource
+                          </ButtonLink>
+                        </div>
+                      </div>
+                    </article>
                   ))}
                 </div>
               </div>
@@ -455,7 +458,10 @@ export default function Resources() {
 
       {/* CTA Section */}
       <section className="py-16 bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-700 relative overflow-hidden">
-        <AnimatedBackground />
+        {/* Animated Blobs */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full mix-blend-overlay filter blur-3xl opacity-50 animate-blob"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full mix-blend-overlay filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
+        
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center text-white">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-6">
@@ -465,23 +471,28 @@ export default function Resources() {
               {t('resources.materials.cta.description')}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <a href="/submit">
-                <Button 
-                  variant="primary" 
-                  icon={FileText}
-                  className="bg-white text-purple-600 hover:bg-purple-50 shadow-xl hover:shadow-2xl transition-all duration-300 px-8 py-6 text-lg"
-                >
-                  {t('resources.materials.cta.submitResource')}
-                </Button>
-              </a>
-              <a href="/resources">
-                <Button 
-                  variant="secondary"
-                  className="bg-purple-500 hover:bg-purple-400 text-white shadow-xl hover:shadow-2xl transition-all duration-300 px-8 py-6 text-lg"
-                >
-                  {t('resources.materials.cta.exploreMore')}
-                </Button>
-              </a>
+              <ButtonLink
+                href={localePath('/submit')}
+                variant="white-on-dark"
+                size="lg"
+                icon={FileText}
+                iconPosition="left"
+                shadow="xl"
+                hoverEffect="lift"
+                className="px-8 py-6 text-lg"
+              >
+                {t('resources.materials.cta.submitResource')}
+              </ButtonLink>
+              <ButtonLink
+                href={localePath('/resources')}
+                variant="gradient-purple"
+                size="lg"
+                shadow="xl"
+                hoverEffect="lift"
+                className="px-8 py-6 text-lg"
+              >
+                {t('resources.materials.cta.exploreMore')}
+              </ButtonLink>
             </div>
           </div>
         </div>

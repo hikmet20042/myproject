@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { ButtonLink } from '@/components/ui'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface BlogReactionsProps {
   blogId: string
@@ -20,6 +22,7 @@ export default function BlogReactions({
   className = ''
 }: BlogReactionsProps) {
   const { data: session } = useSession()
+  const { t } = useLanguage()
   const localePath = useLocalizedPath()
   const [likes, setLikes] = useState(initialLikes)
   const [dislikes, setDislikes] = useState(initialDislikes)
@@ -28,8 +31,12 @@ export default function BlogReactions({
   const [isLoading, setIsLoading] = useState(false)
 
   // Fetch current user's reaction status
+  const dataFetchedRef = useRef(false)
+
   useEffect(() => {
     if (!session?.user?.id) return
+    if (dataFetchedRef.current) return
+    dataFetchedRef.current = true
 
     const fetchReactionStatus = async () => {
       try {
@@ -59,7 +66,7 @@ export default function BlogReactions({
 
   const handleLike = async () => {
     if (!session?.user?.id) {
-      alert('Please sign in to like this story')
+      alert(t('reactions.pleaseSignInToLike'))
       return
     }
 
@@ -85,7 +92,7 @@ export default function BlogReactions({
 
   const handleDislike = async () => {
     if (!session?.user?.id) {
-      alert('Please sign in to dislike this story')
+      alert(t('reactions.pleaseSignInToDislike'))
       return
     }
 
@@ -123,11 +130,15 @@ export default function BlogReactions({
             <span className="text-sm font-semibold">{dislikes}</span>
           </div>
         </div>
-        <Link href={localePath('/auth/signin')}>
-          <button className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200">
-            Sign in to react
-          </button>
-        </Link>
+        <ButtonLink
+          href={localePath('/auth/signin')}
+          variant="gradient-indigo"
+          size="sm"
+          shadow="md"
+          hoverEffect="lift"
+        >
+          Sign in to react
+        </ButtonLink>
       </div>
     )
   }
@@ -138,19 +149,17 @@ export default function BlogReactions({
       <button
         onClick={handleLike}
         disabled={isLoading}
-        className={`group relative flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 ${
-          hasLiked
-            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 scale-105'
-            : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-blue-500 hover:text-blue-600 hover:shadow-md hover:-translate-y-0.5'
-        } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+        className={`group relative flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 ${hasLiked
+          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 scale-105'
+          : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-blue-500 hover:text-blue-600 hover:shadow-md hover:-translate-y-0.5'
+          } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         {isLoading ? (
           <Loader2 className="w-5 h-5 animate-spin" />
         ) : (
           <ThumbsUp
-            className={`w-5 h-5 transition-transform duration-200 ${
-              hasLiked ? 'fill-current' : 'group-hover:scale-110'
-            }`}
+            className={`w-5 h-5 transition-transform duration-200 ${hasLiked ? 'fill-current' : 'group-hover:scale-110'
+              }`}
           />
         )}
         <span className="text-sm font-bold min-w-[20px] text-center">
@@ -165,19 +174,17 @@ export default function BlogReactions({
       <button
         onClick={handleDislike}
         disabled={isLoading}
-        className={`group relative flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 ${
-          hasDisliked
-            ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/30 scale-105'
-            : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-red-500 hover:text-red-600 hover:shadow-md hover:-translate-y-0.5'
-        } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+        className={`group relative flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 ${hasDisliked
+          ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/30 scale-105'
+          : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-red-500 hover:text-red-600 hover:shadow-md hover:-translate-y-0.5'
+          } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         {isLoading ? (
           <Loader2 className="w-5 h-5 animate-spin" />
         ) : (
           <ThumbsDown
-            className={`w-5 h-5 transition-transform duration-200 ${
-              hasDisliked ? 'fill-current' : 'group-hover:scale-110'
-            }`}
+            className={`w-5 h-5 transition-transform duration-200 ${hasDisliked ? 'fill-current' : 'group-hover:scale-110'
+              }`}
           />
         )}
         <span className="text-sm font-bold min-w-[20px] text-center">

@@ -1688,46 +1688,6 @@ export default function AdminPage() {
           {/* Blogs Tab */}
           {activeTab === 'blogs' && (
             <div className="space-y-6">
-              {/* Blogs Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">{t('admin.stats.pending')}</p>
-                      <p className="text-3xl font-bold text-yellow-600">{getByStatus(blogs, 'pending').length}</p>
-                    </div>
-                    <Clock className="w-8 h-8 text-yellow-500" />
-                  </div>
-                </div>
-                <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">{t('admin.stats.approved')}</p>
-                      <p className="text-3xl font-bold text-green-600">{getByStatus(blogs, 'approved').length}</p>
-                    </div>
-                    <CheckCircle className="w-8 h-8 text-green-500" />
-                  </div>
-                </div>
-                <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">{t('admin.stats.rejected')}</p>
-                      <p className="text-3xl font-bold text-red-600">{getByStatus(blogs, 'rejected').length}</p>
-                    </div>
-                    <XCircle className="w-8 h-8 text-red-500" />
-                  </div>
-                </div>
-                <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">{t('admin.stats.totalBlogs')}</p>
-                      <p className="text-3xl font-bold text-blue-600">{blogs.length}</p>
-                    </div>
-                    <BookOpen className="w-8 h-8 text-blue-500" />
-                  </div>
-                </div>
-              </div>
-
               {/* Enhanced Search and Filter Controls */}
               <div className="bg-white shadow-lg rounded-2xl p-6">
                 <div className="flex flex-col lg:flex-row gap-4 mb-4">
@@ -1967,11 +1927,11 @@ export default function AdminPage() {
                             </div>
                             <div className="flex gap-2">
                               <Link
-                                href={`/admin/preview/blog/${blog._id}`}
+                                href={localePath(`/admin/preview/blog/${blog._id}`)}
                                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                               >
                                 <Eye className="w-4 h-4" />
-                                Preview
+                                {t('admin.preview.link') || 'Preview'}
                               </Link>
                               {blog.status !== 'pending' && (
                                 <Button
@@ -2538,7 +2498,7 @@ export default function AdminPage() {
                                 </>
                               )}
                               <Button
-                                onClick={() => window.open(`/admin/preview/events/${event._id}`, '_blank')}
+                                onClick={() => window.open(localePath(`/admin/preview/events/${event._id}`), '_blank')}
                                 variant="outline"
                                 size="sm"
                                 className="inline-flex items-center text-xs"
@@ -2749,7 +2709,7 @@ export default function AdminPage() {
                                 </>
                               )}
                               <Button
-                                onClick={() => window.open(`/admin/preview/vacancies/${vacancy._id}`, '_blank')}
+                                onClick={() => window.open(localePath(`/admin/preview/vacancies/${vacancy._id}`), '_blank')}
                                 variant="outline"
                                 size="sm"
                                 className="inline-flex items-center text-xs"
@@ -3216,7 +3176,7 @@ export default function AdminPage() {
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <Input
                         type="text"
-                        placeholder="Search by title, description, or provider..."
+                        placeholder={t('placeholders.searchMaterials')}
                         value={materialSearch}
                         onChange={(e) => setMaterialSearch(e.target.value)}
                         className="w-full pl-10"
@@ -4759,7 +4719,7 @@ export default function AdminPage() {
                     type="text"
                     value={materialFormData.title || ''}
                     onChange={(e) => setMaterialFormData({ ...materialFormData, title: e.target.value })}
-                    placeholder="Material title"
+                    placeholder={t('placeholders.materialTitle')}
                     className="w-full"
                     required
                   />
@@ -4770,7 +4730,7 @@ export default function AdminPage() {
                   <TextArea
                     value={materialFormData.description || ''}
                     onChange={(e) => setMaterialFormData({ ...materialFormData, description: e.target.value })}
-                    placeholder="Detailed description of the material"
+                    placeholder={t('placeholders.detailedDescription')}
                     rows={3}
                     className="w-full"
                     required
@@ -4800,7 +4760,7 @@ export default function AdminPage() {
                     type="text"
                     value={materialFormData.type || ''}
                     onChange={(e) => setMaterialFormData({ ...materialFormData, type: e.target.value })}
-                    placeholder="e.g., PDF, Video Course, Interactive Tool"
+                    placeholder={t('placeholders.materialTypeExample')}
                     className="w-full"
                   />
                 </div>
@@ -4811,7 +4771,7 @@ export default function AdminPage() {
                     type="url"
                     value={materialFormData.url || ''}
                     onChange={(e) => setMaterialFormData({ ...materialFormData, url: e.target.value })}
-                    placeholder="https://example.com/resource"
+                    placeholder={t('placeholders.resourceUrl')}
                     className="w-full"
                     required
                   />
@@ -4823,7 +4783,7 @@ export default function AdminPage() {
                     type="text"
                     value={materialFormData.provider || ''}
                     onChange={(e) => setMaterialFormData({ ...materialFormData, provider: e.target.value })}
-                    placeholder="Organization or provider name"
+                    placeholder={t('placeholders.organizationOrProvider')}
                     className="w-full"
                   />
                 </div>
@@ -4834,7 +4794,7 @@ export default function AdminPage() {
                     type="text"
                     value={materialFormData.duration || ''}
                     onChange={(e) => setMaterialFormData({ ...materialFormData, duration: e.target.value })}
-                    placeholder="e.g., 4 weeks, 30 minutes"
+                    placeholder={t('placeholders.durationExample')}
                     className="w-full"
                   />
                 </div>
@@ -4848,7 +4808,7 @@ export default function AdminPage() {
                       ...materialFormData, 
                       language: e.target.value.split(',').map(l => l.trim()).filter(Boolean) 
                     })}
-                    placeholder="en, fr, es"
+                    placeholder={t('placeholders.languageCodes')}
                     className="w-full"
                   />
                 </div>
@@ -4862,7 +4822,7 @@ export default function AdminPage() {
                       ...materialFormData, 
                       tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) 
                     })}
-                    placeholder="gender-equality, education, toolkit"
+                    placeholder={t('placeholders.materialTags')}
                     className="w-full"
                   />
                 </div>

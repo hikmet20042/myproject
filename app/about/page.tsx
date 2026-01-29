@@ -1,22 +1,20 @@
 'use client'
 
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
-import { CardContent } from '@/components/ui/Card';
+import { Button, ButtonLink } from '@/components/ui';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext'
 import { AnimatedBackground } from '@/components/shared'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
-import { 
-  Shield, 
-  AlertTriangle, 
-  Lightbulb, 
-  Database, 
-  Cpu, 
-  BarChart3, 
-  Eye, 
-  BookOpen, 
-  Sparkles, 
+import {
+  Shield,
+  AlertTriangle,
+  Lightbulb,
+  Database,
+  Cpu,
+  BarChart3,
+  Eye,
+  BookOpen,
+  Sparkles,
   Target,
   CheckCircle,
   XCircle,
@@ -28,6 +26,26 @@ import {
 export default function About() {
   const localePath = useLocalizedPath()
   const { t } = useLanguage()
+
+  const dataLimitations = [
+    t('about.onlyPublicReports'),
+    t('about.mayNotReflectScale'),
+    t('about.aiMayContainBias'),
+    t('about.regionalCoverageVaries')
+  ]
+
+  const ethicalSafeguards = [
+    t('about.noPersonalInfo'),
+    t('about.victimPrivacy'),
+    t('about.dataForAwareness'),
+    t('about.aiPrinciples')
+  ]
+
+  const trustIndicators = [
+    { icon: Users, title: t('about.communityGrowth'), description: t('about.communityGrowthText') },
+    { icon: Shield, title: t('about.privacyCommitment'), description: t('about.privacyCommitmentText') },
+    { icon: Sparkles, title: t('about.continuousImprovement'), description: t('about.continuousImprovementText') }
+  ]
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -60,11 +78,7 @@ export default function About() {
 
         <div className="section-padding relative z-10">
           <div className="max-w-5xl mx-auto text-center">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 mb-4 sm:mb-6 animate-fade-in">
-              <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-blue-300" />
-              <span className="text-xs sm:text-sm font-bold uppercase tracking-wide">Our Mission</span>
-            </div>
+
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-4 sm:mb-6 leading-tight animate-slide-up px-4">
               {t('about.ourMission')}
@@ -81,14 +95,11 @@ export default function About() {
       <section className="py-12 sm:py-16 lg:py-20">
         <div className="section-padding">
           <div className="max-w-7xl mx-auto space-y-16 sm:space-y-20 lg:space-y-24">
-            
+
             {/* The Problem - Enhanced */}
             <div>
               <div className="text-center mb-8 sm:mb-12 animate-fade-in">
-                <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-red-100 rounded-full mb-3 sm:mb-4">
-                  <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
-                  <span className="text-xs sm:text-sm font-bold text-red-600 uppercase tracking-wide">The Challenge</span>
-                </div>
+
                 <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-black text-gray-900 mb-3 sm:mb-4 px-4">
                   {t('about.dataChallenge')}
                 </h2>
@@ -96,11 +107,11 @@ export default function About() {
                   {t('about.dataChallengeSubtitle')}
                 </p>
               </div>
-              
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
                 <div className="group relative bg-gradient-to-br from-white to-red-50/50 rounded-2xl p-6 sm:p-8 border-2 border-gray-200 hover:border-red-500 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 animate-fade-in">
                   <div className="absolute inset-0 bg-gradient-to-br from-red-500/0 to-red-600/0 group-hover:from-red-500/5 group-hover:to-red-600/5 transition-all duration-500 rounded-2xl"></div>
-                  
+
                   <div className="relative z-10">
                     <div className="flex items-center mb-6">
                       <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center mr-4 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
@@ -130,7 +141,7 @@ export default function About() {
 
                 <div className="group relative bg-gradient-to-br from-white to-orange-50/50 rounded-2xl p-6 sm:p-8 border-2 border-gray-200 hover:border-orange-500 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 animate-fade-in animation-delay-200">
                   <div className="absolute inset-0 bg-gradient-to-br from-orange-500/0 to-orange-600/0 group-hover:from-orange-500/5 group-hover:to-orange-600/5 transition-all duration-500 rounded-2xl"></div>
-                  
+
                   <div className="relative z-10">
                     <div className="flex items-center mb-6">
                       <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center mr-4 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
@@ -168,10 +179,7 @@ export default function About() {
             {/* Our Solution - Enhanced */}
             <div>
               <div className="text-center mb-8 sm:mb-12 animate-fade-in">
-                <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-green-100 rounded-full mb-3 sm:mb-4">
-                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
-                  <span className="text-xs sm:text-sm font-bold text-green-600 uppercase tracking-wide">Our Solution</span>
-                </div>
+
                 <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-black text-gray-900 mb-3 sm:mb-4 px-4">
                   {t('about.technologyApproach')}
                 </h2>
@@ -179,7 +187,7 @@ export default function About() {
                   {t('about.technologySubtitle')}
                 </p>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
                 {[
                   {
@@ -204,13 +212,13 @@ export default function About() {
                     features: [t('about.interactiveCharts'), t('about.regionalBreakdowns'), t('about.trendAnalysis')]
                   }
                 ].map((solution, idx) => (
-                  <div 
-                    key={idx} 
+                  <div
+                    key={idx}
                     className="group relative bg-gradient-to-br from-white to-gray-50/50 rounded-2xl p-6 sm:p-8 border-2 border-gray-200 hover:border-blue-500 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 animate-fade-in"
                     style={{ animationDelay: `${idx * 0.1}s` }}
                   >
                     <div className={`absolute inset-0 bg-gradient-to-br from-${solution.color}-500/0 to-${solution.color}-600/0 group-hover:from-${solution.color}-500/5 group-hover:to-${solution.color}-600/5 transition-all duration-500 rounded-2xl`}></div>
-                    
+
                     <div className="relative z-10">
                       <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-gradient-to-br ${solution.color === 'blue' ? 'from-blue-500 to-blue-700' : solution.color === 'green' ? 'from-green-500 to-green-700' : 'from-purple-500 to-purple-700'} flex items-center justify-center mb-4 sm:mb-6 shadow-lg group-hover:scale-110 group-hover:-rotate-6 transition-all duration-300`}>
                         <solution.icon className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
@@ -240,10 +248,7 @@ export default function About() {
             {/* Platform Purpose - Enhanced */}
             <div>
               <div className="text-center mb-8 sm:mb-12 animate-fade-in">
-                <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-cyan-100 rounded-full mb-3 sm:mb-4">
-                  <Target className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-600" />
-                  <span className="text-xs sm:text-sm font-bold text-cyan-600 uppercase tracking-wide">Our Purpose</span>
-                </div>
+
                 <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-black text-gray-900 mb-3 sm:mb-4 px-4">
                   {t('about.platformPurpose')}
                 </h2>
@@ -251,12 +256,12 @@ export default function About() {
                   {t('about.platformPurposeSubtitle')}
                 </p>
               </div>
-              
+
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
                 {[
                   {
                     icon: Eye,
-                    title: 'Transparent Statistics',
+                    title: t('about.transparentStatistics'),
                     color: 'cyan',
                     features: [
                       { text: t('about.openMethodology') },
@@ -277,13 +282,13 @@ export default function About() {
                     ]
                   }
                 ].map((purpose, idx) => (
-                  <div 
-                    key={idx} 
+                  <div
+                    key={idx}
                     className="group relative bg-gradient-to-br from-white to-gray-50/50 rounded-2xl p-6 sm:p-8 border-2 border-gray-200 hover:border-blue-500 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 animate-fade-in"
                     style={{ animationDelay: `${idx * 0.1}s` }}
                   >
                     <div className={`absolute inset-0 bg-gradient-to-br from-${purpose.color}-500/0 to-${purpose.color}-600/0 group-hover:from-${purpose.color}-500/5 group-hover:to-${purpose.color}-600/5 transition-all duration-500 rounded-2xl`}></div>
-                    
+
                     <div className="relative z-10">
                       <div className="flex items-center mb-6">
                         <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br ${purpose.color === 'cyan' ? 'from-cyan-500 to-cyan-700' : 'from-indigo-500 to-indigo-700'} flex items-center justify-center mr-4 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
@@ -293,7 +298,7 @@ export default function About() {
                           {purpose.title}
                         </h3>
                       </div>
-                      
+
                       <ul className="space-y-3 text-gray-600">
                         {purpose.features.map((feature, fIdx) => (
                           <li key={fIdx} className="flex items-start group/item">
@@ -308,50 +313,61 @@ export default function About() {
               </div>
             </div>
 
-            {/* Limitations & Ethics */}
-            <Card className="bg-amber-50 border-l-4 border-amber-500">
-              <div className="flex items-start">
-                <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-                  <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-amber-900 mb-4">
+            {/* Community Strength */}
+            <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-900 via-purple-900 to-blue-900 px-6 py-10 text-white shadow-2xl sm:px-10 sm:py-14 lg:px-16">
+              <div className="pointer-events-none absolute inset-0 opacity-40">
+                <div className="absolute -top-20 -left-10 h-56 w-56 rounded-full bg-blue-500/40 blur-3xl"></div>
+                <div className="absolute bottom-0 right-0 h-72 w-72 rounded-full bg-purple-500/40 blur-3xl"></div>
+              </div>
+              <div className="relative z-10">
+                <div className="mx-auto max-w-3xl text-center">
+
+                  <h3 className="mt-4 text-2xl font-black sm:text-3xl lg:text-4xl">
                     {t('about.limitationsEthics')}
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-amber-800">
-                    <div>
-                      <h4 className="font-semibold mb-2">{t('about.dataLimitations')}</h4>
-                      <ul className="space-y-1 text-sm">
-                        <li>• {t('about.onlyPublicReports')}</li>
-                        <li>• {t('about.mayNotReflectScale')}</li>
-                        <li>• {t('about.aiMayContainBias')}</li>
-                        <li>• {t('about.regionalCoverageVaries')}</li>
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold mb-2">{t('about.ethicalStandards')}</h4>
-                      <ul className="space-y-1 text-sm">
-                        <li>• {t('about.noPersonalInfo')}</li>
-                        <li>• {t('about.victimPrivacy')}</li>
-                        <li>• {t('about.dataForAwareness')}</li>
-                        <li>• {t('about.aiPrinciples')}</li>
-                      </ul>
-                    </div>
+                  <p className="mt-4 text-sm text-blue-100 sm:text-base lg:text-lg">
+                    {t('about.limitationsEthicsSubtitle')}
+                  </p>
+                </div>
+                <div className="mt-10 grid gap-8 lg:grid-cols-2">
+                  <div className="rounded-2xl border border-white/15 bg-white/10 p-6 backdrop-blur sm:p-8">
+                    <h4 className="flex items-center text-lg font-semibold sm:text-xl">
+                      <AlertTriangle className="mr-3 h-5 w-5 text-amber-200" />
+                      {t('about.dataLimitations')}
+                    </h4>
+                    <ul className="mt-5 space-y-3 text-sm leading-relaxed text-blue-100 sm:text-base">
+                      {dataLimitations.map((item, idx) => (
+                        <li key={idx} className="flex items-start gap-3">
+                          <div className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-amber-300"></div>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <div className="mt-4 p-3 bg-amber-100 rounded-lg">
-                    <p className="text-sm text-amber-900">
-                      <strong>{t('about.disclaimerTitle')}</strong> {t('about.disclaimerText')}
-                    </p>
+                  <div className="rounded-2xl border border-white/15 bg-white/10 p-6 backdrop-blur sm:p-8">
+                    <h4 className="flex items-center text-lg font-semibold sm:text-xl">
+                      <Sparkles className="mr-3 h-5 w-5 text-sky-200" />
+                      {t('about.ethicalStandards')}
+                    </h4>
+                    <ul className="mt-5 space-y-3 text-sm leading-relaxed text-blue-100 sm:text-base">
+                      {ethicalSafeguards.map((item, idx) => (
+                        <li key={idx} className="flex items-start gap-3">
+                          <CheckCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-sky-200" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
+                <div className="mt-10 rounded-2xl border border-white/15 bg-white/10 p-5 text-left text-sm text-blue-100 sm:p-6 sm:text-base">
+                  <strong className="text-white">{t('about.disclaimerTitle')}</strong> {t('about.disclaimerText')}
+                </div>
               </div>
-            </Card>
+            </section>
           </div>
         </div>
       </section>
-      
+
       {/* Call to Action */}
       <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-900 py-12 sm:py-16 lg:py-20">
         {/* Animated Background Elements */}
@@ -365,46 +381,44 @@ export default function About() {
 
         <div className="relative z-10 section-padding">
           <div className="max-w-5xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 backdrop-blur-md rounded-full mb-4 sm:mb-6">
-              <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-pink-300" />
-              <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide">Join The Movement</span>
-            </div>
-            
+
+
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white mb-4 sm:mb-6 px-4">
               {t('about.joinMovement')}
             </h2>
             <p className="text-base sm:text-lg lg:text-xl text-blue-100 mb-8 sm:mb-10 max-w-3xl mx-auto px-4">
               {t('about.joinMovementText')}
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8 sm:mb-12 px-4">
-              <Link href={localePath("/submit")}>
-                <Button variant="secondary" size="lg" className="w-full sm:w-auto text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 hover:scale-105 sm:hover:scale-110 transition-all">
-                  {t('about.shareYourBlog')}
-                </Button>
-              </Link>
-              <Link href={localePath("/resources")}>
-                <Button variant="outline" size="lg" className="w-full sm:w-auto border-2 border-white text-white hover:bg-white hover:text-blue-600 text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 hover:scale-105 sm:hover:scale-110 transition-all">
-                  {t('about.accessResources')}
-                </Button>
-              </Link>
-              <Link href={localePath("/stats")}>
-                <Button variant="outline" size="lg" className="w-full sm:w-auto border-2 border-white text-white hover:bg-white hover:text-blue-600 text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 hover:scale-105 sm:hover:scale-110 transition-all">
-                  {t('about.viewStatistics')}
-                </Button>
-              </Link>
+              <ButtonLink
+                href={localePath("/submit")}
+                variant="secondary"
+                size="lg"
+                hoverEffect="scale"
+              >
+                {t('about.shareYourBlog')}
+              </ButtonLink>
+              <ButtonLink
+                href={localePath("/resources")}
+                variant="outline"
+                size="lg"
+                hoverEffect="scale"
+              >
+                {t('about.accessResources')}
+              </ButtonLink>
             </div>
 
             {/* Trust Indicators */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 px-4">
-              {[
-                { icon: Users, text: 'Growing Community' },
-                { icon: Shield, text: 'Privacy Protected' },
-                { icon: Sparkles, text: 'Always Improving' }
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-center justify-center gap-2 sm:gap-3 bg-white/10 backdrop-blur-md rounded-xl px-4 sm:px-6 py-3 sm:py-4">
-                  <item.icon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-300" />
-                  <span className="text-xs sm:text-sm font-semibold text-white">{item.text}</span>
+            <div className="grid grid-cols-1 gap-4 px-4 sm:grid-cols-3 sm:gap-6">
+              {trustIndicators.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="flex h-full flex-col items-center rounded-2xl border border-white/20 bg-white/10 px-5 py-6 text-center text-white/90 backdrop-blur transition-transform hover:-translate-y-1 hover:bg-white/15"
+                >
+                  <item.icon className="mb-3 h-8 w-8 text-white" />
+                  <span className="text-sm font-semibold text-white sm:text-base">{item.title}</span>
+                  <p className="mt-2 text-xs text-blue-100 sm:text-sm">{item.description}</p>
                 </div>
               ))}
             </div>

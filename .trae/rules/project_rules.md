@@ -101,7 +101,7 @@ setIsAnonymous(story.isAnonymous || false)  // Use 'isAnonymous' field
 
 ### Always Log Data Structure When Debugging
 ```javascript
-console.log('Request body:', JSON.stringify(body, null, 2));
+  ('Request body:', JSON.stringify(body, null, 2));
 console.log('Field type:', typeof field, 'Value:', field);
 ```
 

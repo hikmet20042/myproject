@@ -237,7 +237,7 @@ export default function CreateVacancy() {
                   value={formData.title}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 text-lg border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-red-100 focus:border-primary transition-all duration-200"
-                  placeholder="e.g., Program Manager, Volunteer Coordinator, Marketing Intern"
+                  placeholder={t('placeholders.programManagerExample')}
                 />
               </div>
 
@@ -298,7 +298,7 @@ export default function CreateVacancy() {
                   value={formData.description}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 text-lg border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-red-100 focus:border-primary transition-all duration-200 resize-none"
-                  placeholder="Tell candidates about the role, your organization's mission, and the impact they'll make. What makes this opportunity unique?"
+                  placeholder={t('placeholders.describeRoleAndMission')}
                 />
               </div>
 
@@ -366,7 +366,7 @@ export default function CreateVacancy() {
                    value={formData.workType}
                    onChange={handleInputChange}
                    className="w-full px-4 py-3 text-lg"
-                   placeholder="Choose work arrangement..."
+                   placeholder={t('placeholders.chooseWorkArrangement')}
                    options={[
                      { value: 'onsite', label: 'On-site (Office/Location required)' },
                      { value: 'remote', label: 'Remote (Work from anywhere)' },
@@ -380,33 +380,113 @@ export default function CreateVacancy() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <div className="space-y-2">
                     <label htmlFor="city" className="block text-lg font-semibold text-gray-800">
-                      City
+                      {t('vacancies.cityLabel')} *
                     </label>
-                    <p className="text-sm text-gray-600 mb-3">Which city is this opportunity based in?</p>
-                    <Input
-                      type="text"
+                    <p className="text-sm text-gray-600 mb-3">{t('vacancies.cityHint')}</p>
+                    <Select
                       id="city"
                       name="city"
+                      required
                       value={formData.city}
                       onChange={handleInputChange}
                       className="w-full px-4 py-3 text-lg"
-                      placeholder="e.g., New York, London, Remote"
+                      placeholder={t('vacancies.selectCity')}
+                      options={[
+                        // Cities
+                        { value: 'Baku', label: t('regions.baku') },
+                        { value: 'Ganja', label: t('regions.ganja') },
+                        { value: 'Nakhchivan', label: t('regions.nakhchivan') },
+                        { value: 'Sumgayit', label: t('regions.sumgayit') },
+                        { value: 'Lankaran', label: t('regions.lankaran') },
+                        { value: 'Mingachevir', label: t('regions.mingachevir') },
+                        { value: 'Naftalan', label: t('regions.naftalan') },
+                        { value: 'Khankendi', label: t('regions.khankendi') },
+                        { value: 'Shaki', label: t('regions.shaki') },
+                        { value: 'Shirvan', label: t('regions.shirvan') },
+                        { value: 'Yevlakh', label: t('regions.yevlakh') },
+                        // Districts
+                        { value: 'Absheron', label: t('regions.absheron') },
+                        { value: 'Aghjabadi', label: t('regions.aghjabadi') },
+                        { value: 'Agdam', label: t('regions.agdam') },
+                        { value: 'Agdash', label: t('regions.agdash') },
+                        { value: 'Agdere', label: t('regions.agdere') },
+                        { value: 'Agstafa', label: t('regions.agstafa') },
+                        { value: 'Agsu', label: t('regions.agsu') },
+                        { value: 'Astara', label: t('regions.astara') },
+                        { value: 'Babek', label: t('regions.babek') },
+                        { value: 'Balakan', label: t('regions.balakan') },
+                        { value: 'Beylagan', label: t('regions.beylagan') },
+                        { value: 'Barda', label: t('regions.barda') },
+                        { value: 'Bilasuvar', label: t('regions.bilasuvar') },
+                        { value: 'Jabrayil', label: t('regions.jabrayil') },
+                        { value: 'Jalilabad', label: t('regions.jalilabad') },
+                        { value: 'Julfa', label: t('regions.julfa') },
+                        { value: 'Dashkasan', label: t('regions.dashkasan') },
+                        { value: 'Fuzuli', label: t('regions.fuzuli') },
+                        { value: 'Gadabay', label: t('regions.gadabay') },
+                        { value: 'Goranboy', label: t('regions.goranboy') },
+                        { value: 'Goychay', label: t('regions.goychay') },
+                        { value: 'Goygol', label: t('regions.goygol') },
+                        { value: 'Hajigabul', label: t('regions.hajigabul') },
+                        { value: 'Khachmaz', label: t('regions.khachmaz') },
+                        { value: 'Khizi', label: t('regions.khizi') },
+                        { value: 'Khojaly', label: t('regions.khojaly') },
+                        { value: 'Khojavend', label: t('regions.khojavend') },
+                        { value: 'Imishli', label: t('regions.imishli') },
+                        { value: 'Ismayilli', label: t('regions.ismayilli') },
+                        { value: 'Kalbajar', label: t('regions.kalbajar') },
+                        { value: 'Kangarli', label: t('regions.kangarli') },
+                        { value: 'Kurdamir', label: t('regions.kurdamir') },
+                        { value: 'Gakh', label: t('regions.gakh') },
+                        { value: 'Gazakh', label: t('regions.gazakh') },
+                        { value: 'Gabala', label: t('regions.gabala') },
+                        { value: 'Gobustan', label: t('regions.gobustan') },
+                        { value: 'Guba', label: t('regions.guba') },
+                        { value: 'Gubadli', label: t('regions.gubadli') },
+                        { value: 'Gusar', label: t('regions.gusar') },
+                        { value: 'Lachin', label: t('regions.lachin') },
+                        { value: 'Lerik', label: t('regions.lerik') },
+                        { value: 'Masalli', label: t('regions.masalli') },
+                        { value: 'Neftchala', label: t('regions.neftchala') },
+                        { value: 'Oghuz', label: t('regions.oghuz') },
+                        { value: 'Ordubad', label: t('regions.ordubad') },
+                        { value: 'Saatli', label: t('regions.saatli') },
+                        { value: 'Sabirabad', label: t('regions.sabirabad') },
+                        { value: 'Salyan', label: t('regions.salyan') },
+                        { value: 'Samukh', label: t('regions.samukh') },
+                        { value: 'Sadarak', label: t('regions.sadarak') },
+                        { value: 'Siyazan', label: t('regions.siyazan') },
+                        { value: 'Shabran', label: t('regions.shabran') },
+                        { value: 'Shahbuz', label: t('regions.shahbuz') },
+                        { value: 'Shamakhi', label: t('regions.shamakhi') },
+                        { value: 'Shamkir', label: t('regions.shamkir') },
+                        { value: 'Sharur', label: t('regions.sharur') },
+                        { value: 'Shusha', label: t('regions.shusha') },
+                        { value: 'Tartar', label: t('regions.tartar') },
+                        { value: 'Tovuz', label: t('regions.tovuz') },
+                        { value: 'Ujar', label: t('regions.ujar') },
+                        { value: 'Yardimli', label: t('regions.yardimli') },
+                        { value: 'Zaqatala', label: t('regions.zaqatala') },
+                        { value: 'Zangilan', label: t('regions.zangilan') },
+                        { value: 'Zardab', label: t('regions.zardab') },
+                      ]}
                     />
                   </div>
 
                   <div className="space-y-2">
                     <label htmlFor="country" className="block text-lg font-semibold text-gray-800">
-                      Country
+                      {t('vacancies.countryLabel')}
                     </label>
-                    <p className="text-sm text-gray-600 mb-3">Which country is this opportunity in?</p>
+                    <p className="text-sm text-gray-600 mb-3">{t('vacancies.countryHint')}</p>
                     <Input
                       type="text"
                       id="country"
                       name="country"
-                      value={formData.country}
+                      value={formData.country || 'Azerbaijan'}
                       onChange={handleInputChange}
                       className="w-full px-4 py-3 text-lg"
-                      placeholder="e.g., United States, United Kingdom, Global"
+                      placeholder={t('placeholders.azerbaijan')}
+                      readOnly
                     />
                   </div>
                 </div>
@@ -432,7 +512,7 @@ export default function CreateVacancy() {
                       value={formData.compensationType}
                       onChange={handleInputChange}
                       className="w-full px-4 py-4 text-lg"
-                      placeholder="Choose compensation type..."
+                      placeholder={t('placeholders.chooseCompensationType')}
                       options={[
                         { value: 'salary', label: 'Annual Salary' },
                         { value: 'hourly', label: 'Hourly Rate' },
@@ -486,7 +566,7 @@ export default function CreateVacancy() {
                       value={formData.durationType}
                       onChange={handleInputChange}
                       className="w-full px-4 py-4 text-lg"
-                      placeholder="Choose duration type..."
+                      placeholder={t('placeholders.chooseDurationType')}
                       options={[
                         { value: 'permanent', label: 'Permanent' },
                         { value: 'fixed', label: 'Fixed Term' },
@@ -697,7 +777,7 @@ export default function CreateVacancy() {
                   value={formData.applicationInstructions}
                   onChange={handleInputChange}
                   className="w-full px-4 py-4 text-lg resize-none"
-                  placeholder="Please include the following in your application:\n• Your resume/CV\n• A cover letter explaining your interest\n• Portfolio or relevant work samples (if applicable)\n• Contact information for 2-3 references\n\nApplications should be submitted in PDF format with the subject line: [Position Title] - [Your Name]"
+                  placeholder={t('placeholders.applicationInstructions')}
                 />
               </div>
             </div>
@@ -726,7 +806,7 @@ export default function CreateVacancy() {
                           value={responsibility}
                           onChange={(e) => handleArrayChange(index, e.target.value, 'responsibilities')}
                           className="w-full px-4 py-3 text-lg resize-none"
-                          placeholder="Describe a key responsibility or duty..."
+                          placeholder={t('placeholders.describeKeyResponsibility')}
                           rows={2}
                         />
                       </div>
@@ -781,7 +861,7 @@ export default function CreateVacancy() {
                           value={requirement}
                           onChange={(e) => handleArrayChange(index, e.target.value, 'requirements')}
                           className="w-full px-4 py-3 text-lg resize-none"
-                          placeholder="Describe an essential requirement..."
+                          placeholder={t('placeholders.describeEssentialRequirement')}
                           rows={2}
                         />
                       </div>
@@ -836,7 +916,7 @@ export default function CreateVacancy() {
                           value={qualification}
                           onChange={(e) => handleArrayChange(index, e.target.value, 'qualifications')}
                           className="w-full px-4 py-3 text-lg resize-none"
-                          placeholder="Describe a preferred qualification..."
+                          placeholder={t('placeholders.describePreferredQualification')}
                           rows={2}
                         />
                       </div>
@@ -892,7 +972,7 @@ export default function CreateVacancy() {
                             value={benefit}
                             onChange={(e) => handleArrayChange(index, e.target.value, 'benefits')}
                             className="w-full px-4 py-3 text-lg resize-none"
-                            placeholder="Describe a benefit or perk..."
+                            placeholder={t('placeholders.describeBenefitOrPerk')}
                             rows={2}
                           />
                         </div>
@@ -949,7 +1029,7 @@ export default function CreateVacancy() {
                           value={tag}
                           onChange={(e) => handleArrayChange(index, e.target.value, 'tags')}
                           className="w-full px-4 py-3 text-lg"
-                          placeholder="e.g., remote-work, nonprofit, social-impact"
+                          placeholder={t('placeholders.tagsExample')}
                         />
                       </div>
                       {formData.tags.length > 1 && (
@@ -1019,28 +1099,21 @@ export default function CreateVacancy() {
                   onClick={() => router.back()}
                   variant="outline"
                   size="lg"
-                  className="px-8 py-4 border-2 border-gray-300 rounded-xl text-lg font-semibold text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-100 transition-all duration-200"
                 >
                   {t('common.cancel')}
                 </Button>
                 <Button
                   type="submit"
                   disabled={loading}
-                  variant="primary"
+                  variant="gradient-blue"
                   size="lg"
-                  className="px-12 py-4 border-2 border-transparent rounded-xl text-lg font-bold text-white bg-gradient-to-r from-primary to-blue-700 hover:from-blue-600 hover:to-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
+                  loading={loading}
+                  icon={Send}
+                  iconPosition="left"
+                  shadow="lg"
+                  hoverEffect="lift"
                 >
-                      {loading ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span>{t('vacancies.creating')}</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <Send className="w-5 h-5" />
-                      <span>{t('vacancies.publishButton')}</span>
-                    </div>
-                  )}
+                  {loading ? t('vacancies.creating') : t('vacancies.publishButton')}
                 </Button>
               </div>
               

@@ -175,7 +175,7 @@ export default function EventDetail() {
                 variant="ghost"
                 className="text-blue-600 hover:text-blue-800 mb-4 inline-flex items-center"
               >
-                ← Back to Events
+                ← {t('events.backToEvents') || 'Back to Events'}
               </Button>
               <div className="flex items-center gap-4 mb-4">
                 <h1 className="text-3xl font-bold text-gray-900">{event.title}</h1>
@@ -186,19 +186,21 @@ export default function EventDetail() {
             
             <div className="flex items-center gap-2 ml-4">
               <Button
-                onClick={() => router.push(`/dashboard/events/${event._id}/edit`)}
+                onClick={() => router.push(localePath(`/dashboard/events/${event._id}/edit`))}
                 variant="outline"
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                icon={Edit}
+                iconPosition="left"
+                size="sm"
               >
-                <Edit className="w-4 h-4 mr-2" />
                 {t('events.editEvent')}
               </Button>
               <Button
                 onClick={() => setShowDeleteModal(true)}
-                variant="outline"
-                className="inline-flex items-center px-4 py-2 border border-red-300 rounded-md text-red-700 hover:bg-red-50"
+                variant="danger"
+                icon={Trash2}
+                iconPosition="left"
+                size="sm"
               >
-                <Trash2 className="w-4 h-4 mr-2" />
                 {t('events.deleteEvent')}
               </Button>
             </div>

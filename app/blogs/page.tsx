@@ -4,10 +4,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import BlogCard from '../../components/BlogCard'
-import { Button, SearchBar } from '@/components/ui'
+import { Button, ButtonLink, SearchBar } from '@/components/ui'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { AnimatedBackground, LoadingState } from '@/components/shared'
-import { BookOpen, Sparkles, Search, RefreshCw, MessageSquare, Heart, TrendingUp, ArrowRight, User, Users } from 'lucide-react'
+import { BookOpen, Sparkles, Search, RefreshCw, MessageSquare, Heart, ArrowRight, Users } from 'lucide-react'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
 
 interface CommunityBlog {
@@ -116,7 +116,15 @@ export default function CommunityBlogs() {
   });
 
   if (loading) {
-    return <LoadingState text={t('blogs.loadingStories') || 'Loading inspiring stories...'} gradientFrom="from-blue-500" gradientVia="via-indigo-500" gradientTo="to-purple-500" />
+    return (
+      <LoadingState 
+        text={t('common.loading')}
+        gradientFrom="from-indigo-50"
+        gradientVia="via-purple-50"
+        gradientTo="to-pink-50"
+        spinnerColor="border-indigo-600"
+      />
+    )
   }
 
   return (
@@ -150,39 +158,14 @@ export default function CommunityBlogs() {
 
         <div className="section-padding relative z-10">
           <div className="max-w-5xl mx-auto text-center">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 mb-4 sm:mb-6 animate-fade-in">
-              <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-pink-300 animate-pulse" />
-              <span className="text-xs sm:text-sm font-bold uppercase tracking-wide">Community Stories</span>
-            </div>
+            
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-4 sm:mb-6 leading-tight animate-slide-up px-4">
               {t('blogs.title')}
             </h1>
-            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/95 leading-relaxed max-w-3xl mx-auto mb-6 sm:mb-8 animate-fade-in px-4 font-light">
+            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/95 leading-relaxed max-w-3xl mx-auto animate-fade-in px-4 font-light">
               {t('blogs.subtitle')}
             </p>
-
-            {/* Stats */}
-            <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4 lg:gap-6 animate-scale-in px-4">
-              {[
-                { icon: BookOpen, label: 'Stories', value: allBlogs.length },
-                { icon: User, label: 'Authors', value: new Set(allBlogs.map(b => b.authorName)).size },
-                { icon: TrendingUp, label: 'Growing', value: 'Daily' }
-              ].map((stat, idx) => (
-                <div 
-                  key={idx} 
-                  className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 sm:hover:scale-110 w-full sm:w-auto"
-                  style={{ animationDelay: `${idx * 0.1}s` }}
-                >
-                  <stat.icon className="w-4 h-4 sm:w-5 sm:h-5 text-pink-300 flex-shrink-0" />
-                  <div className="text-left">
-                    <div className="text-lg sm:text-xl font-black">{stat.value}</div>
-                    <div className="text-xs text-white/80">{stat.label}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </section>
@@ -219,16 +202,11 @@ export default function CommunityBlogs() {
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6 mb-6">
                 {/* Section Header */}
                 <div className="space-y-1 sm:space-y-2">
-                  <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-1.5 bg-blue-100 rounded-full mb-2">
-                    <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
-                    <span className="text-xs sm:text-sm font-bold text-blue-600 uppercase tracking-wide">
-                      {filteredBlogs.length} {filteredBlogs.length === 1 ? 'Story' : 'Stories'}
-                    </span>
-                  </div>
+                  
                   <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900">
                     {t('blogs.communityBlogs')}
                   </h2>
-                  <p className="text-sm sm:text-base text-gray-600">Discover inspiring voices from our community</p>
+                  <p className="text-sm sm:text-base text-gray-600">{t('messages.discover_inspiring_voices_from_our_community')}</p>
                 </div>
 
                 {/* Refresh Button */}
@@ -265,8 +243,11 @@ export default function CommunityBlogs() {
                 {searchQuery && (
                   <div className="mt-3 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm">
                     <span className="text-gray-700">
-                      Searching for: <span className="font-bold text-blue-600">"{searchQuery}"</span>
-                      {' '}- Found <span className="font-bold">{filteredBlogs.length}</span> {filteredBlogs.length === 1 ? 'result' : 'results'}
+                      {t('blogs.searchSummary', {
+                        query: searchQuery,
+                        count: filteredBlogs.length,
+                        label: filteredBlogs.length === 1 ? t('blogs.resultSingular') : t('blogs.resultPlural')
+                      })}
                     </span>
                   </div>
                 )}
@@ -359,10 +340,10 @@ export default function CommunityBlogs() {
               
               {/* Stats Pills */}
               <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4 mb-6 sm:mb-8 px-4">
-                {[
-                  { icon: Heart, text: 'Share Your Journey' },
-                  { icon: Users, text: 'Inspire Others' },
-                  { icon: Sparkles, text: 'Make an Impact' }
+                {[ 
+                  { icon: Heart, text: t('blogs.ctaShareJourney') },
+                  { icon: Users, text: t('blogs.ctaInspireOthers') },
+                  { icon: Sparkles, text: t('blogs.ctaMakeImpact') }
                 ].map((item, idx) => (
                   <div 
                     key={idx}
@@ -377,16 +358,19 @@ export default function CommunityBlogs() {
 
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
-                <Link href={localePath("/submit/blog/step1")} className="w-full sm:w-auto">
-                  <Button 
-                    size="lg"
-                    className="group bg-white text-pink-700 hover:bg-yellow-300 hover:text-pink-900 px-6 sm:px-8 py-4 sm:py-5 rounded-xl sm:rounded-2xl font-black text-base sm:text-lg shadow-2xl hover:shadow-yellow-300/50 transition-all duration-300 hover:scale-105 sm:hover:scale-110 w-full"
-                  >
-                    <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 mr-2 group-hover:rotate-12 transition-transform" />
-                    {t('blogs.submitYourBlog')}
-                    <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6 ml-2 group-hover:translate-x-2 transition-transform" />
-                  </Button>
-                </Link>
+                <ButtonLink 
+                  href={localePath("/submit/blog/step1")}
+                  variant="white-on-dark"
+                  size="lg"
+                  icon={Sparkles}
+                  iconPosition="left"
+                  shadow="xl"
+                  hoverEffect="scale"
+                  className="w-full sm:w-auto"
+                >
+                  {t('blogs.submitYourBlog')}
+                  <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6 ml-2" />
+                </ButtonLink>
               </div>
             </div>
           </div>

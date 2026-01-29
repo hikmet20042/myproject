@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { io, Socket } from 'socket.io-client'
 
@@ -22,12 +22,12 @@ const isSocketEnabled = () => {
   if (process.env.NEXT_PUBLIC_ENABLE_SOCKET === 'false') {
     return false
   }
-  
+
   // Auto-disable on Vercel serverless environment (unless explicitly enabled)
   if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_VERCEL_ENV && process.env.NEXT_PUBLIC_ENABLE_SOCKET !== 'true') {
     return false
   }
-  
+
   return true
 }
 
@@ -35,6 +35,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession()
   const [socket, setSocket] = useState<Socket | null>(null)
   const [isConnected, setIsConnected] = useState(false)
+  const socketRef = useRef<Socket | null>(null)
+  const isInitializingRef = useRef(false)
 
   useEffect(() => {
     // Skip Socket.IO initialization on Vercel
@@ -45,24 +47,34 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     // Initialize Socket.IO connection
     const socketInitializer = async () => {
+      // Prevent multiple initializations in Strict Mode
+      if (isInitializingRef.current) return
+      isInitializingRef.current = true
+
       try {
         // Fetch to initialize Socket.IO on server
         await fetch('/api/socket')
-        
+
+        // Check if we were unmounted while fetching
+        if (!isInitializingRef.current) return
+
         // Connect to Socket.IO
         const newSocket = io({
           path: '/api/socket/io',
           transports: ['websocket', 'polling'],
           reconnection: true,
           reconnectionDelay: 1000,
-          reconnectionAttempts: 3, // Reduced attempts
+          reconnectionAttempts: 3,
           timeout: 5000
         })
+
+        // Store in ref immediately for cleanup access
+        socketRef.current = newSocket
 
         newSocket.on('connect', () => {
           console.log('Socket.IO connected:', newSocket.id)
           setIsConnected(true)
-          
+
           // Join user-specific room if authenticated
           if (session?.user?.id) {
             newSocket.emit('join', session.user.id)
@@ -82,22 +94,28 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         setSocket(newSocket)
       } catch (error) {
         console.error('Failed to initialize Socket.IO:', error)
+        isInitializingRef.current = false
       }
     }
 
-    socketInitializer()
+    if (!socketRef.current) {
+      socketInitializer()
+    }
 
     // Cleanup on unmount
     return () => {
-      if (socket) {
+      isInitializingRef.current = false
+      if (socketRef.current) {
         if (session?.user?.id) {
-          socket.emit('leave', session.user.id)
+          socketRef.current.emit('leave', session.user.id)
         }
-        socket.disconnect()
+        socketRef.current.disconnect()
+        socketRef.current = null
+        setSocket(null)
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.id]) // Removed socket from deps to run only once
+  }, []) // Empty dependency array - run once on mount only logic handled internally
 
   // Join/leave room when session changes
   useEffect(() => {

@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { Eye } from 'lucide-react'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface ViewTrackerProps {
   itemId: string
@@ -20,17 +21,23 @@ export default function ViewTracker({
   className = ''
 }: ViewTrackerProps) {
   const { data: session } = useSession()
+  const { t, language } = useLanguage()
   const [views, setViews] = useState(initialViews)
   const [hasTracked, setHasTracked] = useState(false)
+  const hasTrackedRef = useRef(false)
 
   useEffect(() => {
-    if (hasTracked) return
+    if (hasTracked || hasTrackedRef.current) return
+    hasTrackedRef.current = true // Mark as tracking immediately
+
+    // We use a local flag or ref to ensure we only trigger this once
+    // but relies on the effect dependency array effectively
 
     const trackView = async () => {
       try {
         // Check session storage for guests to prevent duplicate views
         const viewedKey = `viewed_${itemType}_${itemId}`
-        
+
         let isFirstView = true
         if (!session?.user?.id) {
           // Guest user - check session storage
@@ -42,8 +49,8 @@ export default function ViewTracker({
         const endpoint = itemType === 'event'
           ? `/api/events/${itemId}/view`
           : itemType === 'vacancy'
-          ? `/api/vacancies/${itemId}/view`
-          : `/api/blogs/${itemId}/view`
+            ? `/api/vacancies/${itemId}/view`
+            : `/api/blogs/${itemId}/view`
 
         const response = await fetch(endpoint, {
           method: 'POST',
@@ -55,7 +62,7 @@ export default function ViewTracker({
           const data = await response.json()
           setViews(data.views)
           setHasTracked(true)
-          
+
           // For guests, save to session storage if view was incremented
           if (!session?.user?.id && data.viewIncremented) {
             sessionStorage.setItem(viewedKey, 'true')
@@ -74,15 +81,17 @@ export default function ViewTracker({
     return () => clearTimeout(timer)
   }, [itemId, itemType, session, hasTracked])
 
-  // Fetch current view count
+  // Fetch current view count only if not provided or 0
   useEffect(() => {
+    if (initialViews > 0) return
+
     const fetchViews = async () => {
       try {
         const endpoint = itemType === 'event'
           ? `/api/events/${itemId}/view`
           : itemType === 'vacancy'
-          ? `/api/vacancies/${itemId}/view`
-          : `/api/blogs/${itemId}/view`
+            ? `/api/vacancies/${itemId}/view`
+            : `/api/blogs/${itemId}/view`
 
         const response = await fetch(endpoint)
         if (response.ok) {
@@ -95,15 +104,19 @@ export default function ViewTracker({
     }
 
     fetchViews()
-  }, [itemId, itemType])
+  }, [itemId, itemType, initialViews])
 
   if (!showCount) return null
+
+  const locale = language === 'az' ? 'az-AZ' : 'en-US'
+  const formattedViews = views.toLocaleString(locale)
+  const viewLabelKey = views === 1 ? 'viewTracker.singular' : 'viewTracker.plural'
 
   return (
     <div className={`inline-flex items-center gap-1.5 text-gray-600 ${className}`}>
       <Eye className="w-4 h-4" />
       <span className="text-sm font-medium">
-        {views.toLocaleString()} {views === 1 ? 'view' : 'views'}
+        {t(viewLabelKey, { count: formattedViews })}
       </span>
     </div>
   )

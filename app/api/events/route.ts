@@ -219,6 +219,15 @@ export async function POST(request: NextRequest) {
         )
       }
     }
+    const descText = typeof body.description === 'string'
+      ? body.description.replace(/<[^>]*>/g, '').trim()
+      : ''
+    if (!descText || descText.length < 50) {
+      return NextResponse.json(
+        { error: 'Description must be at least 50 characters long' },
+        { status: 400 }
+      )
+    }
     
     // Validate eventType
     const validEventTypes = ['event', 'training', 'workshop', 'conference', 'seminar']

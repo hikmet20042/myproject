@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { signIn } from 'next-auth/react'
 import { Eye, EyeOff, User, Mail, Lock, Building, Globe, Phone, MapPin, FileText, Tag, Users, Shield, Sparkles, Heart, CheckCircle, ArrowRight } from 'lucide-react'
 import { Input, Button, TextArea } from '@/components/ui'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { AnimatedBackground } from '@/components/shared'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import Logo from '@/components/Logo'
 
 export default function RegisterPage() {
   const { t } = useLanguage();
@@ -95,6 +97,14 @@ export default function RegisterPage() {
         ...prev,
         [name]: ''
       }))
+    }
+  }
+
+  const handleGoogleSignUp = async () => {
+    try {
+      await signIn('google', { callbackUrl: localePath('/') })
+    } catch (error: any) {
+      setErrors({ submit: error?.message || 'An error occurred with Google sign-up' })
     }
   }
 
@@ -268,17 +278,16 @@ export default function RegisterPage() {
       <div className="w-full max-w-2xl mx-auto lg:mx-0">
         {/* Logo and Header */}
         <div className="mb-6 sm:mb-8 animate-fade-in">
-          <Link href={localePath("/")} className="inline-flex items-center gap-2 mb-6 group">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-red-500 to-red-700 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-              <span className="text-white font-bold text-base sm:text-lg">GE</span>
-            </div>
-            <span className="text-lg sm:text-xl font-bold text-gray-900">{t('common.platformName')}</span>
-          </Link>
+          <Logo 
+            href={localePath("/")}
+            size="md"
+            variant="dark"
+            showText={true}
+            showTagline={false}
+            className="mb-6"
+          />
           
-          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-purple-100 rounded-full mb-3 sm:mb-4">
-            <Sparkles className="w-4 h-4 text-purple-600" />
-            <span className="text-xs sm:text-sm font-bold text-purple-600 uppercase tracking-wide">{t('auth.joinUs')}</span>
-          </div>
+          
           
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 mb-2">
             {registrationType === 'ngo' ? t('auth.registerNGO') : t('auth.signUp')}
@@ -339,7 +348,41 @@ export default function RegisterPage() {
               </div>
             </div>
           )}
-          <form className="space-y-5" onSubmit={handleSubmit} autoComplete="off">
+          
+          {/* Google Sign Up - Only show for individual users */}
+          {registrationType === 'user' && (
+            <>
+              <div className="mb-6">
+                <Button
+                  onClick={handleGoogleSignUp}
+                  variant="outline"
+                  fullWidth
+                  className="justify-center items-center"
+                >
+                  <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  </svg>
+                  {t('auth.continueWithGoogle')}
+                </Button>
+              </div>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">
+                    {t('auth.orSignUpEmail')}
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
+
+          <form className={`space-y-5 ${registrationType === 'user' ? 'mt-6' : ''}`} onSubmit={handleSubmit} autoComplete="off">
             {/* User Registration Fields */}
             {registrationType === 'user' && (
               <>
@@ -755,10 +798,7 @@ export default function RegisterPage() {
       {/* Content */}
       <div className="relative z-10 flex flex-col justify-center px-12 xl:px-20 py-12">
         <div className="max-w-lg">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md rounded-full mb-6">
-            <Heart className="w-5 h-5 text-pink-300" />
-            <span className="text-sm font-bold text-white uppercase tracking-wide">Start Your Journey</span>
-          </div>
+          
 
           <h2 className="text-3xl xl:text-4xl font-black text-white mb-6">
             {t('auth.registerWelcome')}

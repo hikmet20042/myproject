@@ -15,3 +15,8 @@ export { default as SectionHeader } from './SectionHeader'
 export { default as InfoCard } from './InfoCard'
 export { default as ActionButton } from './ActionButton'
 export { default as ImageUpload } from './ImageUpload'
+
+// Resource Filter Components
+export { ResourceFilterContainer } from './ResourceFilterContainer'
+export { ActiveFilterBadges } from './ActiveFilterBadges'
+export { ResourceCard } from './ResourceCard'

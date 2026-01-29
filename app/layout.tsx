@@ -7,11 +7,43 @@ import { NotificationProvider } from '@/components/NotificationContext'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import { SocketProvider } from '@/components/SocketProvider'
 import { SSENotificationProvider } from '@/components/SSENotificationProvider'
+import GoogleAnalytics from '@/components/GoogleAnalytics'
+import { headers } from 'next/headers'
+import { generateSEOMetadata, generateOrganizationSchema, generateWebSiteSchema, generateLocalBusinessSchema, azerbaijanKeywords } from '@/lib/seo'
+import Script from 'next/script'
+
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'
 
 export const metadata: Metadata = {
-  title: 'icma360 — Youth & Community Platform',
-  description: 'Empowering youth and communities in Azerbaijan through connection, learning, and opportunities',
-  keywords: 'youth empowerment, community building, NGO network, opportunities, volunteering, Azerbaijan',
+  metadataBase: new URL(siteUrl),
+  ...generateSEOMetadata({
+    title: "icma360 — Azərbaycanda Gənclər üçün #1 İmkan Platforması | İş, Təcrübə, Təlim və Tədbirlər",
+    description: "Azərbaycanda ən yaxşı iş, təcrübə, könüllülük, təlim və QHT imkanlarını kəşf edin. 500+ vakansiya, təcrübə proqramı və tədbir. Gənclərin karyera uğuru üçün pulsuz platforma. 🇦🇿",
+    keywords: [
+      ...azerbaijanKeywords,
+      'icma360',
+      'icma360 Azərbaycan',
+      'gənclər üçün platforma',
+      'Azərbaycan iş portalı',
+      'iş axtarış saytı',
+      'təcrübə platforması',
+      'QHT kataloqu Azərbaycan',
+      'Bakı təlim proqramları',
+      'könüllü imkanları',
+      'gənclərin inkişafı Azərbaycan',
+      'peşəkar şəbəkə Azərbaycan',
+    ],
+    canonical: '/',
+    ogImage: '/og-image.png',
+    ogType: 'website',
+    locale: 'az_AZ',
+    alternateLocales: ['en_US', 'az_AZ'],
+  }),
+  icons: {
+    icon: '/icon.png',
+    apple: '/apple-icon.png',
+  },
+  manifest: '/manifest.json',
 }
 
 export default function RootLayout({
@@ -19,9 +51,64 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const headerStore = headers()
+  const language = headerStore.get('x-language') ?? 'az'
+
   return (
-    <html lang="en" className="scroll-smooth">
-  <body className="min-h-screen bg-gray-50 text-gray-900 transition-colors duration-200" suppressHydrationWarning={true}>
+    <html lang={language} className="scroll-smooth">
+      <head>
+        {/* Structured Data - Organization */}
+        <Script
+          id="organization-schema"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: generateOrganizationSchema() }}
+        />
+        
+        {/* Structured Data - WebSite with Search */}
+        <Script
+          id="website-schema"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: generateWebSiteSchema() }}
+        />
+        
+        {/* Structured Data - LocalBusiness for Azerbaijan */}
+        <Script
+          id="localbusiness-schema"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: generateLocalBusinessSchema() }}
+        />
+        
+        {/* Google Search Console Verification */}
+        <meta name="google-site-verification" content="YOUR_GOOGLE_VERIFICATION_CODE" />
+        
+        {/* Yandex Webmaster Verification (Important for Azerbaijan) */}
+        <meta name="yandex-verification" content="YOUR_YANDEX_VERIFICATION_CODE" />
+        
+        {/* Bing Webmaster Verification */}
+        <meta name="msvalidate.01" content="YOUR_BING_VERIFICATION_CODE" />
+        
+        {/* Theme Color */}
+        <meta name="theme-color" content="#2563eb" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        
+        {/* Additional SEO Meta Tags */}
+        <meta name="geo.region" content="AZ" />
+        <meta name="geo.placename" content="Baku" />
+        <meta name="geo.position" content="40.4093;49.8671" />
+        <meta name="ICBM" content="40.4093, 49.8671" />
+        
+        {/* Language and Content */}
+        <meta httpEquiv="content-language" content={language} />
+        <link rel="alternate" hrefLang="az" href={`${siteUrl}/az`} />
+        <link rel="alternate" hrefLang="en" href={`${siteUrl}/en`} />
+        <link rel="alternate" hrefLang="x-default" href={siteUrl} />
+        
+        {/* RSS Feed for Blog Content Discovery */}
+        <link rel="alternate" type="application/rss+xml" title="icma360 Blog RSS Feed" href={`${siteUrl}/api/rss`} />
+        <link rel="alternate" type="application/atom+xml" title="icma360 Blog Atom Feed" href={`${siteUrl}/api/rss`} />
+      </head>
+      <body className="min-h-screen bg-gray-50 text-gray-900 transition-colors duration-200" suppressHydrationWarning={true}>
+        <GoogleAnalytics />
         <AuthProvider>
           <LanguageProvider>
             <SocketProvider>

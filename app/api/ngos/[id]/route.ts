@@ -16,7 +16,11 @@ function verifyNGOToken(request: NextRequest) {
   }
   
   try {
-    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET || 'fallback-secret') as any
+    const secret = process.env.NEXTAUTH_SECRET
+    if (!secret) {
+      return null
+    }
+    const decoded = jwt.verify(token, secret) as any
     return decoded
   } catch (error) {
     return null

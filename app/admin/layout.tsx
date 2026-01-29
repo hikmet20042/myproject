@@ -2,6 +2,7 @@
 
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
 import { useEffect } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { LoadingState, ErrorState } from '@/components/shared'
@@ -14,17 +15,18 @@ export default function AdminLayout({
   const { data: session, status } = useSession()
   const router = useRouter()
   const { t } = useLanguage()
+  const localePath = useLocalizedPath()
 
   useEffect(() => {
     if (status === 'loading') return // Still loading
 
     if (!session) {
-      router.push('/auth/signin?callbackUrl=/admin')
+      router.push(localePath('/auth/signin?callbackUrl=/admin'))
       return
     }
 
     if (session.user?.role !== 'admin') {
-      router.push('/')
+      router.push(localePath('/'))
       return
     }
   }, [session, status, router])
@@ -47,7 +49,7 @@ export default function AdminLayout({
         title={t('admin.accessDenied') || 'Access Denied'}
         message={t('admin.noPermission') || 'You do not have permission to access this area.'}
         retryText={t('common.goHome') || 'Go to Homepage'}
-        onRetry={() => router.push('/')}
+        onRetry={() => router.push(localePath('/'))}
       />
     )
   }

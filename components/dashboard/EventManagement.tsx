@@ -297,7 +297,7 @@ export default function EventManagement() {
                   </div>
                   
                   <div className="flex items-center gap-2 ml-4">
-                    <Link href={`/resources/events/${event._id}`}>
+                    <Link href={localePath(`/resources/events/${event._id}`)}>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -305,7 +305,7 @@ export default function EventManagement() {
                         title={t('events.viewEvent')}
                       />
                     </Link>
-                    <Link href={`/dashboard/events/${event._id}/edit`}>
+                    <Link href={localePath(`/dashboard/events/${event._id}/edit`)}>
                       <Button
                         variant="ghost"
                         size="sm"

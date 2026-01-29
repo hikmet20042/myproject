@@ -121,38 +121,43 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       newPath = `/${newLanguage}${pathname || ''}`;
     }
     
-    // Update state immediately for instant UI response
-    setLanguageState(newLanguage);
-    
-    // Navigate to new URL (this will trigger the sync effect above)
-    router.push(newPath);
+    // Force a full page reload for clean language switch
+    window.location.href = newPath;
   };
 
   // Translation function with interpolation support
   const t = (key: string, params?: Record<string, string | number>): string => {
-    const keys = key.split('.');
-    let value: any = translations;
+    if (!translations || typeof translations !== 'object') {
+      return key;
+    }
 
-    for (const k of keys) {
-      if (value && typeof value === 'object' && k in value) {
-        value = value[k];
-      } else {
-        // Return empty string instead of key while loading
-        return isLoading ? '' : key;
-      }
+    const hasOwn = Object.prototype.hasOwnProperty;
+    let value: any;
+
+    if (hasOwn.call(translations, key)) {
+      value = (translations as Record<string, any>)[key];
+    }
+
+    if (value === undefined) {
+      const segments = key.split('.');
+      value = segments.reduce<any>((acc, segment) => {
+        if (acc && typeof acc === 'object' && hasOwn.call(acc, segment)) {
+          return acc[segment];
+        }
+        return undefined;
+      }, translations);
     }
 
     if (typeof value === 'string') {
-      // Handle interpolation
       if (params) {
         return value.replace(/\{\{(\w+)\}\}/g, (match, paramKey) => {
-          return params[paramKey]?.toString() || match;
+          return params[paramKey]?.toString() ?? match;
         });
       }
       return value;
     }
 
-    return isLoading ? '' : key;
+    return key;
   };
 
   return (

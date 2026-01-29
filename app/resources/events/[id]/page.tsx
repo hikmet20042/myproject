@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ArrowLeft, Calendar, MapPin, Users, Clock, ExternalLink, Tag, Sparkles, CheckCircle, AlertCircle, TrendingUp } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { Button, ButtonLink } from '@/components/ui'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Breadcrumb, ContactCard, Loading } from '@/components/ui'
@@ -13,6 +13,7 @@ import SaveButton from '@/components/SaveButton'
 import ViewTracker from '@/components/ViewTracker'
 import { LoadingState, ErrorState, AnimatedBackground } from '@/components/shared'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
 
 interface Event {
   _id: string
@@ -49,6 +50,7 @@ interface Event {
 
 export default function EventDetailPage() {
   const { t } = useLanguage()
+  const localePath = useLocalizedPath()
 
   const params = useParams()
   const router = useRouter()
@@ -82,9 +84,9 @@ export default function EventDetailPage() {
   }
 
   const formatDate = (dateString: string) => {
-    if (!dateString) return 'Date TBD'
+    if (!dateString) return t('events.dateTBD') || 'Date TBD'
     const date = new Date(dateString)
-    if (isNaN(date.getTime())) return 'Invalid Date'
+    if (isNaN(date.getTime())) return t('events.invalidDate') || 'Invalid Date'
     return date.toLocaleDateString('en-US', {
       weekday: 'long',
       year: 'numeric',
@@ -94,9 +96,9 @@ export default function EventDetailPage() {
   }
 
   const formatTime = (dateString: string) => {
-    if (!dateString) return 'Time TBD'
+    if (!dateString) return t('events.timeTBD') || 'Time TBD'
     const date = new Date(dateString)
-    if (isNaN(date.getTime())) return 'Time TBD'
+    if (isNaN(date.getTime())) return t('events.timeTBD') || 'Time TBD'
     return date.toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit'
@@ -104,9 +106,9 @@ export default function EventDetailPage() {
   }
 
   const formatDateTime = (dateString: string) => {
-    if (!dateString) return 'Not specified'
+    if (!dateString) return t('events.notSpecified') || 'Not specified'
     const date = new Date(dateString)
-    if (isNaN(date.getTime())) return 'Invalid Date'
+    if (isNaN(date.getTime())) return t('events.invalidDate') || 'Invalid Date'
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -115,6 +117,24 @@ export default function EventDetailPage() {
       minute: '2-digit'
     })
   }
+
+  const slugifyCategory = (s: string) =>
+    s
+      .toString()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .replace(/_+/g, '_');
+
+  const getCategoryLabel = (val: string) => {
+    const key = slugifyCategory(val);
+    try {
+      const translated = (t(`events.categories.${key}` as any) as string) || val;
+      return translated;
+    } catch {
+      return val;
+    }
+  };
 
   const getCategoryColor = (category: string) => {
     const colors: { [key: string]: string } = {
@@ -183,8 +203,8 @@ export default function EventDetailPage() {
         <div className="mb-6 animate-fade-in">
           <Breadcrumb
             items={[
-              { label: 'Home', href: '/' },
-              { label: 'Events', href: '/resources/events' },
+              { label: t('header.home') || 'Home', href: localePath('/') },
+              { label: t('header.events') || 'Events', href: localePath('/resources/events') },
               { label: event.title, href: '#', current: true }
             ]}
           />
@@ -233,7 +253,7 @@ export default function EventDetailPage() {
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <div className="flex-1">
                     <Badge variant="primary" className="text-sm mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 font-bold shadow-lg">
-                      {event.category}
+                      {getCategoryLabel(event.category)}
                     </Badge>
                     <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white mb-3 drop-shadow-lg">
                       {event.title}
@@ -243,7 +263,7 @@ export default function EventDetailPage() {
                         <Users className="w-4 h-4" />
                         {t('events.organizedBy')} {event.createdBy?._id ? (
                           <Link 
-                            href={`/resources/ngos/${event.createdBy._id}`}
+                            href={localePath(`/resources/ngos/${event.createdBy._id}`)}
                             className="text-white hover:text-yellow-300 transition-colors duration-200 hover:underline font-bold"
                           >
                             {event.organizationName || event.createdBy?.name || t('events.unknown')}
@@ -279,13 +299,13 @@ export default function EventDetailPage() {
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-3 mb-4">
                     <Badge variant="primary" className="text-sm bg-white/20 backdrop-blur-md text-white border border-white/30 font-bold">
-                      {event.category}
+                      {getCategoryLabel(event.category)}
                     </Badge>
                     <span className="text-sm text-white/90 flex items-center gap-2">
                       <Users className="w-4 h-4" />
                       {t('events.organizedBy')} {event.createdBy?._id ? (
                         <Link 
-                          href={`/resources/ngos/${event.createdBy._id}`}
+                          href={localePath(`/resources/ngos/${event.createdBy._id}`)}
                           className="text-white hover:text-yellow-300 transition-colors duration-200 hover:underline font-bold"
                         >
                           {event.organizationName || event.createdBy?.name || t('events.unknown')}
@@ -471,15 +491,19 @@ export default function EventDetailPage() {
                     </div>
                     <h3 className="text-xl font-black text-gray-900">{t('events.applyNow')}</h3>
                   </div>
-                  <a
+                  <ButtonLink
                     href={event.applicationLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full flex items-center justify-center gap-2 px-8 py-4 text-lg font-bold rounded-xl transition-all duration-300 focus:outline-none focus:ring-4 text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:ring-blue-100 shadow-lg hover:shadow-xl hover:scale-105"
+                    variant="gradient-blue"
+                    size="lg"
+                    icon={ExternalLink}
+                    iconPosition="left"
+                    shadow="lg"
+                    hoverEffect="scale"
+                    className="w-full"
+                    external
                   >
-                    <ExternalLink className="h-5 w-5" />
                     {t('events.applyNow')}
-                  </a>
+                  </ButtonLink>
                 </CardContent>
               </Card>
             )}
@@ -501,11 +525,15 @@ export default function EventDetailPage() {
                     <p className="text-sm text-gray-600 font-medium mt-1">Contact: {event.createdBy?.name}</p>
                   </div>
                   {event.createdBy?._id && (
-                    <Link href={`/resources/ngos/${event.createdBy._id}`}>
-                      <Button variant="outline" size="sm" className="w-full mt-3 border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-bold shadow-sm hover:shadow-md hover:scale-105 transition-all duration-300">
-                        View Organization Profile
-                      </Button>
-                    </Link>
+                    <ButtonLink 
+                      href={`/resources/ngos/${event.createdBy._id}`}
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      hoverEffect="scale"
+                    >
+                      View Organization Profile
+                    </ButtonLink>
                   )}
                 </div>
               </CardContent>

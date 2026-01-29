@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Button } from '@/components/ui/Button'
+import { Button, ButtonLink } from '@/components/ui'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
@@ -148,25 +148,29 @@ export default function ProfilePage() {
             
             <div className="flex flex-wrap justify-center gap-4">
               {user.email && (
-                <a href={`mailto:${user.email}`} className="inline-flex items-center bg-white text-primary px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                <ButtonLink 
+                  href={`mailto:${user.email}`}
+                  variant="secondary"
+                  hoverEffect="lift"
+                >
                   <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
                   Contact
-                </a>
+                </ButtonLink>
               )}
               {user.website && (
-                <a 
-                  href={user?.website?.startsWith('http') ? user.website : `https://${user?.website || ''}`} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="inline-flex items-center bg-accent text-white px-6 py-3 rounded-lg font-semibold hover:bg-accent/90 transition-colors"
+                <ButtonLink
+                  href={user?.website?.startsWith('http') ? user.website : `https://${user?.website || ''}`}
+                  variant="primary"
+                  hoverEffect="lift"
+                  external
                 >
                   <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
                   Visit Website
-                </a>
+                </ButtonLink>
               )}
             </div>
           </div>

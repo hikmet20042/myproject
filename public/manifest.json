@@ -1,0 +1,46 @@
+{
+  "name": "icma360 - Azərbaycanda Gənclər üçün #1 Fürsətlər Platforması",
+  "short_name": "icma360",
+  "description": "Azərbaycanda iş, təcrübə, tədbir və təlim imkanlarını tapın. Gənclər üçün pulsuz platforma.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "apple touch icon"
+    }
+  ],
+  "categories": ["education", "business", "lifestyle", "productivity"],
+  "lang": "az",
+  "dir": "ltr",
+  "scope": "/",
+  "shortcuts": [
+    {
+      "name": "İmkanları Kəşf Et",
+      "short_name": "İmkanlar",
+      "description": "Bütün iş, təcrübə və tədbirləri görün",
+      "url": "/resources",
+      "icons": [{ "src": "/icon.png", "sizes": "512x512" }]
+    },
+    {
+      "name": "İcma Hekayələri",
+      "short_name": "Hekayələr",
+      "description": "İlhamverici uğur hekayələrini oxuyun",
+      "url": "/blogs",
+      "icons": [{ "src": "/icon.png", "sizes": "512x512" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

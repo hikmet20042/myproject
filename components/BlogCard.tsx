@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useLocalizedPath } from '@/lib/useLocalizedPath'
 import { BookOpen, User, Calendar, ArrowRight, Clock } from 'lucide-react'
 
 interface Blog {
@@ -20,18 +21,28 @@ interface BlogCardProps {
 
 export default function BlogCard({ blog }: BlogCardProps) {
   const { t, language } = useLanguage()
+  const localePath = useLocalizedPath()
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString(language === 'az' ? 'az-AZ' : 'en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    
+    if (language === 'az') {
+      const months = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'İyn', 'İyl', 'Avq', 'Sen', 'Okt', 'Noy', 'Dek'];
+      const day = date.getDate();
+      const month = months[date.getMonth()];
+      const year = date.getFullYear();
+      return `${day} ${month} ${year}`;
+    } else {
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
   };
 
   return (
-    <Link href={`/blogs/${blog.id}`}>
+    <Link href={localePath(`/blogs/${blog.id}`)}>
       <article className="group relative bg-gradient-to-br from-white to-blue-50/50 rounded-2xl p-6 border-2 border-gray-200 hover:border-blue-500 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 h-full overflow-hidden">
         {/* Gradient Overlay on Hover */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-blue-600/0 group-hover:from-blue-500/5 group-hover:to-blue-600/5 transition-all duration-500 rounded-2xl"></div>
@@ -49,7 +60,7 @@ export default function BlogCard({ blog }: BlogCardProps) {
             </div>
             {blog.status === 'pending' && (
               <span className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-full font-bold shadow-sm animate-pulse whitespace-nowrap">
-                Your Submission
+                {t('blogs.card.pendingBadge')}
               </span>
             )}
           </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -82,7 +82,7 @@ interface Notification {
 function ProfilePageContent() {
   const { t } = useLanguage();
   const localePath = useLocalizedPath();
-  
+
   // Notification modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [modalNotification, setModalNotification] = useState<Notification | null>(null);
@@ -122,7 +122,7 @@ function ProfilePageContent() {
   const [loadingTab, setLoadingTab] = useState<string | null>(null)
 
   // State for tab content
-    const [blogs, setBlogs] = useState<any[]>([])
+  const [blogs, setBlogs] = useState<any[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
 
   // Load functions
@@ -151,7 +151,7 @@ function ProfilePageContent() {
 
 
 
-  
+
   const loadUserBlogs = useCallback(async () => {
     try {
       const response = await fetch('/api/blogs/user')
@@ -179,7 +179,7 @@ function ProfilePageContent() {
   // Load data for specific tab
   const loadTabData = useCallback(async (tab: string) => {
     switch (tab) {
-            case 'blogs':
+      case 'blogs':
         if (blogs.length === 0) {
           await loadUserBlogs()
         }
@@ -192,21 +192,12 @@ function ProfilePageContent() {
     }
   }, [blogs.length, notifications.length, loadUserBlogs, loadNotifications])
 
-  // Handle tab change with URL update and loading state
-  const handleTabChange = (tab: string) => {
-    if (tab === activeTab || loadingTab) return // Don't switch if already on the tab or currently switching
-
-    setLoadingTab(tab)
-
-    // Load data for the new tab first
-    loadTabData(tab).finally(() => {
-      // Update URL and active tab only after data is loaded
-      const newUrl = tab === 'profile' ? '/profile' : `/profile?tab=${tab}`
-      router.push(newUrl)
-      setActiveTab(tab)
-      setLoadingTab(null)
-    })
-  }
+  // Handle tab change - just update URL, let effect handle loading
+  const handleTabChange = useCallback((tab: string) => {
+    if (tab === activeTab || loadingTab) return
+    const newUrl = tab === 'profile' ? '/profile' : `/profile?tab=${tab}`
+    router.push(newUrl)
+  }, [activeTab, loadingTab, router])
 
   const [editing, setEditing] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'blog', id: string, title: string } | null>(null)
@@ -239,7 +230,31 @@ function ProfilePageContent() {
     contactPerson: ''
   })
 
+  const loadedTabsRef = useRef(new Set<string>());
 
+  // Sync activeTab with URL and load data
+  useEffect(() => {
+    const newTab = getActiveTabFromUrl()
+
+    // If tab changed via URL (or initial load), update state
+    if (newTab !== activeTab) {
+      setActiveTab(newTab)
+    }
+
+    // Load data if not already loaded based on our ref tracking
+    if (status === 'authenticated') {
+      const shouldLoad = (newTab === 'blogs' || newTab === 'notifications') && !loadedTabsRef.current.has(newTab);
+
+      if (shouldLoad && !loadingTab) {
+        setLoadingTab(newTab)
+        loadTabData(newTab).finally(() => {
+          // Mark as loaded regardless of success/empty result to prevent loops
+          loadedTabsRef.current.add(newTab)
+          setLoadingTab(null)
+        })
+      }
+    }
+  }, [getActiveTabFromUrl, activeTab, status, loadTabData, loadingTab]) // Removed data lengths from dependencies
 
   const deleteBlog = async (id: string) => {
     setDeleting(true)
@@ -261,16 +276,6 @@ function ProfilePageContent() {
       setDeleting(false)
     }
   }
-
-  // Update active tab when URL changes (browser navigation or direct URL access)
-  useEffect(() => {
-    const newTab = getActiveTabFromUrl()
-    if (newTab !== activeTab && !loadingTab) {
-      setActiveTab(newTab)
-      // Load data for the new tab
-      loadTabData(newTab)
-    }
-  }, [getActiveTabFromUrl, searchParams, activeTab, loadingTab,loadTabData])
 
   // Handle notification parameter from URL (when coming from header dropdown)
   useEffect(() => {
@@ -300,19 +305,18 @@ function ProfilePageContent() {
 
     // Load essential data first (profile, preferences, and stats)
     const loadEssentialData = async () => {
-      await Promise.all([
-        loadProfile(),
-        loadProfileStats() // Load stats initially for the profile tab
-      ])
-
-      // Then load data for the current tab
-      loadTabData(activeTab)
+      // Only load if we haven't loaded yet or if forced
+      if (!profile) {
+        await loadProfile()
+      }
+      // Always reload stats to ensure freshness
+      await loadProfileStats()
     }
 
     loadEssentialData()
-  }, [status, session, router, activeTab,loadProfileStats,loadTabData,localePath]) // Removed activeTab, loadProfileStats, loadTabData, loadPreferences from dependencies
+  }, [status, session?.user?.email, router]) // Use primitive dependency for session
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       const response = await fetch('/api/users/profile')
       if (response.ok) {
@@ -351,7 +355,7 @@ function ProfilePageContent() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
 
 
@@ -490,7 +494,7 @@ function ProfilePageContent() {
     }
   };
 
-  
+
 
 
 
@@ -530,10 +534,7 @@ function ProfilePageContent() {
             <div className="flex-1 animate-fade-in animation-delay-200">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-3">
                 <div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-md rounded-full mb-2">
-                    <Sparkles className="w-4 h-4 text-blue-300" />
-                    <span className="text-xs font-bold text-white uppercase tracking-wide">{t('profile.yourProfile')}</span>
-                  </div>
+
                   <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white mb-2">
                     {profile.user.name}
                   </h1>
@@ -574,12 +575,12 @@ function ProfilePageContent() {
             </div>
           </div>
 
-          
+
         </div>
 
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 py-6">
         <div className="pb-6 sm:pb-12">
           {/* Email Verification Banner */}
           {isUnverified && (
@@ -613,11 +614,11 @@ function ProfilePageContent() {
           )}
 
           {/* Tab Navigation */}
-          <TabNavigation handleTabChange={handleTabChange} loadingTab= {loadingTab } activeTab={activeTab} notifications={notifications} userRole={profile?.user?.role} isNGO={session?.user?.isApprovedNGO}/>
+          <TabNavigation handleTabChange={handleTabChange} loadingTab={loadingTab} activeTab={activeTab} notifications={notifications} userRole={profile?.user?.role} isNGO={session?.user?.isApprovedNGO} />
 
           {/* Profile Tab */}
           {activeTab === 'profile' && (
-           <Profile loading={loading} setEditing={setEditing} editing={editing} formData={formData}  profile={profile} setFormData={setFormData}  handleSaveProfile={handleSaveProfile}/>
+            <Profile loading={loading} setEditing={setEditing} editing={editing} formData={formData} profile={profile} setFormData={setFormData} handleSaveProfile={handleSaveProfile} />
 
           )}
 
@@ -625,29 +626,29 @@ function ProfilePageContent() {
 
           {/* Blogs Tab */}
           {activeTab === 'blogs' && !session?.user?.isApprovedNGO && (
-           <Blogs loadingTab={loadingTab} blogs={blogs} getStatusIcon={getStatusIcon} getStatusColor={getStatusColor} setDeleteConfirm={setDeleteConfirm} />
+            <Blogs loadingTab={loadingTab} blogs={blogs} getStatusIcon={getStatusIcon} getStatusColor={getStatusColor} setDeleteConfirm={setDeleteConfirm} />
 
           )}
 
           {/* Notifications Tab */}
           {activeTab === 'notifications' && (
-            <Notifications 
-            notifications={notifications}
-            setModalNotification={setModalNotification}
-            setModalOpen={setModalOpen}
-            modalNotification={modalNotification}
-            modalOpen={modalOpen}
-            toggleNotificationRead={toggleNotificationRead}
-            markAllAsRead={markAllAsRead}
-            loadingTab={loadingTab}
+            <Notifications
+              notifications={notifications}
+              setModalNotification={setModalNotification}
+              setModalOpen={setModalOpen}
+              modalNotification={modalNotification}
+              modalOpen={modalOpen}
+              toggleNotificationRead={toggleNotificationRead}
+              markAllAsRead={markAllAsRead}
+              loadingTab={loadingTab}
             />
           )}
 
           {/* Settings Tab */}
           {activeTab === 'settings' && (
             <SettingsTab
-            loadingTab={loadingTab}
-            
+              loadingTab={loadingTab}
+
 
             />
           )}
@@ -656,11 +657,11 @@ function ProfilePageContent() {
 
       {/* Delete Confirmation Dialog */}
       {deleteConfirm && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4 animate-fade-in"
           onClick={() => setDeleteConfirm(null)}
         >
-          <div 
+          <div
             className="relative w-full max-w-md mx-auto animate-scale-in"
             onClick={(e) => e.stopPropagation()}
           >
@@ -671,7 +672,7 @@ function ProfilePageContent() {
                 {/* Animated background blobs */}
                 <div className="absolute top-0 right-0 w-40 h-40 bg-pink-500 rounded-full mix-blend-multiply filter blur-2xl opacity-50 animate-blob"></div>
                 <div className="absolute bottom-0 left-0 w-40 h-40 bg-red-500 rounded-full mix-blend-multiply filter blur-2xl opacity-50 animate-blob animation-delay-2000"></div>
-                
+
                 {/* Icon container */}
                 <div className="relative h-full flex items-center justify-center">
                   <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-xl">
@@ -679,7 +680,7 @@ function ProfilePageContent() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Content */}
               <div className="p-8 space-y-4">
                 <div className="text-center space-y-2">
@@ -690,7 +691,7 @@ function ProfilePageContent() {
                     {t('profile.deleteConfirmation', { title: deleteConfirm.title })}
                   </p>
                 </div>
-                
+
                 {/* Warning badge */}
                 <div className="flex items-center gap-3 p-4 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-400">
                   <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
@@ -700,7 +701,7 @@ function ProfilePageContent() {
                     This action cannot be undone. All data will be permanently deleted.
                   </p>
                 </div>
-                
+
                 {/* Action buttons */}
                 <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
                   <Button

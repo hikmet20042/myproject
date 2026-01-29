@@ -46,9 +46,6 @@ export * from './layout';
 // Feedback Components
 export * from './feedback';
 
-// Comment Components
-export * from './comments';
-
 // Social Interaction Components
 export { default as BlogReactions } from './BlogReactions';
 export { default as SaveButton } from './SaveButton';

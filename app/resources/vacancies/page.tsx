@@ -1,78 +1,118 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Search, Filter, X, Briefcase, MapPin, Users } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Search, Briefcase, MapPin, Users, X, ExternalLink, Mail, Calendar } from 'lucide-react';
+import { Button, ButtonLink } from '@/components/ui';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { useLanguage } from '@/contexts/LanguageContext';
 import SaveButton from '@/components/SaveButton';
-import ViewTracker from '@/components/ViewTracker'
 import { useLocalizedPath } from '@/lib/useLocalizedPath';
+import { LoadingState, ResourceFilterContainer, ActiveFilterBadges } from '@/components/shared';
+import type { FilterBadge } from '@/components/shared/ActiveFilterBadges';
 
 export default function VacanciesPage() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const localePath = useLocalizedPath();
+
+  const locale = language === 'az' ? 'az-AZ' : 'en-US';
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [selectedLocation, setSelectedLocation] = useState('all');
   const [selectedExperience, setSelectedExperience] = useState('all');
-  const [vacancies, setVacancies] = useState<any[]>([]);
+  const [rawVacancies, setRawVacancies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [errorKey, setErrorKey] = useState('');
 
   useEffect(() => {
     const fetchVacancies = async () => {
       try {
         setLoading(true);
+        setErrorKey('');
         const res = await fetch('/api/vacancies?status=approved&limit=50');
         if (!res.ok) throw new Error('Failed to fetch vacancies');
         const data = await res.json();
-        const mapped = (data.vacancies || []).map((v: any) => {
-          const locationString = v?.location?.isRemote
-            ? 'Remote'
-            : v?.location?.city || v?.location?.address || '—';
-          const compensation = v?.compensation;
-          let salary: string | undefined = undefined;
-          if (compensation) {
-            if (compensation.type === 'paid' && compensation.amount && compensation.currency) {
-              salary = `${compensation.amount} ${compensation.currency}`;
-            } else if (compensation.type === 'stipend') {
-              salary = t('vacancies.stipend');
-            } else if (compensation.type === 'unpaid') {
-              salary = t('vacancies.volunteer');
-            }
-          }
-          return {
-            id: v._id,
-            title: v.title,
-            organization: v.createdBy?.name || '—',
-            type: v.type,
-            location: locationString,
-            experience: v.experienceLevel,
-            salary,
-            deadline: v.applicationDeadline,
-            description: v.description,
-            requirements: v.requirements || [],
-            applicationProcess: v.applicationProcess || {},
-            applicationLink: v.applicationProcess?.applicationLink,
-            postedDate: v.createdAt,
-            verified: v.status === 'approved',
-            views: v.views || 0,
-          };
-        });
-        setVacancies(mapped);
+        setRawVacancies(data.vacancies || []);
       } catch (e) {
         console.error(e);
-        setError(t('vacancies.errorLoading'));
+        setErrorKey('vacancies.errorLoading');
       } finally {
         setLoading(false);
       }
     };
     fetchVacancies();
-  }, [t]);
+  }, []);
+
+  const vacancies = useMemo(() => {
+    return rawVacancies.map((vacancy: any) => {
+      const locationValue = vacancy?.location?.isRemote
+        ? 'Remote'
+        : vacancy?.location?.city || vacancy?.location?.address || 'Unknown';
+
+      const compensation = vacancy?.compensation;
+      let salary: string | undefined = undefined;
+
+      if (compensation) {
+        if (compensation.type === 'paid' && compensation.amount && compensation.currency) {
+          const rawAmount = compensation.amount;
+          const amount = typeof rawAmount === 'number'
+            ? rawAmount.toLocaleString(locale)
+            : rawAmount;
+          salary = `${amount} ${compensation.currency}`;
+        } else if (compensation.type === 'stipend') {
+          salary = t('vacancies.stipend');
+        } else if (compensation.type === 'unpaid') {
+          salary = t('vacancies.volunteer');
+        }
+      }
+
+      const applicationProcess = vacancy?.applicationProcess ?? undefined;
+      const applicationLink = applicationProcess?.applicationLink || vacancy?.applicationLink;
+      const applicationEmail = applicationProcess?.email || vacancy?.applicationEmail;
+
+      return {
+        id: vacancy._id,
+        title: vacancy.title,
+        organization: vacancy?.createdBy?.name || t('common.unknown'),
+        type: vacancy.type,
+        location: locationValue,
+        experience: vacancy.experienceLevel,
+        salary,
+        deadline: vacancy.applicationDeadline,
+        description: vacancy.description || '',
+        requirements: vacancy.requirements || [],
+        applicationProcess,
+        applicationLink,
+        applicationEmail,
+        postedDate: vacancy.createdAt,
+        verified: vacancy.status === 'approved',
+        views: vacancy.views || 0,
+      };
+    });
+  }, [rawVacancies, locale, t]);
+
+  const formatNumber = (value: number) => value.toLocaleString(locale);
+
+  const formatDate = (dateString?: string, fallbackKey?: string) => {
+    if (!dateString) {
+      return fallbackKey ? t(fallbackKey) : t('vacancies.unknown');
+    }
+
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) {
+      return t('vacancies.invalidDate');
+    }
+
+    return date.toLocaleDateString(locale);
+  };
+
+  const isValidDate = (dateString?: string) => {
+    if (!dateString) return false;
+    const date = new Date(dateString);
+    return !Number.isNaN(date.getTime());
+  };
 
   const typesOptions = [
     { value: 'all', label: t('filters.allTypes') },
@@ -80,24 +120,98 @@ export default function VacanciesPage() {
     { value: 'Part-time', label: t('vacancies.partTime') },
     { value: 'Volunteer', label: t('vacancies.volunteer') },
     { value: 'Internship', label: t('vacancies.internship') },
-    { value: 'Contract', label: 'Contract' },
+    { value: 'Contract', label: t('vacancies.contract') },
   ];
 
   const locationsOptions = [
     { value: 'all', label: t('filters.allLocations') },
-    { value: 'Baku', label: t('charts.regions.baku') },
-    { value: 'Ganja', label: t('charts.regions.ganja') },
-    { value: 'Sumgayit', label: t('charts.regions.sumqayit') },
+    // Cities
+    { value: 'Baku', label: t('regions.baku') },
+    { value: 'Ganja', label: t('regions.ganja') },
+    { value: 'Nakhchivan', label: t('regions.nakhchivan') },
+    { value: 'Sumgayit', label: t('regions.sumgayit') },
+    { value: 'Lankaran', label: t('regions.lankaran') },
+    { value: 'Mingachevir', label: t('regions.mingachevir') },
+    { value: 'Naftalan', label: t('regions.naftalan') },
+    { value: 'Khankendi', label: t('regions.khankendi') },
+    { value: 'Shaki', label: t('regions.shaki') },
+    { value: 'Shirvan', label: t('regions.shirvan') },
+    { value: 'Yevlakh', label: t('regions.yevlakh') },
+    // Districts (Rayons)
+    { value: 'Absheron', label: t('regions.absheron') },
+    { value: 'Aghjabadi', label: t('regions.aghjabadi') },
+    { value: 'Agdam', label: t('regions.agdam') },
+    { value: 'Agdash', label: t('regions.agdash') },
+    { value: 'Agdere', label: t('regions.agdere') },
+    { value: 'Agstafa', label: t('regions.agstafa') },
+    { value: 'Agsu', label: t('regions.agsu') },
+    { value: 'Astara', label: t('regions.astara') },
+    { value: 'Babek', label: t('regions.babek') },
+    { value: 'Balakan', label: t('regions.balakan') },
+    { value: 'Beylagan', label: t('regions.beylagan') },
+    { value: 'Barda', label: t('regions.barda') },
+    { value: 'Bilasuvar', label: t('regions.bilasuvar') },
+    { value: 'Jabrayil', label: t('regions.jabrayil') },
+    { value: 'Jalilabad', label: t('regions.jalilabad') },
+    { value: 'Julfa', label: t('regions.julfa') },
+    { value: 'Dashkasan', label: t('regions.dashkasan') },
+    { value: 'Fuzuli', label: t('regions.fuzuli') },
+    { value: 'Gadabay', label: t('regions.gadabay') },
+    { value: 'Goranboy', label: t('regions.goranboy') },
+    { value: 'Goychay', label: t('regions.goychay') },
+    { value: 'Goygol', label: t('regions.goygol') },
+    { value: 'Hajigabul', label: t('regions.hajigabul') },
+    { value: 'Khachmaz', label: t('regions.khachmaz') },
+    { value: 'Khizi', label: t('regions.khizi') },
+    { value: 'Khojaly', label: t('regions.khojaly') },
+    { value: 'Khojavend', label: t('regions.khojavend') },
+    { value: 'Imishli', label: t('regions.imishli') },
+    { value: 'Ismayilli', label: t('regions.ismayilli') },
+    { value: 'Kalbajar', label: t('regions.kalbajar') },
+    { value: 'Kangarli', label: t('regions.kangarli') },
+    { value: 'Kurdamir', label: t('regions.kurdamir') },
+    { value: 'Gakh', label: t('regions.gakh') },
+    { value: 'Gazakh', label: t('regions.gazakh') },
+    { value: 'Gabala', label: t('regions.gabala') },
+    { value: 'Gobustan', label: t('regions.gobustan') },
+    { value: 'Guba', label: t('regions.guba') },
+    { value: 'Gubadli', label: t('regions.gubadli') },
+    { value: 'Gusar', label: t('regions.gusar') },
+    { value: 'Lachin', label: t('regions.lachin') },
+    { value: 'Lerik', label: t('regions.lerik') },
+    { value: 'Masalli', label: t('regions.masalli') },
+    { value: 'Neftchala', label: t('regions.neftchala') },
+    { value: 'Oghuz', label: t('regions.oghuz') },
+    { value: 'Ordubad', label: t('regions.ordubad') },
+    { value: 'Saatli', label: t('regions.saatli') },
+    { value: 'Sabirabad', label: t('regions.sabirabad') },
+    { value: 'Salyan', label: t('regions.salyan') },
+    { value: 'Samukh', label: t('regions.samukh') },
+    { value: 'Sadarak', label: t('regions.sadarak') },
+    { value: 'Siyazan', label: t('regions.siyazan') },
+    { value: 'Shabran', label: t('regions.shabran') },
+    { value: 'Shahbuz', label: t('regions.shahbuz') },
+    { value: 'Shamakhi', label: t('regions.shamakhi') },
+    { value: 'Shamkir', label: t('regions.shamkir') },
+    { value: 'Sharur', label: t('regions.sharur') },
+    { value: 'Shusha', label: t('regions.shusha') },
+    { value: 'Tartar', label: t('regions.tartar') },
+    { value: 'Tovuz', label: t('regions.tovuz') },
+    { value: 'Ujar', label: t('regions.ujar') },
+    { value: 'Yardimli', label: t('regions.yardimli') },
+    { value: 'Zaqatala', label: t('regions.zaqatala') },
+    { value: 'Zangilan', label: t('regions.zangilan') },
+    { value: 'Zardab', label: t('regions.zardab') },
     { value: 'Remote', label: t('vacancies.remote') },
-    { value: 'Other', label: t('charts.regions.otherRegions') },
+    { value: 'Other', label: t('regions.other') },
   ];
 
   const experienceOptions = [
     { value: 'all', label: t('filters.allLevels') },
-    { value: 'Entry level', label: t('vacancies.experience.entry') },
-    { value: '1-2 years', label: t('vacancies.experience.mid') || '1-2 years' },
-    { value: '2-5 years', label: t('vacancies.experience.mid') || '2-5 years' },
-    { value: '5+ years', label: t('vacancies.experience.senior') || '5+ years' },
+    { value: 'Entry level', label: t('vacancies.experienceOptions.entry') },
+    { value: '1-2 years', label: t('vacancies.experienceOptions.oneToTwo') },
+    { value: '2-5 years', label: t('vacancies.experienceOptions.twoToFive') },
+    { value: '5+ years', label: t('vacancies.experienceOptions.fivePlus') },
   ];
 
   const getTypeLabel = (val: string) => {
@@ -107,7 +221,9 @@ export default function VacanciesPage() {
 
   const getLocationLabel = (val: string) => {
     const found = locationsOptions.find(o => o.value === val);
-    return found ? found.label : val;
+    if (found) return found.label;
+    if (val === 'Unknown') return t('common.unknown');
+    return val;
   };
 
   const getExperienceLabel = (val: string) => {
@@ -115,10 +231,14 @@ export default function VacanciesPage() {
     return found ? found.label : val;
   };
 
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+
   const filteredVacancies = vacancies.filter(vacancy => {
-    const matchesSearch = vacancy.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         vacancy.organization.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         vacancy.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch =
+      normalizedSearch === '' ||
+      [vacancy.title, vacancy.organization, vacancy.description].some(field =>
+        typeof field === 'string' && field.toLowerCase().includes(normalizedSearch)
+      );
     const matchesType = selectedType === 'all' || vacancy.type === selectedType;
     const matchesLocation = selectedLocation === 'all' || vacancy.location === selectedLocation;
     const matchesExperience = selectedExperience === 'all' || vacancy.experience === selectedExperience;
@@ -137,16 +257,18 @@ export default function VacanciesPage() {
     }
   };
 
-  const isDeadlineNear = (deadline: string) => {
-    const deadlineDate = new Date(deadline);
+  const isDeadlineNear = (deadline?: string) => {
+    if (!isValidDate(deadline)) return false;
+    const deadlineDate = new Date(deadline as string);
     const today = new Date();
     const diffTime = deadlineDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays <= 7 && diffDays > 0;
   };
 
-  const isDeadlinePassed = (deadline: string) => {
-    const deadlineDate = new Date(deadline);
+  const isDeadlinePassed = (deadline?: string) => {
+    if (!isValidDate(deadline)) return false;
+    const deadlineDate = new Date(deadline as string);
     const today = new Date();
     return deadlineDate < today;
   };
@@ -154,188 +276,147 @@ export default function VacanciesPage() {
   const hasActiveFilters =
     searchTerm.trim() !== '' || selectedType !== 'all' || selectedLocation !== 'all' || selectedExperience !== 'all';
 
+  const errorMessage = errorKey ? t(errorKey) : '';
+
+  const hasApplicationProcess = (applicationProcess: any) => {
+    if (!applicationProcess) return false;
+    if (typeof applicationProcess !== 'object') return false;
+    return Object.keys(applicationProcess).length > 0;
+  };
+
+  if (loading) {
+    return (
+      <LoadingState 
+        text={t('common.loading')}
+        gradientFrom="from-indigo-50"
+        gradientVia="via-purple-50"
+        gradientTo="to-pink-50"
+        spinnerColor="border-indigo-600"
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 transition-colors duration-200">
-      {/* Hero Section - Modern & Engaging */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-green-600 via-blue-600 to-indigo-900 text-white py-16 sm:py-20 lg:py-24">
+      {/* Header */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-teal-600 via-blue-700 to-indigo-900 text-white py-16 sm:py-20 lg:py-24">
         {/* Animated Blobs */}
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-20 left-10 w-96 h-96 bg-green-400 rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
-          <div className="absolute top-40 right-20 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000"></div>
-          <div className="absolute bottom-20 left-1/3 w-96 h-96 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000"></div>
-        </div>
-
-        {/* Floating Particles */}
-        <div className="absolute inset-0 opacity-20">
-          {[...Array(15)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-2 h-2 bg-white rounded-full animate-float"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 5}s`,
-                animationDuration: `${5 + Math.random() * 10}s`
-              }}
-            />
-          ))}
-        </div>
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full mix-blend-overlay filter blur-3xl opacity-50 animate-blob"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full mix-blend-overlay filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-white/10 rounded-full mix-blend-overlay filter blur-3xl opacity-50 animate-blob animation-delay-4000"></div>
 
         <div className="section-padding relative z-10">
           <div className="max-w-5xl mx-auto text-center">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 mb-4 sm:mb-6 animate-fade-in">
-              <Briefcase className="w-4 h-4 sm:w-5 sm:h-5 text-green-300 animate-pulse" />
-              <span className="text-xs sm:text-sm font-bold uppercase tracking-wide">{t('vacancies.careerOpportunities')}</span>
-            </div>
+            
 
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-4 sm:mb-6 leading-tight animate-slide-up px-4">
               {t('vacancies.title')}
             </h1>
-            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/95 leading-relaxed max-w-3xl mx-auto animate-fade-in px-4 font-light">
+            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/95 leading-relaxed max-w-3xl mx-auto animate-fade-in px-4">
               {t('vacancies.subtitle')}
             </p>
-
-            {/* Stats Pills */}
-            <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4 mt-6 sm:mt-8 px-4 animate-scale-in">
-              {[
-                { icon: Briefcase, label: t('vacancies.totalJobs'), value: vacancies.length },
-                { icon: MapPin, label: t('filters.allLocations'), value: new Set(vacancies.map(v => v.location)).size },
-                { icon: Users, label: t('labels.active_members'), value: '1,000+' }
-              ].map((stat, idx) => (
-                <div 
-                  key={idx} 
-                  className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl border border-white/20 hover:bg-white/20 transition-all duration-300 hover:scale-105 sm:hover:scale-110 w-full sm:w-auto"
-                  style={{ animationDelay: `${idx * 0.1}s` }}
-                >
-                  <stat.icon className="w-4 h-4 sm:w-5 sm:h-5 text-green-300 flex-shrink-0" />
-                  <div className="text-left">
-                    <div className="text-lg sm:text-xl font-black">{stat.value}</div>
-                    <div className="text-xs text-white/80">{stat.label}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
 
       </section>
 
-      {/* Search and Filters - Enhanced Modern Design */}
+      {/* Search and Filters - Standardized Design */}
       <section className="section-padding py-8 sm:py-12">
         <div className="max-w-6xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 sm:p-8 animate-fade-in">
-            {/* Section Header */}
-            <div className="mb-6">
-              <div className="flex items-center gap-2 mb-2">
-                <Filter className="w-5 h-5 text-green-600" />
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{t('filters.findYourJob')}</h2>
-              </div>
-              <p className="text-sm text-gray-600">{t('filters.useFiltersToNarrow')}</p>
-            </div>
+          <ResourceFilterContainer
+            title={t('filters.findYourJob')}
+            subtitle={t('filters.useFiltersToNarrow')}
+            iconGradient="from-green-600 to-emerald-600"
+            borderColor="border-green-100"
+            searchInput={
+              <Input
+                type="text"
+                id="search"
+                label={t('vacancies.searchLabel')}
+                placeholder={t('vacancies.searchPlaceholder')}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                icon={Search}
+                iconPosition="left"
+                inputSize="md"
+                aria-label={t('vacancies.searchAria')}
+              />
+            }
+            filterControls={
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                {/* Type Filter */}
+                <div>
+                  <Select
+                    label={t('filters.type')}
+                    value={selectedType}
+                    onChange={(e) => setSelectedType(e.target.value)}
+                    options={typesOptions}
+                    placeholder={t('filters.allTypes')}
+                    selectSize="md"
+                  />
+                </div>
 
-            {/* Top row: search + selectors */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
-              {/* Search */}
-              <div className="lg:col-span-2">
-                <Input
-                  type="text"
-                  id="search"
-                  label={t('vacancies.searchLabel')}
-                  placeholder={t('vacancies.searchPlaceholder')}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  icon={Search}
-                  iconPosition="left"
-                  inputSize="md"
-                  aria-label="Search vacancies"
-                />
-              </div>
+                {/* Location Filter */}
+                <div>
+                  <Select
+                    label={t('filters.location')}
+                    value={selectedLocation}
+                    onChange={(e) => setSelectedLocation(e.target.value)}
+                    options={locationsOptions}
+                    placeholder={t('filters.allLocations')}
+                    selectSize="md"
+                  />
+                </div>
 
-              {/* Type Filter */}
-              <div>
-                <Select
-                  label={t('filters.type')}
-                  value={selectedType}
-                  onChange={(e) => setSelectedType(e.target.value)}
-                  options={typesOptions}
-                  placeholder={t('filters.allTypes')}
-                  selectSize="md"
-                />
-              </div>
-
-              {/* Location Filter */}
-              <div>
-                <Select
-                  label={t('filters.location')}
-                  value={selectedLocation}
-                  onChange={(e) => setSelectedLocation(e.target.value)}
-                  options={locationsOptions}
-                  placeholder={t('filters.allLocations')}
-                  selectSize="md"
-                />
-              </div>
-
-              {/* Experience Filter */}
-              <div>
-                <Select
-                  label={t('filters.experience')}
-                  value={selectedExperience}
-                  onChange={(e) => setSelectedExperience(e.target.value)}
-                  options={experienceOptions}
-                  placeholder={t('filters.allLevels')}
-                  selectSize="md"
-                />
-              </div>
-            </div>
-
-            {/* Active filters row */}
-            {hasActiveFilters && (
-              <div className="mt-6 flex flex-wrap items-center gap-3 p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-green-200">
-                <span className="text-sm font-medium text-gray-700">{t('common.activeFilters')}:</span>
-                {selectedType !== 'all' && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-100 text-green-700 text-sm font-medium border border-green-200 shadow-sm">
-                    {t('filters.type')}: {getTypeLabel(selectedType)}
-                    <button aria-label="Clear type filter" onClick={() => setSelectedType('all')} className="p-0.5 hover:text-green-900 hover:bg-green-200 rounded-full transition-colors">
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </span>
-                )}
-                {selectedLocation !== 'all' && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 text-sm font-medium border border-blue-200 shadow-sm">
-                    {t('filters.location')}: {getLocationLabel(selectedLocation)}
-                    <button aria-label="Clear location filter" onClick={() => setSelectedLocation('all')} className="p-0.5 hover:text-blue-900 hover:bg-blue-200 rounded-full transition-colors">
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </span>
-                )}
-                {selectedExperience !== 'all' && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-100 text-indigo-700 text-sm font-medium border border-indigo-200 shadow-sm">
-                    {t('filters.experience')}: {getExperienceLabel(selectedExperience)}
-                    <button aria-label="Clear experience filter" onClick={() => setSelectedExperience('all')} className="p-0.5 hover:text-indigo-900 hover:bg-indigo-200 rounded-full transition-colors">
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </span>
-                )}
-
-                {/* Clear all */}
-                <div className="ml-auto">
-                  <button
-                    onClick={() => {
-                      setSearchTerm('');
-                      setSelectedType('all');
-                      setSelectedLocation('all');
-                      setSelectedExperience('all');
-                    }}
-                    className="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg border-2 border-gray-300 text-gray-700 hover:bg-gray-100 hover:border-gray-400 font-medium transition-all duration-300"
-                  >
-                    <X className="w-4 h-4" />
-                    {t('common.clearAll')}
-                  </button>
+                {/* Experience Filter */}
+                <div>
+                  <Select
+                    label={t('filters.experience')}
+                    value={selectedExperience}
+                    onChange={(e) => setSelectedExperience(e.target.value)}
+                    options={experienceOptions}
+                    placeholder={t('filters.allLevels')}
+                    selectSize="md"
+                  />
                 </div>
               </div>
-            )}
-          </div>
+            }
+            activeFilters={
+              hasActiveFilters ? (
+                <ActiveFilterBadges
+                  badges={[
+                    ...(selectedType !== 'all' ? [{
+                      id: 'type',
+                      label: t('filters.type'),
+                      value: getTypeLabel(selectedType),
+                      onRemove: () => setSelectedType('all'),
+                      colorScheme: 'green' as const,
+                    }] : []),
+                    ...(selectedLocation !== 'all' ? [{
+                      id: 'location',
+                      label: t('filters.location'),
+                      value: getLocationLabel(selectedLocation),
+                      onRemove: () => setSelectedLocation('all'),
+                      colorScheme: 'blue' as const,
+                    }] : []),
+                    ...(selectedExperience !== 'all' ? [{
+                      id: 'experience',
+                      label: t('filters.experience'),
+                      value: getExperienceLabel(selectedExperience),
+                      onRemove: () => setSelectedExperience('all'),
+                      colorScheme: 'indigo' as const,
+                    }] : []),
+                  ]}
+                  onClearAll={() => {
+                    setSearchTerm('');
+                    setSelectedType('all');
+                    setSelectedLocation('all');
+                    setSelectedExperience('all');
+                  }}
+                />
+              ) : undefined
+            }
+          />
         </div>
       </section>
 
@@ -349,211 +430,166 @@ export default function VacanciesPage() {
             {/* Results Count */}
             <div className="mb-6 sm:mb-8 flex items-center justify-between">
               <p className="text-gray-700 font-medium">
-                <span className="text-2xl font-black text-gray-900">{filteredVacancies.length}</span>{' '}
-                {t('vacancies.showingResults', { count: filteredVacancies.length, total: vacancies.length })}
+                {t('vacancies.showingResults', {
+                  count: formatNumber(filteredVacancies.length),
+                  total: formatNumber(vacancies.length)
+                })}
               </p>
             </div>
 
-            {/* Job Cards */}
-            <div className="space-y-4 sm:space-y-6">
-              {!loading && !error && filteredVacancies.map((vacancy, idx) => (
-                <div 
-                  key={vacancy.id} 
-                  className={`group relative bg-gradient-to-br from-white to-green-50/30 rounded-2xl p-6 sm:p-8 border-2 border-gray-200 hover:border-green-500 hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 ${vacancy.deadline && isDeadlinePassed(vacancy.deadline) ? 'opacity-60' : ''} animate-fade-in`}
-                  style={{ animationDelay: `${idx * 0.05}s` }}
-                >
-                  {/* Gradient Overlay on Hover */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-green-500/0 to-blue-500/0 group-hover:from-green-500/5 group-hover:to-blue-500/5 transition-all duration-500 rounded-2xl"></div>
-                  
-                  {/* Shine Effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+            {errorMessage && (
+              <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                {errorMessage}
+              </div>
+            )}
 
-                  <div className="relative z-10">
-                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex-1">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1">
-                                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 group-hover:text-green-600 transition-colors leading-tight">
-                                  {vacancy.title}
-                                </h3>
-                                <p className="text-base sm:text-lg text-gray-700 mb-4 font-medium">
-                                  {vacancy.organization}
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <ViewTracker
-                                  itemId={vacancy.id}
-                                  itemType="vacancy"
-                                  initialViews={vacancy.views}
-                                  showCount={true}
-                                />
-                                <SaveButton
-                                  itemId={vacancy.id}
-                                  itemType="vacancy"
-                                  itemTitle={vacancy.title}
-                                  size="md"
-                                  showText={false}
-                                />
-                              </div>
-                            </div>
-                            
-                            {/* Tags */}
-                            <div className="flex flex-wrap items-center gap-2 mb-4">
-                              <span className={`inline-flex items-center text-xs px-3 py-1.5 rounded-full font-bold shadow-sm ${getTypeColor(vacancy.type)}`}>
-                                {vacancy.type}
-                              </span>
-                              <span className="inline-flex items-center bg-gray-100 text-gray-800 text-xs px-3 py-1.5 rounded-full font-medium">
-                                <MapPin className="w-3 h-3 mr-1" />
-                                {vacancy.location}
-                              </span>
-                              <span className="inline-flex items-center bg-gray-100 text-gray-800 text-xs px-3 py-1.5 rounded-full font-medium">
-                                <Briefcase className="w-3 h-3 mr-1" />
-                                {vacancy.experience}
-                              </span>
-                              {vacancy.salary && (
-                                <span className="inline-flex items-center bg-gray-100 text-gray-800 text-xs px-3 py-1.5 rounded-full font-medium">
-                                  💰 {vacancy.salary}
-                                </span>
-                              )}
-                              {vacancy.verified && (
-                                <span className="inline-flex items-center bg-green-100 text-green-800 text-xs px-3 py-1.5 rounded-full font-bold shadow-sm">
-                                  <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                  {t('ngos.verified')}
-                                </span>
-                              )}
-                            </div>
-                          </div>
+            {/* Job Cards - Grid Layout */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {!loading && !errorMessage && filteredVacancies.map((vacancy, idx) => {
+                const deadlineNear = isDeadlineNear(vacancy.deadline);
+                const deadlinePassed = isDeadlinePassed(vacancy.deadline);
+                const structuredProcess = hasApplicationProcess(vacancy.applicationProcess);
+                const formattedPostedDate = formatDate(vacancy.postedDate, 'vacancies.unknown');
+                const formattedDeadline = formatDate(vacancy.deadline, 'vacancies.dateTBD');
+
+                return (
+                  <article 
+                    key={vacancy.id} 
+                    className={`group relative bg-gradient-to-br from-white to-teal-50/50 rounded-2xl p-6 border-2 border-gray-200 hover:border-teal-500 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 ${deadlinePassed ? 'opacity-60' : ''} animate-fade-in flex flex-col overflow-hidden`}
+                    style={{ animationDelay: `${idx * 0.05}s` }}
+                  >
+                    {/* Shine Effect */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                    </div>
+
+                    {/* Gradient Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-teal-500/0 via-transparent to-cyan-500/0 opacity-0 group-hover:opacity-10 transition-opacity duration-500"></div>
+
+                    <div className="relative z-10 flex flex-col h-full">
+                      {/* Icon Section */}
+                      <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-teal-500 to-teal-700 flex items-center justify-center shadow-lg group-hover:shadow-xl mb-4 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+                        <Briefcase className="w-7 h-7 text-white" />
+                      </div>
+
+                      {/* Save Button - Top Right */}
+                      <div className="absolute top-6 right-6">
+                        <SaveButton
+                          itemId={vacancy.id}
+                          itemType="vacancy"
+                          itemTitle={vacancy.title}
+                          size="sm"
+                          showText={false}
+                        />
+                      </div>
+                      
+                      {/* Type Badge */}
+                      <div className="mb-3">
+                        <span className={`inline-flex items-center text-xs px-3 py-1 rounded-lg font-semibold ${getTypeColor(vacancy.type)}`}>
+                          {getTypeLabel(vacancy.type)}
+                        </span>
+                      </div>
+
+                      {/* Title */}
+                      <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-teal-600 transition-colors line-clamp-2">
+                        {vacancy.title}
+                      </h3>
+                      
+                      {/* Organization */}
+                      <p className="text-sm text-gray-600 font-semibold mb-3">
+                        {vacancy.organization}
+                      </p>
+
+                      {/* Description */}
+                      <p className="text-sm text-gray-600 mb-4 line-clamp-3 leading-relaxed">
+                        {vacancy.description}
+                      </p>
+                      
+                      {/* Meta Information */}
+                      <div className="space-y-2 mb-4 flex-1">
+                        {/* Location */}
+                        <div className="flex items-center gap-2 text-sm">
+                          <MapPin className="w-4 h-4 text-teal-600 flex-shrink-0" />
+                          <span className="text-gray-700 font-medium">
+                            {getLocationLabel(vacancy.location)}
+                          </span>
                         </div>
 
-                        <p className="text-gray-600 mb-6 leading-relaxed line-clamp-3">
-                          {vacancy.description}
-                        </p>
-
-                        {vacancy.requirements && vacancy.requirements.length > 0 && (
-                          <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
-                            <h4 className="text-sm font-bold text-gray-900 mb-2 flex items-center gap-2">
-                              <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              {t('vacancies.keyRequirements')}
-                            </h4>
-                            <ul className="space-y-1">
-                              {vacancy.requirements?.slice(0, 3).map((req: string, index: number) => (
-                                <li key={index} className="text-sm text-gray-700 flex items-start gap-2">
-                                  <span className="text-blue-600 mt-0.5">•</span>
-                                  <span className="line-clamp-1">{req}</span>
-                                </li>
-                              ))}
-                              {vacancy.requirements.length > 3 && (
-                                <li className="text-sm text-blue-600 font-medium">{t('vacancies.moreRequirements', { count: vacancy.requirements.length - 3 })}</li>
-                              )}
-                            </ul>
+                        {/* Salary */}
+                        {vacancy.salary && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="text-gray-700 font-medium">{vacancy.salary}</span>
                           </div>
                         )}
 
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-4 border-t border-gray-200">
-                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 text-sm">
-                            <span className="flex items-center gap-1.5 text-gray-600 font-medium">
-                              <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              {t('vacancies.posted')}: {new Date(vacancy.postedDate).toLocaleDateString()}
-                            </span>
-                            <span className={`flex items-center gap-1.5 font-bold ${
-                              vacancy.deadline && isDeadlinePassed(vacancy.deadline) 
-                                ? 'text-red-600' 
-                                : vacancy.deadline && isDeadlineNear(vacancy.deadline) 
-                                  ? 'text-orange-600' 
-                                  : 'text-gray-700'
-                            }`}>
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                              {t('vacancies.deadline')}: {vacancy.deadline ? new Date(vacancy.deadline).toLocaleDateString() : '—'}
-                              {vacancy.deadline && isDeadlineNear(vacancy.deadline) && !isDeadlinePassed(vacancy.deadline) && (
-                                <span className="ml-1">⚠️</span>
-                              )}
-                              {vacancy.deadline && isDeadlinePassed(vacancy.deadline) && (
-                                <span className="ml-1">❌</span>
-                              )}
-                            </span>
-                          </div>
+                        {/* Deadline */}
+                        <div className={`flex items-center gap-2 text-sm font-medium ${
+                          deadlinePassed
+                            ? 'text-red-600'
+                            : deadlineNear
+                              ? 'text-orange-600'
+                              : 'text-gray-700'
+                        }`}>
+                          <Calendar className="w-4 h-4 flex-shrink-0" />
+                          <span>{formattedDeadline}</span>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="pt-4 border-t border-gray-200">
+                        <div className="flex gap-2">
+                          <ButtonLink 
+                            href={localePath(`/resources/vacancies/${vacancy.id}`)}
+                            variant="outline"
+                            size="sm"
+                            hoverEffect="scale"
+                            className="flex-1 text-center justify-center"
+                          >
+                            {t('vacancies.viewDetails')}
+                          </ButtonLink>
                           
-                          <div className="flex gap-2 sm:gap-3">
-                            <Link href={localePath(`/resources/vacancies/${vacancy.id}`)}>
-                              <Button variant="outline" className="inline-flex items-center font-bold hover:scale-105 transition-all duration-300">
-                                {t('vacancies.viewDetails')}
-                                <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                              </Button>
-                            </Link>
-                            
-                            {!vacancy.deadline || !isDeadlinePassed(vacancy.deadline) && (
-                              <div>
-                              {/* Application Process */}
-                              {vacancy.applicationProcess?.applicationLink && (
-                                <a
-                                  href={vacancy.applicationLink}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  <Button variant="primary" className="inline-flex items-center font-bold bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 hover:scale-105 transition-all duration-300 shadow-lg">
-                                    {t('vacancies.applyNow')}
-                                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                    </svg>
-                                  </Button>
-                                </a>
-                              )}
-                              {vacancy.applicationProcess?.email && (
-                                <a
-                                  href={`mailto:${vacancy.applicationProcess.email}?subject=Application for ${vacancy.title}`}
-                                >
-                                  <Button variant="primary" className="inline-flex items-center font-bold bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 hover:scale-105 transition-all duration-300 shadow-lg">
-                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                    </svg>
-                                    {t('common.emailApplication') || 'Email Application'}
-                                  </Button>
-                                </a>
-                              )}
-                              {/* Fallback for old data structure */}
-                              {!vacancy.applicationProcess && vacancy.applicationLink && (
-                                <a
-                                  href={vacancy.applicationLink}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  <Button variant="primary" className="inline-flex items-center font-bold bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 hover:scale-105 transition-all duration-300 shadow-lg">
-                                    {t('vacancies.applyNow')}
-                                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                    </svg>
-                                  </Button>
-                                </a>
-                              )}
-                            </div>
+                          {(!vacancy.deadline || !deadlinePassed) && (
+                            <>
+                            {structuredProcess && vacancy.applicationProcess?.applicationLink && (
+                              <ButtonLink
+                                href={vacancy.applicationProcess.applicationLink}
+                                external
+                                variant="gradient-green"
+                                size="sm"
+                                hoverEffect="scale"
+                                className="flex-1 text-center justify-center"
+                              >
+                                {t('vacancies.apply')}
+                              </ButtonLink>
+                            )}
+                            {!structuredProcess && vacancy.applicationLink && (
+                              <ButtonLink
+                                href={vacancy.applicationLink}
+                                external
+                                variant="gradient-green"
+                                size="sm"
+                                hoverEffect="scale"
+                                className="flex-1 text-center justify-center"
+                              >
+                                {t('vacancies.apply')}
+                              </ButtonLink>
+                            )}
+                            </>
                           )}
-                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              ))}
+                  </article>
+                );
+            })}
             </div>
 
-            {(!loading && !error && filteredVacancies.length === 0) && (
-              <div className="text-center py-16 sm:py-20 bg-gradient-to-br from-gray-50 to-green-50 rounded-3xl border-2 border-dashed border-gray-300 animate-fade-in">
+            {(!loading && !errorMessage && filteredVacancies.length === 0) && (
+              <div className="text-center py-16 sm:py-20 bg-gradient-to-br from-gray-50 to-teal-50 rounded-3xl border-2 border-dashed border-gray-300 animate-fade-in">
                 <div className="relative mb-6 sm:mb-8">
-                  <div className="absolute inset-0 bg-green-200 rounded-full blur-3xl opacity-20"></div>
-                  <div className="relative w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-green-100 to-green-200 rounded-full flex items-center justify-center mx-auto shadow-lg">
-                    <svg className="w-10 h-10 sm:w-12 sm:h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="absolute inset-0 bg-teal-200 rounded-full blur-3xl opacity-20"></div>
+                  <div className="relative w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-teal-100 to-teal-200 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                    <svg className="w-10 h-10 sm:w-12 sm:h-12 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </div>
@@ -621,9 +657,8 @@ export default function VacanciesPage() {
               {/* Stats Pills */}
               <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4 mb-6 sm:mb-8 px-4">
                 {[
-                  { icon: Users, text: 'Reach Qualified Candidates' },
-                  { icon: Briefcase, text: 'Free Posting' },
-                  { icon: MapPin, text: 'Global & Local Reach' }
+                    { icon: Users, text: t('vacancies.postStats.reachCandidates') },
+                    { icon: Briefcase, text: t('vacancies.postStats.freePosting') }
                 ].map((item, idx) => (
                   <div 
                     key={idx}
@@ -638,28 +673,33 @@ export default function VacanciesPage() {
 
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
-                <Link href={localePath("/auth/login")} className="w-full sm:w-auto">
-                  <Button 
-                    size="lg"
-                    className="group bg-white text-green-700 hover:bg-yellow-300 hover:text-green-900 px-6 sm:px-8 py-4 sm:py-5 rounded-xl sm:rounded-2xl font-black text-base sm:text-lg shadow-2xl hover:shadow-yellow-300/50 transition-all duration-300 hover:scale-105 sm:hover:scale-110 w-full"
-                  >
-                    <Briefcase className="w-5 h-5 sm:w-6 sm:h-6 mr-2 group-hover:rotate-12 transition-transform" />
-                    {t('vacancies.loginToPost')}
-                    <svg className="w-5 h-5 sm:w-6 sm:h-6 ml-2 group-hover:translate-x-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </Button>
-                </Link>
-                <Link href={localePath("/auth/register?type=ngo")} className="w-full sm:w-auto">
-                  <Button 
-                    variant="outline" 
-                    size="lg"
-                    className="group border-2 sm:border-3 border-white/70 text-blue-700 hover:bg-white/20 backdrop-blur-md px-6 sm:px-8 py-4 sm:py-5 rounded-xl sm:rounded-2xl font-black text-base sm:text-lg hover:scale-105 sm:hover:scale-110 transition-all duration-300 shadow-xl w-full"
-                  >
-                    <Users className="w-5 h-5 sm:w-6 sm:h-6 mr-2 group-hover:rotate-12 transition-transform" />
-                    {t('vacancies.registerAsNgo')}
-                  </Button>
-                </Link>
+                <ButtonLink 
+                  href={localePath("/auth/login")}
+                  variant="white-on-dark"
+                  size="lg"
+                  icon={Briefcase}
+                  iconPosition="left"
+                  shadow="xl"
+                  hoverEffect="scale"
+                  className="w-full sm:w-auto"
+                >
+                  {t('vacancies.loginToPost')}
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </ButtonLink>
+                <ButtonLink 
+                  href={localePath("/auth/register?type=ngo")}
+                  variant="outline"
+                  size="lg"
+                  icon={Users}
+                  iconPosition="left"
+                  shadow="xl"
+                  hoverEffect="scale"
+                  className="w-full sm:w-auto"
+                >
+                  {t('vacancies.registerAsNgo')}
+                </ButtonLink>
               </div>
             </div>
           </div>

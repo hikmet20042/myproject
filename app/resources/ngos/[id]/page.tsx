@@ -109,9 +109,9 @@ export default function NGODetailPage() {
               variant="light"
               className="mb-8"
               items={[
-                { label: 'Home', href: '/' },
-                { label: 'Resources', href: '/resources' },
-                { label: 'NGOs', href: '/resources/ngos' },
+                { label: t('header.home') || 'Home', href: localePath('/') },
+                { label: t('header.resources') || 'Resources', href: localePath('/resources') },
+                { label: t('header.ngos') || 'NGOs', href: localePath('/resources/ngos') },
                 { label: ngo.organizationName, current: true }
               ]}
             />

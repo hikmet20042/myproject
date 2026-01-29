@@ -53,14 +53,14 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
       const response = await fetch(`/api/admin/blogs/${params.id}`)
       
       if (!response.ok) {
-        throw new Error('Failed to load blog')
+        throw new Error(t('admin.preview.blog.fetchError') || 'Failed to load blog')
       }
       
       const data = await response.json()
       setBlog(data.blog)
     } catch (error) {
       console.error('Error loading blog:', error)
-      setError('Failed to load blog')
+      setError(t('admin.preview.blog.fetchError') || 'Failed to load blog')
     } finally {
       setLoading(false)
     }
@@ -83,21 +83,21 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
             <CheckCircle className="w-3 h-3 mr-1" />
-            Approved
+            {t('admin.status.approved') || 'Approved'}
           </span>
         )
       case 'rejected':
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
             <XCircle className="w-3 h-3 mr-1" />
-            Rejected
+            {t('admin.status.rejected') || 'Rejected'}
           </span>
         )
       default:
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
             <Clock className="w-3 h-3 mr-1" />
-            Pending
+            {t('admin.status.pending') || 'Pending'}
           </span>
         )
     }
@@ -128,7 +128,7 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
     if (!blog || !actionType) return
     
     if (actionType === 'reject' && !adminComment.trim()) {
-      alert('Please provide a reason for rejection')
+      alert(t('admin.preview.rejectReasonRequired') || 'Please provide a reason for rejection')
       return
     }
     
@@ -158,14 +158,17 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
         setShowModal(false)
         setActionType(null)
         setAdminComment('')
-        alert(`Story ${actionType === 'approve' ? 'approved' : 'rejected'} successfully!`)
+        alert(actionType === 'approve' 
+          ? (t('admin.preview.blog.approvedSuccess') || 'Story approved successfully!')
+          : (t('admin.preview.blog.rejectedSuccess') || 'Story rejected successfully!')
+        )
       } else {
         console.error('API Error:', data)
-        alert(`Failed to update blog status: ${data.error || 'Unknown error'}`)
+        alert(t('admin.preview.blog.updateFailed') || 'Failed to update blog status')
       }
     } catch (error) {
       console.error('Error updating blog:', error)
-      alert('An error occurred while updating the blog')
+      alert(t('admin.preview.blog.updateError') || 'An error occurred while updating the blog')
     } finally {
       setIsProcessing(false)
     }
@@ -176,8 +179,8 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
   // Handle author display - author is now populated with name, email, and _id
   const authorObject = typeof blog.author === 'object' ? blog.author : null
   const authorDisplay = blog.isAnonymous 
-    ? 'Anonymous' 
-    : (authorObject?.name || authorObject?.email || blog.authorName || 'Unknown Author')
+    ? (t('common.anonymous') || 'Anonymous') 
+    : (authorObject?.name || authorObject?.email || blog.authorName || (t('common.unknownAuthor') || 'Unknown Author'))
   
   const authorId = authorObject?._id || null
 
@@ -191,7 +194,7 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
               className="inline-flex items-center text-gray-600 hover:text-gray-900"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Admin Dashboard
+              {t('admin.preview.backToAdmin') || 'Back to Admin Dashboard'}
             </Link>
             <div className="flex items-center space-x-3">
               {getStatusBadge(blog.status)}

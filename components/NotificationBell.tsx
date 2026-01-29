@@ -40,10 +40,10 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
   useEffect(() => {
     if (sseNotification) {
       console.log('Received SSE notification in NotificationBell:', sseNotification)
-      
+
       // Add to beginning of notifications list
       setNotifications(prev => [sseNotification, ...prev])
-      
+
       // Refresh unread count
       refreshNotifications()
     }
@@ -60,7 +60,7 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
       // Handler for new notifications
       const handleNewNotification = (notification: any) => {
         console.log('Received real-time notification:', notification)
-        
+
         // Add to beginning of notifications list
         setNotifications(prev => [{
           _id: notification.id,
@@ -71,10 +71,10 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
           type: notification.type,
           actionUrl: notification.actionUrl
         }, ...prev])
-        
+
         // Refresh unread count
         refreshNotifications()
-        
+
         // Show browser notification if permission granted
         if (Notification.permission === 'granted') {
           new Notification(notification.title, {
@@ -126,7 +126,7 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
     } else {
       // Use polling as fallback when Socket.IO is not available (Vercel)
       console.log('Using polling fallback for notifications (Socket.IO unavailable)')
-      
+
       // Poll for new notifications every 30 seconds
       const pollInterval = setInterval(() => {
         refreshNotifications()
@@ -214,7 +214,7 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
     }
     // Close dropdown
     setNotificationsOpen(false)
-    
+
     // Navigate to action URL if available
     if (notification.actionUrl) {
       window.location.href = notification.actionUrl
@@ -264,7 +264,7 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
         setNotificationsOpen(false)
       }
     }
-    
+
     if (notificationsOpen) {
       document.addEventListener('mousedown', handleClickOutside)
       return () => document.removeEventListener('mousedown', handleClickOutside)
@@ -277,7 +277,7 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
     <div className={`relative ${className}`} ref={notificationsRef}>
       <button
         onClick={handleNotificationsToggle}
-        className="relative flex items-center justify-center p-2 text-white hover:text-yellow-300 transition-colors duration-200 rounded-full hover:bg-white/10 backdrop-blur-sm"
+        className="relative flex items-center justify-center p-2 text-gray-700 hover:text-blue-600 transition-colors duration-200 rounded-full hover:bg-gray-100"
         aria-label={t('header.notifications')}
       >
         <Bell className="h-5 w-5" />
@@ -336,9 +336,8 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
                 {notifications.slice(0, 10).map((notification) => (
                   <div
                     key={notification._id}
-                    className={`px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 transition-colors ${
-                      !notification.isRead ? 'bg-blue-50/50' : ''
-                    }`}
+                    className={`px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 transition-colors ${!notification.isRead ? 'bg-blue-50/50' : ''
+                      }`}
                   >
                     <div className="flex justify-between items-start gap-3">
                       {/* Content */}

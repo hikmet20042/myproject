@@ -51,12 +51,7 @@ export default function GradientHero({
               </div>
             )}
             
-            {badge && BadgeIcon && (
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-md rounded-full border border-white/30 shadow-lg">
-                <BadgeIcon className="w-4 h-4 text-white" />
-                <span className="text-sm font-semibold text-white">{badge.text}</span>
-              </div>
-            )}
+           
           </div>
 
           {/* Title */}

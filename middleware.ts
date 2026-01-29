@@ -2,6 +2,17 @@ import { withAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+// Ensure NextAuth always has an absolute callback URL
+if (!process.env.NEXTAUTH_URL) {
+  const fallbackUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  process.env.NEXTAUTH_URL = fallbackUrl
+}
+
+// Enable trust host for production serverless environments
+if (process.env.NODE_ENV === 'production') {
+  process.env.AUTH_TRUST_HOST = 'true'
+}
+
 // Language configuration
 const defaultLanguage = 'az'
 const languages = ['az', 'en']
@@ -123,7 +134,6 @@ export default withAuth(
         return NextResponse.redirect(newUrl)
       }
       
-      // Check authorization before rewriting
       const authResponse = checkAuthorization(pathWithoutLanguage, token, pathname, language, req)
       if (authResponse) {
         return authResponse
@@ -145,40 +155,7 @@ export default withAuth(
   },
   {
     callbacks: {
-      authorized: ({ token, req }) => {
-        const { pathname } = req.nextUrl
-        const { pathWithoutLanguage } = getLanguageFromPath(pathname)
-        
-        // Only apply authorization logic to protected routes
-        if (pathWithoutLanguage.startsWith('/admin') || 
-            pathWithoutLanguage.startsWith('/submit') || 
-            pathWithoutLanguage.startsWith('/edit/blog') ||
-            pathWithoutLanguage.startsWith('/dashboard') ||
-            pathWithoutLanguage.startsWith('/profile')) {
-          
-          // For admin routes, require admin role
-          if (pathWithoutLanguage.startsWith('/admin')) {
-            return !!token && token.role === 'admin'
-          }
-          
-          // Note: '/ngo-dashboard' is redirected to '/dashboard' earlier
-          
-          // For submit routes, require any authenticated user (including /submit/blog)
-          if (pathWithoutLanguage.startsWith('/submit')) {
-            return !!token
-          }
-          
-          // For edit, dashboard, and profile routes, require authentication
-          if (pathWithoutLanguage.startsWith('/edit/blog') || 
-              pathWithoutLanguage.startsWith('/dashboard') || 
-              pathWithoutLanguage.startsWith('/profile')) {
-            return !!token
-          }
-        }
-        
-        // Allow all other routes
-        return true
-      },
+      authorized: () => true,
     },
   }
 )

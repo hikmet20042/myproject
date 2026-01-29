@@ -7,25 +7,6 @@ import User from './models/User'
 import NGO from './models/NGO'
 
 // Extend NextAuth types to include emailVerified in session.user
-import { Session, User as NextAuthUser } from 'next-auth'
-declare module 'next-auth' {
-  interface Session {
-    user: {
-      id: string
-      name?: string | null
-      email?: string | null
-      image?: string | null
-      role?: string
-      emailVerified?: boolean
-      isApprovedNGO?: boolean
-    }
-  }
-  interface AppUser extends NextAuthUser {
-    role?: string
-    emailVerified?: boolean
-    isApprovedNGO?: boolean
-  }
-}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -134,6 +115,11 @@ export const authOptions: NextAuthOptions = {
           token.isApprovedNGO = (user as any).isApprovedNGO ?? false;
           // Special flag to identify NGO sessions (when role is undefined but isApprovedNGO exists)
           token.isNGOAccount = (user as any).isApprovedNGO !== undefined && !user.role;
+
+          const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(e => e.trim().toLowerCase()) || [];
+          if (!token.isNGOAccount && user.email && adminEmails.includes(user.email.toLowerCase())) {
+            token.role = 'admin';
+          }
         }
         
         // For Google OAuth, check if user exists in our database
@@ -186,13 +172,6 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as string || undefined
         session.user.emailVerified = token.emailVerified as boolean
         session.user.isApprovedNGO = token.isApprovedNGO as boolean
-        
-        // Check if user is admin (cached in token to avoid DB calls)
-        // Only apply to users, not NGO accounts
-        if (!token.isNGOAccount && session.user.email === 'hikmat.mammadlii@gmail.com') {
-          session.user.role = 'admin'
-          token.role = 'admin' // Cache admin role in token
-        }
       }
       return session
     },

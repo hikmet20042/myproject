@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import BlocknoteEditor from '@/components/BlocknoteEditor'
 import { ArrowLeft, Send, Eye, EyeOff, FileText, CheckCircle, Sparkles, AlertCircle } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { Button, ButtonLink } from '@/components/ui'
 import { Input } from '@/components/ui/Input'
 import { LoadingState, ProgressIndicator, AnimatedBackground, SuccessState } from '@/components/shared'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
@@ -316,19 +316,20 @@ function Step2Page({ searchParams }: Step2Props) {
         gradientTo="to-teal-50"
         actions={
           <>
-            <Button
-              onClick={() => router.push(localePath("/profile"))}
-              variant="primary"
-              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+            <ButtonLink
+              href={localePath("/profile")}
+              variant="gradient-green"
+              hoverEffect="scale"
             >
               View My Profile
-            </Button>
-            <Button
-              onClick={() => router.push(localePath("/blogs"))}
+            </ButtonLink>
+            <ButtonLink
+              href={localePath("/blogs")}
               variant="secondary"
+              hoverEffect="scale"
             >
               Browse Blogs
-            </Button>
+            </ButtonLink>
           </>
         }
       />
@@ -354,10 +355,7 @@ function Step2Page({ searchParams }: Step2Props) {
         <div className="mb-6 sm:mb-8 animate-fade-in animation-delay-200">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/60 backdrop-blur-md rounded-full border border-blue-200 mb-3">
-                <Sparkles className="w-4 h-4 text-blue-600" />
-                <span className="text-sm font-semibold text-blue-700">Write Your Content</span>
-              </div>
+              
               <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900">{t('submitBlog.writeYourBlog')}</h1>
               <p className="mt-2 text-base text-gray-600">
                 {t('submitBlog.writeSubtitle')}
@@ -501,11 +499,15 @@ function Step2Page({ searchParams }: Step2Props) {
               ) ||
               characterCount < 100
             }
-            variant="primary"
+            variant="gradient-blue"
             loading={isSubmitting}
-            className="w-full sm:w-auto order-1 sm:order-2 px-8 py-4 text-base font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed disabled:hover:scale-100"
+            size="lg"
+            icon={Send}
+            iconPosition="left"
+            shadow="lg"
+            hoverEffect="scale"
+            className="w-full sm:w-auto order-1 sm:order-2"
           >
-            <Send className="w-5 h-5 mr-2" />
             {isSubmitting ? t('submitBlog.submitting') : t('submitBlog.submitBlog')}
           </Button>
         </div>

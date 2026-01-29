@@ -10,7 +10,7 @@ interface AuthProviderProps {
 export default function AuthProvider({ children }: AuthProviderProps) {
   // Always render SessionProvider, let Next.js handle hydration
   return (
-    <SessionProvider refetchInterval={0} refetchOnWindowFocus={false}>
+    <SessionProvider refetchInterval={5 * 60} refetchOnWindowFocus={true}>
       {children}
     </SessionProvider>
   )
