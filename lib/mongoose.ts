@@ -24,11 +24,11 @@ async function dbConnect() {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
-      maxPoolSize: 10, // Maintain up to 10 socket connections
-      serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
-      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-      maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
-      connectTimeoutMS: 10000, // Give up initial connection after 10 seconds
+      maxPoolSize: 1, // Reduce pool size for serverless
+      serverSelectionTimeoutMS: 3000, // Reduce for serverless timeout
+      socketTimeoutMS: 3000, // Reduce for serverless
+      maxIdleTimeMS: 10000, // Close idle connections faster
+      connectTimeoutMS: 3000, // Faster timeout for serverless
     };
     
     cached.promise = mongoose.connect(connectionUri, opts).then((mongoose) => {
