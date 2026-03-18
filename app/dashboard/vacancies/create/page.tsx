@@ -134,39 +134,43 @@ export default function CreateVacancy() { const { data: session, status } = useS
   const removeArrayItem = (index: number, field: 'requirements' | 'responsibilities' | 'qualifications' | 'benefits' | 'tags') => { setFormData(prev => ({ ...prev,
       [field]: prev[field].filter((_, i) => i !== index) })) }
 
+  const sectionCardClass = 'overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm'
+  const sectionHeaderClass = 'border-b border-gray-200 bg-slate-50 px-6 py-5'
+  const fieldLabelClass = 'block text-sm font-medium text-gray-700'
+  const fieldHintClass = 'mb-2 text-xs text-gray-600'
+  const nativeInputClass = 'w-full rounded-xl border border-blue-100 bg-white px-4 py-3 text-base text-gray-900 shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:border-blue-400 focus:outline-none focus:ring-4 focus:ring-blue-100'
+  const removeChipButtonClass = 'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-slate-400 transition-all duration-200 hover:bg-rose-50 hover:text-rose-600'
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-background py-8">
       <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-35" />
       <div className="absolute left-1/2 top-16 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-200/30 blur-3xl" />
 
-      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header Section */}
-        <div className="mb-8 rounded-3xl border border-gray-200 bg-white/90 p-6 text-center shadow-sm backdrop-blur-sm sm:p-8">
-          <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-blue-100">
-            <Briefcase className="w-8 h-8 text-blue-600" />
-          </div>
-          <h1 className="mb-3 text-3xl font-black text-gray-900 sm:text-4xl">{'Yeni vakansiya yarat'}</h1>
-          <p className="mx-auto max-w-2xl text-sm text-gray-600 sm:text-base">{'Fərq yaradan fürsətləri paylaşın. İş elanları, könüllülük və təcrübə proqramlarını yerləşdirin və istedadlarla əlaqə yaradın.'}</p>
+        <div className="mb-8 rounded-3xl border border-gray-200 bg-white/90 p-6 shadow-sm backdrop-blur-sm sm:p-8">
+          <h1 className="text-3xl font-black text-gray-900 sm:text-4xl">{'Yeni vakansiya yarat'}</h1>
+          <p className="mt-2 text-sm text-gray-600 sm:text-base">{'Fərq yaradan fürsətləri paylaşın. İş elanları, könüllülük və təcrübə proqramlarını yerləşdirin və istedadlarla əlaqə yaradın.'}</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-10">
+        <form onSubmit={handleSubmit} className="space-y-8">
           {/* Basic Information Card */}
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className="bg-gradient-to-r from-blue-600 to-emerald-500 px-8 py-6">
-              <h2 className="text-2xl font-bold text-white flex items-center">
-                <Users className="w-6 h-6 mr-3" />
+          <div className={sectionCardClass}>
+            <div className={sectionHeaderClass}>
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                <Users className="w-5 h-5 mr-2.5" />
                 {'Əsas Məlumatlar'}
               </h2>
-              <p className="text-blue-100 mt-2">{'Təklif etdiyiniz mövzu haqqında bizə məlumat verin'}</p>
+              <p className="mt-2 text-gray-600">{'Təklif etdiyiniz mövzu haqqında bizə məlumat verin'}</p>
             </div>
             
-            <div className="p-8 space-y-8">
+            <div className="p-6 space-y-6">
               {/* Position Title */}
               <div className="space-y-2">
-                <label htmlFor="title" className="block text-lg font-semibold text-gray-800">
+                <label htmlFor="title" className={fieldLabelClass}>
                   {'Vəzifə Başlığı *'}
                 </label>
-                <p className="text-sm text-gray-600 mb-3">{'Hansı rolu doldurmaq istəyirsiniz?'}</p>
+                <p className={fieldHintClass}>{'Hansı rolu doldurmaq istəyirsiniz?'}</p>
                 <input
                   type="text"
                   id="title"
@@ -174,25 +178,25 @@ export default function CreateVacancy() { const { data: session, status } = useS
                   required
                   value={formData.title}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 text-lg border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-red-100 focus:border-primary transition-all duration-200"
+                  className={nativeInputClass}
                   placeholder={'məs., Proqram Meneceri, Könüllü Koordinatoru, Marketinq İnternəsi'}
                 />
               </div>
 
               {/* Type and Experience Level */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label htmlFor="type" className="block text-lg font-semibold text-gray-800">
+                  <label htmlFor="type" className={fieldLabelClass}>
                     {'Fürsət Növü *'}
                   </label>
-                  <p className="text-sm text-gray-600 mb-3">{'Bu hansı növ fürsətdir?'}</p>
+                  <p className={fieldHintClass}>{'Bu hansı növ fürsətdir?'}</p>
                   <select
                     id="type"
                     name="type"
                     required
                     value={formData.type}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 text-lg border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-red-100 focus:border-primary transition-all duration-200"
+                    className={nativeInputClass}
                   >
                     <option value="job">{'Ödənişli İş Vəzifəsi'}</option>
                 <option value="volunteer">{'Könüllü Fürsəti'}</option>
@@ -201,17 +205,17 @@ export default function CreateVacancy() { const { data: session, status } = useS
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="experienceLevel" className="block text-lg font-semibold text-gray-800">
+                  <label htmlFor="experienceLevel" className={fieldLabelClass}>
                     {'Təcrübə Səviyyəsi *'}
                   </label>
-                  <p className="text-sm text-gray-600 mb-3">{'Hansı səviyyədə təcrübə tələb olunur?'}</p>
+                  <p className={fieldHintClass}>{'Hansı səviyyədə təcrübə tələb olunur?'}</p>
                   <select
                     id="experienceLevel"
                     name="experienceLevel"
                     required
                     value={formData.experienceLevel}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-4 text-lg border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
+                    className={nativeInputClass}
                   >
                     <option value="">{'Təcrübə səviyyəsini seçin...'}</option>
                     <option value="entry">{'Başlanğıc Səviyyə (0-2 il)'}</option>
@@ -224,10 +228,10 @@ export default function CreateVacancy() { const { data: session, status } = useS
 
               {/* Description */}
               <div className="space-y-2">
-                <label htmlFor="description" className="block text-lg font-semibold text-gray-800">
+                <label htmlFor="description" className={fieldLabelClass}>
                   {'Vəzifə Təsviri *'}
                 </label>
-                <p className="text-sm text-gray-600 mb-3">{'Rolu, təşkilatınızı və bu fürsətin nə üçün vacib olduğunu təsvir edin'}</p>
+                <p className={fieldHintClass}>{'Rolu, təşkilatınızı və bu fürsətin nə üçün vacib olduğunu təsvir edin'}</p>
                 <textarea
                   id="description"
                   name="description"
@@ -235,24 +239,24 @@ export default function CreateVacancy() { const { data: session, status } = useS
                   rows={6}
                   value={formData.description}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-3 text-lg border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-red-100 focus:border-primary transition-all duration-200 resize-none"
+                  className={`${nativeInputClass} resize-none`}
                   placeholder={'Namizədlərə rolu, təşkilatınızın missiyasını və yaradacaqları təsiri izah edin...'}
                 />
               </div>
 
               {/* Category */}
               <div className="space-y-2">
-                  <label htmlFor="category" className="block text-lg font-semibold text-gray-800">
+                  <label htmlFor="category" className={fieldLabelClass}>
                   {'Kateqoriya *'}
                 </label>
-                <p className="text-sm text-gray-600 mb-3">{'Bu vəzifəni ən yaxşı hansı sahə təsvir edir?'}</p>
+                <p className={fieldHintClass}>{'Bu vəzifəni ən yaxşı hansı sahə təsvir edir?'}</p>
                 <select
                   id="category"
                   name="category"
                   required
                   value={formData.category}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-4 text-lg border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
+                  className={nativeInputClass}
                 >
                   <option value="">{'Kateqoriya seçin...'}</option>
                   <option value="Program Management">Proqram idarəçiliyi</option>
@@ -281,22 +285,22 @@ export default function CreateVacancy() { const { data: session, status } = useS
           </div>
 
           {/* Location & Work Details Card */}
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className="bg-gradient-to-r from-blue-600 to-emerald-500 px-8 py-6">
-              <h2 className="text-2xl font-bold text-white flex items-center">
-                <MapPin className="w-6 h-6 mr-3" />
+          <div className={sectionCardClass}>
+            <div className={sectionHeaderClass}>
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                <MapPin className="w-5 h-5 mr-2.5" />
                 Yer və iş detalları
               </h2>
-              <p className="text-blue-100 mt-2">Bu fürsət harada baş tutacaq?</p>
+              <p className="mt-2 text-gray-600">Bu fürsət harada baş tutacaq?</p>
             </div>
             
             <div className="p-8 space-y-8">
               {/* Work Type */}
               <div className="space-y-2">
-                <label htmlFor="workType" className="block text-lg font-semibold text-gray-800">
+                <label htmlFor="workType" className={fieldLabelClass}>
                   İş formatı *
                 </label>
-                <p className="text-sm text-gray-600 mb-3">İş necə təşkil olunacaq?</p>
+                <p className={fieldHintClass}>İş necə təşkil olunacaq?</p>
                 <Select
                    id="workType"
                    name="workType"
@@ -317,10 +321,10 @@ export default function CreateVacancy() { const { data: session, status } = useS
               {(formData.workType === 'onsite' || formData.workType === 'hybrid') && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <div className="space-y-2">
-                    <label htmlFor="city" className="block text-lg font-semibold text-gray-800">
+                    <label htmlFor="city" className={fieldLabelClass}>
                       {'Yer'} *
                     </label>
-                    <p className="text-sm text-gray-600 mb-3">{'Bu fürsətin yerləşdiyi şəhər və ya rayonu seçin'}</p>
+                    <p className={fieldHintClass}>{'Bu fürsətin yerləşdiyi şəhər və ya rayonu seçin'}</p>
                     <Select
                       id="city"
                       name="city"
@@ -412,17 +416,17 @@ export default function CreateVacancy() { const { data: session, status } = useS
                   </div>
 
                   <div className="space-y-2">
-                    <label htmlFor="country" className="block text-lg font-semibold text-gray-800">
+                    <label htmlFor="country" className={fieldLabelClass}>
                       {'Ölkə'}
                     </label>
-                    <p className="text-sm text-gray-600 mb-3">{'Ölkə (standart: Azərbaycan)'}</p>
+                    <p className={fieldHintClass}>{'Ölkə (standart: Azərbaycan)'}</p>
                     <Input
                       type="text"
                       id="country"
                       name="country"
                       value={formData.country || 'Azərbaycan'}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 text-lg"
+                      className="w-full px-4 py-3 text-base"
                       placeholder={'Azərbaycan'}
                       readOnly
                     />
@@ -431,25 +435,25 @@ export default function CreateVacancy() { const { data: session, status } = useS
               )}
 
               {/* Compensation Section */}
-              <div className="space-y-6">
-                <h3 className="text-xl font-semibold text-gray-800 flex items-center">
+              <div className="space-y-5">
+                <h3 className="text-lg font-medium text-slate-900 flex items-center">
                   <DollarSign className="w-5 h-5 mr-2 text-blue-600" />
                   Kompensasiya detalları
                 </h3>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label htmlFor="compensationType" className="block text-lg font-semibold text-gray-800">
+                    <label htmlFor="compensationType" className={fieldLabelClass}>
                       Kompensasiya növü *
                     </label>
-                    <p className="text-sm text-gray-600 mb-3">İştirakçılar necə kompensasiya olunacaq?</p>
+                    <p className={fieldHintClass}>İştirakçılar necə kompensasiya olunacaq?</p>
                     <Select
                       id="compensationType"
                       name="compensationType"
                       required
                       value={formData.compensationType}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-4 text-lg"
+                      className="w-full px-4 py-3 text-base"
                       placeholder={'Kompensasiya növünü seçin...'}
                       options={[
                         { value: 'salary', label: 'İllik maaş' },
@@ -463,19 +467,19 @@ export default function CreateVacancy() { const { data: session, status } = useS
 
                   {formData.compensationType && formData.compensationType !== 'volunteer' && (
                     <div className="space-y-2">
-                      <label htmlFor="compensationAmount" className="block text-lg font-semibold text-gray-800">
+                      <label htmlFor="compensationAmount" className={fieldLabelClass}>
                         Məbləğ (USD)
                       </label>
-                      <p className="text-sm text-gray-600 mb-3">Kompensasiya məbləğini daxil edin</p>
+                      <p className={fieldHintClass}>Kompensasiya məbləğini daxil edin</p>
                       <div className="relative">
-                        <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg">$</span>
+                        <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 text-base">$</span>
                         <Input
                           type="text"
                           id="compensationAmount"
                           name="compensationAmount"
                           value={formData.compensationAmount}
                           onChange={handleInputChange}
-                          className="w-full pl-8 pr-4 py-4 text-lg"
+                          className="w-full pl-8 pr-4 py-3 text-base"
                           placeholder="50,000 və ya 15/saat"
                         />
                       </div>
@@ -485,25 +489,25 @@ export default function CreateVacancy() { const { data: session, status } = useS
               </div>
 
               {/* Duration Section */}
-              <div className="space-y-6">
-                <h3 className="text-xl font-semibold text-gray-800 flex items-center">
-                  <Clock className="w-5 h-5 mr-2 text-cyan-600" />
+              <div className="space-y-5">
+                <h3 className="text-lg font-medium text-slate-900 flex items-center">
+                  <Clock className="w-5 h-5 mr-2 text-blue-600" />
                   Müddət və vaxt planı
                 </h3>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <label htmlFor="durationType" className="block text-lg font-semibold text-gray-800">
+                    <label htmlFor="durationType" className={fieldLabelClass}>
                       Müddət növü *
                     </label>
-                    <p className="text-sm text-gray-600 mb-3">Bu fürsət nə qədər davam edəcək?</p>
+                    <p className={fieldHintClass}>Bu fürsət nə qədər davam edəcək?</p>
                     <Select
                       id="durationType"
                       name="durationType"
                       required
                       value={formData.durationType}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-4 text-lg"
+                      className="w-full px-4 py-3 text-base"
                       placeholder={'Müddət növünü seçin...'}
                       options={[
                         { value: 'permanent', label: 'Daimi' },
@@ -517,33 +521,33 @@ export default function CreateVacancy() { const { data: session, status } = useS
                   {(formData.durationType === 'fixed' || formData.durationType === 'project' || formData.durationType === 'temporary') && (
                     <>
                       <div className="space-y-2">
-                        <label htmlFor="contractLength" className="block text-lg font-semibold text-gray-800">
+                        <label htmlFor="contractLength" className={fieldLabelClass}>
                           Müqavilə müddəti
                         </label>
-                        <p className="text-sm text-gray-600 mb-3">Müqavilə nə qədər davam edir?</p>
+                        <p className={fieldHintClass}>Müqavilə nə qədər davam edir?</p>
                         <Input
                           type="number"
                           id="contractLength"
                           name="contractLength"
                           value={formData.contractLength}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-4 text-lg"
+                          className="w-full px-4 py-3 text-base"
                           placeholder="12"
                           min="1"
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <label htmlFor="contractUnit" className="block text-lg font-semibold text-gray-800">
+                        <label htmlFor="contractUnit" className={fieldLabelClass}>
                           Zaman vahidi
                         </label>
-                        <p className="text-sm text-gray-600 mb-3">Zaman vahidini seçin</p>
+                        <p className={fieldHintClass}>Zaman vahidini seçin</p>
                         <Select
                           id="contractUnit"
                           name="contractUnit"
                           value={formData.contractUnit}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-4 text-lg"
+                          className="w-full px-4 py-3 text-base"
                           options={[
                             { value: 'weeks', label: 'Həftə' },
                             { value: 'months', label: 'Ay' },
@@ -561,22 +565,22 @@ export default function CreateVacancy() { const { data: session, status } = useS
           </div>
 
           {/* Application Details Card */}
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className="bg-gradient-to-r from-blue-600 to-emerald-500 px-8 py-6">
-              <h2 className="text-2xl font-bold text-white flex items-center">
-                <Send className="w-6 h-6 mr-3" />
+          <div className={sectionCardClass}>
+            <div className={sectionHeaderClass}>
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                <Send className="w-5 h-5 mr-2.5" />
                 Müraciət detalları
               </h2>
-              <p className="text-blue-100 mt-2">Namizədlər bu fürsətə necə müraciət etməlidir?</p>
+              <p className="mt-2 text-gray-600">Namizədlər bu fürsətə necə müraciət etməlidir?</p>
             </div>
             
-            <div className="p-8 space-y-8">
+            <div className="p-6 space-y-6">
               {/* Application Method */}
               <div className="space-y-4">
-                <label className="block text-lg font-semibold text-gray-800">
+                <label className={fieldLabelClass}>
                   Müraciət üsulu *
                 </label>
-                <p className="text-sm text-gray-600 mb-4">Namizədlərin müraciət formasını seçin</p>
+                <p className="mb-4 text-sm text-slate-600">Namizədlərin müraciət formasını seçin</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <label className="relative cursor-pointer">
                     <input
@@ -587,20 +591,20 @@ export default function CreateVacancy() { const { data: session, status } = useS
                       onChange={handleInputChange}
                       className="sr-only"
                     />
-                    <div className={`p-6 rounded-xl border-2 transition-all duration-200 ${ formData.applicationMethod === 'link'
-                        ? 'border-orange-500 bg-orange-50 ring-4 ring-orange-100'
-                        : 'border-gray-200 hover:border-orange-300 hover:bg-orange-25' }`}>
+                    <div className={`rounded-2xl border p-5 transition-all duration-200 ${ formData.applicationMethod === 'link'
+                      ? 'border-blue-500 bg-blue-50 ring-4 ring-blue-100'
+                      : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/40' }`}>
                       <div className="flex items-center space-x-3">
-                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${ formData.applicationMethod === 'link'
-                            ? 'border-orange-500 bg-orange-500'
-                            : 'border-gray-300' }`}>
+                        <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${ formData.applicationMethod === 'link'
+                          ? 'border-blue-500 bg-blue-500'
+                          : 'border-gray-300' }`}>
                           {formData.applicationMethod === 'link' && (
                             <div className="w-2 h-2 rounded-full bg-white"></div>
                           )}
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-800">{'Müraciət Linki'}</h3>
-                          <p className="text-sm text-gray-600">{'Namizədləri xarici müraciət formasına yönləndirir'}</p>
+                          <h3 className="font-semibold text-slate-900">{'Müraciət Linki'}</h3>
+                          <p className="text-sm text-slate-600">{'Namizədləri xarici müraciət formasına yönləndirir'}</p>
                         </div>
                       </div>
                     </div>
@@ -615,20 +619,20 @@ export default function CreateVacancy() { const { data: session, status } = useS
                       onChange={handleInputChange}
                       className="sr-only"
                     />
-                    <div className={`p-6 rounded-xl border-2 transition-all duration-200 ${ formData.applicationMethod === 'email'
-                        ? 'border-orange-500 bg-orange-50 ring-4 ring-orange-100'
-                        : 'border-gray-200 hover:border-orange-300 hover:bg-orange-25' }`}>
+                    <div className={`rounded-2xl border p-5 transition-all duration-200 ${ formData.applicationMethod === 'email'
+                      ? 'border-blue-500 bg-blue-50 ring-4 ring-blue-100'
+                      : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/40' }`}>
                       <div className="flex items-center space-x-3">
-                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${ formData.applicationMethod === 'email'
-                            ? 'border-orange-500 bg-orange-500'
-                            : 'border-gray-300' }`}>
+                        <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${ formData.applicationMethod === 'email'
+                          ? 'border-blue-500 bg-blue-500'
+                          : 'border-gray-300' }`}>
                           {formData.applicationMethod === 'email' && (
                             <div className="w-2 h-2 rounded-full bg-white"></div>
                           )}
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-800">{'Müraciət E-poçtu'}</h3>
-                          <p className="text-sm text-gray-600">{'Müraciətləri e-poçt vasitəsilə qəbul edin'}</p>
+                          <h3 className="font-semibold text-slate-900">{'Müraciət E-poçtu'}</h3>
+                          <p className="text-sm text-slate-600">{'Müraciətləri e-poçt vasitəsilə qəbul edin'}</p>
                         </div>
                       </div>
                     </div>
@@ -639,10 +643,10 @@ export default function CreateVacancy() { const { data: session, status } = useS
               {/* Application Link/Email Input */}
               {formData.applicationMethod === 'link' && (
                 <div className="space-y-2">
-                    <label htmlFor="applicationLink" className="block text-lg font-semibold text-gray-800">
+                    <label htmlFor="applicationLink" className={fieldLabelClass}>
                     {'Müraciət Linki *'}
                   </label>
-                  <p className="text-sm text-gray-600 mb-3">{'Namizədləri xarici müraciət formasına yönləndirir'}</p>
+                  <p className={fieldHintClass}>{'Namizədləri xarici müraciət formasına yönləndirir'}</p>
                   <Input
                     type="url"
                     id="applicationLink"
@@ -650,7 +654,7 @@ export default function CreateVacancy() { const { data: session, status } = useS
                     required
                     value={formData.applicationLink}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-4 text-lg"
+                    className="w-full px-4 py-3 text-base"
                     placeholder={'https://sizin-teshkilat.org/apply'}
                   />
                 </div>
@@ -658,10 +662,10 @@ export default function CreateVacancy() { const { data: session, status } = useS
 
               {formData.applicationMethod === 'email' && (
                 <div className="space-y-2">
-                  <label htmlFor="applicationEmail" className="block text-lg font-semibold text-gray-800">
+                  <label htmlFor="applicationEmail" className={fieldLabelClass}>
                     {'Müraciət E-poçtu *'}
                   </label>
-                  <p className="text-sm text-gray-600 mb-3">{'Müraciətləri e-poçt vasitəsilə qəbul edin'}</p>
+                  <p className={fieldHintClass}>{'Müraciətləri e-poçt vasitəsilə qəbul edin'}</p>
                   <Input
                     type="email"
                     id="applicationEmail"
@@ -669,7 +673,7 @@ export default function CreateVacancy() { const { data: session, status } = useS
                     required
                     value={formData.applicationEmail}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-4 text-lg"
+                    className="w-full px-4 py-3 text-base"
                     placeholder={'applications@sizin-teshkilat.org'}
                   />
                 </div>
@@ -677,10 +681,10 @@ export default function CreateVacancy() { const { data: session, status } = useS
 
               {/* Application Deadline */}
               <div className="space-y-2">
-                <label htmlFor="applicationDeadline" className="block text-lg font-semibold text-gray-800">
+                <label htmlFor="applicationDeadline" className={fieldLabelClass}>
                   Müraciət üçün son tarix *
                 </label>
-                <p className="text-sm text-gray-600 mb-3">Müraciətlər son olaraq nə vaxta qədər qəbul edilir?</p>
+                <p className={fieldHintClass}>Müraciətlər son olaraq nə vaxta qədər qəbul edilir?</p>
                 <Input
                   type="date"
                   id="applicationDeadline"
@@ -688,17 +692,17 @@ export default function CreateVacancy() { const { data: session, status } = useS
                   required
                   value={formData.applicationDeadline}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-4 text-lg"
+                  className="w-full px-4 py-3 text-base"
                   min={new Date().toISOString().split('T')[0]}
                 />
               </div>
 
               {/* Application Instructions */}
               <div className="space-y-2">
-                <label htmlFor="applicationInstructions" className="block text-lg font-semibold text-gray-800">
+                <label htmlFor="applicationInstructions" className={fieldLabelClass}>
                   Müraciət təlimatı *
                 </label>
-                <p className="text-sm text-gray-600 mb-3">Namizədlər üçün necə müraciət etməli olduqlarını və nə daxil etməli olduqlarını aydın yazın</p>
+                <p className={fieldHintClass}>Namizədlər üçün necə müraciət etməli olduqlarını və nə daxil etməli olduqlarını aydın yazın</p>
                 <TextArea
                   id="applicationInstructions"
                   name="applicationInstructions"
@@ -706,7 +710,7 @@ export default function CreateVacancy() { const { data: session, status } = useS
                   rows={6}
                   value={formData.applicationInstructions}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-4 text-lg resize-none"
+                  className="w-full px-4 py-3 text-base resize-none"
                   placeholder={`Zəhmət olmasa müraciətinizə aşağıdakıları daxil edin:
 • Sizin CV/Özünüzü təqdim məktubu
 • Marağınızı izah edən motivasiya məktubu
@@ -720,28 +724,28 @@ Müraciətlər PDF formatında və mövzu sətri ilə təqdim edilməlidir: [Və
           </div>
 
           {/* Responsibilities Card */}
-          <div className="bg-white shadow-sm rounded-2xl border border-gray-200 overflow-hidden">
-            <div className="bg-gradient-to-r from-primary to-blue-700 px-8 py-6">
-              <h2 className="text-2xl font-bold text-white flex items-center">
-                <FileText className="w-6 h-6 mr-3" />
+          <div className={sectionCardClass}>
+            <div className={sectionHeaderClass}>
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                <FileText className="w-5 h-5 mr-2.5" />
                 Əsas məsuliyyətlər
               </h2>
-              <p className="text-blue-100 mt-2">Bu şəxs hansı işlərə cavabdeh olacaq?</p>
+              <p className="mt-2 text-gray-600">Bu şəxs hansı işlərə cavabdeh olacaq?</p>
             </div>
             
-            <div className="p-8">
+            <div className="p-6">
               <div className="space-y-4">
                 {formData.responsibilities.map((responsibility, index) => (
                   <div key={index} className="group relative">
                     <div className="flex items-start gap-4">
-                      <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mt-2">
-                        <span className="text-blue-600 font-semibold text-sm">{index + 1}</span>
+                      <div className="mt-2 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-100">
+                        <span className="text-sm font-semibold text-blue-700">{index + 1}</span>
                       </div>
                       <div className="flex-1">
                         <TextArea
                           value={responsibility}
                           onChange={(e) => handleArrayChange(index, e.target.value, 'responsibilities')}
-                          className="w-full px-4 py-3 text-lg resize-none"
+                          className="w-full px-4 py-3 text-base resize-none"
                           placeholder={'Əsas məsuliyyəti təsvir edin...'}
                           rows={2}
                         />
@@ -752,7 +756,7 @@ Müraciətlər PDF formatında və mövzu sətri ilə təqdim edilməlidir: [Və
                           onClick={() => removeArrayItem(index, 'responsibilities')}
                           variant="ghost"
                           size="sm"
-                          className="flex-shrink-0 w-8 h-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
+                          className={`${removeChipButtonClass} opacity-0 group-hover:opacity-100`}
                         >
                           <X className="w-4 h-4" />
                         </Button>
@@ -765,7 +769,7 @@ Müraciətlər PDF formatında və mövzu sətri ilə təqdim edilməlidir: [Və
                   type="button"
                   onClick={() => addArrayItem('responsibilities')}
                   variant="outline"
-                  className="w-full mt-6 px-6 py-4 border-2 border-dashed border-blue-300 rounded-xl text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 flex items-center justify-center space-x-2"
+                  className="mt-6 flex w-full items-center justify-center space-x-2 rounded-xl border border-dashed border-blue-200 px-5 py-3 text-blue-600 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50"
                 >
                   <Plus className="w-5 h-5" />
                   <span className="font-semibold">Daha bir məsuliyyət əlavə et</span>
@@ -775,28 +779,28 @@ Müraciətlər PDF formatında və mövzu sətri ilə təqdim edilməlidir: [Və
           </div>
 
           {/* Requirements Card */}
-          <div className="bg-white shadow-sm rounded-2xl border border-gray-200 overflow-hidden">
-            <div className="bg-gradient-to-r from-primary to-blue-700 px-8 py-6">
-              <h2 className="text-2xl font-bold text-white flex items-center">
-                <Users className="w-6 h-6 mr-3" />
+          <div className={sectionCardClass}>
+            <div className={sectionHeaderClass}>
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                <Users className="w-5 h-5 mr-2.5" />
                 Tələblər
               </h2>
-              <p className="text-blue-100 mt-2">Bu rol üçün əsas tələblər nələrdir?</p>
+              <p className="mt-2 text-gray-600">Bu rol üçün əsas tələblər nələrdir?</p>
             </div>
             
-            <div className="p-8">
+            <div className="p-6">
               <div className="space-y-4">
                 {formData.requirements.map((requirement, index) => (
                   <div key={index} className="group relative">
                     <div className="flex items-start gap-4">
-                      <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mt-2">
-                        <span className="text-blue-600 font-semibold text-sm">{index + 1}</span>
+                      <div className="mt-2 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-100">
+                        <span className="text-sm font-semibold text-blue-700">{index + 1}</span>
                       </div>
                       <div className="flex-1">
                         <TextArea
                           value={requirement}
                           onChange={(e) => handleArrayChange(index, e.target.value, 'requirements')}
-                          className="w-full px-4 py-3 text-lg resize-none"
+                          className="w-full px-4 py-3 text-base resize-none"
                           placeholder={'Zəruri tələbi təsvir edin...'}
                           rows={2}
                         />
@@ -807,7 +811,7 @@ Müraciətlər PDF formatında və mövzu sətri ilə təqdim edilməlidir: [Və
                           onClick={() => removeArrayItem(index, 'requirements')}
                           variant="ghost"
                           size="sm"
-                          className="flex-shrink-0 w-8 h-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
+                          className={`${removeChipButtonClass} opacity-0 group-hover:opacity-100`}
                         >
                           <X className="w-4 h-4" />
                         </Button>
@@ -820,7 +824,7 @@ Müraciətlər PDF formatında və mövzu sətri ilə təqdim edilməlidir: [Və
                   type="button"
                   onClick={() => addArrayItem('requirements')}
                   variant="outline"
-                  className="w-full mt-6 px-6 py-4 border-2 border-dashed border-blue-300 rounded-xl text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 flex items-center justify-center space-x-2"
+                  className="mt-6 flex w-full items-center justify-center space-x-2 rounded-xl border border-dashed border-blue-200 px-5 py-3 text-blue-600 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50"
                 >
                   <Plus className="w-5 h-5" />
                   <span className="font-semibold">Daha bir tələb əlavə et</span>
@@ -830,28 +834,28 @@ Müraciətlər PDF formatında və mövzu sətri ilə təqdim edilməlidir: [Və
           </div>
 
           {/* Qualifications Card */}
-          <div className="bg-white shadow-sm rounded-2xl border border-gray-200 overflow-hidden">
-            <div className="bg-gradient-to-r from-primary to-blue-700 px-8 py-6">
-              <h2 className="text-2xl font-bold text-white flex items-center">
-                <Calendar className="w-6 h-6 mr-3" />
+          <div className={sectionCardClass}>
+            <div className={sectionHeaderClass}>
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                <Calendar className="w-5 h-5 mr-2.5" />
                 Üstünlük verilən keyfiyyətlər
               </h2>
-              <p className="text-blue-100 mt-2">Hansı keyfiyyətlər namizədi fərqləndirər?</p>
+              <p className="mt-2 text-gray-600">Hansı keyfiyyətlər namizədi fərqləndirər?</p>
             </div>
             
-            <div className="p-8">
+            <div className="p-6">
               <div className="space-y-4">
                 {formData.qualifications.map((qualification, index) => (
                   <div key={index} className="group relative">
                     <div className="flex items-start gap-4">
-                      <div className="flex-shrink-0 w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center mt-2">
-                        <span className="text-emerald-600 font-semibold text-sm">{index + 1}</span>
+                      <div className="mt-2 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-100">
+                        <span className="text-sm font-semibold text-blue-700">{index + 1}</span>
                       </div>
                       <div className="flex-1">
                         <TextArea
                           value={qualification}
                           onChange={(e) => handleArrayChange(index, e.target.value, 'qualifications')}
-                          className="w-full px-4 py-3 text-lg resize-none"
+                          className="w-full px-4 py-3 text-base resize-none"
                           placeholder={'Üstünlük verilən kvalifikasiyanı təsvir edin...'}
                           rows={2}
                         />
@@ -862,7 +866,7 @@ Müraciətlər PDF formatında və mövzu sətri ilə təqdim edilməlidir: [Və
                           onClick={() => removeArrayItem(index, 'qualifications')}
                           variant="ghost"
                           size="sm"
-                          className="flex-shrink-0 w-8 h-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
+                          className={`${removeChipButtonClass} opacity-0 group-hover:opacity-100`}
                         >
                           <X className="w-4 h-4" />
                         </Button>
@@ -875,7 +879,7 @@ Müraciətlər PDF formatında və mövzu sətri ilə təqdim edilməlidir: [Və
                   type="button"
                   onClick={() => addArrayItem('qualifications')}
                   variant="outline"
-                  className="w-full mt-6 px-6 py-4 border-2 border-dashed border-emerald-300 rounded-xl text-emerald-600 hover:border-emerald-400 hover:bg-emerald-50 transition-all duration-200 flex items-center justify-center space-x-2"
+                  className="mt-6 flex w-full items-center justify-center space-x-2 rounded-xl border border-dashed border-blue-200 px-5 py-3 text-blue-600 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50"
                 >
                   <Plus className="w-5 h-5" />
                   <span className="font-semibold">Daha bir keyfiyyət əlavə et</span>
@@ -886,28 +890,28 @@ Müraciətlər PDF formatında və mövzu sətri ilə təqdim edilməlidir: [Və
 
           {/* Benefits Card - Only for Jobs */}
           {formData.type === 'job' && (
-            <div className="bg-white shadow-sm rounded-2xl border border-gray-200 overflow-hidden">
-              <div className="bg-gradient-to-r from-primary to-blue-700 px-8 py-6">
-                <h2 className="text-2xl font-bold text-white flex items-center">
-                  <DollarSign className="w-6 h-6 mr-3" />
+            <div className={sectionCardClass}>
+              <div className={sectionHeaderClass}>
+                <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                  <DollarSign className="w-5 h-5 mr-2.5" />
                   Müavinətlər və üstünlüklər
                 </h2>
-                <p className="text-blue-100 mt-2">Hansı müavinət və üstünlüklər təklif edirsiniz?</p>
+                <p className="mt-2 text-gray-600">Hansı müavinət və üstünlüklər təklif edirsiniz?</p>
               </div>
               
-              <div className="p-8">
+              <div className="p-6">
                 <div className="space-y-4">
                   {formData.benefits.map((benefit, index) => (
                     <div key={index} className="group relative">
                       <div className="flex items-start gap-4">
-                        <div className="flex-shrink-0 w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center mt-2">
-                          <span className="text-amber-600 font-semibold text-sm">{index + 1}</span>
+                        <div className="mt-2 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-100">
+                          <span className="text-sm font-semibold text-blue-700">{index + 1}</span>
                         </div>
                         <div className="flex-1">
                           <TextArea
                             value={benefit}
                             onChange={(e) => handleArrayChange(index, e.target.value, 'benefits')}
-                            className="w-full px-4 py-3 text-lg resize-none"
+                            className="w-full px-4 py-3 text-base resize-none"
                             placeholder={'Müavinət və ya üstünlüyü təsvir edin...'}
                             rows={2}
                           />
@@ -918,7 +922,7 @@ Müraciətlər PDF formatında və mövzu sətri ilə təqdim edilməlidir: [Və
                             onClick={() => removeArrayItem(index, 'benefits')}
                             variant="ghost"
                             size="sm"
-                            className="flex-shrink-0 w-8 h-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
+                            className={`${removeChipButtonClass} opacity-0 group-hover:opacity-100`}
                           >
                             <X className="w-4 h-4" />
                           </Button>
@@ -931,7 +935,7 @@ Müraciətlər PDF formatında və mövzu sətri ilə təqdim edilməlidir: [Və
                     type="button"
                     onClick={() => addArrayItem('benefits')}
                     variant="outline"
-                    className="w-full mt-6 px-6 py-4 border-2 border-dashed border-amber-300 rounded-xl text-amber-600 hover:border-amber-400 hover:bg-amber-50 transition-all duration-200 flex items-center justify-center space-x-2"
+                    className="mt-6 flex w-full items-center justify-center space-x-2 rounded-xl border border-dashed border-blue-200 px-5 py-3 text-blue-600 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50"
                   >
                     <Plus className="w-5 h-5" />
                     <span className="font-semibold">Daha bir müavinət əlavə et</span>
@@ -942,29 +946,29 @@ Müraciətlər PDF formatında və mövzu sətri ilə təqdim edilməlidir: [Və
           )}
 
           {/* Tags Card */}
-          <div className="bg-white shadow-sm rounded-2xl border border-gray-200 overflow-hidden">
-            <div className="bg-gradient-to-r from-primary to-blue-700 px-8 py-6">
-              <h2 className="text-2xl font-bold text-white flex items-center">
-                <MapPin className="w-6 h-6 mr-3" />
+          <div className={sectionCardClass}>
+            <div className={sectionHeaderClass}>
+              <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                <MapPin className="w-5 h-5 mr-2.5" />
                 Teqlər və açar sözlər
               </h2>
-              <p className="text-blue-100 mt-2">Namizədlərin fürsəti tapması üçün teqlər əlavə edin</p>
+              <p className="mt-2 text-gray-600">Namizədlərin fürsəti tapması üçün teqlər əlavə edin</p>
             </div>
             
-            <div className="p-8">
+            <div className="p-6">
               <div className="space-y-4">
                 {formData.tags.map((tag, index) => (
                   <div key={index} className="group relative">
                     <div className="flex items-center gap-4">
-                      <div className="flex-shrink-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                        <span className="text-blue-600 font-bold text-xs">#</span>
+                      <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-100">
+                        <span className="text-xs font-bold text-blue-700">#</span>
                       </div>
                       <div className="flex-1">
                         <Input
                           type="text"
                           value={tag}
                           onChange={(e) => handleArrayChange(index, e.target.value, 'tags')}
-                          className="w-full px-4 py-3 text-lg"
+                          className="w-full px-4 py-3 text-base"
                           placeholder={'məs., uzaqdan-iş, qeyri-kommersiya, sosial-təsir'}
                         />
                       </div>
@@ -974,7 +978,7 @@ Müraciətlər PDF formatında və mövzu sətri ilə təqdim edilməlidir: [Və
                           onClick={() => removeArrayItem(index, 'tags')}
                           variant="ghost"
                           size="sm"
-                          className="flex-shrink-0 w-8 h-8 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
+                          className={`${removeChipButtonClass} opacity-0 group-hover:opacity-100`}
                         >
                           <X className="w-4 h-4" />
                         </Button>
@@ -987,15 +991,15 @@ Müraciətlər PDF formatında və mövzu sətri ilə təqdim edilməlidir: [Və
                   type="button"
                   onClick={() => addArrayItem('tags')}
                   variant="outline"
-                  className="w-full mt-6 px-6 py-4 border-2 border-dashed border-blue-300 rounded-xl text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 flex items-center justify-center space-x-2"
+                  className="mt-6 flex w-full items-center justify-center space-x-2 rounded-xl border border-dashed border-blue-200 px-5 py-3 text-blue-600 transition-all duration-200 hover:border-blue-300 hover:bg-blue-50"
                 >
                   <Plus className="w-5 h-5" />
                   <span className="font-semibold">Daha bir teq əlavə et</span>
                 </Button>
               </div>
               
-              <div className="mt-6 p-4 bg-gray-50 rounded-xl">
-                  <p className="text-sm text-gray-600 mb-2">💡 <strong>Təklif olunan teqlər:</strong></p>
+                  <div className="mt-6 rounded-xl bg-gray-50 p-4">
+                    <p className="mb-2 text-sm text-gray-600">💡 <strong>Təklif olunan teqlər:</strong></p>
                 <div className="flex flex-wrap gap-2">
                   {['uzaqdan-is', 'qeyri-kommersiya', 'sosial-tesir', 'baslangic-seviyye', 'tam-stat', 'yarim-stat', 'cevik-saatlar', 'sehiyye', 'tehsil', 'etraf-muhit'].map((suggestion) => (
                     <Button
@@ -1005,7 +1009,7 @@ Müraciətlər PDF formatında və mövzu sətri ilə təqdim edilməlidir: [Və
                             tags: [...prev.tags.filter(tag => tag.trim() !== ''), suggestion] })) } }}
                       variant="outline"
                       size="sm"
-                      className="px-3 py-1 text-xs bg-white border border-gray-200 rounded-full hover:border-blue-300 hover:bg-blue-50 transition-all duration-200"
+                      className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs transition-all duration-200 hover:border-blue-300 hover:bg-blue-50"
                     >
                       #{suggestion}
                     </Button>
@@ -1016,10 +1020,10 @@ Müraciətlər PDF formatında və mövzu sətri ilə təqdim edilməlidir: [Və
           </div>
 
           {/* Submit Section */}
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-            <div className="p-8">
+          <div className={sectionCardClass}>
+            <div className="p-6">
               <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">{'Fürsətinizi yerləşdirməyə hazırsınız?'}</h3>
+                <h3 className="mb-2 text-xl font-semibold text-gray-900">{'Fürsətinizi yerləşdirməyə hazırsınız?'}</h3>
                 <p className="text-gray-600">{'Məlumatlarınızı yoxlayın və vakansiyanızı yayımlayaraq istedadlarla əlaqə qurmağa başlayın.'}</p>
               </div>
               
@@ -1029,6 +1033,7 @@ Müraciətlər PDF formatında və mövzu sətri ilə təqdim edilməlidir: [Və
                   onClick={() => router.back()}
                   variant="outline"
                   size="lg"
+                  className="rounded-xl"
                 >
                   {'Ləğv et'}
                 </Button>
@@ -1040,6 +1045,7 @@ Müraciətlər PDF formatında və mövzu sətri ilə təqdim edilməlidir: [Və
                   loading={loading}
                   icon={Send}
                   iconPosition="left"
+                  className="rounded-xl"
                 >
                   {loading ? 'Vakansiya yaradılır...' : 'Vakansiyanı Yayımla'}
                 </Button>

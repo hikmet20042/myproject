@@ -17,6 +17,8 @@ export default function Header() {
   const localePath = useLocalizedPath();
   const { data: session, status } = useSession()
   const isAuthLoading = status === 'loading'
+  const isOrganizationUser =
+    session?.user?.accountType === 'organization' || session?.user?.isApprovedOrganization === true
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
@@ -138,13 +140,15 @@ export default function Header() {
                       <p className="text-sm font-bold text-gray-900 truncate">{session.user?.name}</p>
                       <p className="text-xs text-gray-600 truncate mt-0.5">{session.user?.email}</p>
                     </div>
-                    <Link
-                      href={localePath('/profile')}
-                      className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors duration-150 font-medium"
-                      onClick={() => setUserMenuOpen(false)}
-                    >
-                      {'Mənim Profilim'}
-                    </Link>
+                    {!isOrganizationUser && (
+                      <Link
+                        href={localePath('/profile')}
+                        className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors duration-150 font-medium"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        {'Mənim Profilim'}
+                      </Link>
+                    )}
                     {session.user?.role === 'admin' && (
                       <Link
                         href={localePath('/admin')}
@@ -163,13 +167,15 @@ export default function Header() {
                         {'Təşkilat Paneli'}
                       </Link>
                     )}
-                    <Link
-                      href={localePath('/submit/blog')}
-                      className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors duration-150 font-medium"
-                      onClick={() => setUserMenuOpen(false)}
-                    >
-                      {'Bloq Paylaş'}
-                    </Link>
+                    {!isOrganizationUser && (
+                      <Link
+                        href={localePath('/submit/blog')}
+                        className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors duration-150 font-medium"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        {'Bloq Paylaş'}
+                      </Link>
+                    )}
                     <div className="border-t border-blue-100">
                       <button
                         onClick={() => { signOut()
@@ -275,18 +281,20 @@ export default function Header() {
                           <p className="text-xs text-gray-600">{session.user?.email}</p>
                         </div>
                       </div>
-                      <Link
-                        href={localePath('/profile')}
-                        className="-mx-3 flex items-center justify-between rounded-lg px-4 py-3 text-base font-semibold leading-7 text-gray-900 hover:bg-slate-100 transition-colors"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        {'Mənim Profilim'}
-                        {unreadCount > 0 && (
-                          <span className="bg-blue-600 text-white text-xs rounded-full px-2.5 py-1 font-bold shadow-md">
-                            {unreadCount}
-                          </span>
-                        )}
-                      </Link>
+                      {!isOrganizationUser && (
+                        <Link
+                          href={localePath('/profile')}
+                          className="-mx-3 flex items-center justify-between rounded-lg px-4 py-3 text-base font-semibold leading-7 text-gray-900 hover:bg-slate-100 transition-colors"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          {'Mənim Profilim'}
+                          {unreadCount > 0 && (
+                            <span className="bg-blue-600 text-white text-xs rounded-full px-2.5 py-1 font-bold shadow-md">
+                              {unreadCount}
+                            </span>
+                          )}
+                        </Link>
+                      )}
                       {session.user?.role === 'admin' && (
                         <Link
                           href={localePath('/admin')}
@@ -305,13 +313,15 @@ export default function Header() {
                           {'Təşkilat Paneli'}
                         </Link>
                       )}
-                      <Link
-                        href={localePath('/submit/blog')}
-                        className="-mx-3 block rounded-lg px-4 py-3 text-base font-semibold leading-7 text-gray-900 hover:bg-slate-100 transition-colors"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        {'Bloq Paylaş'}
-                      </Link>
+                      {!isOrganizationUser && (
+                        <Link
+                          href={localePath('/submit/blog')}
+                          className="-mx-3 block rounded-lg px-4 py-3 text-base font-semibold leading-7 text-gray-900 hover:bg-slate-100 transition-colors"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          {'Bloq Paylaş'}
+                        </Link>
+                      )}
                       <button
                         onClick={() => { signOut()
                           setMobileMenuOpen(false) }}
