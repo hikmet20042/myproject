@@ -17,7 +17,7 @@ export default function BlocknoteReadOnly({ initialJSON, className, context = 'g
     initialContent: initialJSON ?? undefined,
   })
 
-  if (!initialJSON) return <div className="text-gray-400 italic">No content</div>
+  if (!initialJSON) return <div className="text-gray-400 italic">Məzmun yoxdur</div>
 
   return (
     <div className={`${className ?? ''} relative`}>

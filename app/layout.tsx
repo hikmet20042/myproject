@@ -4,13 +4,12 @@ import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import AuthProvider from '@/components/AuthProvider'
 import { NotificationProvider } from '@/components/NotificationContext'
-import { LanguageProvider } from '@/contexts/LanguageContext'
 import { SocketProvider } from '@/components/SocketProvider'
 import { SSENotificationProvider } from '@/components/SSENotificationProvider'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
-import { headers } from 'next/headers'
 import { generateSEOMetadata, generateOrganizationSchema, generateWebSiteSchema, generateLocalBusinessSchema, azerbaijanKeywords } from '@/lib/seo'
 import Script from 'next/script'
+import { Suspense } from 'react'
 
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'
 
@@ -37,7 +36,7 @@ export const metadata: Metadata = {
     ogImage: '/og-image.png',
     ogType: 'website',
     locale: 'az_AZ',
-    alternateLocales: ['en_US', 'az_AZ'],
+    alternateLocales: ['az_AZ'],
   }),
   icons: {
     icon: '/icon.png',
@@ -51,11 +50,8 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const headerStore = headers()
-  const language = headerStore.get('x-language') ?? 'az'
-
   return (
-    <html lang={language} className="scroll-smooth">
+    <html lang="az" className="scroll-smooth">
       <head>
         {/* Structured Data - Organization */}
         <Script
@@ -98,31 +94,30 @@ export default function RootLayout({
         <meta name="ICBM" content="40.4093, 49.8671" />
         
         {/* Language and Content */}
-        <meta httpEquiv="content-language" content={language} />
-        <link rel="alternate" hrefLang="az" href={`${siteUrl}/az`} />
-        <link rel="alternate" hrefLang="en" href={`${siteUrl}/en`} />
+        <meta httpEquiv="content-language" content="az" />
+        <link rel="alternate" hrefLang="az" href={siteUrl} />
         <link rel="alternate" hrefLang="x-default" href={siteUrl} />
         
         {/* RSS Feed for Blog Content Discovery */}
-        <link rel="alternate" type="application/rss+xml" title="icma360 Blog RSS Feed" href={`${siteUrl}/api/rss`} />
-        <link rel="alternate" type="application/atom+xml" title="icma360 Blog Atom Feed" href={`${siteUrl}/api/rss`} />
+        <link rel="alternate" type="application/rss+xml" title="icma360 Bloq RSS Lenti" href={`${siteUrl}/api/rss`} />
+        <link rel="alternate" type="application/atom+xml" title="icma360 Bloq Atom Lenti" href={`${siteUrl}/api/rss`} />
       </head>
       <body className="min-h-screen bg-gray-50 text-gray-900 transition-colors duration-200" suppressHydrationWarning={true}>
-        <GoogleAnalytics />
+        <Suspense fallback={null}>
+          <GoogleAnalytics />
+        </Suspense>
         <AuthProvider>
-          <LanguageProvider>
-            <SocketProvider>
-              <SSENotificationProvider>
-                <NotificationProvider>
-                  <Header />
-                  <main className="min-h-screen">
-                    {children}
-                  </main>
-                  <Footer />
-                </NotificationProvider>
-              </SSENotificationProvider>
-            </SocketProvider>
-          </LanguageProvider>
+          <SocketProvider>
+            <SSENotificationProvider>
+              <NotificationProvider>
+                <Header />
+                <main className="min-h-screen">
+                  {children}
+                </main>
+                <Footer />
+              </NotificationProvider>
+            </SSENotificationProvider>
+          </SocketProvider>
         </AuthProvider>
       </body>
     </html>

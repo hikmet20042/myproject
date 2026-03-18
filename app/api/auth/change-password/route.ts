@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
-import bcrypt from 'bcryptjs'
 import nodemailer from 'nodemailer'
-import dbConnect from '@/lib/mongoose'
-import User from '@/lib/models/User'
 import { passwordChangedEmailTemplate } from '@/lib/email-templates/password-reset'
+import { createClient } from '@supabase/supabase-js'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
+    const supabase = createSupabaseServerClient()
+    const adminSupabase = createSupabaseAdminClient()
+    const { data: authData } = await supabase.auth.getUser()
+
+    if (!authData?.user?.id || !authData.user.email) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -34,49 +34,43 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    await dbConnect()
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-    // Find user by ID
-    const user = await User.findById(session.user.id)
-    if (!user) {
+    if (!supabaseUrl || !supabaseAnonKey) {
       return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
+        { error: 'Supabase configuration missing' },
+        { status: 500 }
       )
     }
 
-    // Check if user has a password (OAuth users might not have one)
-    if (!user.password) {
-      return NextResponse.json(
-        { error: 'This account uses social login. Password change is not available.' },
-        { status: 400 }
-      )
-    }
+    const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    })
 
-    // Verify current password
-    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password)
-    if (!isCurrentPasswordValid) {
+    const { error: signInError } = await anonClient.auth.signInWithPassword({
+      email: authData.user.email,
+      password: currentPassword
+    })
+
+    if (signInError) {
       return NextResponse.json(
         { error: 'Current password is incorrect' },
         { status: 400 }
       )
     }
 
-    // Check if new password is different from current
-    const isSamePassword = await bcrypt.compare(newPassword, user.password)
-    if (isSamePassword) {
+    const { error: updateError } = await adminSupabase.auth.admin.updateUserById(
+      authData.user.id,
+      { password: newPassword }
+    )
+
+    if (updateError) {
       return NextResponse.json(
-        { error: 'New password must be different from current password' },
-        { status: 400 }
+        { error: updateError.message },
+        { status: 500 }
       )
     }
-
-    // Hash the new password
-    const hashedNewPassword = await bcrypt.hash(newPassword, 12)
-
-    // Update password
-    user.password = hashedNewPassword
-    await user.save()
 
     // Send confirmation email
     try {
@@ -90,11 +84,11 @@ export async function POST(request: NextRequest) {
         },
       })
 
-  const emailTemplate = passwordChangedEmailTemplate(user.name)
+  const emailTemplate = passwordChangedEmailTemplate(authData.user.user_metadata?.name || authData.user.email)
 
       await transporter.sendMail({
         from: process.env.EMAIL_FROM,
-        to: user.email,
+        to: authData.user.email,
         subject: emailTemplate.subject,
         html: emailTemplate.html,
         text: emailTemplate.text

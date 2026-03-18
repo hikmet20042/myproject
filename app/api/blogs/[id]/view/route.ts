@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import dbConnect from '@/lib/mongoose'
-import Blog from '@/lib/models/Blog'
-
-import UserAnalytics from '@/lib/models/UserAnalytics'
+import { getServerSession } from '@/lib/auth/server'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,15 +9,15 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
     
     const blogId = params.id;
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     const viewerId = session?.user?.id;
     
     // Get client IP for unique view tracking
     const forwarded = request.headers.get('x-forwarded-for');
-    const ip = forwarded ? forwarded.split(',')[0] : request.headers.get('x-real-ip') || 'unknown';
+    const ip = forwarded ? forwarded.split(',')[0] : (request.headers.get('x-real-ip') || 'unknown');
     
     // Get user agent for analytics
     const userAgent = request.headers.get('user-agent') || 'unknown';
@@ -37,8 +33,12 @@ export async function POST(
     const { isFirstView = true } = body;
     
     // Find the blog
-    const blog = await Blog.findById(blogId);
-    if (!blog) {
+    const { data: blog, error } = await supabase
+      .from('blogs')
+      .select('id, status, views, unique_views, viewed_by, likes, dislikes, engagement_score, author_id')
+      .eq('id', blogId)
+      .single();
+    if (error || !blog) {
       return NextResponse.json({ error: 'Blog not found' }, { status: 404 });
     }
 
@@ -48,7 +48,7 @@ export async function POST(
         success: false,
         message: 'Views only tracked for approved content',
         views: blog.views || 0,
-        uniqueViews: blog.uniqueViews || 0,
+        uniqueViews: blog.unique_views || 0,
         viewIncremented: false
       });
     }
@@ -59,15 +59,14 @@ export async function POST(
     
     if (viewerId) {
       // For logged-in users, check if they haven't viewed this blog before
-      const alreadyViewed = blog.viewedBy?.some(
-        (id: any) => id.toString() === viewerId.toString()
-      );
+      const viewedBy = Array.isArray(blog.viewed_by) ? blog.viewed_by : [];
+      const alreadyViewed = viewedBy.some((id: any) => id.toString() === viewerId.toString());
       
       if (!alreadyViewed) {
         isUniqueView = true;
-        if (!blog.viewedBy) blog.viewedBy = [];
-        blog.viewedBy.push(viewerId);
-        blog.uniqueViews = (blog.uniqueViews || 0) + 1;
+        viewedBy.push(viewerId);
+        blog.viewed_by = viewedBy;
+        blog.unique_views = (blog.unique_views || 0) + 1;
       }
       
       // Always increment total views for authenticated users
@@ -78,7 +77,7 @@ export async function POST(
       // For anonymous users, rely on client-side tracking (session storage)
       if (isFirstView) {
         isUniqueView = true;
-        blog.uniqueViews = (blog.uniqueViews || 0) + 1;
+        blog.unique_views = (blog.unique_views || 0) + 1;
         blog.views = (blog.views || 0) + 1;
         viewIncremented = true;
       }
@@ -86,42 +85,31 @@ export async function POST(
     
     // Calculate engagement score (views * 1 + likes * 3 - dislikes * 2)
     if (viewIncremented) {
-      const engagementScore = (blog.views * 1) + 
-                             ((blog.likes || 0) * 3) - 
+      const engagementScore = (blog.views * 1) +
+                             ((blog.likes || 0) * 3) -
                              ((blog.dislikes || 0) * 2);
-      blog.engagementScore = Math.max(0, engagementScore);
+      const engagementScoreValue = Math.max(0, engagementScore);
       
-      // Save the blog
-      await blog.save();
-    }
-    
-    // Update user analytics if the blog has an owner
-    if (blog.author && viewIncremented) {
-      try {
-        await UserAnalytics.findOneAndUpdate(
-          { userId: blog.author },
-          {
-            $inc: { 
-              totalViews: 1,
-              ...(isUniqueView && { uniqueViews: 1 })
-            },
-            $set: { lastCalculated: new Date() }
-          },
-          { upsert: true }
-        );
-      } catch (error) {
-        console.error('Failed to update user analytics:', error);
-      }
+      await supabase
+        .from('blogs')
+        .update({
+          views: blog.views,
+          unique_views: blog.unique_views,
+          viewed_by: blog.viewed_by || [],
+          engagement_score: engagementScoreValue,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', blogId);
     }
     
     // Return updated stats
     return NextResponse.json({
       success: true,
       views: blog.views || 0,
-      uniqueViews: blog.uniqueViews || 0,
+      uniqueViews: blog.unique_views || 0,
       likes: blog.likes || 0,
       dislikes: blog.dislikes || 0,
-      engagementScore: blog.engagementScore || 0,
+      engagementScore: blog.engagement_score || 0,
       isUniqueView,
       viewIncremented
     });
@@ -138,12 +126,16 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
     
     const blogId = params.id;
     
-    const blog = await Blog.findById(blogId).select('views uniqueViews likes engagementScore');
-    if (!blog) {
+    const { data: blog, error } = await supabase
+      .from('blogs')
+      .select('views, unique_views, likes, engagement_score')
+      .eq('id', blogId)
+      .single();
+    if (error || !blog) {
       return NextResponse.json({ error: 'Blog not found' }, { status: 404 });
     }
     
@@ -155,9 +147,9 @@ export async function GET(
     
     return NextResponse.json({
       views: blog.views || 0,
-      uniqueViews: blog.uniqueViews || 0,
+      uniqueViews: blog.unique_views || 0,
       likes: blog.likes || 0,
-      engagementScore: blog.engagementScore || 0,
+      engagementScore: blog.engagement_score || 0,
       dailyAnalytics: viewAnalytics
     });
     

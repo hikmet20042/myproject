@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import dbConnect from '@/lib/mongoose';
-import Event from '@/lib/models/Event';
+import { getServerSession } from '@/lib/auth/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import cloudinaryService from '@/lib/services/cloudinaryService';
 
 export const dynamic = 'force-dynamic';
@@ -13,7 +11,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
 
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -22,28 +20,32 @@ export async function POST(
       );
     }
 
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
 
-    // Check if user is an approved NGO
-    if (!session.user.isApprovedNGO) {
+    // Check if user is an approved organization
+    if (!session.user.isApprovedOrganization) {
       return NextResponse.json(
-        { error: 'Only approved NGOs can upload event images' },
+        { error: 'Only approved organizations can upload event images' },
         { status: 403 }
       );
     }
 
     const eventId = params.id;
-    const event = await Event.findById(eventId);
+    const { data: event, error: eventError } = await supabase
+      .from('events')
+      .select('id, title, images, image_url, created_by, created_by_organization')
+      .eq('id', eventId)
+      .single();
 
-    if (!event) {
+    if (eventError || !event) {
       return NextResponse.json(
         { error: 'Event not found' },
         { status: 404 }
       );
     }
 
-    // Check if user owns this event
-    if (event.createdBy.toString() !== session.user.id) {
+    const isOwner = (event.created_by?.toString() === session.user.id) || (event.created_by_organization?.toString() === session.user.id);
+    if (!isOwner) {
       return NextResponse.json(
         { error: 'You can only upload images to your own events' },
         { status: 403 }
@@ -61,8 +63,10 @@ export async function POST(
       );
     }
 
-    const uploadedImages = [];
+    const uploadedImages: any[] = [];
     const errors = [];
+
+    const existingImages = Array.isArray(event.images) ? event.images : [];
 
     for (let i = 0; i < imageFiles.length; i++) {
       const file = imageFiles[i];
@@ -79,7 +83,7 @@ export async function POST(
         const buffer = Buffer.from(bytes);
 
         // Get current image count for indexing
-        const currentImageCount = event.images?.length || 0;
+        const currentImageCount = existingImages.length || 0;
 
         // Upload to Cloudinary
         const uploadResult = await cloudinaryService.uploadEventImage(
@@ -105,18 +109,19 @@ export async function POST(
     }
 
     // Update event with new images
+    let updatedImages = existingImages;
+    let updatedImageUrl = event.image_url;
+
     if (uploadedImages.length > 0) {
-      if (!event.images) {
-        event.images = [];
-      }
-      event.images.push(...uploadedImages);
-
-      // Set imageUrl to first image if not set
-      if (!event.imageUrl && uploadedImages.length > 0) {
-        event.imageUrl = uploadedImages[0].url;
+      updatedImages = [...existingImages, ...uploadedImages];
+      if (!updatedImageUrl && uploadedImages.length > 0) {
+        updatedImageUrl = uploadedImages[0].url;
       }
 
-      await event.save();
+      await supabase
+        .from('events')
+        .update({ images: updatedImages, image_url: updatedImageUrl, updated_at: new Date().toISOString() })
+        .eq('id', eventId);
     }
 
     return NextResponse.json({
@@ -125,9 +130,9 @@ export async function POST(
       uploadedImages,
       errors: errors.length > 0 ? errors : undefined,
       event: {
-        id: event._id,
-        images: event.images,
-        imageUrl: event.imageUrl,
+        id: event.id,
+        images: updatedImages,
+        imageUrl: updatedImageUrl,
       },
     });
   } catch (error) {
@@ -145,7 +150,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
 
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -154,28 +159,32 @@ export async function DELETE(
       );
     }
 
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
 
-    // Check if user is an approved NGO
-    if (!session.user.isApprovedNGO) {
+    // Check if user is an approved organization
+    if (!session.user.isApprovedOrganization) {
       return NextResponse.json(
-        { error: 'Only approved NGOs can manage event images' },
+        { error: 'Only approved organizations can manage event images' },
         { status: 403 }
       );
     }
 
     const eventId = params.id;
-    const event = await Event.findById(eventId);
+    const { data: event, error: eventError } = await supabase
+      .from('events')
+      .select('id, images, image_url, created_by, created_by_organization')
+      .eq('id', eventId)
+      .single();
 
-    if (!event) {
+    if (eventError || !event) {
       return NextResponse.json(
         { error: 'Event not found' },
         { status: 404 }
       );
     }
 
-    // Check if user owns this event
-    if (event.createdBy.toString() !== session.user.id) {
+    const isOwner = (event.created_by?.toString() === session.user.id) || (event.created_by_organization?.toString() === session.user.id);
+    if (!isOwner) {
       return NextResponse.json(
         { error: 'You can only delete images from your own events' },
         { status: 403 }
@@ -196,25 +205,24 @@ export async function DELETE(
     const deleteResults = await cloudinaryService.deleteImages(publicIds);
 
     // Remove images from event
-    if (event.images) {
-      event.images = event.images.filter(
-        (img: any) => !publicIds.includes(img.publicId)
-      );
+    let updatedImages = Array.isArray(event.images) ? event.images : [];
+    updatedImages = updatedImages.filter((img: any) => !publicIds.includes(img.publicId));
 
-      // Update primary image if needed
-      if (event.images.length > 0) {
-        // Ensure at least one image is marked as primary
-        const hasPrimary = event.images.some((img: any) => img.isPrimary);
-        if (!hasPrimary) {
-          event.images[0].isPrimary = true;
-        }
-        event.imageUrl = event.images.find((img: any) => img.isPrimary)?.url || event.images[0].url;
-      } else {
-        event.imageUrl = undefined;
+    let updatedImageUrl = event.image_url;
+    if (updatedImages.length > 0) {
+      const hasPrimary = updatedImages.some((img: any) => img.isPrimary);
+      if (!hasPrimary) {
+        updatedImages[0].isPrimary = true;
       }
-
-      await event.save();
+      updatedImageUrl = updatedImages.find((img: any) => img.isPrimary)?.url || updatedImages[0].url;
+    } else {
+      updatedImageUrl = null;
     }
+
+    await supabase
+      .from('events')
+      .update({ images: updatedImages, image_url: updatedImageUrl, updated_at: new Date().toISOString() })
+      .eq('id', eventId);
 
     return NextResponse.json({
       success: true,
@@ -222,9 +230,9 @@ export async function DELETE(
       deletedCount: deleteResults.deletedCount,
       errors: deleteResults.errors.length > 0 ? deleteResults.errors : undefined,
       event: {
-        id: event._id,
-        images: event.images,
-        imageUrl: event.imageUrl,
+        id: event.id,
+        images: updatedImages,
+        imageUrl: updatedImageUrl,
       },
     });
   } catch (error) {
@@ -242,7 +250,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
 
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -251,28 +259,32 @@ export async function PATCH(
       );
     }
 
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
 
-    // Check if user is an approved NGO
-    if (!session.user.isApprovedNGO) {
+    // Check if user is an approved organization
+    if (!session.user.isApprovedOrganization) {
       return NextResponse.json(
-        { error: 'Only approved NGOs can manage event images' },
+        { error: 'Only approved organizations can manage event images' },
         { status: 403 }
       );
     }
 
     const eventId = params.id;
-    const event = await Event.findById(eventId);
+    const { data: event, error: eventError } = await supabase
+      .from('events')
+      .select('id, images, image_url, created_by, created_by_organization')
+      .eq('id', eventId)
+      .single();
 
-    if (!event) {
+    if (eventError || !event) {
       return NextResponse.json(
         { error: 'Event not found' },
         { status: 404 }
       );
     }
 
-    // Check if user owns this event
-    if (event.createdBy.toString() !== session.user.id) {
+    const isOwner = (event.created_by?.toString() === session.user.id) || (event.created_by_organization?.toString() === session.user.id);
+    if (!isOwner) {
       return NextResponse.json(
         { error: 'You can only update images for your own events' },
         { status: 403 }
@@ -290,8 +302,9 @@ export async function PATCH(
     }
 
     // Update image properties
+    let updatedImages = Array.isArray(event.images) ? event.images : [];
     if (event.images) {
-      const imageIndex = event.images.findIndex((img: any) => img.publicId === publicId);
+      const imageIndex = updatedImages.findIndex((img: any) => img.publicId === publicId);
       
       if (imageIndex === -1) {
         return NextResponse.json(
@@ -302,29 +315,33 @@ export async function PATCH(
 
       // If setting as primary, remove primary flag from other images
       if (updates.isPrimary) {
-        event.images.forEach((img: any) => {
+        updatedImages.forEach((img: any) => {
           img.isPrimary = false;
         });
       }
 
       // Update the image
-      Object.assign(event.images[imageIndex], updates);
+      Object.assign(updatedImages[imageIndex], updates);
 
       // Update event imageUrl if primary changed
+      let updatedImageUrl = event.image_url;
       if (updates.isPrimary) {
-        event.imageUrl = event.images[imageIndex].url;
+        updatedImageUrl = updatedImages[imageIndex].url;
       }
 
-      await event.save();
+      await supabase
+        .from('events')
+        .update({ images: updatedImages, image_url: updatedImageUrl, updated_at: new Date().toISOString() })
+        .eq('id', eventId);
     }
 
     return NextResponse.json({
       success: true,
       message: 'Image updated successfully',
       event: {
-        id: event._id,
-        images: event.images,
-        imageUrl: event.imageUrl,
+        id: event.id,
+        images: updatedImages,
+        imageUrl: updatedImages.find((img: any) => img.isPrimary)?.url || event.image_url,
       },
     });
   } catch (error) {

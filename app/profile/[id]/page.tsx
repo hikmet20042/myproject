@@ -1,55 +1,42 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button, ButtonLink } from '@/components/ui'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
-import { useLanguage } from '@/contexts/LanguageContext'
 import { LoadingState, ErrorState } from '@/components/shared'
 
-interface User {
-  _id: string
+interface User { _id: string
   name: string
   email: string
   bio?: string
   location?: string
   website?: string
-  socialMedia?: {
-    twitter?: string
+  socialMedia?: { twitter?: string
     linkedin?: string
-    github?: string
-  }
-  joinedAt: string
-}
+    github?: string }
+  joinedAt: string }
 
-interface Blog {
-  _id: string
+interface Blog { _id: string
   title: string
   abstract: string
   createdAt: string
-  category: string
-}
+  category: string }
 
-export default function ProfilePage() {
-  const { t } = useLanguage()
-  const localePath = useLocalizedPath()
+export default function ProfilePage() { const localePath = useLocalizedPath()
+  const router = useRouter()
   const params = useParams()
   const [user, setUser] = useState<User | null>(null)
   const [blogs, setBlogs] = useState<Blog[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        // Fetch user profile
+  useEffect(() => { const fetchUserData = async () => { try { // Fetch user profile
         const userResponse = await fetch(`/api/users/${params?.id}`)
-        if (!userResponse.ok) {
-          throw new Error('User not found')
-        }
+        if (!userResponse.ok) { throw new Error('İstifadəçi tapılmadı') }
         const userData = await userResponse.json()
         // API may return { user: {...} } or the user object directly — normalize both shapes
         const normalizedUser = userData?.user ? userData.user : userData
@@ -57,77 +44,53 @@ export default function ProfilePage() {
 
         // Fetch user's blogs
         const blogsResponse = await fetch(`/api/blogs?author=${params?.id}`)
-        if (blogsResponse.ok) {
-          const blogsData = await blogsResponse.json()
+        if (blogsResponse.ok) { const blogsData = await blogsResponse.json()
           // blogs API returns { results: [...] } for list or { blog: {...} } for single
-          if (Array.isArray(blogsData)) {
-            setBlogs(blogsData)
-          } else if (Array.isArray(blogsData.results)) {
-            setBlogs(blogsData.results)
-          } else if (Array.isArray(blogsData.blogs)) {
-            setBlogs(blogsData.blogs)
-          } else if (Array.isArray(blogsData.results?.blogs)) {
-            setBlogs(blogsData.results.blogs)
-          } else {
-            const arr = Object.values(blogsData).find(v => Array.isArray(v))
-            if (Array.isArray(arr)) setBlogs(arr as Blog[])
-          }
-        }
-      } catch (err) {
-        setError('Failed to load user profile')
-      } finally {
-        setLoading(false)
-      }
-    }
+          if (Array.isArray(blogsData)) { setBlogs(blogsData) } else if (Array.isArray(blogsData.results)) { setBlogs(blogsData.results) } else if (Array.isArray(blogsData.blogs)) { setBlogs(blogsData.blogs) } else if (Array.isArray(blogsData.results?.blogs)) { setBlogs(blogsData.results.blogs) } else { const arr = Object.values(blogsData).find(v => Array.isArray(v))
+            if (Array.isArray(arr)) setBlogs(arr as Blog[]) } } } catch (err) { setError('İstifadəçi profili yüklənmədi') } finally { setLoading(false) } }
 
-    if (params?.id) {
-      fetchUserData()
-    }
-  }, [params?.id])
+    if (params?.id) { fetchUserData() } }, [params?.id])
 
-  if (loading) {
-    return <LoadingState text={t('profile.loadingProfile') || 'Loading profile...'} gradientFrom="from-blue-500" gradientVia="via-purple-500" gradientTo="to-pink-500" />
-  }
+  if (loading) { return <LoadingState text={'Profil yüklənir...'} /> }
 
-  if (error || !user) {
-    return (
+  if (error || !user) { return (
       <ErrorState 
-        title={t('profile.notFound') || 'Profile Not Found'}
-        message={error || t('profile.notFoundMessage') || 'The requested profile could not be found.'}
-        retryText={t('common.backToHome') || 'Back to Home'}
-        onRetry={() => window.location.href = localePath("/")}
+        title={'Profil tapılmadı'}
+        message={error || 'Sorğu edilən profil tapılmadı.'}
+        retryText={'Ana səhifəyə qayıt'}
+        onRetry={() => router.replace(localePath("/"))}
       />
-    )
-  }
+    ) }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-primary via-primary/90 to-accent py-20">
-        <div className="absolute inset-0 bg-black/20"></div>
+      <section className="relative overflow-hidden pt-28 pb-16 md:pt-36 md:pb-20">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-40" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[480px] w-[820px] rounded-full bg-primary/10 blur-3xl" />
         <div className="relative section-padding">
           <div className="max-w-4xl mx-auto text-center">
             <div className="relative inline-block mb-6">
-              <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto shadow-lg">
-                <span className="text-3xl font-bold text-primary">
+              <div className="w-24 h-24 bg-primary rounded-full flex items-center justify-center mx-auto shadow-md ring-4 ring-white">
+                <span className="text-3xl font-bold text-white">
                   {user?.name?.charAt(0)?.toUpperCase() || '?'}
                 </span>
               </div>
             </div>
             
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              {user?.name || 'Unknown User'}
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+              {user?.name || 'Naməlum istifadəçi'}
             </h1>
             
             {user.bio && (
-              <p className="text-white/90 text-xl leading-relaxed mb-6">
+              <p className="text-gray-600 text-xl leading-relaxed mb-6">
                 {user.bio}
               </p>
             )}
             
             <div className="flex flex-wrap justify-center gap-4 mb-8">
               {user.location && (
-                <span className="inline-flex items-center bg-white/20 backdrop-blur-sm text-white text-sm px-4 py-2 rounded-full border border-white/30">
+                <span className="inline-flex items-center bg-white text-gray-700 text-sm px-4 py-2 rounded-full border border-gray-200 shadow-sm">
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -135,14 +98,12 @@ export default function ProfilePage() {
                   {user.location}
                 </span>
               )}
-              <span className="inline-flex items-center bg-accent/30 backdrop-blur-sm text-white text-sm px-4 py-2 rounded-full border border-accent/50">
+              <span className="inline-flex items-center bg-white text-gray-700 text-sm px-4 py-2 rounded-full border border-gray-200 shadow-sm">
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 0h6m-6 0l-1 1m7-1l1 1m-6 0v6a2 2 0 002 2h2a2 2 0 002-2V8m-6 0H9m6 0h1" />
                 </svg>
-                Joined {user?.joinedAt ? new Date(user.joinedAt).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long'
-                }) : 'Unknown'}
+                Qoşulub {user?.joinedAt ? new Date(user.joinedAt).toLocaleDateString('az-AZ', { year: 'numeric',
+                  month: 'long' }) : 'Naməlum'}
               </span>
             </div>
             
@@ -151,25 +112,25 @@ export default function ProfilePage() {
                 <ButtonLink 
                   href={`mailto:${user.email}`}
                   variant="secondary"
-                  hoverEffect="lift"
+                  hoverEffect="scale"
                 >
                   <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
-                  Contact
+                  Əlaqə
                 </ButtonLink>
               )}
               {user.website && (
                 <ButtonLink
                   href={user?.website?.startsWith('http') ? user.website : `https://${user?.website || ''}`}
-                  variant="primary"
-                  hoverEffect="lift"
+                  variant="outline"
+                  hoverEffect="scale"
                   external
                 >
                   <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
-                  Visit Website
+                  Vebsayta keç
                 </ButtonLink>
               )}
             </div>
@@ -194,7 +155,7 @@ export default function ProfilePage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         </div>
-                        <h2 className="text-2xl font-bold text-gray-900">About {user?.name || 'User'}</h2>
+                        <h2 className="text-2xl font-bold text-gray-900">{user?.name || 'İstifadəçi'} haqqında</h2>
                       </div>
                       <p className="text-gray-700 leading-relaxed text-lg">
                         {user.bio}
@@ -212,7 +173,7 @@ export default function ProfilePage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                         </svg>
                       </div>
-                      <h2 className="text-2xl font-bold text-primary">Blogs by {user?.name || 'User'}</h2>
+                      <h2 className="text-2xl font-bold text-primary">{user?.name || 'İstifadəçi'} tərəfindən bloqlar</h2>
                     </div>
                     
                     {blogs.length > 0 ? (
@@ -224,11 +185,9 @@ export default function ProfilePage() {
                                 {blog.category}
                               </Badge>
                               <span className="text-sm text-gray-500">
-                                {new Date(blog.createdAt).toLocaleDateString('en-US', {
-                                  year: 'numeric',
+                                {new Date(blog.createdAt).toLocaleDateString('az-AZ', { year: 'numeric',
                                   month: 'long',
-                                  day: 'numeric'
-                                })}
+                                  day: 'numeric' })}
                               </span>
                             </div>
                             <h3 className="text-xl font-semibold text-gray-900 mb-3">
@@ -243,7 +202,7 @@ export default function ProfilePage() {
                               href={`/blogs/${blog._id}`}
                               className="inline-flex items-center text-primary hover:text-primary/80 font-medium"
                             >
-                              Read More
+                              Ətraflı oxu
                               <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                               </svg>
@@ -256,7 +215,7 @@ export default function ProfilePage() {
                         <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                         </svg>
-                        <p className="text-gray-500 text-lg">No blogs published yet</p>
+                        <p className="text-gray-500 text-lg">Hələ bloq yayımlanmayıb</p>
                       </div>
                     )}
                   </CardContent>
@@ -274,7 +233,7 @@ export default function ProfilePage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                         </svg>
                       </div>
-                      <h3 className="text-lg font-bold text-gray-900">Contact Information</h3>
+                      <h3 className="text-lg font-bold text-gray-900">Əlaqə məlumatları</h3>
                     </div>
                     <div className="space-y-4">
                       {user.email && (
@@ -285,7 +244,7 @@ export default function ProfilePage() {
                             </svg>
                           </div>
                           <div className="flex-1">
-                            <p className="text-xs text-gray-500 font-medium">{t('email')}</p>
+                            <p className="text-xs text-gray-500 font-medium">{'E-poçt'}</p>
                             <a href={`mailto:${user.email}`} className="text-gray-900 hover:text-primary font-medium">
                               {user.email}
                             </a>
@@ -301,7 +260,7 @@ export default function ProfilePage() {
                             </svg>
                           </div>
                           <div className="flex-1">
-                            <p className="text-xs text-gray-500 font-medium">{t('labels.website')}</p>
+                            <p className="text-xs text-gray-500 font-medium">{'Vebsayt'}</p>
                             <a 
                               href={user?.website?.startsWith('http') ? user.website : `https://${user?.website || ''}`} 
                               target="_blank" 
@@ -327,7 +286,7 @@ export default function ProfilePage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                           </svg>
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900">Social Media</h3>
+                        <h3 className="text-lg font-bold text-gray-900">Sosial media</h3>
                       </div>
                       <div className="space-y-3">
                         {user.socialMedia.twitter && (
@@ -385,20 +344,18 @@ export default function ProfilePage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                         </svg>
                       </div>
-                      <h3 className="text-lg font-bold text-gray-900">Profile Stats</h3>
+                      <h3 className="text-lg font-bold text-gray-900">Profil statistikası</h3>
                     </div>
                     <div className="space-y-4">
                       <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                        <span className="text-gray-600">{t('titles.blogs')}</span>
+                        <span className="text-gray-600">{'Bloqlar'}</span>
                         <span className="text-primary font-semibold">{blogs.length}</span>
                       </div>
                       <div className="flex justify-between items-center py-2">
-                        <span className="text-gray-600">Member Since</span>
+                        <span className="text-gray-600">Üzvlük tarixi</span>
                         <span className="text-primary font-semibold">
-                          {user?.joinedAt ? new Date(user.joinedAt).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'short'
-                          }) : 'Unknown'}
+                          {user?.joinedAt ? new Date(user.joinedAt).toLocaleDateString('az-AZ', { year: 'numeric',
+                            month: 'short' }) : 'Naməlum'}
                         </span>
                       </div>
                     </div>
@@ -410,5 +367,4 @@ export default function ProfilePage() {
         </div>
       </section>
     </div>
-  )
-}
+  ) }

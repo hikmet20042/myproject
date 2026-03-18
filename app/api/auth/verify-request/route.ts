@@ -1,35 +1,81 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import dbConnect from '@/lib/mongoose';
-import User from '@/lib/models/User';
 import nodemailer from 'nodemailer';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
 export async function POST(request: NextRequest) {
   try {
-    await dbConnect();
-    const session = await getServerSession(authOptions);
-    if (!session || !session.user?.email) {
+    const supabase = createSupabaseServerClient();
+    const adminSupabase = createSupabaseAdminClient();
+    const { data: authData } = await supabase.auth.getUser();
+
+    if (!authData?.user?.email) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
-    const user = await User.findOne({ email: session.user.email });
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-    if (user.emailVerified) {
+
+    if (authData.user.email_confirmed_at) {
       return NextResponse.json({ error: 'Email already verified' }, { status: 400 });
     }
+
+    const { data: account } = await adminSupabase
+      .from('accounts')
+      .select('account_type')
+      .eq('id', authData.user.id)
+      .maybeSingle()
+
+    const accountType = (account?.account_type as 'user' | 'organization' | undefined)
+      || (authData.user.app_metadata?.account_type as 'user' | 'organization')
+      || 'user'
+    let accountRow: any = null
+
+    if (accountType === 'organization') {
+      const { data: profileRow } = await adminSupabase
+        .from('organization_profiles')
+        .select('verification_email_last_sent, organization_name')
+        .eq('account_id', authData.user.id)
+        .maybeSingle()
+      accountRow = profileRow
+
+      if (!accountRow) {
+        console.warn(`Missing organization_profiles row for account_id=${authData.user.id}`)
+        return NextResponse.json({ error: 'Organization profile not found' }, { status: 404 })
+      }
+    } else {
+      const { data: userRow } = await adminSupabase
+        .from('users')
+        .select('verification_email_last_sent, name')
+        .eq('id', authData.user.id)
+        .maybeSingle()
+      accountRow = userRow
+    }
+
     // Enforce 1 hour cooldown for verification email
     const now = new Date();
-    if (user.verificationEmailLastSent && now.getTime() - new Date(user.verificationEmailLastSent).getTime() < 60 * 60 * 1000) {
-      const minutes = Math.ceil((60 * 60 * 1000 - (now.getTime() - new Date(user.verificationEmailLastSent).getTime())) / (60 * 1000));
+    if (accountRow?.verification_email_last_sent && now.getTime() - new Date(accountRow.verification_email_last_sent).getTime() < 60 * 60 * 1000) {
+      const minutes = Math.ceil((60 * 60 * 1000 - (now.getTime() - new Date(accountRow.verification_email_last_sent).getTime())) / (60 * 1000));
       return NextResponse.json({ error: `You can request a new verification email in ${minutes} minute(s).` }, { status: 429 });
     }
-    // Generate new verification token
-    const verificationToken = Math.random().toString(36).substring(2, 15);
-    user.verificationToken = verificationToken;
-    user.verificationEmailLastSent = now;
-    await user.save();
+
+    if (accountType === 'organization') {
+      await adminSupabase
+        .from('organization_profiles')
+        .update({ verification_email_last_sent: now.toISOString() })
+        .eq('account_id', authData.user.id)
+    } else {
+      await adminSupabase
+        .from('users')
+        .update({ verification_email_last_sent: now.toISOString() })
+        .eq('id', authData.user.id)
+    }
+
+    const { data: verifyLink } = await adminSupabase.auth.admin.generateLink({
+      type: 'signup',
+      email: authData.user.email,
+      options: {
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/verify-email?verified=1&type=${accountType}`
+      }
+    } as any)
+
     // Send verification email
     const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_SERVER_HOST,
@@ -40,15 +86,15 @@ export async function POST(request: NextRequest) {
         pass: process.env.EMAIL_SERVER_PASSWORD,
       },
     });
-    const verifyUrl = `${process.env.NEXTAUTH_URL}/auth/verify-email?token=${verificationToken}`;
+    const verifyUrl = verifyLink?.properties?.action_link || `${process.env.NEXT_PUBLIC_APP_URL}/auth/verify-email`;
     await transporter.sendMail({
       from: process.env.EMAIL_FROM,
-      to: user.email,
+      to: authData.user.email,
       subject: 'E-poçt ünvanınızı təsdiqləyin - icma360',
       html: `
         <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
           <h2 style="color: #333; text-align: center;">icma360-a xoş gəlmisiniz!</h2>
-          <p>Salam ${user.name || user.email},</p>
+          <p>Salam ${accountRow?.name || accountRow?.organization_name || authData.user.email},</p>
           <p>Qeydiyyatdan keçdiyiniz üçün təşəkkür edirik. E-poçt ünvanınızı təsdiqləmək üçün aşağıdakı düyməni klikləyin:</p>
           <div style="text-align: center; margin: 30px 0;">
             <a href="${verifyUrl}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">E-poçtu Təsdiqlə</a>

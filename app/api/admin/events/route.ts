@@ -1,21 +1,70 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
-import dbConnect from '@/lib/mongoose'
-import Event from '@/lib/models/Event'
+import { getServerSession } from '@/lib/auth/server'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { isAdminSession } from '@/lib/roles'
+
+const mapEvent = (row: any) => ({
+  _id: row.id,
+  id: row.id,
+  title: row.title,
+  description: row.description,
+  category: row.category,
+  eventType: row.event_type,
+  eventDate: row.event_date,
+  endDate: row.end_date,
+  duration: row.duration,
+  schedule: row.schedule,
+  prerequisites: row.prerequisites || [],
+  learningOutcomes: row.learning_outcomes || [],
+  certification: row.certification,
+  cost: row.cost,
+  targetAudience: row.target_audience || [],
+  syllabus: row.syllabus,
+  location: row.location,
+  applicationLink: row.application_link,
+  applicationDeadline: row.application_deadline,
+  maxParticipants: row.max_participants,
+  currentParticipants: row.current_participants,
+  tags: row.tags || [],
+  imageUrl: row.image_url,
+  images: row.images,
+  createdBy: row.created_by
+    ? { _id: row.created_by.id, name: row.created_by.name, email: row.created_by.email }
+    : row.created_by,
+  createdByOrganization: row.created_by_organization
+    ? { _id: row.created_by_organization.id, organizationName: row.created_by_organization.organization_name, email: row.created_by_organization.email }
+    : row.created_by_organization,
+  organizationName: row.organization_name,
+  status: row.status,
+  approvedAt: row.approved_at,
+  approvedBy: row.approved_by
+    ? { _id: row.approved_by.id, name: row.approved_by.name }
+    : row.approved_by,
+  rejectedAt: row.rejected_at,
+  rejectionReason: row.rejection_reason,
+  adminComment: row.admin_comment,
+  isPublished: row.is_published,
+  isFeatured: row.is_featured,
+  views: row.views,
+  uniqueViews: row.unique_views,
+  viewedBy: row.viewed_by || [],
+  engagementScore: row.engagement_score,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at
+});
 
 export const dynamic = 'force-dynamic'
 
 async function isAdmin(session: any) {
-  return session?.user?.email === 'hikmat.mammadlii@gmail.com' || session?.user?.role === 'admin'
+  return isAdminSession(session)
 }
 
 // GET /api/admin/events - Get all events for admin management
 export async function GET(request: NextRequest) {
   try {
-    await dbConnect()
+    const supabase = createSupabaseAdminClient()
     
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session || !(await isAdmin(session))) {
       return NextResponse.json(
         { error: 'Admin access required' },
@@ -25,7 +74,7 @@ export async function GET(request: NextRequest) {
     
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '50')
+    const limit = parseInt(searchParams.get('limit') || '10')
     const status = searchParams.get('status')
     const search = searchParams.get('search')
     const category = searchParams.get('category')
@@ -43,13 +92,11 @@ export async function GET(request: NextRequest) {
     
     // Status filtering
     if (status === 'pending') {
-      query.isApproved = false
-      query.rejectedAt = { $exists: false }
+      query.status = 'pending'
     } else if (status === 'approved') {
-      query.isApproved = true
-      query.rejectedAt = { $exists: false }
+      query.status = 'approved'
     } else if (status === 'rejected') {
-      query.rejectedAt = { $exists: true }
+      query.status = 'rejected'
     }
     
     // Search filtering
@@ -93,29 +140,82 @@ export async function GET(request: NextRequest) {
       if (dateTo) query.eventDate.$lte = new Date(dateTo)
     }
     
-    // Build sort object
-    const sortObj: any = {}
-    sortObj[sortBy] = sortOrder === 'desc' ? -1 : 1
-    
-    const events = await Event.find(query)
-      .populate('createdBy', 'name ngoProfile email')
-      .populate('approvedBy', 'name')
-      .sort(sortObj)
-      .skip(skip)
-      .limit(limit)
-      .lean()
-    
-    const total = await Event.countDocuments(query)
+    const sortFieldMap: Record<string, string> = {
+      createdAt: 'created_at',
+      eventDate: 'event_date',
+      updatedAt: 'updated_at'
+    }
+    const orderField = sortFieldMap[sortBy] || 'created_at'
+    const ascending = sortOrder === 'asc'
+
+    let queryBuilder = supabase
+      .from('events')
+      .select('*, created_by (id, name, email), created_by_organization (id, organization_name, email), approved_by (id, name)', { count: 'exact' })
+      .order(orderField, { ascending })
+      .range(skip, skip + limit - 1)
+
+    if (query.status) {
+      queryBuilder = queryBuilder.eq('status', query.status)
+    }
+
+    if (category && category !== 'all') {
+      queryBuilder = queryBuilder.eq('category', category)
+    }
+
+    if (eventType && eventType !== 'all') {
+      if (eventType.includes(',')) {
+        queryBuilder = queryBuilder.in('event_type', eventType.split(','))
+      } else {
+        queryBuilder = queryBuilder.eq('event_type', eventType)
+      }
+    }
+
+    if (location && location !== 'all') {
+      if (location === 'online') {
+        queryBuilder = queryBuilder.or('location->>type.eq.online,location->>type.eq.hybrid')
+      } else if (location === 'physical') {
+        queryBuilder = queryBuilder.or('location->>type.eq.physical,location->>type.eq.hybrid')
+      } else {
+        queryBuilder = queryBuilder.or(`location->>city.ilike.%${location}%`)
+      }
+    }
+
+    if (dateFrom || dateTo) {
+      if (dateFrom) queryBuilder = queryBuilder.gte('event_date', new Date(dateFrom).toISOString())
+      if (dateTo) queryBuilder = queryBuilder.lte('event_date', new Date(dateTo).toISOString())
+    }
+
+    if (search) {
+      queryBuilder = queryBuilder.or(`title.ilike.%${search}%,description.ilike.%${search}%`)
+    }
+
+    const { data: eventRows, error, count } = await queryBuilder
+
+    if (error) {
+      console.error('GET /api/admin/events error:', error)
+      return NextResponse.json(
+        { error: 'Failed to fetch events' },
+        { status: 500 }
+      )
+    }
+
+    const events = (eventRows || []).map(mapEvent)
+    const total = count || 0
     
     // Get statistics
-    const [pending, approved, rejected, totalCount] = await Promise.all([
-      Event.countDocuments({ isApproved: false, rejectedAt: { $exists: false } }),
-      Event.countDocuments({ isApproved: true, rejectedAt: { $exists: false } }),
-      Event.countDocuments({ rejectedAt: { $exists: true } }),
-      Event.countDocuments({})
+    const [pendingResult, approvedResult, rejectedResult, totalResult] = await Promise.all([
+      supabase.from('events').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('events').select('id', { count: 'exact', head: true }).eq('status', 'approved'),
+      supabase.from('events').select('id', { count: 'exact', head: true }).eq('status', 'rejected'),
+      supabase.from('events').select('id', { count: 'exact', head: true })
     ])
     
-    const stats = { pending, approved, rejected, total: totalCount }
+    const stats = {
+      pending: pendingResult.count || 0,
+      approved: approvedResult.count || 0,
+      rejected: rejectedResult.count || 0,
+      total: totalResult.count || 0
+    }
     
     return NextResponse.json({
       events,
@@ -139,9 +239,9 @@ export async function GET(request: NextRequest) {
 // PUT /api/admin/events - Bulk approve/reject events
 export async function PUT(request: NextRequest) {
   try {
-    await dbConnect()
+    const supabase = createSupabaseAdminClient()
     
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session || !(await isAdmin(session))) {
       return NextResponse.json(
         { error: 'Admin access required' },
@@ -159,8 +259,12 @@ export async function PUT(request: NextRequest) {
       )
     }
     
-    const event = await Event.findById(id)
-    if (!event) {
+    const { data: event, error: eventError } = await supabase
+      .from('events')
+      .select('id')
+      .eq('id', id)
+      .single()
+    if (eventError || !event) {
       return NextResponse.json(
         { error: 'Event not found' },
         { status: 404 }
@@ -171,25 +275,28 @@ export async function PUT(request: NextRequest) {
     
     if (status === 'approved') {
       updateData = {
-        isApproved: true,
-        approvedAt: new Date(),
-        approvedBy: session.user.id,
-        isPublished: true,
-        rejectedAt: undefined,
-        rejectionReason: undefined
+        status: 'approved',
+        approved_at: new Date().toISOString(),
+        approved_by: session.user.id,
+        is_published: true,
+        rejected_at: null,
+        rejection_reason: null
       }
     } else if (status === 'rejected') {
       updateData = {
-        isApproved: false,
-        rejectedAt: new Date(),
-        rejectionReason: adminComment || 'No reason provided',
-        approvedAt: undefined,
-        approvedBy: undefined,
-        isPublished: false
+        status: 'rejected',
+        rejected_at: new Date().toISOString(),
+        rejection_reason: adminComment || 'No reason provided',
+        approved_at: null,
+        approved_by: null,
+        is_published: false
       }
     }
     
-    await Event.findByIdAndUpdate(id, updateData)
+    await supabase
+      .from('events')
+      .update({ ...updateData, updated_at: new Date().toISOString() })
+      .eq('id', id)
     
     return NextResponse.json({ message: `Event ${status} successfully` })
   } catch (error) {

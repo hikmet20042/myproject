@@ -1,49 +1,32 @@
 "use client"
 
 import Link from 'next/link'
-import { useLanguage } from '@/contexts/LanguageContext'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
 import { BookOpen, User, Calendar, ArrowRight, Clock } from 'lucide-react'
 
-interface Blog {
-  id: string | number;
+interface Blog { id: string | number;
   title: string;
   authorName: string;
   date: string;
   excerpt: string;
   content: string;
-  status: string;
-}
+  status: string; }
 
-interface BlogCardProps {
-  blog: Blog;
-}
+interface BlogCardProps { blog: Blog; }
 
 export default function BlogCard({ blog }: BlogCardProps) {
-  const { t, language } = useLanguage()
   const localePath = useLocalizedPath()
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    
-    if (language === 'az') {
-      const months = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'İyn', 'İyl', 'Avq', 'Sen', 'Okt', 'Noy', 'Dek'];
-      const day = date.getDate();
-      const month = months[date.getMonth()];
-      const year = date.getFullYear();
-      return `${day} ${month} ${year}`;
-    } else {
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
-    }
-  };
+  const formatDate = (dateString: string) => { const date = new Date(dateString);
+    const months = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'İyn', 'İyl', 'Avq', 'Sen', 'Okt', 'Noy', 'Dek'];
+    const day = date.getDate();
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`; };
 
   return (
     <Link href={localePath(`/blogs/${blog.id}`)}>
-      <article className="group relative bg-gradient-to-br from-white to-blue-50/50 rounded-2xl p-6 border-2 border-gray-200 hover:border-blue-500 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 h-full overflow-hidden">
+      <article className="group relative bg-gradient-to-br from-white to-blue-50/50 rounded-2xl p-6 border-2 border-blue-100 hover:border-blue-500 hover:shadow-lg transition-all duration-500 hover:-translate-y-2 h-full overflow-hidden">
         {/* Gradient Overlay on Hover */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 to-blue-600/0 group-hover:from-blue-500/5 group-hover:to-blue-600/5 transition-all duration-500 rounded-2xl"></div>
         
@@ -60,7 +43,7 @@ export default function BlogCard({ blog }: BlogCardProps) {
             </div>
             {blog.status === 'pending' && (
               <span className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-full font-bold shadow-sm animate-pulse whitespace-nowrap">
-                {t('blogs.card.pendingBadge')}
+                {'Sənin Təqdimatın'}
               </span>
             )}
           </div>
@@ -88,15 +71,14 @@ export default function BlogCard({ blog }: BlogCardProps) {
           </div>
 
           {/* Read More Action */}
-          <div className="pt-4 border-t border-gray-200 group-hover:border-blue-200 transition-colors">
+          <div className="pt-4 border-t border-blue-100 group-hover:border-blue-200 transition-colors">
             <div className="flex items-center text-blue-600 font-bold opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
-              <span className="text-sm">{t('blogs.card.read')}</span>
+              <span className="text-sm">{'Bloqu Oxu'}</span>
               <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-2 transition-transform" />
             </div>
           </div>
         </div>
       </article>
     </Link>
-  );
-}
+  ); }
 

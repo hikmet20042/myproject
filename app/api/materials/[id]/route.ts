@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import dbConnect from '@/lib/mongoose';
-import Material from '@/lib/models/Material';
+import { getServerSession } from '@/lib/auth/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
 // GET: Fetch single material by ID
 export async function GET(
@@ -10,11 +8,15 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
 
-    const material = await Material.findById(params.id).select('-__v').lean();
+    const { data: material, error } = await supabase
+      .from('materials')
+      .select('*')
+      .eq('id', params.id)
+      .single();
 
-    if (!material) {
+    if (error || !material) {
       return NextResponse.json(
         { error: 'Material not found' },
         { status: 404 }
@@ -22,7 +24,10 @@ export async function GET(
     }
 
     // Increment view count
-    await Material.findByIdAndUpdate(params.id, { $inc: { views: 1 } });
+    await supabase
+      .from('materials')
+      .update({ views: (material.views || 0) + 1 })
+      .eq('id', params.id);
 
     return NextResponse.json({ material });
   } catch (error: any) {
@@ -40,7 +45,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
 
     if (!session || session.user?.role !== 'admin') {
       return NextResponse.json(
@@ -49,18 +54,32 @@ export async function PUT(
       );
     }
 
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
 
     const body = await request.json();
 
     // Update material
-    const material = await Material.findByIdAndUpdate(
-      params.id,
-      { ...body },
-      { new: true, runValidators: true }
-    );
+    const updateData: any = { ...body };
+    if (updateData.imageUrl !== undefined) {
+      updateData.image_url = updateData.imageUrl;
+      delete updateData.imageUrl;
+    }
+    if (updateData.isPublished !== undefined) {
+      updateData.is_published = updateData.isPublished;
+      delete updateData.isPublished;
+    }
+    if (updateData.order !== undefined) {
+      updateData.order = updateData.order;
+    }
 
-    if (!material) {
+    const { data: material, error } = await supabase
+      .from('materials')
+      .update(updateData)
+      .eq('id', params.id)
+      .select('*')
+      .single();
+
+    if (error || !material) {
       return NextResponse.json(
         { error: 'Material not found' },
         { status: 404 }
@@ -86,7 +105,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
 
     if (!session || session.user?.role !== 'admin') {
       return NextResponse.json(
@@ -95,11 +114,16 @@ export async function DELETE(
       );
     }
 
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
 
-    const material = await Material.findByIdAndDelete(params.id);
+    const { data: material, error } = await supabase
+      .from('materials')
+      .delete()
+      .eq('id', params.id)
+      .select('*')
+      .single();
 
-    if (!material) {
+    if (error || !material) {
       return NextResponse.json(
         { error: 'Material not found' },
         { status: 404 }

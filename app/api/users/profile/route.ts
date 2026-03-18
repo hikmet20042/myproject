@@ -1,19 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import dbConnect from '@/lib/mongoose'
-import User from '@/lib/models/User'
-import UserProfile from '@/lib/models/UserProfile'
-import NGO from '@/lib/models/NGO'
-import mongoose from 'mongoose'
+import { getServerSession } from '@/lib/auth/server'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    await dbConnect()
+    const supabase = createSupabaseAdminClient()
   
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession()
     
     if (!session?.user?.id) {
       console.log('Profile GET - No session or user ID');
@@ -22,41 +17,48 @@ export async function GET(request: NextRequest) {
 
     console.log('Profile GET - Session user ID:', session.user.id, 'Type:', typeof session.user.id);
     console.log('Profile GET - Session user role:', session.user.role);
-    console.log('Profile GET - Is NGO:', session.user.isApprovedNGO);
-    console.log('Profile GET - Is valid ObjectId:', mongoose.Types.ObjectId.isValid(session.user.id));
+    console.log('Profile GET - Is Organization:', session.user.isApprovedOrganization);
 
-    // Check if user is NGO - if so, redirect to NGO-specific profile endpoint
-    if (session.user.isApprovedNGO) {
+    // Check if user is organization - if so, redirect to organization-specific profile endpoint
+    if (session.user.isApprovedOrganization) {
       return NextResponse.json({ 
-        error: 'NGO profiles should use /api/ngo/profile endpoint',
-        redirect: '/api/ngo/profile'
+        error: 'Organization profiles should use /api/organization/profile endpoint',
+        redirect: '/api/organization/profile'
       }, { status: 400 });
     }
 
     // Handle regular users
-    const user = await User.findById(session.user.id);
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, email, name, role, created_at')
+      .eq('id', session.user.id)
+      .single();
     console.log('Profile GET - User query result:', user ? 'Found' : 'Not found');
     
-    if (!user) {
+    if (userError || !user) {
       console.log('Profile GET - User not found. Searched for ID:', session.user.id);
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Use the user's _id for profile lookup
-    const profile = await UserProfile.findOne({ userId: user._id });
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
 
     return NextResponse.json({
       user: {
-        id: (user._id as mongoose.Types.ObjectId).toString(),
+        id: user.id,
         email: user.email,
         name: user.name,
-        image: user.image,
+        image: profile?.avatar || null,
         role: user.role,
-        emailVerified: user.emailVerified,
-        createdAt: user.createdAt
+        emailVerified: null,
+        createdAt: user.created_at
       },
-      profile: profile ? profile.toJSON() : null,
-      isNGO: false
+      profile: profile || null,
+      isOrganization: false
     });
   } catch (error) {
     console.error('Profile fetch error:', error);
@@ -66,19 +68,19 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    await dbConnect();
-    const session = await getServerSession(authOptions);
+    const supabase = createSupabaseAdminClient();
+    const session = await getServerSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
 
-    // Reject NGO profile updates - they should use NGO-specific endpoints
-    if (session.user.isApprovedNGO) {
+    // Reject organization profile updates - they should use organization-specific endpoints
+    if (session.user.isApprovedOrganization) {
       return NextResponse.json({ 
-        error: 'NGO profiles should use /api/ngo/profile endpoint',
-        redirect: '/api/ngo/profile'
+        error: 'Organization profiles should use /api/organization/profile endpoint',
+        redirect: '/api/organization/profile'
       }, { status: 400 });
     }
 
@@ -87,18 +89,24 @@ export async function PUT(request: NextRequest) {
 
     // Update user basic info
     if (name) {
-      await User.findByIdAndUpdate(session.user.id, { name });
+      await supabase
+        .from('users')
+        .update({ name, updated_at: new Date().toISOString() })
+        .eq('id', session.user.id);
     }
 
     // Handle avatar - extract blob ID if it's a blob URL
-    let avatarBlobId = undefined;
+    let avatarBlobId: string | undefined = undefined;
     let avatarPath = avatar;
+
+    const isUuid = (value: string) =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 
     if (avatar && avatar.startsWith('/api/images/')) {
       // Extract blob ID from URL
       const blobId = avatar.replace('/api/images/', '');
-      if (mongoose.Types.ObjectId.isValid(blobId)) {
-        avatarBlobId = new mongoose.Types.ObjectId(blobId);
+      if (isUuid(blobId)) {
+        avatarBlobId = blobId;
         avatarPath = undefined; // Clear legacy path when using blob
       }
     }
@@ -109,28 +117,46 @@ export async function PUT(request: NextRequest) {
       location,
       website,
       phone,
-      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
+      date_of_birth: dateOfBirth ? new Date(dateOfBirth).toISOString().split('T')[0] : undefined,
       gender,
       occupation,
       organization,
       interests,
-      socialLinks: socialLinks,
-      socialMedia: socialMedia || {},
+      social_links: socialLinks,
+      social_media: socialMedia || {},
     };
 
     // Only update avatar fields if provided
     if (avatarBlobId) {
-      updateData.avatarBlobId = avatarBlobId;
-      updateData.avatar = undefined; // Clear legacy field
+      updateData.avatar_blob_id = avatarBlobId;
+      updateData.avatar = null; // Clear legacy field
     } else if (avatarPath) {
       updateData.avatar = avatarPath;
     }
 
-    const updatedProfile = await UserProfile.findOneAndUpdate(
-      { userId: session.user.id },
-      updateData,
-      { upsert: true, new: true }
-    );
+    const { data: existingProfile } = await supabase
+      .from('user_profiles')
+      .select('id')
+      .eq('user_id', session.user.id)
+      .single();
+
+    let updatedProfile = null;
+    if (existingProfile?.id) {
+      const { data } = await supabase
+        .from('user_profiles')
+        .update({ ...updateData, updated_at: new Date().toISOString() })
+        .eq('id', existingProfile.id)
+        .select('*')
+        .single();
+      updatedProfile = data || null;
+    } else {
+      const { data } = await supabase
+        .from('user_profiles')
+        .insert({ user_id: session.user.id, ...updateData })
+        .select('*')
+        .single();
+      updatedProfile = data || null;
+    }
 
     return NextResponse.json({
       message: 'Profile updated successfully',

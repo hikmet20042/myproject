@@ -1,126 +1,118 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import dbConnect from '@/lib/mongoose';
-import User from '@/lib/models/User';
-import UserProfile from '@/lib/models/UserProfile';
-
-import Blog from '@/lib/models/Blog';
-import Notification from '@/lib/models/Notification';
-import mongoose from 'mongoose';
+import { getServerSession } from '@/lib/auth/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { isAdminSession } from '@/lib/roles';
 
 export const dynamic = 'force-dynamic';
 
 async function isAdmin(session: any) {
-  return session?.user?.email === 'hikmat.mammadlii@gmail.com' || session?.user?.role === 'admin';
+  return isAdminSession(session);
 }
 
 // Get all users with pagination, search, and filtering
 export async function GET(request: NextRequest) {
   try {
-    await dbConnect();
-    const session = await getServerSession(authOptions);
+    const supabase = createSupabaseAdminClient();
+    const session = await getServerSession();
     if (!session || !(await isAdmin(session))) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limit = parseInt(searchParams.get('limit') || '10');
     const search = searchParams.get('search') || '';
     const role = searchParams.get('role');
     const sortBy = searchParams.get('sortBy') || 'createdAt';
-    const sortOrder = searchParams.get('sortOrder') === 'asc' ? 1 : -1;
+    const sortOrder = searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc';
     const skip = (page - 1) * limit;
 
     // Build query
-    const query: any = {
-      // Exclude NGOs - they have a separate management interface
-      role: { $in: ['user', 'admin'] }
-    };
-    
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } }
-      ];
-    }
-    
+    let query = supabase
+      .from('users')
+      .select('id, name, email, role, created_at, updated_at', { count: 'exact' })
+      .in('role', ['user', 'admin'])
+      .order(sortBy === 'createdAt' ? 'created_at' : 'updated_at', { ascending: sortOrder === 'asc' })
+      .range(skip, skip + limit - 1);
+
     if (role && role !== 'all') {
-      query.role = role;
+      query = query.eq('role', role);
     }
 
-    // Get total count (only users and admins, not NGOs)
-    const total = await User.countDocuments(query);
-    
-    // Calculate overall user statistics (not filtered, but exclude NGOs)
-    // emailVerified is a Date field, not boolean - null means not verified, any date means verified
-    const [totalUsers, verifiedUsers, adminUsers] = await Promise.all([
-      User.countDocuments({ role: { $in: ['user', 'admin'] } }),
-      User.countDocuments({ role: { $in: ['user', 'admin'] }, emailVerified: { $ne: null } }),
-      User.countDocuments({ role: 'admin' })
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
+    }
+
+    const { data: users, count: total, error } = await query;
+
+    if (error) {
+      console.error('GET /api/admin/users query error:', error);
+      return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
+    }
+
+    const userIds = (users || []).map(user => user.id);
+    const { data: profiles } = userIds.length
+      ? await supabase
+          .from('user_profiles')
+          .select('user_id, bio, location, occupation, avatar')
+          .in('user_id', userIds)
+      : { data: [] };
+
+    const profileMap = new Map((profiles || []).map(profile => [profile.user_id, profile]));
+
+    const { data: blogs } = userIds.length
+      ? await supabase
+          .from('blogs')
+          .select('author_id')
+          .in('author_id', userIds)
+      : { data: [] };
+
+    const blogCounts = new Map<string, number>();
+    (blogs || []).forEach((blog: any) => {
+      if (!blog.author_id) return;
+      blogCounts.set(blog.author_id, (blogCounts.get(blog.author_id) || 0) + 1);
+    });
+
+    const userStats = (users || []).map(user => {
+      const profile = profileMap.get(user.id);
+      return {
+        _id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        emailVerified: null,
+        createdAt: user.created_at,
+        updatedAt: user.updated_at,
+        image: profile?.avatar || null,
+        profile: profile
+          ? {
+              bio: profile.bio,
+              location: profile.location,
+              occupation: profile.occupation
+            }
+          : null,
+        stats: {
+          blogs: blogCounts.get(user.id) || 0
+        }
+      };
+    });
+
+    const [totalUsersResult, adminUsersResult] = await Promise.all([
+      supabase.from('users').select('id', { count: 'exact', head: true }).in('role', ['user', 'admin']),
+      supabase.from('users').select('id', { count: 'exact', head: true }).eq('role', 'admin')
     ]);
 
-    // Get users with profiles
-    const users = await User.aggregate([
-      { $match: query },
-      {
-        $lookup: {
-          from: 'userprofiles',
-          localField: '_id',
-          foreignField: 'userId',
-          as: 'profile'
-        }
-      },
-      {
-        $addFields: {
-          profile: { $arrayElemAt: ['$profile', 0] }
-        }
-      },
-      {
-        $project: {
-          _id: 1,
-          name: 1,
-          email: 1,
-          role: 1,
-          emailVerified: 1,
-          createdAt: 1,
-          updatedAt: 1,
-          image: 1,
-          'profile.bio': 1,
-          'profile.location': 1,
-          'profile.occupation': 1
-        }
-      },
-      { $sort: { [sortBy]: sortOrder } },
-      { $skip: skip },
-      { $limit: limit }
-    ]);
-
-    // Get user statistics
-    const userStats = await Promise.all(
-      users.map(async (user) => {
-        const [storyCount] = await Promise.all([
-          Blog.countDocuments({ author: user._id })
-        ]);
-        return {
-          ...user,
-          stats: {
-            
-            blogs: storyCount,
-            
-          }
-        };
-      })
-    );
+    const totalUsers = totalUsersResult.count || 0;
+    const verifiedUsers = totalUsers;
+    const adminUsers = adminUsersResult.count || 0;
 
     return NextResponse.json({
       users: userStats,
       pagination: {
-        total,
+        total: total || 0,
         page,
         limit,
-        totalPages: Math.ceil(total / limit)
+        totalPages: Math.ceil((total || 0) / limit)
       },
       stats: {
         total: totalUsers,
@@ -131,7 +123,7 @@ export async function GET(request: NextRequest) {
         search,
         role,
         sortBy,
-        sortOrder: sortOrder === 1 ? 'asc' : 'desc'
+        sortOrder
       }
     });
   } catch (error) {
@@ -143,8 +135,8 @@ export async function GET(request: NextRequest) {
 // Update user (role, status, etc.)
 export async function PUT(request: NextRequest) {
   try {
-    await dbConnect();
-    const session = await getServerSession(authOptions);
+    const supabase = createSupabaseAdminClient();
+    const session = await getServerSession();
     if (!session || !(await isAdmin(session))) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
@@ -156,8 +148,12 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
-    const user = await User.findById(userId);
-    if (!user) {
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, role')
+      .eq('id', userId)
+      .single();
+    if (userError || !user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
@@ -171,20 +167,27 @@ export async function PUT(request: NextRequest) {
 
     switch (action) {
       case 'updateRole':
-        if (!['user', 'admin', 'moderator'].includes(updates.role)) {
+        if (!['user', 'admin'].includes(updates.role)) {
           return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
         }
-        user.role = updates.role;
-        await user.save();
+        await supabase
+          .from('users')
+          .update({ role: updates.role, updated_at: new Date().toISOString() })
+          .eq('id', userId);
         notificationMessage = `Your account role has been updated to ${updates.role}`;
         result = { message: `User role updated to ${updates.role}` };
         break;
 
       case 'updateProfile':
         // Update basic user info
-        if (updates.name) user.name = updates.name;
-        if (updates.email) user.email = updates.email;
-        await user.save();
+        await supabase
+          .from('users')
+          .update({
+            ...(updates.name ? { name: updates.name } : {}),
+            ...(updates.email ? { email: updates.email } : {}),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', userId);
         result = { message: 'User profile updated successfully' };
         break;
 
@@ -196,8 +199,8 @@ export async function PUT(request: NextRequest) {
 
     // Send notification to user if message exists
     if (notificationMessage) {
-      await Notification.create({
-        userId: user._id,
+      await supabase.from('notifications').insert({
+        user_id: userId,
         type: 'admin',
         title: 'Account Update',
         message: notificationMessage,
@@ -215,8 +218,8 @@ export async function PUT(request: NextRequest) {
 // Delete user (soft delete)
 export async function DELETE(request: NextRequest) {
   try {
-    await dbConnect();
-    const session = await getServerSession(authOptions);
+    const supabase = createSupabaseAdminClient();
+    const session = await getServerSession();
     if (!session || !(await isAdmin(session))) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
@@ -232,25 +235,25 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Cannot delete your own account' }, { status: 400 });
     }
 
-    const user = await User.findById(userId);
-    if (!user) {
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, role')
+      .eq('id', userId)
+      .single();
+    if (userError || !user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Prevent deletion of NGOs through this endpoint - they should be managed through NGO API
-    if (user.role === 'ngo') {
-      return NextResponse.json({ error: 'NGOs cannot be deleted through this endpoint. Use the NGO management interface.' }, { status: 400 });
-    }
-
-    // Delete the user (hard delete since soft delete fields don't exist in schema)
-    await User.findByIdAndDelete(userId);
-
-    // Also delete user's related content
+    // Prevent deletion of organizations through this endpoint - they should be managed through organization API
+    // Delete user's related content first to avoid foreign key constraints
     await Promise.all([
-      UserProfile.deleteOne({ userId: new mongoose.Types.ObjectId(userId) }),
-      Blog.deleteMany({ author: new mongoose.Types.ObjectId(userId) }),
-      Notification.deleteMany({ userId: new mongoose.Types.ObjectId(userId) })
+      supabase.from('user_profiles').delete().eq('user_id', userId),
+      supabase.from('blogs').delete().eq('author_id', userId),
+      supabase.from('notifications').delete().eq('user_id', userId)
     ]);
+
+    // Delete auth user (cascades to public.users)
+    await supabase.auth.admin.deleteUser(userId);
 
     return NextResponse.json({ message: 'User deleted successfully' });
   } catch (error) {

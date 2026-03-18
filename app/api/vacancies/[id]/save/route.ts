@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import dbConnect from '@/lib/mongoose'
-import User from '@/lib/models/User'
-import Vacancy from '@/lib/models/Vacancy'
+import { getServerSession } from '@/lib/auth/server'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,9 +9,9 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
     
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
@@ -23,34 +20,42 @@ export async function POST(
     const userId = session.user.id;
     
     // Check if vacancy exists
-    const vacancy = await Vacancy.findById(vacancyId);
-    if (!vacancy) {
+    const { data: vacancy, error: vacancyError } = await supabase
+      .from('vacancies')
+      .select('id')
+      .eq('id', vacancyId)
+      .single();
+    if (vacancyError || !vacancy) {
       return NextResponse.json({ error: 'Vacancy not found' }, { status: 404 });
     }
     
     // Find the user
-    const user = await User.findById(userId);
-    if (!user) {
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, saved_vacancies')
+      .eq('id', userId)
+      .single();
+    if (userError || !user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
     // Check if user already saved this vacancy
-    if (!user.savedVacancies) user.savedVacancies = [];
-    const hasSaved = user.savedVacancies.some((id: any) => id.toString() === vacancyId);
+    const savedVacancies = Array.isArray(user.saved_vacancies) ? user.saved_vacancies : [];
+    const hasSaved = savedVacancies.some((id: any) => id.toString() === vacancyId);
     
     let action: 'saved' | 'unsaved';
     
     if (hasSaved) {
       // Unsave the vacancy
-      user.savedVacancies = user.savedVacancies.filter((id: any) => id.toString() !== vacancyId);
+      const updated = savedVacancies.filter((id: any) => id.toString() !== vacancyId);
+      await supabase.from('users').update({ saved_vacancies: updated }).eq('id', userId);
       action = 'unsaved';
     } else {
       // Save the vacancy
-      user.savedVacancies.push(vacancyId);
+      const updated = [...savedVacancies, vacancyId];
+      await supabase.from('users').update({ saved_vacancies: updated }).eq('id', userId);
       action = 'saved';
     }
-    
-    await user.save();
     
     return NextResponse.json({
       success: true,
@@ -70,9 +75,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
     
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     if (!session?.user?.id) {
       return NextResponse.json({ hasSaved: false, canSave: false });
     }
@@ -80,12 +85,17 @@ export async function GET(
     const vacancyId = params.id;
     const userId = session.user.id;
     
-    const user = await User.findById(userId).select('savedVacancies');
-    if (!user) {
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('saved_vacancies')
+      .eq('id', userId)
+      .single();
+    if (userError || !user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
-    const hasSaved = user.savedVacancies?.some((id: any) => id.toString() === vacancyId) || false;
+    const savedVacancies = Array.isArray(user.saved_vacancies) ? user.saved_vacancies : [];
+    const hasSaved = savedVacancies.some((id: any) => id.toString() === vacancyId) || false;
     
     return NextResponse.json({
       hasSaved,

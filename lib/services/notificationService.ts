@@ -1,5 +1,4 @@
-import NotificationModel from '@/lib/models/Notification'
-import User from '@/lib/models/User'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { emitNotificationToUser } from '@/lib/socket'
 import { sendNotificationToUser as sendSSENotification } from '@/lib/sse'
 
@@ -21,39 +20,48 @@ export class NotificationService {
    */
   static async createNotification(params: CreateNotificationParams) {
     try {
-      const notification = await NotificationModel.create({
-        userId: params.userId,
-        type: params.type,
-        title: params.title,
-        message: params.message,
-        actionUrl: params.actionUrl,
-        data: params.data || {},
-        isRead: false
-      })
+      const supabase = createSupabaseAdminClient()
+      const { data: notification, error } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: params.userId,
+          type: params.type,
+          title: params.title,
+          message: params.message,
+          action_url: params.actionUrl,
+          data: params.data || {},
+          is_read: false
+        })
+        .select('*')
+        .single()
+
+      if (error || !notification) {
+        throw error || new Error('Failed to create notification')
+      }
       
       // Emit real-time notification to user (Socket.IO when available)
       emitNotificationToUser(params.userId, {
-        id: notification._id,
+        id: notification.id,
         type: notification.type,
         title: notification.title,
         message: notification.message,
-        actionUrl: notification.actionUrl,
+        actionUrl: notification.action_url,
         data: notification.data,
-        isRead: notification.isRead,
-        createdAt: notification.createdAt
+        isRead: notification.is_read,
+        createdAt: notification.created_at
       })
       
       // Also attempt to send via SSE (server-sent events) if a connection exists
       try {
         await sendSSENotification(params.userId, {
-          id: notification._id,
+          id: notification.id,
           type: notification.type,
           title: notification.title,
           message: notification.message,
-          actionUrl: notification.actionUrl,
+          actionUrl: notification.action_url,
           data: notification.data,
-          isRead: notification.isRead,
-          createdAt: notification.createdAt
+          isRead: notification.is_read,
+          createdAt: notification.created_at
         })
       } catch (err: any) {
         // Non-fatal: SSE may not be available or user not connected to stream
@@ -174,16 +182,19 @@ export class NotificationService {
    * Notify admins about new content submissions
    */
   static async notifyAdminsAboutSubmission(
-    submissionType: 'blog' | 'event' | 'vacancy' | 'ngo',
+    submissionType: 'blog' | 'event' | 'vacancy' | 'organization',
     submissionId: string,
     submissionTitle: string,
     submitterName: string
   ) {
     try {
-      // Get all admin users
-      const admins = await User.find({ role: 'admin' }).select('_id').lean()
+      const supabase = createSupabaseAdminClient()
+      const { data: admins } = await supabase
+        .from('users')
+        .select('id')
+        .eq('role', 'admin')
       
-      if (admins.length === 0) return
+      if (!admins || admins.length === 0) return
 
       const title = `New ${submissionType.charAt(0).toUpperCase() + submissionType.slice(1)} Submission`
       const message = `${submitterName} submitted a new ${submissionType}: "${submissionTitle}". Review needed.`
@@ -195,36 +206,40 @@ export class NotificationService {
 
       // Create notifications for all admins
       const notifications = admins.map(admin => ({
-        userId: admin._id,
+        user_id: admin.id,
         type: 'admin_action_required',
         title,
         message,
-        actionUrl,
+        action_url: actionUrl,
         data: {
           submissionType,
           submissionId,
           submissionTitle,
           submitterName
         },
-        isRead: false
+        is_read: false
       }))
 
-      const createdNotifications: any[] = await NotificationModel.insertMany(notifications)
+      const { data: createdNotifications } = await supabase
+        .from('notifications')
+        .insert(notifications)
+        .select('*')
       
       // Emit real-time notifications to all admins
-      for (let i = 0; i < createdNotifications.length && i < admins.length; i++) {
-        const notification = createdNotifications[i]
+      const notificationRows = createdNotifications || []
+      for (let i = 0; i < notificationRows.length && i < admins.length; i++) {
+        const notification = notificationRows[i] as any
         const admin = admins[i] as any
         
-        emitNotificationToUser(admin._id.toString(), {
-          id: notification._id,
+        emitNotificationToUser(admin.id.toString(), {
+          id: notification.id,
           type: notification.type,
           title: notification.title,
           message: notification.message,
-          actionUrl: notification.actionUrl,
+          actionUrl: notification.action_url,
           data: notification.data,
-          isRead: notification.isRead,
-          createdAt: notification.createdAt
+          isRead: notification.is_read,
+          createdAt: notification.created_at
         })
       }
     } catch (error) {
@@ -235,10 +250,10 @@ export class NotificationService {
   /**
    * Send welcome notification to new users
    */
-  static async sendWelcomeNotification(userId: string, userType: 'user' | 'ngo') {
+  static async sendWelcomeNotification(userId: string, userType: 'user' | 'organization') {
     const title = 'icma360-a xoş gəlmisiniz!'
-    const message = userType === 'ngo'
-      ? 'QHT qeydiyyatınız üçün təşəkkür edirik. QHT funksiyalarına daxil olmaq üçün e-poçtunuzu təsdiqləyin və admin təsdiqini gözləyin.'
+    const message = userType === 'organization'
+      ? 'Təşkilat qeydiyyatınız üçün təşəkkür edirik. Təşkilat funksiyalarına daxil olmaq üçün e-poçtunuzu təsdiqləyin və admin təsdiqini gözləyin.'
       : 'İcmamıza qoşulduğunuz üçün təşəkkür edirik. Başlamaq üçün e-poçtunuzu təsdiqləyin.'
     
     return this.createNotification({
@@ -258,63 +273,74 @@ export class NotificationService {
     try {
       const now = new Date();
       const sevenDaysFromNow = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
-      
-      // Import Event model dynamically to avoid circular dependencies
-      const Event = (await import('@/lib/models/Event')).default;
-      
-      // Find all users with saved events
-      const usersWithSavedEvents = await User.find({
-        savedEvents: { $exists: true, $ne: [] }
-      }).select('_id savedEvents');
-      
+      const supabase = createSupabaseAdminClient()
+
+      const { data: users } = await supabase
+        .from('users')
+        .select('id, saved_events')
+
+      const usersWithSavedEvents = (users || []).filter(user =>
+        Array.isArray(user.saved_events) && user.saved_events.length > 0
+      )
+
       for (const user of usersWithSavedEvents) {
-        // Get user's saved events that have deadlines within 7 days
-        const upcomingEvents = await Event.find({
-          _id: { $in: user.savedEvents },
-          status: 'approved',
-          applicationDeadline: {
-            $gte: now,
-            $lte: sevenDaysFromNow
-          }
-        });
-        
-        // Create notifications for each upcoming event
+        const savedEvents = user.saved_events as string[]
+        const { data: upcomingEvents } = await supabase
+          .from('events')
+          .select('id, title, application_deadline')
+          .in('id', savedEvents)
+          .eq('status', 'approved')
+          .gte('application_deadline', now.toISOString())
+          .lte('application_deadline', sevenDaysFromNow.toISOString())
+
+        if (!upcomingEvents || upcomingEvents.length === 0) {
+          continue
+        }
+
+        const since = new Date(now.getTime() - (24 * 60 * 60 * 1000)).toISOString()
+        const { data: recentNotifications } = await supabase
+          .from('notifications')
+          .select('data')
+          .eq('user_id', user.id)
+          .eq('type', 'event_deadline')
+          .gte('created_at', since)
+
+        const notifiedEventIds = new Set(
+          (recentNotifications || [])
+            .map(notification => (notification.data as any)?.eventId)
+            .filter(Boolean)
+        )
+
         for (const event of upcomingEvents) {
-          // Check if notification was already created
-          const existingNotification = await NotificationModel.findOne({
-            userId: user._id,
-            type: 'event_deadline',
-            'data.eventId': event._id,
-            createdAt: { $gte: new Date(now.getTime() - (24 * 60 * 60 * 1000)) } // Within last 24 hours
-          });
-          
-          if (!existingNotification) {
-            const daysUntilDeadline = Math.ceil(
-              (event.applicationDeadline.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
-            );
-            
-            await this.createNotification({
-              userId: user._id.toString(),
-              type: 'event_deadline',
-              title: 'Event deadline approaching',
-              message: `The application deadline for "${event.title}" is in ${daysUntilDeadline} day${daysUntilDeadline > 1 ? 's' : ''}`,
-              actionUrl: `/resources/events/${event._id}`,
-              data: {
-                eventId: event._id,
-                eventTitle: event.title,
-                deadline: event.applicationDeadline,
-                daysUntilDeadline
-              }
-            });
+          if (notifiedEventIds.has(event.id)) {
+            continue
           }
+
+          const deadlineDate = event.application_deadline ? new Date(event.application_deadline) : null
+          const daysUntilDeadline = deadlineDate
+            ? Math.ceil((deadlineDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000))
+            : 0
+
+          await this.createNotification({
+            userId: user.id,
+            type: 'event_deadline',
+            title: 'Event deadline approaching',
+            message: `The application deadline for "${event.title}" is in ${daysUntilDeadline} day${daysUntilDeadline > 1 ? 's' : ''}`,
+            actionUrl: `/resources/events/${event.id}`,
+            data: {
+              eventId: event.id,
+              eventTitle: event.title,
+              deadline: event.application_deadline,
+              daysUntilDeadline
+            }
+          });
         }
       }
-      
+
       return {
         success: true,
         usersChecked: usersWithSavedEvents.length
       };
-      
     } catch (error) {
       console.error('Error checking event deadlines:', error);
       throw error;

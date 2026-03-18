@@ -3,46 +3,44 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { signIn } from 'next-auth/react'
+import { signInWithOAuth } from '@/lib/auth/client'
 import { Eye, EyeOff, User, Mail, Lock, Building, Globe, Phone, MapPin, FileText, Tag, Users, Shield, Sparkles, Heart, CheckCircle, ArrowRight } from 'lucide-react'
 import { Input, Button, TextArea } from '@/components/ui'
-import { useLanguage } from '@/contexts/LanguageContext'
-import { AnimatedBackground } from '@/components/shared'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
 import Logo from '@/components/Logo'
+import { ORGANIZATION_TYPE_LABELS, ORGANIZATION_TYPE_VALUES } from '@/lib/organizationTypes'
 
 export default function RegisterPage() {
-  const { t } = useLanguage();
   const router = useRouter()
-  const [registrationType, setRegistrationType] = useState<'user' | 'ngo'>('user')
+  const [registrationType, setRegistrationType] = useState<'user' | 'organization'>('user')
   
   // Focus areas with translation keys
   const localePath = useLocalizedPath()
   const focusAreasOptions = [
-    { key: 'Human Rights', translation: 'auth.focusAreas_humanRights' },
-    { key: 'Women Rights', translation: 'auth.focusAreas_womenRights' },
-    { key: 'Children Rights', translation: 'auth.focusAreas_childrenRights' },
-    { key: 'Education', translation: 'auth.focusAreas_education' },
-    { key: 'Healthcare', translation: 'auth.focusAreas_healthcare' },
-    { key: 'Environment', translation: 'auth.focusAreas_environment' },
-    { key: 'Poverty Alleviation', translation: 'auth.focusAreas_povertyAlleviation' },
-    { key: 'Legal Aid', translation: 'auth.focusAreas_legalAid' },
-    { key: 'Community Development', translation: 'auth.focusAreas_communityDevelopment' },
-    { key: 'Youth Development', translation: 'auth.focusAreas_youthDevelopment' },
-    { key: 'Elderly Care', translation: 'auth.focusAreas_elderlyCare' },
-    { key: 'Disability Rights', translation: 'auth.focusAreas_disabilityRights' },
-    { key: 'LGBTQ+ Rights', translation: 'auth.focusAreas_lgbtqRights' },
-    { key: 'Mental Health', translation: 'auth.focusAreas_mentalHealth' },
-    { key: 'Other', translation: 'auth.focusAreas_other' }
+    { key: 'Human Rights', label: 'İnsan Hüquqları' },
+    { key: 'Women Rights', label: 'Qadın Hüquqları' },
+    { key: 'Children Rights', label: 'Uşaq Hüquqları' },
+    { key: 'Education', label: 'Təhsil' },
+    { key: 'Healthcare', label: 'Səhiyyə' },
+    { key: 'Environment', label: 'Ətraf Mühit' },
+    { key: 'Poverty Alleviation', label: 'Yoxsulluğun Azaldılması' },
+    { key: 'Legal Aid', label: 'Hüquqi Yardım' },
+    { key: 'Community Development', label: 'İcma İnkişafı' },
+    { key: 'Youth Development', label: 'Gənclər İnkişafı' },
+    { key: 'Elderly Care', label: 'Yaşlılara Dəstək' },
+    { key: 'Disability Rights', label: 'Əlillik Hüquqları' },
+    { key: 'LGBTQ+ Rights', label: 'LGBTQ+ Hüquqları' },
+    { key: 'Mental Health', label: 'Mental Sağlamlıq' },
+    { key: 'Other', label: 'Digər' }
   ];
   
-  const [formData, setFormData] = useState({
-    name: '',
+  const [formData, setFormData] = useState({ name: '',
     email: '',
     password: '',
     confirmPassword: '',
-    // NGO-specific fields
+    // Organization-specific fields
     organizationName: '',
+    organizationType: '',
     description: '',
     website: '',
     contactPhone: '',
@@ -53,8 +51,7 @@ export default function RegisterPage() {
     contactPersonName: '',
     contactPersonEmail: '',
     contactPersonPhone: '',
-    contactPersonPosition: ''
-  })
+    contactPersonPosition: '' })
   const [errors, setErrors] = useState<{[key: string]: string}>({})
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -62,14 +59,13 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   // Reset form when registration type changes
-  useEffect(() => {
-    setFormData({
-      name: '',
+  useEffect(() => { setFormData({ name: '',
       email: '',
       password: '',
       confirmPassword: '',
-      // NGO-specific fields
+      // Organization-specific fields
       organizationName: '',
+      organizationType: '',
       description: '',
       website: '',
       contactPhone: '',
@@ -80,179 +76,100 @@ export default function RegisterPage() {
       contactPersonName: '',
       contactPersonEmail: '',
       contactPersonPhone: '',
-      contactPersonPosition: ''
-    })
-    setErrors({})
-  }, [registrationType])
+      contactPersonPosition: '' })
+    setErrors({}) }, [registrationType])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => { const { name, value } = e.target
+    setFormData(prev => ({ ...prev,
+      [name]: value }))
     // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }))
-    }
-  }
+    if (errors[name]) { setErrors(prev => ({ ...prev,
+        [name]: '' })) } }
 
-  const handleGoogleSignUp = async () => {
-    try {
-      await signIn('google', { callbackUrl: localePath('/') })
-    } catch (error: any) {
-      setErrors({ submit: error?.message || 'An error occurred with Google sign-up' })
-    }
-  }
+  const handleGoogleSignUp = async () => { try { await signInWithOAuth('google', `${window.location.origin}/auth/callback?next=${encodeURIComponent(localePath('/'))}`) } catch (error: any) { setErrors({ submit: error?.message || 'Google ilə qeydiyyat zamanı xəta baş verdi' }) } }
 
-  const handleFocusAreaChange = (area: string) => {
-    setFormData(prev => ({
-      ...prev,
+  const handleFocusAreaChange = (area: string) => { setFormData(prev => ({ ...prev,
       focusAreas: prev.focusAreas.includes(area)
         ? prev.focusAreas.filter(a => a !== area)
-        : [...prev.focusAreas, area]
-    }))
-  }
+        : [...prev.focusAreas, area] })) }
 
-  const validateForm = () => {
-    const newErrors: {[key: string]: string} = {}
+  const validateForm = () => { const newErrors: {[key: string]: string} = {}
 
     // Name validation only for regular users
-    if (registrationType === 'user' && !formData.name.trim()) {
-      newErrors.name = t('auth.validation_nameRequired')
-    }
+    if (registrationType === 'user' && !formData.name.trim()) { newErrors.name = 'Ad tələb olunur' }
 
-    if (!formData.email.trim()) {
-      newErrors.email = t('auth.validation_emailRequired')
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = t('auth.validation_invalidEmail')
-    }
+    if (!formData.email.trim()) { newErrors.email = 'E-poçt tələb olunur' } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) { newErrors.email = 'Etibarlı e-poçt ünvanı daxil et' }
 
-    if (!formData.password) {
-      newErrors.password = t('auth.validation_passwordRequired')
-    } else if (formData.password.length < 6) {
-      newErrors.password = t('auth.validation_passwordMinLength')
-    }
+    if (!formData.password) { newErrors.password = 'Şifrə tələb olunur' } else if (formData.password.length < 6) { newErrors.password = 'Şifrə ən azı 6 simvoldan ibarət olmalıdır' }
 
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = t('auth.validation_confirmPasswordRequired')
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = t('auth.validation_passwordsNotMatch')
-    }
+    if (!formData.confirmPassword) { newErrors.confirmPassword = 'Şifrəni təsdiqlə' } else if (formData.password !== formData.confirmPassword) { newErrors.confirmPassword = 'Şifrələr uyğun gəlmir' }
 
-    // NGO-specific validation
-    if (registrationType === 'ngo') {
-      if (!formData.organizationName.trim()) {
-        newErrors.organizationName = t('auth.validation_orgNameRequired')
-      }
-      if (!formData.description.trim()) {
-        newErrors.description = t('auth.validation_descriptionRequired')
-      }
-      if (formData.focusAreas.length === 0) {
-        newErrors.focusAreas = t('auth.validation_focusAreasRequired')
-      }
-      if (formData.website && !/^https?:\/\/.+/.test(formData.website)) {
-        newErrors.website = t('auth.validation_invalidWebsite')
-      }
+    // Organization-specific validation
+    if (registrationType === 'organization') { if (!formData.organizationName.trim()) { newErrors.organizationName = 'Təşkilat adı tələb olunur' }
+      if (!formData.organizationType) { newErrors.organizationType = 'Təşkilat növü tələb olunur' }
+      if (!formData.description.trim()) { newErrors.description = 'Təşkilat təsviri tələb olunur' }
+      if (formData.focusAreas.length === 0) { newErrors.focusAreas = 'Ən azı bir fəaliyyət sahəsi seç' }
+      if (formData.website && !/^https?:\/\/.+/.test(formData.website)) { newErrors.website = 'Etibarlı veb sayt URL daxil et' }
       // Contact person validation
-      if (!formData.contactPersonName.trim()) {
-        newErrors.contactPersonName = t('auth.validation_contactPersonNameRequired')
-      }
-      if (!formData.contactPersonEmail.trim()) {
-        newErrors.contactPersonEmail = t('auth.validation_contactPersonEmailRequired')
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactPersonEmail)) {
-        newErrors.contactPersonEmail = t('auth.validation_invalidContactEmail')
-      }
-    }
+      if (!formData.contactPersonName.trim()) { newErrors.contactPersonName = 'Əlaqə şəxsinin adı tələb olunur' }
+      if (!formData.contactPersonEmail.trim()) { newErrors.contactPersonEmail = 'Əlaqə şəxsinin e-poçtu tələb olunur' } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contactPersonEmail)) { newErrors.contactPersonEmail = 'Etibarlı əlaqə şəxsinin e-poçtu daxil et' } }
 
     setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    return Object.keys(newErrors).length === 0 }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (e: React.FormEvent) => { e.preventDefault()
     console.log('Form submitted with data:', formData)
     
-    if (!validateForm()) {
-      console.log('Form validation failed')
-      return
-    }
+    if (!validateForm()) { console.log('Form validation failed')
+      return }
 
     setLoading(true)
     setErrors({})
 
-    try {
-      console.log('Sending registration request...')
-      const requestBody: any = {
-          email: formData.email,
+    try { console.log('Sending registration request...')
+      const requestBody: any = { email: formData.email,
           password: formData.password,
-          type: registrationType
-        }
+          type: registrationType }
 
         // Add name only for regular users
-        if (registrationType === 'user') {
-          requestBody.name = formData.name
-        }
+        if (registrationType === 'user') { requestBody.name = formData.name }
 
-        // Add NGO profile for NGO registrations
-        if (registrationType === 'ngo') {
-          requestBody.ngoProfile = {
-            organizationName: formData.organizationName,
+        // Add organization profile for organization registrations
+        if (registrationType === 'organization') { requestBody.organizationProfile = { organizationName: formData.organizationName,
+            organizationType: formData.organizationType,
             description: formData.description,
             website: formData.website || undefined,
             contactPhone: formData.contactPhone || undefined,
             address: formData.address || undefined,
             registrationNumber: formData.registrationNumber || undefined,
             focusAreas: formData.focusAreas,
-            contactPerson: {
-              name: formData.contactPersonName,
+            contactPerson: { name: formData.contactPersonName,
               email: formData.contactPersonEmail,
               phone: formData.contactPersonPhone || undefined,
-              position: formData.contactPersonPosition || undefined
-            }
-          }
-        }
+              position: formData.contactPersonPosition || undefined } } }
 
-        const response = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
-        })
+        const response = await fetch('/api/auth/register', { method: 'POST',
+          headers: { 'Content-Type': 'application/json', },
+          body: JSON.stringify(requestBody), })
 
       const data = await response.json()
       console.log('Registration response:', data)
 
-      if (response.ok) {
-        setSuccess(true)
-        console.log('Registration successful!')
-      } else {
-        setErrors({ submit: data.error || 'Registration failed' })
-        console.log('Registration failed:', data.error)
-      }
-    } catch (error) {
-      console.error('Registration error:', error)
-      setErrors({ submit: 'An error occurred. Please try again.' })
-    } finally {
-      setLoading(false)
-    }
-  }
+      if (response.ok) { setSuccess(true)
+        console.log('Registration successful!') } else { setErrors({ submit: data.error || 'Qeydiyyat alınmadı' })
+        console.log('Registration failed:', data.error) } } catch (error) { console.error('Registration error:', error)
+      setErrors({ submit: 'Xəta baş verdi. Zəhmət olmasa yenidən cəhd edin.' }) } finally { setLoading(false) } }
 
-  if (success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
+  if (success) { return (
+      <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full animate-scale-in">
-          <div className="bg-white p-8 sm:p-10 rounded-2xl shadow-2xl border-2 border-green-200 text-center">
-            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-green-500 to-green-700 mb-6 shadow-lg animate-pulse-glow">
+          <div className="rounded-2xl border border-green-200 bg-white p-8 text-center shadow-sm sm:p-10">
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 shadow-sm">
               <CheckCircle className="h-8 w-8 text-white" />
             </div>
-            <h3 className="text-2xl font-black text-gray-900 mb-3">{t('auth.registrationSuccessful')}</h3>
+            <h3 className="text-2xl font-black text-gray-900 mb-3">{'Qeydiyyat Uğurlu!'}</h3>
             <p className="text-gray-600 mb-8 text-sm sm:text-base leading-relaxed">
-              {t('auth.verificationEmailSent')}
+              {'Ünvanına təsdiq e-poçtu göndərdik. E-poçtunu yoxla və hesabı aktivləşdirmək üçün təsdiq linkini klikə.'}
             </p>
             <Link href={localePath("/auth/signin")}>
               <Button 
@@ -261,18 +178,17 @@ export default function RegisterPage() {
                 fullWidth
                 className="group"
               >
-                <span>{t('auth.goToSignIn')}</span>
+                <span>{'Daxil Olma Səhifəsinə Keç'}</span>
                 <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
           </div>
         </div>
       </div>
-    )
-  }
+    ) }
 
   return (
-  <div className="min-h-screen bg-gray-50 lg:bg-white flex">
+  <div className="min-h-screen bg-background text-foreground lg:bg-white flex">
     {/* Left Side - Form */}
     <div className="flex-1 flex flex-col justify-center py-8 sm:py-12 px-4 sm:px-6 lg:px-20 xl:px-24">
       <div className="w-full max-w-2xl mx-auto lg:mx-0">
@@ -282,7 +198,7 @@ export default function RegisterPage() {
             href={localePath("/")}
             size="md"
             variant="dark"
-            showText={true}
+             showText={false}
             showTagline={false}
             className="mb-6"
           />
@@ -290,48 +206,43 @@ export default function RegisterPage() {
           
           
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 mb-2">
-            {registrationType === 'ngo' ? t('auth.registerNGO') : t('auth.signUp')}
+            {registrationType === 'organization' ? 'Təşkilatı Qeydiyyatdan Keçir' : 'Hesab yarat'}
           </h1>
           <p className="text-sm sm:text-base text-gray-600">
-            {registrationType === 'ngo' 
-              ? t('auth.registerNGOSubtitle')
-              : t('auth.signUpSubtitle')
-            }
+            {registrationType === 'organization' 
+              ? 'Təşkilat şəbəkəmizə qoşul və ictimai təsir yarat'
+              : 'icma360 ilə əlaqə qur, öyrən və inkişaf et' }
           </p>
         </div>
 
         {/* Registration Type Tabs */}
-        <div className="bg-white rounded-xl shadow-md border-2 border-gray-200 p-1 mb-6 animate-fade-in animation-delay-200">
+        <div className="mb-6 rounded-xl border border-gray-200 bg-white p-1 shadow-sm animate-fade-in animation-delay-200">
           <div className="grid grid-cols-2 gap-1">
             <button
               type="button"
               onClick={() => setRegistrationType('user')}
-              className={`flex items-center justify-center px-4 py-3 text-sm font-bold rounded-lg transition-all duration-300 ${
-                registrationType === 'user'
-                  ? 'bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg scale-105'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
+              className={`flex items-center justify-center px-4 py-3 text-sm font-bold rounded-lg transition-all duration-300 ${ registrationType === 'user'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }`}
             >
               <User className="w-4 h-4 mr-2" />
-              {t('auth.individualUser')}
+              {'Fərdi İstifadəçi'}
             </button>
             <button
               type="button"
-              onClick={() => setRegistrationType('ngo')}
-              className={`flex items-center justify-center px-4 py-3 text-sm font-bold rounded-lg transition-all duration-300 ${
-                registrationType === 'ngo'
-                  ? 'bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg scale-105'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
+              onClick={() => setRegistrationType('organization')}
+              className={`flex items-center justify-center px-4 py-3 text-sm font-bold rounded-lg transition-all duration-300 ${ registrationType === 'organization'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }`}
             >
               <Building className="w-4 h-4 mr-2" />
-              {t('auth.ngoOrganization')}
+              {'Təşkilat Hesabı'}
             </button>
           </div>
         </div>
 
         {/* Form Card */}
-        <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl border-2 border-gray-200 animate-fade-in animation-delay-400">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8 animate-fade-in animation-delay-400">
           {errors.submit && (
             <div className="rounded-md bg-red-50 p-4 mb-4">
               <div className="flex">
@@ -365,7 +276,7 @@ export default function RegisterPage() {
                     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                   </svg>
-                  {t('auth.continueWithGoogle')}
+                  {'Google ilə davam et'}
                 </Button>
               </div>
 
@@ -375,7 +286,7 @@ export default function RegisterPage() {
                 </div>
                 <div className="relative flex justify-center text-sm">
                   <span className="px-2 bg-white text-gray-500">
-                    {t('auth.orSignUpEmail')}
+                    {'Və ya e-poçt ilə qeydiyyatdan keç'}
                   </span>
                 </div>
               </div>
@@ -387,14 +298,14 @@ export default function RegisterPage() {
             {registrationType === 'user' && (
               <>
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">{t('auth.fullName')}</label>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">{'Tam Ad'}</label>
                   <div className="mt-1">
                     <Input
                       id="name"
                       name="name"
                       type="text"
                       required
-                      placeholder={t('auth.enterFullName')}
+                      placeholder={'Tam adını daxil et'}
                       value={formData.name}
                       onChange={handleChange}
                       autoComplete="name"
@@ -406,14 +317,14 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">{t('auth.emailAddress')}</label>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">{'E-poçt ünvanı'}</label>
                   <div className="mt-1">
                     <Input
                       id="email"
                       name="email"
                       type="email"
                       required
-                      placeholder={t('auth.enterEmail')}
+                      placeholder={'E-poçt ünvanını daxil et'}
                       value={formData.email}
                       onChange={handleChange}
                       autoComplete="email"
@@ -425,14 +336,14 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">{t('auth.password')}</label>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">{'Şifrə'}</label>
                   <div className="mt-1 relative">
                     <Input
                       id="password"
                       name="password"
                       type={showPassword ? 'text' : 'password'}
                       required
-                      placeholder={t('auth.passwordMinLength')}
+                      placeholder={'Şifrə (minimum 6 simvol)'}
                       value={formData.password}
                       onChange={handleChange}
                       autoComplete="new-password"
@@ -447,14 +358,14 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">{t('auth.confirmPassword')}</label>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">{'Şifrəni Təsdiq Et'}</label>
                   <div className="mt-1 relative">
                     <Input
                       id="confirmPassword"
                       name="confirmPassword"
                       type={showConfirmPassword ? 'text' : 'password'}
                       required
-                      placeholder={t('auth.confirmPassword')}
+                      placeholder={'Şifrəni Təsdiq Et'}
                       value={formData.confirmPassword}
                       onChange={handleChange}
                       autoComplete="new-password"
@@ -469,22 +380,22 @@ export default function RegisterPage() {
               </>
             )}
 
-            {/* NGO Registration Fields */}
-            {registrationType === 'ngo' && (
+            {/* Organization Registration Fields */}
+            {registrationType === 'organization' && (
               <>
                 <div className="border-t pt-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">{t('auth.organizationInfo')}</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">{'Təşkilat Məlumatları'}</h3>
                 </div>
                 
                 <div>
-                  <label htmlFor="organizationName" className="block text-sm font-medium text-gray-700">{t('auth.organizationName')} {t('auth.required')}</label>
+                  <label htmlFor="organizationName" className="block text-sm font-medium text-gray-700">{'Təşkilatın Adı'} {'*'}</label>
                   <div className="mt-1 relative">
                     <Input
                       id="organizationName"
                       name="organizationName"
                       type="text"
                       required
-                      placeholder={t('auth.enterOrgName')}
+                      placeholder={'Təşkilatın adını daxil et'}
                       value={formData.organizationName}
                       onChange={handleChange}
                       icon={Building}
@@ -492,16 +403,38 @@ export default function RegisterPage() {
                   </div>
                   {errors.organizationName && <p className="mt-1 text-sm text-red-600">{errors.organizationName}</p>}
                 </div>
+
+                <div>
+                  <label htmlFor="organizationType" className="block text-sm font-medium text-gray-700">{'Təşkilat növü'} {'*'}</label>
+                  <div className="mt-1 relative">
+                    <select
+                      id="organizationType"
+                      name="organizationType"
+                      required
+                      value={formData.organizationType}
+                      onChange={handleChange}
+                      className="block w-full rounded-md border border-gray-300 bg-white py-2.5 pl-3 pr-10 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                    >
+                      <option value="">{'Təşkilat növünü seçin'}</option>
+                      {ORGANIZATION_TYPE_VALUES.map((value) => (
+                        <option key={value} value={value}>
+                          {ORGANIZATION_TYPE_LABELS[value]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {errors.organizationType && <p className="mt-1 text-sm text-red-600">{errors.organizationType}</p>}
+                </div>
                 
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">{t('auth.emailAddress')}</label>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">{'E-poçt ünvanı'}</label>
                   <div className="mt-1 relative">
                     <Input
                       id="email"
                       name="email"
                       type="email"
                       required
-                      placeholder={t('auth.enterEmail')}
+                      placeholder={'E-poçt ünvanını daxil et'}
                       value={formData.email}
                       onChange={handleChange}
                       autoComplete="email"
@@ -512,14 +445,14 @@ export default function RegisterPage() {
                 </div>
                 
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">{t('auth.password')}</label>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">{'Şifrə'}</label>
                   <div className="mt-1 relative">
                     <Input
                       id="password"
                       name="password"
                       type={showPassword ? 'text' : 'password'}
                       required
-                      placeholder={t('auth.passwordMinLength')}
+                      placeholder={'Şifrə (minimum 6 simvol)'}
                       value={formData.password}
                       onChange={handleChange}
                       autoComplete="new-password"
@@ -533,14 +466,14 @@ export default function RegisterPage() {
                 </div>
                 
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">{t('auth.confirmPassword')}</label>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">{'Şifrəni Təsdiq Et'}</label>
                   <div className="mt-1 relative">
                     <Input
                       id="confirmPassword"
                       name="confirmPassword"
                       type={showConfirmPassword ? 'text' : 'password'}
                       required
-                      placeholder={t('auth.confirmPassword')}
+                      placeholder={'Şifrəni Təsdiq Et'}
                       value={formData.confirmPassword}
                       onChange={handleChange}
                       autoComplete="new-password"
@@ -555,22 +488,22 @@ export default function RegisterPage() {
               </>
             )}
 
-            {/* NGO Organization Details */}
-            {registrationType === 'ngo' && (
+            {/* Organization Details */}
+            {registrationType === 'organization' && (
               <>
                 <div className="border-t pt-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">{t('auth.organizationDetails')}</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">{'Təşkilat Təfərrüatları'}</h3>
                 </div>
 
                 <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700">{t('auth.organizationDescription')} {t('auth.required')}</label>
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-700">{'Təşkilat Təsviri'} {'*'}</label>
                   <div className="mt-1">
                     <TextArea
                       id="description"
                       name="description"
                       rows={4}
                       required
-                      placeholder={t('auth.describeOrganization')}
+                      placeholder={'Təşkilatın missiyasını və fəaliyyətlərini təsvir et'}
                       value={formData.description}
                       onChange={handleChange}
                       textAreaSize="md"
@@ -581,13 +514,13 @@ export default function RegisterPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="website" className="block text-sm font-medium text-gray-700">{t('auth.website')}</label>
+                    <label htmlFor="website" className="block text-sm font-medium text-gray-700">{'Veb sayt'}</label>
                     <div className="mt-1 relative">
                       <Input
                         id="website"
                         name="website"
                         type="url"
-                        placeholder={t('auth.websitePlaceholder')}
+                        placeholder={'https://təşkilatın.org'}
                         value={formData.website}
                         onChange={handleChange}
                         icon={Globe}
@@ -597,13 +530,13 @@ export default function RegisterPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="contactPhone" className="block text-sm font-medium text-gray-700">{t('auth.organizationPhone')}</label>
+                    <label htmlFor="contactPhone" className="block text-sm font-medium text-gray-700">{'Təşkilat Telefonu'}</label>
                     <div className="mt-1 relative">
                       <Input
                         id="contactPhone"
                         name="contactPhone"
                         type="tel"
-                        placeholder={t('auth.phonePlaceholder')}
+                        placeholder={'+994 (XX) XXX-XX-XX'}
                         value={formData.contactPhone}
                         onChange={handleChange}
                         icon={Phone}
@@ -613,13 +546,13 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="address" className="block text-sm font-medium text-gray-700">{t('auth.address')}</label>
+                  <label htmlFor="address" className="block text-sm font-medium text-gray-700">{'Ünvan'}</label>
                   <div className="mt-1 relative">
                     <Input
                       id="address"
                       name="address"
                       type="text"
-                      placeholder={t('auth.addressPlaceholder')}
+                      placeholder={'Təşkilat ünvanı'}
                       value={formData.address}
                       onChange={handleChange}
                       icon={MapPin}
@@ -628,13 +561,13 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="registrationNumber" className="block text-sm font-medium text-gray-700">{t('auth.registrationNumber')}</label>
+                  <label htmlFor="registrationNumber" className="block text-sm font-medium text-gray-700">{'Qeydiyyat Nömrəsi'}</label>
                   <div className="mt-1 relative">
                     <Input
                       id="registrationNumber"
                       name="registrationNumber"
                       type="text"
-                      placeholder={t('auth.registrationNumberPlaceholder')}
+                      placeholder={'Rəsmi qeydiyyat nömrəsi'}
                       value={formData.registrationNumber}
                       onChange={handleChange}
                       icon={FileText}
@@ -643,7 +576,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">{t('auth.focusAreas')} {t('auth.required')}</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">{'Fəaliyyət Sahələri'} {'*'}</label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                     {focusAreasOptions.map((area) => (
                       <label key={area.key} className="flex items-center space-x-2 text-sm">
@@ -653,7 +586,7 @@ export default function RegisterPage() {
                           onChange={() => handleFocusAreaChange(area.key)}
                           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
-                        <span className="text-gray-700">{t(area.translation)}</span>
+                        <span className="text-gray-700">{area.label}</span>
                       </label>
                     ))}
                   </div>
@@ -661,19 +594,19 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="border-t pt-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">{t('auth.contactPersonInfo')}</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">{'Əlaqə Şəxsinin Məlumatları'}</h3>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="contactPersonName" className="block text-sm font-medium text-gray-700">{t('auth.contactPersonName')} {t('auth.required')}</label>
+                    <label htmlFor="contactPersonName" className="block text-sm font-medium text-gray-700">{'Əlaqə Şəxsinin Adı'} {'*'}</label>
                     <div className="mt-1 relative">
                       <Input
                         id="contactPersonName"
                         name="contactPersonName"
                         type="text"
                         required
-                        placeholder={t('auth.contactPersonNamePlaceholder')}
+                        placeholder={'Əlaqə şəxsinin tam adı'}
                         value={formData.contactPersonName}
                         onChange={handleChange}
                         icon={User}
@@ -683,14 +616,14 @@ export default function RegisterPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="contactPersonEmail" className="block text-sm font-medium text-gray-700">{t('auth.contactPersonEmail')} {t('auth.required')}</label>
+                    <label htmlFor="contactPersonEmail" className="block text-sm font-medium text-gray-700">{'Əlaqə Şəxsinin E-poçtu'} {'*'}</label>
                     <div className="mt-1 relative">
                       <Input
                         id="contactPersonEmail"
                         name="contactPersonEmail"
                         type="email"
                         required
-                        placeholder={t('auth.contactPersonEmailPlaceholder')}
+                        placeholder={'elaqe@təşkilat.org'}
                         value={formData.contactPersonEmail}
                         onChange={handleChange}
                         icon={Mail}
@@ -702,13 +635,13 @@ export default function RegisterPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="contactPersonPhone" className="block text-sm font-medium text-gray-700">{t('auth.contactPersonPhone')}</label>
+                    <label htmlFor="contactPersonPhone" className="block text-sm font-medium text-gray-700">{'Əlaqə Şəxsinin Telefonu'}</label>
                     <div className="mt-1 relative">
                       <Input
                         id="contactPersonPhone"
                         name="contactPersonPhone"
                         type="tel"
-                        placeholder={t('auth.phonePlaceholder')}
+                        placeholder={'+994 (XX) XXX-XX-XX'}
                         value={formData.contactPersonPhone}
                         onChange={handleChange}
                         icon={Phone}
@@ -717,13 +650,13 @@ export default function RegisterPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="contactPersonPosition" className="block text-sm font-medium text-gray-700">{t('auth.contactPersonPosition')}</label>
+                    <label htmlFor="contactPersonPosition" className="block text-sm font-medium text-gray-700">{'Vəzifə/Titul'}</label>
                     <div className="mt-1 relative">
                       <Input
                         id="contactPersonPosition"
                         name="contactPersonPosition"
                         type="text"
-                        placeholder={t('auth.positionPlaceholder')}
+                        placeholder={'Direktor, Menecer, və s.'}
                         value={formData.contactPersonPosition}
                         onChange={handleChange}
                         icon={Users}
@@ -742,9 +675,9 @@ export default function RegisterPage() {
                       </svg>
                     </div>
                     <div className="ml-3">
-                      <h3 className="text-sm font-medium text-yellow-800">{t('auth.approvalRequired')}</h3>
+                      <h3 className="text-sm font-medium text-yellow-800">{'Təsdiq Tələb Olunur'}</h3>
                       <div className="mt-2 text-sm text-yellow-700">
-                        <p>{t('auth.approvalRequiredText')}</p>
+                        <p>{'Təşkilat qeydiyyatın admin komandamız tərəfindən yoxlanılacaq. Təsdiq edildikdən sonra e-poçt bildirişi alacaqsan.'}</p>
                       </div>
                     </div>
                   </div>
@@ -759,15 +692,15 @@ export default function RegisterPage() {
                 fullWidth
                 loading={loading}
               >
-                {loading ? t('auth.creatingAccount') : t('auth.createAccount')}
+                {loading ? 'Hesab Yaradılır...' : 'Hesab Yarat'}
               </Button>
             </div>
           </form>
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              {t('auth.alreadyHaveAccount')}{' '}
+              {'Artıq hesabın var?'}{' '}
               <Link href={localePath("/auth/signin")} className="font-medium text-blue-600 hover:text-blue-500">
-                {t('auth.signInHere')}
+                {'Buradan daxil ol'}
               </Link>
             </p>
           </div>
@@ -777,68 +710,60 @@ export default function RegisterPage() {
               className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-blue-600 transition-colors group"
             >
               <span>←</span>
-              <span className="group-hover:translate-x-1 transition-transform">{t('auth.backToHomepage')}</span>
+              <span className="group-hover:translate-x-1 transition-transform">{'Ana səhifəyə qayıt'}</span>
             </Link>
           </div>
         </div>
       </div>
     </div>
 
-    {/* Right Side - Engaging Visual Panel (Hidden on mobile) */}
-    <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-purple-600 via-indigo-700 to-blue-900 relative overflow-hidden">
-      {/* Animated Background Elements */}
-      <AnimatedBackground
-        colors={{
-          blob1: 'bg-pink-500',
-          blob2: 'bg-blue-400',
-          blob3: 'bg-purple-500'
-        }}
-      />
+    {/* Right Side - Context Panel (Hidden on mobile) */}
+    <div className="hidden lg:flex lg:flex-1 relative overflow-hidden border-l border-gray-200 bg-slate-50">
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-30" />
 
-      {/* Content */}
       <div className="relative z-10 flex flex-col justify-center px-12 xl:px-20 py-12">
         <div className="max-w-lg">
           
 
-          <h2 className="text-3xl xl:text-4xl font-black text-white mb-6">
-            {t('auth.registerWelcome')}
+          <h2 className="mb-6 text-3xl font-black text-gray-900 xl:text-4xl">
+            {'İcmamıza qoşul'}
           </h2>
           
-          <p className="text-lg text-purple-100 mb-8 leading-relaxed">
-            {t('auth.registerDescription')}
+          <p className="mb-8 text-lg leading-relaxed text-gray-600">
+            {'Pulsuz hesab yarat, imkanları izləməyə başla və icma ilə birlikdə inkişaf et.'}
           </p>
 
           {/* Benefits List */}
           <div className="space-y-4 mb-8">
             {[
-              { icon: Shield, text: t('auth.benefit1') || 'Free Account & Full Access' },
-              { icon: Users, text: t('auth.benefit2') || 'Connect with Community' },
-              { icon: Sparkles, text: t('auth.benefit3') || 'Share Your Impact' },
-              { icon: CheckCircle, text: t('auth.benefit4') || 'Verified Resources' }
+              { icon: Shield, text: 'Pulsuz hesab və tam giriş' },
+              { icon: Users, text: 'İcma ilə əlaqə qur' },
+              { icon: Sparkles, text: 'Təsirini paylaş' },
+              { icon: CheckCircle, text: 'Yoxlanmış resurslar' }
             ].map((benefit, idx) => (
-              <div key={idx} className="flex items-center gap-4 group animate-fade-in" style={{ animationDelay: `${idx * 0.1}s` }}>
-                <div className="w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <benefit.icon className="w-6 h-6 text-purple-300" />
+              <div key={idx} className="group flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-3 animate-fade-in" style={{ animationDelay: `${idx * 0.1}s` }}>
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 transition-transform group-hover:scale-110">
+                  <benefit.icon className="h-6 w-6 text-primary" />
                 </div>
-                <span className="text-white font-medium">{benefit.text}</span>
+                <span className="font-medium text-gray-700">{benefit.text}</span>
               </div>
             ))}
           </div>
 
           {/* Trust Indicators */}
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-6">
-            <p className="text-purple-100 text-sm mb-4">
-              {t('auth.trustedBy')}
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <p className="mb-4 text-sm text-gray-500">
+              {'Etibar edənlər'}
             </p>
             <div className="grid grid-cols-3 gap-4">
               {[
-                { value: '10K+', label: 'Members' },
-                { value: '500+', label: 'NGOs' },
-                { value: '100%', label: 'Free' }
+                { value: '10K+', label: 'Üzv' },
+                { value: '500+', label: 'Təşkilat' },
+                { value: '100%', label: 'Pulsuz' }
               ].map((stat, idx) => (
                 <div key={idx} className="text-center">
-                  <div className="text-2xl font-black text-white mb-1">{stat.value}</div>
-                  <div className="text-xs text-purple-200">{stat.label}</div>
+                  <div className="mb-1 text-2xl font-black text-gray-900">{stat.value}</div>
+                  <div className="text-xs text-gray-500">{stat.label}</div>
                 </div>
               ))}
             </div>
@@ -847,5 +772,4 @@ export default function RegisterPage() {
       </div>
     </div>
   </div>
-  )
-}
+  ) }

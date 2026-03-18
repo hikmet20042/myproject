@@ -1,44 +1,56 @@
 /** @type {import('next-sitemap').IConfig} */
-const mongoose = require('mongoose')
+const { createClient } = require('@supabase/supabase-js')
 
 // Dynamic routes fetcher
 async function fetchDynamicPaths() {
   try {
-    const mongoUri = process.env.MONGODB_URI
-    if (!mongoUri) return { vacancies: [], events: [], blogs: [], ngos: [] }
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-    await mongoose.connect(mongoUri)
-    
-    const vacancies = await mongoose.connection.db.collection('vacancies')
-      .find({ status: 'approved' })
-      .project({ _id: 1 })
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      return { vacancies: [], events: [], blogs: [], organizations: [] }
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    })
+
+    const { data: vacancies, error: vacanciesError } = await supabase
+      .from('vacancies')
+      .select('id')
+      .eq('status', 'approved')
       .limit(1000)
-      .toArray()
-    
-    const events = await mongoose.connection.db.collection('events')
-      .find({ status: 'approved' })
-      .project({ _id: 1 })
+
+    if (vacanciesError) throw vacanciesError
+
+    const { data: events, error: eventsError } = await supabase
+      .from('events')
+      .select('id')
+      .eq('status', 'approved')
       .limit(1000)
-      .toArray()
-    
-    const blogs = await mongoose.connection.db.collection('blogs')
-      .find({ status: 'approved' })
-      .project({ _id: 1 })
+
+    if (eventsError) throw eventsError
+
+    const { data: blogs, error: blogsError } = await supabase
+      .from('blogs')
+      .select('id')
+      .eq('status', 'approved')
       .limit(1000)
-      .toArray()
-    
-    const ngos = await mongoose.connection.db.collection('ngos')
-      .find({ status: 'approved' })
-      .project({ _id: 1 })
+
+    if (blogsError) throw blogsError
+
+    const { data: organizations, error: organizationsError } = await supabase
+      .from('organization_profiles')
+      .select('account_id')
+      .eq('moderation_status', 'approved')
       .limit(1000)
-      .toArray()
-    
-    await mongoose.connection.close()
-    
-    return { vacancies, events, blogs, ngos }
+
+    if (organizationsError) throw organizationsError
+
+    return { vacancies: vacancies || [], events: events || [], blogs: blogs || [], organizations: organizations || [] }
   } catch (error) {
     console.error('Error fetching dynamic paths:', error)
-    return { vacancies: [], events: [], blogs: [], ngos: [] }
+    return { vacancies: [], events: [], blogs: [], organizations: [] }
   }
 }
 
@@ -58,15 +70,11 @@ module.exports = {
     '/profile/*'
   ],
   
-  // Multilingual support
+  // Azerbaijani-only alternates
   alternateRefs: [
     {
       href: process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az',
       hreflang: 'az',
-    },
-    {
-      href: `${process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'}/en`,
-      hreflang: 'en',
     },
     {
       href: process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az',
@@ -81,17 +89,10 @@ module.exports = {
     // Static pages with high priority
     const staticPages = [
       { url: '/', priority: 1.0, changefreq: 'daily' },
-      { url: '/az', priority: 1.0, changefreq: 'daily' },
-      { url: '/en', priority: 1.0, changefreq: 'daily' },
       { url: '/resources', priority: 0.9, changefreq: 'daily' },
-      { url: '/az/resources', priority: 0.9, changefreq: 'daily' },
-      { url: '/en/resources', priority: 0.9, changefreq: 'daily' },
+      { url: '/resources/organizations', priority: 0.8, changefreq: 'weekly' },
       { url: '/blogs', priority: 0.8, changefreq: 'daily' },
-      { url: '/az/blogs', priority: 0.8, changefreq: 'daily' },
-      { url: '/en/blogs', priority: 0.8, changefreq: 'daily' },
       { url: '/about', priority: 0.7, changefreq: 'weekly' },
-      { url: '/az/about', priority: 0.7, changefreq: 'weekly' },
-      { url: '/en/about', priority: 0.7, changefreq: 'weekly' },
     ]
     
     staticPages.forEach(page => {
@@ -99,34 +100,26 @@ module.exports = {
     })
     
     // Fetch dynamic content
-    const { vacancies, events, blogs, ngos } = await fetchDynamicPaths()
+    const { vacancies, events, blogs, organizations } = await fetchDynamicPaths()
     
     // Add vacancies (high priority for job listings)
     vacancies.forEach(vacancy => {
-      paths.push(config.transform(config, `/resources/vacancies/${vacancy._id}`, 0.9, 'daily'))
-      paths.push(config.transform(config, `/az/resources/vacancies/${vacancy._id}`, 0.9, 'daily'))
-      paths.push(config.transform(config, `/en/resources/vacancies/${vacancy._id}`, 0.9, 'daily'))
+      paths.push(config.transform(config, `/resources/vacancies/${vacancy.id}`, 0.9, 'daily'))
     })
     
     // Add events
     events.forEach(event => {
-      paths.push(config.transform(config, `/resources/events/${event._id}`, 0.8, 'daily'))
-      paths.push(config.transform(config, `/az/resources/events/${event._id}`, 0.8, 'daily'))
-      paths.push(config.transform(config, `/en/resources/events/${event._id}`, 0.8, 'daily'))
+      paths.push(config.transform(config, `/resources/events/${event.id}`, 0.8, 'daily'))
     })
     
     // Add blogs
     blogs.forEach(blog => {
-      paths.push(config.transform(config, `/blogs/${blog._id}`, 0.7, 'weekly'))
-      paths.push(config.transform(config, `/az/blogs/${blog._id}`, 0.7, 'weekly'))
-      paths.push(config.transform(config, `/en/blogs/${blog._id}`, 0.7, 'weekly'))
+      paths.push(config.transform(config, `/blogs/${blog.id}`, 0.7, 'weekly'))
     })
     
-    // Add NGOs
-    ngos.forEach(ngo => {
-      paths.push(config.transform(config, `/resources/ngos/${ngo._id}`, 0.7, 'weekly'))
-      paths.push(config.transform(config, `/az/resources/ngos/${ngo._id}`, 0.7, 'weekly'))
-      paths.push(config.transform(config, `/en/resources/ngos/${ngo._id}`, 0.7, 'weekly'))
+    // Add organizations
+    organizations.forEach(organization => {
+      paths.push(config.transform(config, `/resources/organizations/${organization.account_id}`, 0.7, 'weekly'))
     })
     
     return paths

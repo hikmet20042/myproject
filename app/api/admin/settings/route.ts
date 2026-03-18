@@ -1,37 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import dbConnect from '@/lib/mongoose'
-import SiteSettings from '@/lib/models/SiteSettings'
-
-import mongoose from 'mongoose'
+import { getServerSession } from '@/lib/auth/server'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { siteSettingsDefaults } from '@/lib/supabase/siteSettingsDefaults'
 
 export const dynamic = 'force-dynamic'
 
 // Get site settings
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session?.user || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const supabase = createSupabaseAdminClient()
 
-    await dbConnect()
-    
-    let settings = await SiteSettings.findOne().populate('updatedBy', 'name email')
-    
-    // If no settings exist, create default settings
-    if (!settings) {
-      const defaults = SiteSettings.getDefaults()
-      settings = new SiteSettings({
-        ...defaults,
+    let { data: settingsRow } = await supabase
+      .from('site_settings')
+      .select('*')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+
+    if (!settingsRow) {
+      const defaults = {
+        ...siteSettingsDefaults,
+        lastUpdated: new Date().toISOString(),
         updatedBy: session.user.id,
-      })
-      await settings.save()
-      await settings.populate('updatedBy', 'name email')
+        version: '1.0.0'
+      }
+
+      const { data: inserted, error } = await supabase
+        .from('site_settings')
+        .insert({ data: defaults })
+        .select('*')
+        .single()
+
+      if (error || !inserted) {
+        return NextResponse.json({ error: error?.message || 'Failed to create settings' }, { status: 500 })
+      }
+      settingsRow = inserted
     }
 
-    return NextResponse.json({ settings })
+    return NextResponse.json({ settings: settingsRow.data })
   } catch (error) {
     console.error('Get settings error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -41,12 +51,10 @@ export async function GET(request: NextRequest) {
 // Update site settings
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session?.user || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    await dbConnect()
     const body = await request.json()
     const { settings: newSettings, section } = body
 
@@ -54,16 +62,35 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Settings data required' }, { status: 400 })
     }
 
-    let settings = await SiteSettings.findOne()
-    
-    if (!settings) {
-      // Create new settings if none exist
-      const defaults = SiteSettings.getDefaults()
-      settings = new SiteSettings({
-        ...defaults,
+    const supabase = createSupabaseAdminClient()
+    let { data: settingsRow } = await supabase
+      .from('site_settings')
+      .select('*')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+
+    if (!settingsRow) {
+      const defaults = {
+        ...siteSettingsDefaults,
+        lastUpdated: new Date().toISOString(),
         updatedBy: session.user.id,
-      })
+        version: '1.0.0'
+      }
+
+      const { data: inserted, error } = await supabase
+        .from('site_settings')
+        .insert({ data: defaults })
+        .select('*')
+        .single()
+
+      if (error || !inserted) {
+        return NextResponse.json({ error: error?.message || 'Failed to create settings' }, { status: 500 })
+      }
+      settingsRow = inserted
     }
+
+    const settings = settingsRow.data || {}
 
     // Track what was changed for logging
     const changes: string[] = []
@@ -97,23 +124,29 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update metadata
-    settings.lastUpdated = new Date()
-    settings.updatedBy = new mongoose.Types.ObjectId(session.user.id)
+    settings.lastUpdated = new Date().toISOString()
+    settings.updatedBy = session.user.id
     
     // Increment version for major changes
     if (changes.length > 0) {
-      const versionParts = settings.version.split('.')
+      const versionParts = (settings.version || '1.0.0').split('.')
       versionParts[2] = (parseInt(versionParts[2]) + 1).toString()
       settings.version = versionParts.join('.')
     }
 
-    await settings.save()
-    await settings.populate('updatedBy', 'name email')
+    const { data: updatedRow, error: updateError } = await supabase
+      .from('site_settings')
+      .update({ data: settings })
+      .eq('id', settingsRow.id)
+      .select('*')
+      .single()
 
-
+    if (updateError || !updatedRow) {
+      return NextResponse.json({ error: updateError?.message || 'Failed to update settings' }, { status: 500 })
+    }
 
     return NextResponse.json({ 
-      settings,
+      settings: updatedRow.data,
       message: section 
         ? `${section} settings updated successfully` 
         : 'Settings updated successfully',
@@ -128,22 +161,27 @@ export async function PUT(request: NextRequest) {
 // Reset settings to defaults
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session?.user || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    await dbConnect()
     const { searchParams } = new URL(request.url)
     const section = searchParams.get('section')
 
-    let settings = await SiteSettings.findOne()
-    
-    if (!settings) {
+    const supabase = createSupabaseAdminClient()
+    const { data: settingsRow } = await supabase
+      .from('site_settings')
+      .select('*')
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+
+    if (!settingsRow) {
       return NextResponse.json({ error: 'Settings not found' }, { status: 404 })
     }
 
-    const defaults = SiteSettings.getDefaults()
+    const settings = settingsRow.data || {}
+    const defaults = siteSettingsDefaults
     const changes: string[] = []
 
     if (section) {
@@ -173,24 +211,30 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Update metadata
-    settings.lastUpdated = new Date()
-    settings.updatedBy = new mongoose.Types.ObjectId(session.user.id)
+    settings.lastUpdated = new Date().toISOString()
+    settings.updatedBy = session.user.id
     
     // Increment version
     if (changes.length > 0) {
-      const versionParts = settings.version.split('.')
+      const versionParts = (settings.version || '1.0.0').split('.')
       versionParts[1] = (parseInt(versionParts[1]) + 1).toString()
       versionParts[2] = '0'
       settings.version = versionParts.join('.')
     }
 
-    await settings.save()
-    await settings.populate('updatedBy', 'name email')
+    const { data: updatedRow, error: updateError } = await supabase
+      .from('site_settings')
+      .update({ data: settings })
+      .eq('id', settingsRow.id)
+      .select('*')
+      .single()
 
-
+    if (updateError || !updatedRow) {
+      return NextResponse.json({ error: updateError?.message || 'Failed to reset settings' }, { status: 500 })
+    }
 
     return NextResponse.json({ 
-      settings,
+      settings: updatedRow.data,
       message: section 
         ? `${section} settings reset to defaults` 
         : 'All settings reset to defaults',
@@ -205,13 +249,11 @@ export async function DELETE(request: NextRequest) {
 // Get settings history/versions
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session?.user || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    await dbConnect()
-    
     return NextResponse.json({ 
       history: [],
       message: 'Settings history not available'

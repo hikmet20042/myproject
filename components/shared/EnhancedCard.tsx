@@ -20,7 +20,7 @@ interface EnhancedCardProps {
 export default function EnhancedCard({
   title,
   icon: Icon,
-  iconGradient = 'from-blue-500 to-indigo-600',
+  iconGradient = 'from-blue-500 to-emerald-600',
   children,
   className = '',
   headerGradient,
@@ -28,11 +28,11 @@ export default function EnhancedCard({
 }: EnhancedCardProps) {
   return (
     <div 
-      className={`bg-white shadow-xl rounded-2xl border-2 border-gray-100 overflow-hidden animate-fade-in ${className}`}
+      className={`bg-white shadow-md rounded-2xl border-2 border-blue-100 overflow-hidden animate-fade-in ${className}`}
       style={{ animationDelay: `${animationDelay}s` }}
     >
       {(title || Icon) && (
-        <div className={`relative px-6 py-6 ${headerGradient || 'bg-gradient-to-r from-gray-50 to-gray-100'} border-b-2 border-gray-100`}>
+        <div className={`relative px-6 py-6 ${headerGradient || 'bg-gradient-to-r from-slate-50 to-blue-50'} border-b-2 border-blue-100`}>
           {headerGradient && (
             <div className="absolute inset-0 bg-gradient-to-br from-transparent to-white/10"></div>
           )}

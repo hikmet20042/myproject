@@ -18,7 +18,7 @@ export default function SectionHeader({
   icon: Icon,
   title,
   subtitle,
-  iconGradient = 'from-blue-500 to-indigo-600',
+  iconGradient = 'from-blue-500 to-emerald-600',
   badge
 }: SectionHeaderProps) {
   return (

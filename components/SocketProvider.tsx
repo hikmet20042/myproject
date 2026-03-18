@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, useRef } from 'react'
-import { useSession } from 'next-auth/react'
+import { useSession } from '@/lib/auth/client'
 import { io, Socket } from 'socket.io-client'
 
 interface SocketContextValue {
@@ -33,12 +33,25 @@ const isSocketEnabled = () => {
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession()
+  const [enabled, setEnabled] = useState(false)
   const [socket, setSocket] = useState<Socket | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const socketRef = useRef<Socket | null>(null)
   const isInitializingRef = useRef(false)
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setEnabled(true)
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [])
+
+  useEffect(() => {
+    if (!enabled || !session?.user?.id) {
+      return
+    }
+
     // Skip Socket.IO initialization on Vercel
     if (!isSocketEnabled()) {
       console.log('Socket.IO disabled on Vercel serverless environment')
@@ -115,7 +128,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // Empty dependency array - run once on mount only logic handled internally
+  }, [enabled, session?.user?.id])
 
   // Join/leave room when session changes
   useEffect(() => {

@@ -33,7 +33,7 @@ export interface ImageSEOSuggestions {
  */
 export function generateAltText(
   context: string,
-  imageType: 'logo' | 'profile' | 'event' | 'vacancy' | 'blog' | 'ngo' | 'general' = 'general',
+  imageType: 'logo' | 'profile' | 'event' | 'vacancy' | 'blog' | 'organization' | 'general' = 'general',
   customText?: string
 ): string {
   const templates: Record<string, string> = {
@@ -42,7 +42,7 @@ export function generateAltText(
     event: `${context} tədbiri`,
     vacancy: `${context} iş elanı`,
     blog: `${context} - icma360 bloq şəkli`,
-    ngo: `${context} - QHT profil şəkli`,
+    organization: `${context} - təşkilat profil şəkli`,
     general: customText || context,
   }
 
@@ -93,7 +93,7 @@ export function analyzeImageSEO(
   currentAlt: string,
   currentFilename: string,
   context: string,
-  imageType: 'logo' | 'profile' | 'event' | 'vacancy' | 'blog' | 'ngo' | 'general' = 'general'
+  imageType: 'logo' | 'profile' | 'event' | 'vacancy' | 'blog' | 'organization' | 'general' = 'general'
 ): ImageSEOSuggestions {
   const recommendations: string[] = []
 

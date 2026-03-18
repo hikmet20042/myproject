@@ -1,68 +1,74 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
-import dbConnect from '@/lib/mongoose'
-import User from '@/lib/models/User'
-import NGO from '@/lib/models/NGO'
+import { getServerSession } from '@/lib/auth/server'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 // Force dynamic rendering due to session usage
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    await dbConnect()
+    const supabase = createSupabaseAdminClient()
 
-    // If session is NGO, fetch from NGO collection
-    if (session.user.isApprovedNGO) {
-      const ngo = await NGO.findOne({ email: session.user.email })
-        .select('organizationName email status createdAt profileImage image')
-        .lean()
+    // If session is organization, fetch from Organization collection
+    if (session.user.isApprovedOrganization) {
+      const { data: organizationProfile } = await supabase
+        .from('organization_profiles')
+        .select('account_id, organization_name, email, moderation_status, created_at, profile_image')
+        .eq('account_id', session.user.id)
+        .maybeSingle()
 
-      if (!ngo) {
-        return NextResponse.json({ error: 'NGO not found' }, { status: 404 })
+      if (!organizationProfile) {
+        return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
       }
 
       return NextResponse.json({
         user: {
-          _id: (ngo as any)._id,
-          name: (ngo as any).organizationName,
-          email: (ngo as any).email,
-          role: undefined, // NGOs don't have role in User collection
-          isApprovedNGO: (ngo as any).status === 'approved',
-          createdAt: (ngo as any).createdAt,
-          profileImage: (ngo as any).profileImage,
-          image: (ngo as any).profileImage?.url || (ngo as any).image
+          _id: organizationProfile.account_id,
+          name: organizationProfile.organization_name,
+          email: organizationProfile.email,
+          role: undefined, // Organizations don't have role in User collection
+          isApprovedOrganization: organizationProfile.moderation_status === 'approved',
+          createdAt: organizationProfile.created_at,
+          profileImage: organizationProfile.profile_image,
+          image: (organizationProfile.profile_image as any)?.url || undefined
         }
       })
     }
 
     // Fetch regular user
-    const user = await User.findById(session.user.id)
-      .select('name email role createdAt profileImage image')
-      .lean()
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, name, email, role, created_at')
+      .eq('id', session.user.id)
+      .single()
 
-    if (!user) {
+    if (userError || !user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    // Type assertion to handle the lean() return type
-    const userData = user as any
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('avatar, avatar_blob_id')
+      .eq('user_id', session.user.id)
+      .single()
 
     return NextResponse.json({
       user: {
-        _id: userData._id,
-        name: userData.name,
-        email: userData.email,
-        role: userData.role,
-        createdAt: userData.createdAt,
-        profileImage: userData.profileImage,
-        image: userData.profileImage?.url || userData.image
+        _id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        createdAt: user.created_at,
+        profileImage: userProfile?.avatar
+          ? { url: userProfile.avatar, publicId: userProfile.avatar_blob_id }
+          : null,
+        image: userProfile?.avatar || null
       }
     })
 

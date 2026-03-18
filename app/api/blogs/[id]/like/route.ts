@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import dbConnect from '@/lib/mongoose'
-import Blog from '@/lib/models/Blog'
-import { NotificationService } from '@/lib/services/notificationService'
-
-import UserAnalytics from '@/lib/models/UserAnalytics'
+import { getServerSession } from '@/lib/auth/server'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,9 +9,9 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
     
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
@@ -25,72 +20,77 @@ export async function POST(
     const userId = session.user.id;
     
     // Find the blog
-    const blog = await Blog.findById(blogId);
-    if (!blog) {
+    const { data: blog, error } = await supabase
+      .from('blogs')
+      .select('id, title, author_id, likes, dislikes, liked_by, disliked_by, views')
+      .eq('id', blogId)
+      .single();
+    if (error || !blog) {
       return NextResponse.json({ error: 'Blog not found' }, { status: 404 });
     }
     
     // Check if user already liked this blog
-    const hasLiked = blog.likedBy.includes(userId);
+    const likedBy = Array.isArray(blog.liked_by) ? blog.liked_by : [];
+    const dislikedBy = Array.isArray(blog.disliked_by) ? blog.disliked_by : [];
+    const hasLiked = likedBy.includes(userId);
     // Check if user has disliked this blog
-    const hasDisliked = blog.dislikedBy?.includes(userId);
+    const hasDisliked = dislikedBy.includes(userId);
     
     let action: 'liked' | 'unliked';
     
     // If user disliked it, remove the dislike first
     if (hasDisliked) {
-      blog.dislikedBy = blog.dislikedBy.filter((id: any) => id.toString() !== userId);
+      blog.disliked_by = dislikedBy.filter((id: any) => id.toString() !== userId);
       blog.dislikes = Math.max(0, (blog.dislikes || 0) - 1);
     }
     
     if (hasLiked) {
       // Unlike the blog
-      blog.likedBy = blog.likedBy.filter((id: any) => id.toString() !== userId);
+      blog.liked_by = likedBy.filter((id: any) => id.toString() !== userId);
       blog.likes = Math.max(0, (blog.likes || 0) - 1);
       action = 'unliked';
     } else {
       // Like the blog
-      blog.likedBy.push(userId);
+      likedBy.push(userId);
+      blog.liked_by = likedBy;
       blog.likes = (blog.likes || 0) + 1;
       action = 'liked';
       
       // Create notification for blog author (if not liking own blog)
-      if (blog.author && blog.author.toString() !== userId) {
-        NotificationService.notifyBlogLike(
-          blogId,
-          blog.title,
-          blog.author.toString(),
-          userId,
-          session.user.name || 'Someone'
-        ).catch(err => console.error('Failed to create like notification:', err));
+      if (blog.author_id && blog.author_id.toString() !== userId) {
+        const { error: notificationError } = await supabase.from('notifications').insert({
+          user_id: blog.author_id,
+          type: 'blog_like',
+          title: 'New Like',
+          message: `${session.user.name || 'Someone'} liked your blog "${blog.title}"`,
+          action_url: `/blogs/${blogId}`,
+          data: {
+            blogId,
+            blogTitle: blog.title,
+            likedBy: userId
+          }
+        });
+
+        if (notificationError) {
+          console.error('Failed to create like notification:', notificationError);
+        }
       }
     }
     
     // Recalculate engagement score (views * 1 + likes * 3 - dislikes * 1)
     const engagementScore = (blog.views * 1) + (blog.likes * 3) - (blog.dislikes || 0);
-    blog.engagementScore = engagementScore;
-    
-    // Save the blog
-    await blog.save();
-    
 
-    
-    // Update user analytics for the blog owner
-    if (blog.author) {
-      try {
-        const increment = action === 'liked' ? 1 : -1;
-        await UserAnalytics.findOneAndUpdate(
-          { userId: blog.author },
-          {
-            $inc: { totalLikes: increment },
-            $set: { lastCalculated: new Date() }
-          },
-          { upsert: true }
-        );
-      } catch (error) {
-        console.error('Failed to update user analytics:', error);
-      }
-    }
+    await supabase
+      .from('blogs')
+      .update({
+        likes: blog.likes,
+        dislikes: blog.dislikes || 0,
+        liked_by: blog.liked_by || [],
+        disliked_by: blog.disliked_by || [],
+        engagement_score: engagementScore,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', blogId);
     
     // Return updated stats
     return NextResponse.json({
@@ -100,7 +100,7 @@ export async function POST(
       dislikes: blog.dislikes || 0,
       hasLiked: !hasLiked,
       hasDisliked: false,
-      engagementScore: blog.engagementScore
+      engagementScore
     });
     
   } catch (error) {
@@ -115,17 +115,22 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
     
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     const blogId = params.id;
     
-    const blog = await Blog.findById(blogId).select('likes likedBy');
-    if (!blog) {
+    const { data: blog, error } = await supabase
+      .from('blogs')
+      .select('likes, liked_by')
+      .eq('id', blogId)
+      .single();
+    if (error || !blog) {
       return NextResponse.json({ error: 'Blog not found' }, { status: 404 });
     }
     
-    const hasLiked = session?.user?.id ? blog.likedBy.includes(session.user.id) : false;
+    const likedBy = Array.isArray(blog.liked_by) ? blog.liked_by : [];
+    const hasLiked = session?.user?.id ? likedBy.includes(session.user.id) : false;
     
     return NextResponse.json({
       likes: blog.likes || 0,

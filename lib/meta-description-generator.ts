@@ -8,7 +8,7 @@ import { azerbaijanKeywords } from './seo'
 export interface MetaDescriptionConfig {
   title: string
   content?: string
-  type: 'vacancy' | 'event' | 'blog' | 'ngo' | 'training' | 'general'
+  type: 'vacancy' | 'event' | 'blog' | 'organization' | 'training' | 'general'
   keywords?: string[]
   location?: string
   organization?: string
@@ -45,7 +45,7 @@ const TEMPLATES = {
     '{excerpt} Bakı və Azərbaycanda iş axtaranlar üçün faydalı məlumatlar. Daha çox oxuyun!',
     '{title}: {excerpt} icma360-da gənclərin peşəkar inkişafı üçün tövsiyələr və məsləhətlər.',
   ],
-  ngo: [
+  organization: [
     '{organization} - {location} şəhərində fəaliyyət göstərən QHT. {description} Əməkdaşlıq imkanları və vakansiyalar.',
     '{organization} haqqında. {location}da {focus_areas} sahəsində fəaliyyət göstərən təşkilat. QHT kataloqu Azərbaycan.',
     '{location} şəhərindəki {organization} QHT-si. {description} Könüllü və iş imkanları mövcuddur.',
@@ -95,7 +95,7 @@ export function generateMetaDescription(config: MetaDescriptionConfig): string {
   // Format duration
   const duration = customData?.duration || ''
 
-  // Format focus areas for NGOs
+  // Format focus areas for organizations
   const focusAreas = customData?.focusAreas?.slice(0, 2).join(', ') || 'sosial'
 
   // Get description from custom data
@@ -357,7 +357,7 @@ function addCallToAction(text: string, type: MetaDescriptionConfig['type']): str
     vacancy: ' İndi müraciət edin!',
     event: ' Qeydiyyatdan keçin!',
     blog: ' Daha çox oxuyun!',
-    ngo: ' Ətraflı məlumat əldə edin!',
+    organization: ' Ətraflı məlumat əldə edin!',
     training: ' Qeydiyyat açıqdır!',
     general: ' Kəşf edin!',
   }
@@ -376,7 +376,7 @@ function getContextSuffix(type: MetaDescriptionConfig['type']): string {
     vacancy: 'Azərbaycanda iş imkanları icma360-da.',
     event: 'Gənclər üçün tədbir.',
     blog: 'icma360 bloqu.',
-    ngo: 'Azərbaycan QHT kataloqu.',
+    organization: 'Azərbaycan təşkilat kataloqu.',
     training: 'Pulsuz təlim proqramı.',
     general: 'icma360 - Gənclər üçün #1 platforma.',
   }

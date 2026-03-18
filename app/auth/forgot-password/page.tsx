@@ -1,20 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useLanguage } from '@/contexts/LanguageContext'
 import Link from 'next/link'
-import { Loader2, Mail, ArrowLeft } from 'lucide-react'
+import { Mail, ArrowLeft } from 'lucide-react'
 import { Input, Button } from '@/components/ui'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
 
 export default function ForgotPasswordPage() {
-  const { t } = useLanguage()
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
-  const router = useRouter()
+  const localePath = useLocalizedPath()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -23,105 +20,100 @@ export default function ForgotPasswordPage() {
     setMessage('')
 
     try {
-      
-  const response = await fetch('/api/auth/forgot-password', {
+      const response = await fetch('/api/auth/forgot-password', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
       })
 
       const data = await response.json()
 
       if (response.ok) {
         setMessage(data.message)
-        setEmail('') // Clear the form
+        setEmail('')
       } else {
-        setError(data.error || t('forgotPassword.somethingWentWrong'))
+        setError(data.error || 'Nəsə səhv oldu')
       }
-    } catch (error) {
-      setError(t('forgotPassword.networkError'))
+    } catch {
+      setError('Şəbəkə xətası. Zəhmət olmasa yenidən cəhd edin.')
     } finally {
       setIsLoading(false)
     }
   }
-  const localePath = useLocalizedPath();
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <Link href={localePath("/auth/signin")}
-            className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-8"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            {t('forgotPassword.backToSignIn')}
-          </Link>
-        </div>
 
-        <div className="w-full max-w-md bg-white rounded-lg shadow-md">
-          <div className="px-6 py-4 border-b text-center">
-            <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
-              <Mail className="w-6 h-6 text-red-600" />
+  return (
+    <div className="relative min-h-screen overflow-hidden bg-background py-10">
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-35" />
+      <div className="absolute left-1/2 top-24 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-200/30 blur-3xl" />
+
+      <div className="relative z-10 mx-auto flex min-h-[80vh] w-full max-w-lg items-center justify-center px-4 sm:px-6">
+        <div className="w-full rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+          <Link
+            href={localePath('/auth/signin')}
+            className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-blue-600"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {'Girişə qayıt'}
+          </Link>
+
+          <div className="mb-6 text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+              <Mail className="h-6 w-6 text-blue-700" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">{t('forgotPassword.title')}</h1>
-            <p className="text-gray-600 mt-2">
-              {t('forgotPassword.description')}
+            <h1 className="text-2xl font-black text-gray-900">{'Şifrəni unutmusunuz?'}</h1>
+            <p className="mt-2 text-sm text-gray-600">
+              {'E-poçt ünvanınızı daxil edin və şifrəni sıfırlamaq üçün keçid göndərək.'}
             </p>
           </div>
-          <div className="p-6">
-            {message && (
-              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-md">
-                <p className="text-green-800">
-                  {message}
-                </p>
-              </div>
-            )}
 
-            {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
-                <p className="text-red-800">
-                  {error}
-                </p>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">{t('forgotPassword.emailAddress')}</label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={t('forgotPassword.emailPlaceholder')}
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-
-              <Button
-                type="submit"
-                variant="primary"
-                fullWidth
-                disabled={isLoading || !email.trim()}
-                loading={isLoading}
-              >
-                {t('forgotPassword.sendResetLink')}
-              </Button>
-            </form>
-
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                {t('forgotPassword.rememberPassword')}{' '}
-                <Link href={localePath("/auth/signin")}
-                  className="font-medium text-red-600 hover:text-red-500"
-                >
-                  {t('forgotPassword.signInHere')}
-                </Link>
-              </p>
+          {message && (
+            <div className="mb-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+              {message}
             </div>
-          </div>
+          )}
+
+          {error && (
+            <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                {'E-poçt ünvanı'}
+              </label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={'E-poçt ünvanınızı daxil edin'}
+                required
+                disabled={isLoading}
+              />
+            </div>
+
+            <Button
+              type="submit"
+              variant="primary"
+              fullWidth
+              disabled={isLoading || !email.trim()}
+              loading={isLoading}
+            >
+              {'Sıfırlama keçidi göndər'}
+            </Button>
+          </form>
+
+          <p className="mt-6 text-center text-sm text-gray-600">
+            {'Şifrənizi xatırlayırsınız?'}{' '}
+            <Link
+              href={localePath('/auth/signin')}
+              className="font-medium text-blue-600 transition-colors hover:text-blue-500"
+            >
+              {'Buradan daxil olun'}
+            </Link>
+          </p>
         </div>
       </div>
     </div>

@@ -2,19 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { useSession } from 'next-auth/react'
+import { useSession } from '@/lib/auth/client'
 import BlocknoteEditor from '@/components/BlocknoteEditor'
 import { ArrowLeft, Send, Eye, EyeOff } from 'lucide-react'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
-import { useLanguage } from '@/contexts/LanguageContext'
 import { LoadingState, SuccessState } from '@/components/shared'
 import { Button } from '@/components/ui'
 
 
-export default function EditBlogStep2() {
-  const { t } = useLanguage()
-
-  const { data: session, status } = useSession();
+export default function EditBlogStep2() { const { data: session, status } = useSession();
   const router = useRouter();
   const params = useParams();
   const blogId = params?.id as string;
@@ -34,101 +30,60 @@ export default function EditBlogStep2() {
   const [showAuthorNameInput, setShowAuthorNameInput] = useState(false);
   const [init, setInit] = useState(false);
   const [loading, setLoading] = useState(false);
+  useEffect(() => { if (status === 'loading') return
+    if (!session) { router.push(localePath('/auth/signin')) } }, [status, session, router, localePath])
+
 
   // Cleanup function to clear localStorage when leaving the blog editing flow
-  const cleanupLocalStorage = () => {
-    localStorage.removeItem('editBlogData')
-    localStorage.removeItem('currentBlogEditId')
-  }
+  const cleanupLocalStorage = () => { localStorage.removeItem('editBlogData')
+    localStorage.removeItem('currentBlogEditId') }
 
   // Load blog data from localStorage only
-  useEffect(() => {
-    if (blogId && typeof window !== 'undefined') {
-      const saved = localStorage.getItem('editBlogData');
-      if (saved) {
-        try {
-          const data = JSON.parse(saved);
-          if (data.editId === blogId) {
-            // Load from localStorage
+  useEffect(() => { if (blogId && typeof window !== 'undefined') { const saved = localStorage.getItem('editBlogData');
+      if (saved) { try { const data = JSON.parse(saved);
+          if (data.editId === blogId) { // Load from localStorage
             setTitle(data.title || '');
 
             setIsAnonymous(data.isAnonymous || false);
             setAuthorName(data.authorName || '');
-            if (data.content) {
-              setContent(data.content);
-              calculateCharacterCountFromContent(data.content);
-            }
+            if (data.content) { setContent(data.content);
+              calculateCharacterCountFromContent(data.content); }
             if (data.contentHtml) setContentHtml(data.contentHtml);
             
             // Clear the navigation flag after a small delay to ensure step1 cleanup runs first
-            setTimeout(() => {
-              sessionStorage.removeItem('navigatingWithinBlogFlow');
-            }, 100);
-          } else {
-            setError(t('errors.blogDataNotFound'));
-          }
-        } catch (error) {
-          console.error('Error parsing localStorage data:', error);
-          setError(t('errors.failedToLoadBlogData'));
-        }
-      } else {
-        setError(t('errors.blogDataNotFound'));
-      }
-    }
-    setInit(true);
-  }, [blogId]);
+            setTimeout(() => { sessionStorage.removeItem('navigatingWithinBlogFlow'); }, 100); } else { setError('Bloq məlumatları tapılmadı.'); } } catch (error) { console.error('Error parsing localStorage data:', error);
+          setError('Bloq məlumatlarını yükləmək alınmadı. Zəhmət olmasa yenidən cəhd edin.'); } } else { setError('Bloq məlumatları tapılmadı.'); } }
+    setInit(true); }, [blogId]);
 
   // Save form field changes to localStorage (only after initial load)
-  useEffect(() => {
-    if (typeof window !== 'undefined' && blogId && init) {
-      const saved = localStorage.getItem('editBlogData');
-      if (saved) {
-        try {
-          const data = JSON.parse(saved);
-          if (data.editId === blogId) {
-            const updatedData = {
-              ...data,
+  useEffect(() => { if (typeof window !== 'undefined' && blogId && init) { const saved = localStorage.getItem('editBlogData');
+      if (saved) { try { const data = JSON.parse(saved);
+          if (data.editId === blogId) { const updatedData = { ...data,
               title,
               isAnonymous,
-              authorName
-            };
-            localStorage.setItem('editBlogData', JSON.stringify(updatedData));
-          }
-        } catch (error) {
-          console.error('Error updating localStorage:', error);
-        }
-      }
-    }
-  }, [title, isAnonymous, authorName, blogId, init]);
+              authorName };
+            localStorage.setItem('editBlogData', JSON.stringify(updatedData)); } } catch (error) { console.error('Error updating localStorage:', error); } } } }, [title, isAnonymous, authorName, blogId, init]);
 
   // Cleanup localStorage when component unmounts (user navigates away)
-  useEffect(() => {
-    // Set a flag that we're currently in the blog editing flow
+  useEffect(() => { // Set a flag that we're currently in the blog editing flow
     sessionStorage.setItem('inBlogEditFlow', 'true')
     
     // Cleanup on component unmount
-    return () => {
-      const isNavigatingWithinFlow = sessionStorage.getItem('navigatingWithinBlogFlow') === 'true'
+    return () => { const isNavigatingWithinFlow = sessionStorage.getItem('navigatingWithinBlogFlow') === 'true'
       
-      if (!isNavigatingWithinFlow) {
-        // Not navigating within the flow - cleanup localStorage
+      if (!isNavigatingWithinFlow) { // Not navigating within the flow - cleanup localStorage
         cleanupLocalStorage()
-        sessionStorage.removeItem('inBlogEditFlow')
-      }
+        sessionStorage.removeItem('inBlogEditFlow') }
       // Flag is already removed after successful data loading
     }
   }, []);
 
   // Helper function to calculate character count from content
-  const calculateCharacterCountFromContent = async (content: any) => {
-    if (!content) {
-      setCharacterCount(0);
+  const calculateCharacterCountFromContent = async (content: any) => { if (!content) { setCharacterCount(0);
       
-      return;
-    }
+      return; }
 
-    try {
-      // Create a temporary BlockNote editor to extract text from content
+    try { // Create a temporary BlockNote editor to extract text from content
       const { BlockNoteEditor } = await import('@blocknote/core');
       const tempEditor = BlockNoteEditor.create();
 
@@ -138,165 +93,91 @@ export default function EditBlogStep2() {
       tempDiv.innerHTML = html;
       const text = tempDiv.textContent || tempDiv.innerText || '';
       const count = text.length;
-      setCharacterCount(count);
-    } catch (error) {
-      console.error('Error calculating character count:', error);
+      setCharacterCount(count); } catch (error) { console.error('Error calculating character count:', error);
       // Fallback: try to extract text from content structure
       let text = '';
-      if (Array.isArray(content)) {
-        content.forEach((block: any) => {
-          if (block.content && Array.isArray(block.content)) {
-            block.content.forEach((item: any) => {
-              if (item.text) text += item.text;
-            });
-          }
-        });
-      }
+      if (Array.isArray(content)) { content.forEach((block: any) => { if (block.content && Array.isArray(block.content)) { block.content.forEach((item: any) => { if (item.text) text += item.text; }); } }); }
       const count = text.length;
-      setCharacterCount(count);
-    }
-  };
+      setCharacterCount(count); } };
 
   // Character count tracking without localStorage dependency
   // Note: localStorage loading is now handled in the main useEffect above
 
   // Show author name input if not anonymous and not logged in
-  useEffect(() => {
-    setShowAuthorNameInput(!isAnonymous && !session?.user?.name);
-  }, [isAnonymous, session]);
+  useEffect(() => { setShowAuthorNameInput(!isAnonymous && !session?.user?.name); }, [isAnonymous, session]);
 
-  const handleEditorChange = (newContent: any, htmlContent: string) => {
-    setContent(newContent);
+  if (status === 'loading' || loading) { return <LoadingState text={'Yüklənir'} /> }
+
+  const handleEditorChange = (newContent: any, htmlContent: string) => { setContent(newContent);
     setContentHtml(htmlContent);
     calculateCharacterCountFromContent(newContent);
     
     // Save to localStorage for navigation between steps
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('editBlogData');
+    if (typeof window !== 'undefined') { const saved = localStorage.getItem('editBlogData');
       const base = saved ? JSON.parse(saved) : {};
-      const updatedData = {
-        ...base,
+      const updatedData = { ...base,
         content: newContent,
         contentHtml: htmlContent,
-        editId: blogId
-      };
-      localStorage.setItem('editBlogData', JSON.stringify(updatedData));
-    }
-  };
+        editId: blogId };
+      localStorage.setItem('editBlogData', JSON.stringify(updatedData)); } };
 
-  const extractMedia = (content: any) => {
-    const media: string[] = [];
-    if (Array.isArray(content)) {
-      content.forEach((block: any) => {
-        if (block.type === 'image' && block.props?.url) {
-          media.push(block.props.url);
-        }
-      });
-    }
-    return media;
-  };
+  const extractMedia = (content: any) => { const media: string[] = [];
+    if (Array.isArray(content)) { content.forEach((block: any) => { if (block.type === 'image' && block.props?.url) { media.push(block.props.url); } }); }
+    return media; };
 
   // Removed handleSaveDraft - editing pending stories updates directly without draft mechanism
 
-  const handleSubmit = async () => {
-    // Get latest data from localStorage
+  const handleSubmit = async () => { // Get latest data from localStorage
     let finalData = { title, isAnonymous, authorName, content, contentHtml };
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('editBlogData');
-      if (saved) {
-        try {
-          const data = JSON.parse(saved);
-          if (data.editId === blogId) {
-            finalData = {
-              title: data.title || title,
+    if (typeof window !== 'undefined') { const saved = localStorage.getItem('editBlogData');
+      if (saved) { try { const data = JSON.parse(saved);
+          if (data.editId === blogId) { finalData = { title: data.title || title,
               isAnonymous: data.isAnonymous !== undefined ? data.isAnonymous : isAnonymous,
               authorName: data.authorName || authorName,
               content: data.content || content,
-              contentHtml: data.contentHtml || contentHtml
-            };
-          }
-        } catch {}
-      }
-    }
+              contentHtml: data.contentHtml || contentHtml }; } } catch {} } }
 
     // Robust content validation
     let isContentEmpty = false;
-    if (typeof finalData.content === 'string') {
-      isContentEmpty = !finalData.content.trim();
-    } else if (!finalData.content || !JSON.stringify(finalData.content).trim() || JSON.stringify(finalData.content).trim() === '{}') {
-      isContentEmpty = true;
-    }
-    if (isContentEmpty) {
-      setError(t('errors.pleaseAddContent'));
-      return;
-    }
-    if (characterCount < 100) {
-      setError(t('errors.blogMinLength'));
-      return;
-    }
-    if (!finalData.isAnonymous && showAuthorNameInput && (!finalData.authorName || !finalData.authorName.trim())) {
-      setError(t('errors.pleaseEnterNameOrAnonymous'));
-      return;
-    }
+    if (typeof finalData.content === 'string') { isContentEmpty = !finalData.content.trim(); } else if (!finalData.content || !JSON.stringify(finalData.content).trim() || JSON.stringify(finalData.content).trim() === '{}') { isContentEmpty = true; }
+    if (isContentEmpty) { setError('Təqdim etməzdən əvvəl məzmun əlavə edin');
+      return; }
+    if (characterCount < 100) { setError('Bloq məzmunu ən azı 100 simvol olmalıdır.');
+      return; }
+    if (!finalData.isAnonymous && showAuthorNameInput && (!finalData.authorName || !finalData.authorName.trim())) { setError('Zəhmət olmasa adınızı daxil edin və ya anonim təqdim etməyi seçin');
+      return; }
     setIsSubmitting(true);
     setError('');
-    try {
-      const response = await fetch('/api/blogs', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id: blogId,
+    try { const response = await fetch('/api/blogs', { method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', },
+        body: JSON.stringify({ id: blogId,
           title: finalData.title,
           content: finalData.content, // BlockNote JSON
           contentHtml: finalData.contentHtml,
           isAnonymous: finalData.isAnonymous,
-          authorName: finalData.isAnonymous ? 'Anonymous' : (finalData.authorName || session?.user?.name),
+          authorName: finalData.isAnonymous ? 'Anonim' : (finalData.authorName || session?.user?.name),
           status: 'pending',
-          media: extractMedia(finalData.content)
-        }),
-      });
-      if (response.ok) {
-        // Clear localStorage after successful submission
+          media: extractMedia(finalData.content) }), });
+      if (response.ok) { // Clear localStorage after successful submission
         cleanupLocalStorage();
         sessionStorage.removeItem('inBlogEditFlow');
         setSuccess(true);
-        setTimeout(() => {
-          router.push(localePath("/profile"));
-        }, 2000);
-      } else {
-        const data = await response.json();
-        setError(data.error || t('errors.failedToUpdateBlog'));
-      }
-    } catch (error) {
-      console.error('Error updating blog:', error);
-      setError(t('errors.errorUpdating'));
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+        setTimeout(() => { router.push(localePath("/profile")); }, 2000); } else { const data = await response.json();
+        setError(data.error || 'Bloqu yeniləmək alınmadı'); } } catch (error) { console.error('Error updating blog:', error);
+      setError('Yeniləmə zamanı xəta baş verdi'); } finally { setIsSubmitting(false); } };
 
-  if (!init || status === 'loading') {
-    return (
+  if (!init || loading) { return (
       <LoadingState 
-        text={t('blog.loadingEditor') || 'Loading editor...'}
-        gradientFrom="from-blue-50"
-        gradientVia="via-indigo-50"
-        gradientTo="to-purple-50"
-        spinnerColor="border-blue-600"
+        text={'Redaktor yüklənir...'}
       />
-    );
-  }
+    ); }
 
-  if (success) {
-    return (
+  if (success) { return (
       <SuccessState 
-        title={t('blog.updated') || 'Blog Updated Successfully!'}
-        message={t('blog.updatedMessage') || "Your blog has been updated and submitted for review. You'll receive a notification once it's approved."}
+        title={'Bloq uğurla yeniləndi!'}
+        message={"Bloqunuz yeniləndi və yoxlama üçün göndərildi. Təsdiqləndikdən sonra bildiriş alacaqsınız."}
       />
-    );
-  }
+    ); }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -307,9 +188,9 @@ export default function EditBlogStep2() {
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Edit Your Blog</h1>
+                <h1 className="text-3xl font-bold text-gray-900">Bloqunu redaktə et</h1>
                 <p className="mt-2 text-gray-600">
-                  Update your personal experience or community blog
+                  Şəxsi təcrübəni və ya icma bloqunu yenilə
                 </p>
               </div>
               <Button
@@ -317,28 +198,22 @@ export default function EditBlogStep2() {
                 icon={ArrowLeft}
                 iconPosition="left"
                 size="sm"
-                onClick={() => {
-                  // Save current state to localStorage before going back
-                  if (typeof window !== 'undefined') {
-                    const saved = localStorage.getItem('editBlogData');
+                onClick={() => { // Save current state to localStorage before going back
+                  if (typeof window !== 'undefined') { const saved = localStorage.getItem('editBlogData');
                     const base = saved ? JSON.parse(saved) : {};
-                    const updatedData = {
-                      ...base,
+                    const updatedData = { ...base,
                       title,
                       isAnonymous,
                       authorName,
                       content,
                       contentHtml,
-                      editId: blogId
-                    };
-                    localStorage.setItem('editBlogData', JSON.stringify(updatedData));
-                  }
+                      editId: blogId };
+                    localStorage.setItem('editBlogData', JSON.stringify(updatedData)); }
                   // Set flag to preserve data during navigation within the flow
                   sessionStorage.setItem('navigatingWithinBlogFlow', 'true');
-                  router.push(`/edit/blog/${blogId}/step1`);
-                }}
+                  router.push(`/edit/blog/${blogId}/step1`); }}
               >
-                Back
+                Geri
               </Button>
             </div>
             
@@ -347,27 +222,27 @@ export default function EditBlogStep2() {
 
           {/* Blog Details */}
           <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Blog Details</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Bloq məlumatları</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">{t('labels.title')}</label>
+                <label className="block text-sm font-medium text-gray-700">{'Başlıq'}</label>
                 <p className="mt-1 text-sm text-gray-900">{title}</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">{t('author')}</label>
+                <label className="block text-sm font-medium text-gray-700">{''}</label>
                 {isAnonymous ? (
-                  <p className="mt-1 text-sm text-gray-900">{t('titles.anonymous')}</p>
+                  <p className="mt-1 text-sm text-gray-900">{'Anonim'}</p>
                 ) : showAuthorNameInput ? (
                   <input
                     type="text"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                    placeholder="Your name"
+                    placeholder="Sənin adın"
                     value={authorName}
                     onChange={e => setAuthorName(e.target.value)}
                   />
                 ) : (
-                  <p className="mt-1 text-sm text-gray-900">{authorName || session?.user?.name || 'Community Member'}</p>
+                  <p className="mt-1 text-sm text-gray-900">{authorName || session?.user?.name || 'İcma üzvü'}</p>
                 )}
               </div>
             </div>
@@ -377,10 +252,10 @@ export default function EditBlogStep2() {
           <div className="bg-white rounded-lg shadow">
             <div className="px-6 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900">Blog Content</h2>
+                <h2 className="text-xl font-semibold text-gray-900">Bloq məzmunu</h2>
                 <div className="flex items-center space-x-4">
                   <span className="text-sm text-gray-500">
-                    {characterCount} characters
+                    {characterCount} simvol
                   </span>
                   <Button
                     variant="outline"
@@ -389,7 +264,7 @@ export default function EditBlogStep2() {
                     iconPosition="left"
                     onClick={() => setShowPreview(!showPreview)}
                   >
-                    {showPreview ? 'Hide Preview' : 'Show Preview'}
+                    {showPreview ? 'Önizləməni gizlət' : 'Önizləməni göstər'}
                   </Button>
                 </div>
               </div>
@@ -435,32 +310,29 @@ export default function EditBlogStep2() {
               iconPosition="left"
               loading={isSubmitting}
               onClick={handleSubmit}
-              disabled={
-                isSubmitting ||
+              disabled={ isSubmitting ||
                 (
                   (typeof content === 'string' && (!content || !content.trim())) ||
                   (typeof content !== 'string' && (!content || !JSON.stringify(content).trim() || JSON.stringify(content).trim() === '{}'))
                 ) ||
-                characterCount < 100
-              }
+                characterCount < 100 }
             >
-              {isSubmitting ? 'Updating...' : 'Update Blog'}
+              {isSubmitting ? 'Yenilənir...' : 'Bloqu yenilə'}
             </Button>
           </div>
 
           {/* Guidelines */}
           <div className="mt-8 bg-blue-50 border border-blue-200 rounded-md p-4">
-            <h3 className="text-sm font-medium text-blue-800 mb-2">Blog Guidelines</h3>
+            <h3 className="text-sm font-medium text-blue-800 mb-2">Bloq qaydaları</h3>
             <ul className="text-sm text-blue-700 space-y-1">
-              <li>• Share personal experiences, challenges, or victories related to social justice and equality</li>
-              <li>• Be respectful and constructive in your narrative</li>
-              <li>• Minimum 100 characters required</li>
-              <li>• Your blog will be reviewed before publication</li>
-              <li>• You can choose to remain anonymous</li>
+              <li>• Sosial ədalət və bərabərliklə bağlı şəxsi təcrübəni, çətinlikləri və uğurları paylaş</li>
+              <li>• Mətnində hörmətli və konstruktiv ol</li>
+              <li>• Minimum 100 simvol tələb olunur</li>
+              <li>• Bloqun dərc olunmazdan əvvəl yoxlanılacaq</li>
+              <li>• Anonim qalmağı seçə bilərsən</li>
             </ul>
           </div>
         </div>
       </div>
     </div>
-  )
-}
+  ) }

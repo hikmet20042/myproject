@@ -176,7 +176,7 @@ async function runTests() {
 
   // Print next steps
   console.log(`${colors.blue}Next Steps:${colors.reset}`);
-  console.log('1. Create test accounts (admin, NGO, regular user)');
+  console.log('1. Create test accounts (admin, Organization, regular user)');
   console.log('2. Create test data (blog, event, vacancy)');
   console.log('3. Run manual tests with TESTING_CHECKLIST.md');
   console.log('4. Test on mobile devices');

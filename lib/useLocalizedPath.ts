@@ -1,13 +1,10 @@
 import { useCallback } from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 /**
- * Hook to get localized path with language prefix
- * Usage: const localePath = useLocalizedPath('/blogs') => '/az/blogs' or '/en/blogs'
+ * Hook to normalize internal paths.
+ * Usage: const localePath = useLocalizedPath(); localePath('/blogs') => '/blogs'
  */
 export function useLocalizedPath() {
-  const { language } = useLanguage();
-
   return useCallback((path: string) => {
     // Don't add prefix to API routes or external links
     if (
@@ -23,12 +20,12 @@ export function useLocalizedPath() {
 
     // Remove leading slash if present
     const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-    // Guard against already-prefixed paths like '/az/...' or '/en/...'
+
+    // Strip legacy language prefixes from incoming paths.
     if (cleanPath.startsWith('az/') || cleanPath.startsWith('en/')) {
-      return `/${cleanPath}`;
+      return `/${cleanPath.split('/').slice(1).join('/')}`;
     }
 
-    // Add language prefix
-    return `/${language}/${cleanPath}`;
-  }, [language]);
+    return `/${cleanPath}`;
+  }, []);
 }

@@ -1,205 +1,160 @@
 "use client"
 
 import Link from 'next/link';
-import { useLanguage } from '@/contexts/LanguageContext'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
-import { BookOpen, Users, Briefcase, Calendar, ArrowRight, Sparkles, Target, TrendingUp } from 'lucide-react';
-import { Button } from '@/components/ui';
-import { AnimatedBackground } from '@/components/shared';
+import { BookOpen, Users, Briefcase, Calendar, ArrowRight, Sparkles } from 'lucide-react';
+import { Button, ButtonLink } from '@/components/ui';
 
-export default function ResourcesPage() {
-  const { t } = useLanguage()
-  const localePath = useLocalizedPath()
+export default function ResourcesPage() { const localePath = useLocalizedPath()
 
   const resourceCategories = [
-    {
-      key: 'educationalMaterials',
-      title: t('resources.categories.educationalMaterials.title'),
-      description: t('resources.categories.educationalMaterials.description'),
+    { key: 'educationalMaterials',
+      title: 'Tədris Materialları',
+      description: 'Gender bərabərliyi və icma rifahına fokuslanan təlimatlar, kurslar, videolar və endirilə bilən bələdçilərə daxil olun.',
       href: localePath('/resources/materials'),
       icon: BookOpen,
-      gradient: 'from-blue-500 to-blue-700',
-      hoverGradient: 'from-blue-600 to-blue-800',
-      bgLight: 'bg-blue-50'
-    },
-    {
-      key: 'ngoDirectory',
-      title: t('resources.categories.ngoDirectory.title'),
-      description: t('resources.categories.ngoDirectory.description'),
-      href: localePath('/resources/ngos'),
+      tone: 'blue' },
+    { key: 'organizationDirectory',
+      title: 'Təşkilat Kataloqu',
+      description: 'Gender bərabərliyi və sağ qalanlara dəstək üzərində çalışan təşkilatları kəşf edin və əlaqə saxlayın.',
+      href: localePath('/resources/organizations'),
       icon: Users,
-      gradient: 'from-indigo-500 to-indigo-700',
-      hoverGradient: 'from-indigo-600 to-indigo-800',
-      bgLight: 'bg-indigo-50'
-    },
-    {
-      key: 'jobOpportunities',
-      title: t('resources.categories.jobOpportunities.title'),
-      description: t('resources.categories.jobOpportunities.description'),
+      tone: 'green' },
+    { key: 'jobOpportunities',
+      title: 'İş İmkanları',
+      description: 'Gender bərabərliyi və icma qayğısını dəstəkləyən təşkilatlarda iş, könüllülük və təcrübə imkanlarını tapın.',
       href: localePath('/resources/vacancies'),
       icon: Briefcase,
-      gradient: 'from-purple-500 to-purple-700',
-      hoverGradient: 'from-purple-600 to-purple-800',
-      bgLight: 'bg-purple-50'
-    },
-    {
-      key: 'events',
-      title: t('resources.categories.events.title'),
-      description: t('resources.categories.events.description'),
+      tone: 'blue' },
+    { key: 'events',
+      title: 'Tədbirlər',
+      description: 'Gender bərabərliyi üzrə bilik və bacarıqlarınızı gücləndirən yaxınlaşan tədbir, seminar və proqramları kəşf edin.',
       href: localePath('/resources/events'),
       icon: Calendar,
-      gradient: 'from-pink-500 to-pink-700',
-      hoverGradient: 'from-pink-600 to-pink-800',
-      bgLight: 'bg-pink-50'
-    }
+      tone: 'green' }
   ]
 
   const quickAccessItems = [
-    { href: localePath('/resources/materials'), label: t('resources.quickAccess.browseMaterials'), icon: BookOpen, variant: 'primary' as const },
-    { href: localePath('/resources/ngos'), label: t('resources.quickAccess.findNgos'), icon: Users, variant: 'outline' as const },
-    { href: localePath('/resources/vacancies'), label: t('resources.quickAccess.findVacancies'), icon: Briefcase, variant: 'primary' as const },
-    { href: localePath('/resources/events'), label: t('resources.quickAccess.upcomingEvents'), icon: Calendar, variant: 'outline' as const }
+    { href: localePath('/resources/materials'), label: 'Materiallara Bax', icon: BookOpen, variant: 'primary' as const },
+    { href: localePath('/resources/organizations'), label: 'Təşkilatları tap', icon: Users, variant: 'outline' as const },
+    { href: localePath('/resources/vacancies'), label: 'Vakansiyaları Tap', icon: Briefcase, variant: 'primary' as const },
+    { href: localePath('/resources/events'), label: 'Yaxınlaşan Tədbirlər', icon: Calendar, variant: 'outline' as const }
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Engaging Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-900 text-white py-16 sm:py-20 lg:py-24">
-        {/* Animated Blobs */}
-        <AnimatedBackground
-          colors={{
-            blob1: 'bg-blue-400',
-            blob2: 'bg-purple-400',
-            blob3: 'bg-pink-400'
-          }}
-        />
+    <div className="min-h-screen bg-background text-foreground">
+      <section className="relative overflow-hidden pt-28 pb-20 md:pt-36 md:pb-24">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-40" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[480px] w-[820px] rounded-full bg-primary/10 blur-3xl" />
 
         <div className="section-padding relative z-10">
-          <div className="max-w-5xl mx-auto text-center">
-           
+          <div className="mx-auto max-w-5xl text-center">
+            <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-medium text-gray-600 mb-8">
+              <Sparkles size={14} className="text-accent" />
+              {'İcma Dəstək Resursları'}
+            </div>
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-4 sm:mb-6 leading-tight animate-slide-up px-4">
-              {t('resources.hero.title')}
+            <h1 className="mx-auto max-w-4xl text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-gray-900 leading-tight">
+              {'İcma Dəstək Resursları'}
             </h1>
-            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/95 leading-relaxed max-w-3xl mx-auto animate-fade-in px-4">
-              {t('resources.hero.subtitle')}
+            <p className="mx-auto mt-6 max-w-3xl text-lg sm:text-xl text-gray-600 leading-relaxed">
+              {'Gender bərabərliyini irəli aparmaq və sağ qalanlara dəstəyi gücləndirmək üçün seçilmiş alətlər, təşkilatlar və imkanlar.'}
             </p>
+
+            <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+              <ButtonLink href={localePath('/submit')} variant="secondary" size="lg" hoverEffect="scale">
+                {'Bloq Paylaş'}
+              </ButtonLink>
+              <ButtonLink href={localePath('/resources')} variant="outline" size="lg" hoverEffect="scale">
+                {'Fürsətləri Kəşf Et'}
+              </ButtonLink>
+            </div>
           </div>
         </div>
-
       </section>
 
-      {/* Resource Categories - Enhanced Grid */}
-      <section className="py-12 sm:py-16 lg:py-20 relative">
-        {/* Background Decoration */}
-        <div className="absolute top-0 right-0 w-64 sm:w-96 h-64 sm:h-96 bg-purple-100 rounded-full filter blur-3xl opacity-20"></div>
-        
+      <section className="py-14 md:py-16">
         <div className="section-padding relative z-10">
           <div className="max-w-7xl mx-auto">
-            {/* Section Header */}
-            <div className="text-center mb-8 sm:mb-12 animate-fade-in">
-              
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 mb-2 sm:mb-3 px-4">
-                {t('resources.categoriesSection.titleLeading')}{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-                  {t('resources.categoriesSection.titleHighlight')}
+            <div className="text-center mb-8 md:mb-10">
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2 px-4">
+                {'Sənin üçün'}{' '}
+                <span className="text-primary">
+                  {'Düzgün Dəstək'}
                 </span>
               </h2>
-              <p className="text-sm sm:text-base lg:text-lg text-gray-600 max-w-2xl mx-auto px-4">
-                {t('resources.categoriesSection.subtitle')}
+              <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto px-4">
+                {'Təlim materiallarından təcili yardıma qədər ehtiyaclarına uyğunlaşdırılmış resurslara çıxış əldə et.'}
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
-              {resourceCategories.map((category, index) => {
-                const Icon = category.icon
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+              {resourceCategories.map((category) => { const Icon = category.icon
                 return (
                   <Link
-                    key={index}
+                    key={category.key}
                     href={category.href}
-                    className="group block animate-fade-in"
-                    style={{ animationDelay: `${index * 0.1}s` }}
+                    className="group block"
                   >
-                    <div className="relative h-full bg-gradient-to-br from-white to-gray-50 rounded-2xl p-6 sm:p-8 border-2 border-gray-200 hover:border-transparent hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden">
-                      {/* Gradient Overlay */}
-                      <div className={`absolute inset-0 bg-gradient-to-br ${category.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500 rounded-2xl`}></div>
-                      
-                      {/* Shine Effect */}
-                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                      </div>
-
+                    <div className="relative h-full rounded-2xl border border-gray-200 bg-white p-6 md:p-7 shadow-sm transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg">
                       <div className="relative z-10">
-                        <div className="flex items-start gap-4 sm:gap-6">
-                          <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-br ${category.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 flex-shrink-0`}>
-                            <Icon className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+                        <div className="flex items-start gap-4">
+                          <div className={`h-12 w-12 rounded-xl ${category.tone === 'green' ? 'bg-emerald-100' : 'bg-blue-100'} flex items-center justify-center flex-shrink-0`}>
+                            <Icon className={`h-6 w-6 ${category.tone === 'green' ? 'text-emerald-700' : 'text-blue-700'}`} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-3 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 transition-all duration-300">
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">
                               {category.title}
                             </h3>
-                            <p className="text-sm sm:text-base text-gray-600 leading-relaxed mb-4 sm:mb-6">
+                            <p className="text-sm sm:text-base text-gray-600 leading-relaxed mb-4">
                               {category.description}
                             </p>
-                            
-                            {/* CTA */}
-                            <div className="flex items-center gap-2 text-blue-600 font-bold group-hover:gap-4 transition-all duration-300">
-                              <span className="text-sm sm:text-base">{t('resources.explore')}</span>
-                              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-2 transition-transform duration-300" />
+
+                            <div className="flex items-center gap-2 text-primary font-semibold group-hover:text-blue-700 transition-colors">
+                              <span className="text-sm sm:text-base">{'Kəşf et'}</span>
+                              <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform duration-300" />
                             </div>
                           </div>
                         </div>
                       </div>
-
-                      {/* Corner Decoration */}
-                      <div className={`absolute top-0 right-0 w-24 sm:w-32 h-24 sm:h-32 ${category.bgLight} rounded-full -translate-y-1/2 translate-x-1/2 opacity-0 group-hover:opacity-50 transition-opacity duration-500`}></div>
                     </div>
                   </Link>
-                )
-              })}
+                ) })}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Quick Access Section - Enhanced */}
-      <section className="py-12 sm:py-16 bg-gradient-to-br from-white via-blue-50/30 to-white relative">
+      <section className="py-14 md:py-16 bg-slate-50/60">
         <div className="section-padding">
-          <div className="max-w-5xl mx-auto text-center">
-            <div className="mb-6 sm:mb-8 animate-fade-in">
-              
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-gray-900 px-4">
-                {t('resources.quickAccess.heading')}
+          <div className="max-w-5xl mx-auto rounded-2xl border border-gray-200 bg-white p-6 sm:p-8 text-center shadow-sm">
+            <div className="mb-6">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 px-4">
+                {'Elə İndi Başla'}
               </h2>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 px-4">
-              {quickAccessItems.map((item, idx) => {
-                const Icon = item.icon
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {quickAccessItems.map((item, idx) => { const Icon = item.icon
                 return (
                   <Link 
                     key={idx} 
                     href={item.href}
-                    className="w-full animate-scale-in"
-                    style={{ animationDelay: `${idx * 0.1}s` }}
+                    className="w-full"
                   >
                     <Button 
                       variant={item.variant} 
                       size="lg"
-                      className="w-full group py-4 sm:py-5 rounded-xl font-bold hover:scale-105 transition-all duration-300 text-sm sm:text-base"
+                      className="w-full group py-4 sm:py-5 rounded-xl font-semibold transition-all duration-300 text-sm sm:text-base"
                     >
                       <Icon className="w-4 h-4 sm:w-5 sm:h-5 mr-2 group-hover:rotate-12 transition-transform" />
                       <span className="line-clamp-1">{item.label}</span>
                     </Button>
                   </Link>
-                )
-              })}
+                ) })}
             </div>
           </div>
         </div>
       </section>
-
-      
     </div>
-  );
-}
+  ); }

@@ -29,13 +29,13 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
   }, ref) => {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
     
-    const baseClasses = 'w-full border-2 rounded-xl transition-all duration-200 focus:outline-none';
+    const baseClasses = 'w-full rounded-xl border bg-white text-gray-900 shadow-sm transition-all duration-200 focus:outline-none';
     
     const variants = {
-      default: 'border-gray-200 focus:ring-4 focus:ring-gray-100 focus:border-gray-500',
-      orange: 'border-gray-200 focus:ring-4 focus:ring-orange-100 focus:border-orange-500',
-      indigo: 'border-gray-200 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500',
-      purple: 'border-gray-200 focus:ring-4 focus:ring-purple-100 focus:border-purple-500'
+      default: 'border-blue-100 focus:border-blue-400 focus:ring-4 focus:ring-blue-100',
+      orange: 'border-emerald-100 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100',
+      indigo: 'border-blue-100 focus:border-blue-400 focus:ring-4 focus:ring-blue-100',
+      purple: 'border-cyan-100 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100'
     };
     
     const sizes = {

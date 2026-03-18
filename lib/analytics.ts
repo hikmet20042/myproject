@@ -110,13 +110,13 @@ export const trackEventRegistration = (eventTitle: string) => {
 }
 
 /**
- * Track NGO profile views
+ * Track organization profile views
  */
-export const trackNGOView = (ngoName: string) => {
+export const trackOrganizationView = (organizationName: string) => {
   event({
-    action: 'view_ngo',
-    category: 'ngo',
-    label: ngoName,
+    action: 'view_organization',
+    category: 'organization',
+    label: organizationName,
   })
 }
 

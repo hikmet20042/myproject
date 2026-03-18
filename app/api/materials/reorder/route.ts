@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import connectDB from '@/lib/mongoose';
-import Material from '@/lib/models/Material';
+import { getServerSession } from '@/lib/auth/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
@@ -15,7 +13,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    await connectDB();
+    const supabase = createSupabaseAdminClient();
 
     const { updates } = await request.json();
 
@@ -36,17 +34,19 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    // Update all materials with new order
     const updatePromises = updates.map(({ id, order }) =>
-      Material.findByIdAndUpdate(id, { order }, { new: true })
+      supabase.from('materials').update({ order }).eq('id', id).select('*').single()
     );
 
     const updatedMaterials = await Promise.all(updatePromises);
+    const materials = updatedMaterials
+      .filter(result => !result.error)
+      .map(result => result.data);
 
     return NextResponse.json({
       success: true,
-      count: updatedMaterials.length,
-      materials: updatedMaterials
+      count: materials.length,
+      materials
     });
 
   } catch (error: any) {

@@ -1,0 +1,59 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+
+export async function GET(request: NextRequest) {
+  const url = new URL(request.url)
+  const code = url.searchParams.get('code')
+  const next = url.searchParams.get('next') || '/'
+
+  const supabase = createSupabaseServerClient()
+
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    if (error) {
+      return NextResponse.redirect(new URL(`/auth/signin?error=${encodeURIComponent('OAuthSignin')}`, url.origin))
+    }
+
+    const { data } = await supabase.auth.getUser()
+    if (data?.user) {
+      const adminSupabase = createSupabaseAdminClient()
+
+      const { data: account } = await adminSupabase
+        .from('accounts')
+        .select('account_type')
+        .eq('id', data.user.id)
+        .maybeSingle()
+
+      const accountType = (account?.account_type as 'user' | 'organization' | undefined)
+        || (data.user.app_metadata?.account_type as 'user' | 'organization')
+        || 'user'
+
+      if (accountType === 'organization') {
+        await supabase.auth.signOut()
+        return NextResponse.redirect(new URL('/auth/signin?message=Organization%20accounts%20cannot%20use%20Google%20sign-in', url.origin))
+      }
+
+      await adminSupabase
+        .from('accounts')
+        .upsert({
+          id: data.user.id,
+          account_type: 'user',
+          is_admin: false,
+          is_active: true,
+        }, { onConflict: 'id' })
+
+      await adminSupabase
+        .from('users')
+        .upsert({
+          id: data.user.id,
+          name: data.user.user_metadata?.name || data.user.email,
+          email: data.user.email,
+          role: (data.user.app_metadata?.role as string) || 'user',
+          auth_provider: 'google'
+        }, { onConflict: 'id' })
+    }
+  }
+
+  return NextResponse.redirect(new URL(next, url.origin))
+}

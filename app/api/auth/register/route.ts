@@ -1,21 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
 import nodemailer from 'nodemailer'
-import dbConnect from '@/lib/mongoose'
-import User from '@/lib/models/User'
-import NGO from '@/lib/models/NGO'
-import NotificationModel from '@/lib/models/Notification'
+import { ORGANIZATION_TYPE_VALUES } from '@/lib/organizationTypes'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(request: NextRequest) {
   try {
-    await dbConnect();
-    const { name, email, password, type, ngoProfile } = await request.json();
+    const supabase = createSupabaseAdminClient()
+    const { name, email, password, type, organizationProfile } = await request.json();
     
-    if (type === 'ngo') {
-      // NGO Registration
-      if (!ngoProfile?.organizationName || !email || !password || !ngoProfile?.description || !ngoProfile?.contactPerson?.name || !ngoProfile?.contactPerson?.email) {
+    if (type === 'organization') {
+      // Organization Registration
+      if (!organizationProfile?.organizationName || !email || !password || !organizationProfile?.description || !organizationProfile?.contactPerson?.name || !organizationProfile?.contactPerson?.email || !organizationProfile?.organizationType) {
         return NextResponse.json(
           { error: 'Organization name, email, password, description, and contact person details are required' },
+          { status: 400 }
+        );
+      }
+      if (!ORGANIZATION_TYPE_VALUES.includes(organizationProfile.organizationType)) {
+        return NextResponse.json(
+          { error: 'Invalid organization type' },
           { status: 400 }
         );
       }
@@ -43,89 +46,145 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Check if email already exists in both User and NGO collections
-    const existingUser = await User.findOne({ email });
-    const existingNGO = await NGO.findOne({ email });
-    if (existingUser || existingNGO) {
+    // Check if email already exists in both User and Organization tables
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle()
+    const { data: existingOrganizationProfile } = await supabase
+      .from('organization_profiles')
+      .select('account_id')
+      .eq('email', email)
+      .maybeSingle()
+
+    if (existingUser || existingOrganizationProfile) {
       return NextResponse.json(
         { error: 'An account with this email already exists' },
         { status: 400 }
       );
     }
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
-    // Generate verification token
-    const verificationToken = Math.random().toString(36).substring(2, 15);
-    
-    let createdAccount;
-    
-    if (type === 'ngo') {
-      // Create NGO account
-      const ngoData = {
-        organizationName: ngoProfile.organizationName,
+    const accountType = type === 'organization' ? 'organization' : 'user'
+
+    const { data: createdUser, error: createError } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: false,
+      user_metadata: {
+        name: accountType === 'organization' ? organizationProfile?.organizationName : name,
+      },
+    })
+
+    if (createError || !createdUser.user) {
+      return NextResponse.json(
+        { error: createError?.message || 'Failed to create account' },
+        { status: 500 }
+      )
+    }
+
+    const { error: accountError } = await supabase
+      .from('accounts')
+      .upsert({
+        id: createdUser.user.id,
+        account_type: accountType,
+        is_admin: false,
+        is_active: true,
+      }, { onConflict: 'id' })
+
+    if (accountError) {
+      return NextResponse.json(
+        { error: accountError.message },
+        { status: 500 }
+      )
+    }
+
+    if (accountType === 'organization') {
+      const { error: profileError } = await supabase.from('organization_profiles').upsert({
+        account_id: createdUser.user.id,
+        organization_name: organizationProfile.organizationName,
+        organization_type: organizationProfile.organizationType,
         email,
-        password: hashedPassword,
-        description: ngoProfile.description,
-        website: ngoProfile.website,
-        contactPhone: ngoProfile.contactPhone,
-        address: ngoProfile.address,
-        registrationNumber: ngoProfile.registrationNumber,
-        focusAreas: ngoProfile.focusAreas || [],
-        contactPerson: ngoProfile.contactPerson,
-        socialMedia: ngoProfile.socialMedia,
-        status: 'pending', // NGOs need admin approval
-        verificationToken,
-        emailVerified: null
-      };
-      
-      createdAccount = await NGO.create(ngoData);
+        profile_image: null,
+        description: organizationProfile.description,
+        website: organizationProfile.website,
+        contact_phone: organizationProfile.contactPhone,
+        address: organizationProfile.address,
+        registration_number: organizationProfile.registrationNumber,
+        focus_areas: organizationProfile.focusAreas || [],
+        contact_person: organizationProfile.contactPerson,
+        social_links: organizationProfile.socialMedia,
+        moderation_status: 'pending',
+        admin_comment: null,
+        reviewed_at: null,
+        reviewed_by: null,
+      }, { onConflict: 'account_id' })
+
+      if (profileError) {
+        return NextResponse.json(
+          { error: profileError.message },
+          { status: 500 }
+        )
+      }
+
     } else {
-      // Create user account
-      const userData = {
+      const { error: userError } = await supabase.from('users').insert({
+        id: createdUser.user.id,
         name,
         email,
-        password: hashedPassword,
-        verificationToken,
-        emailVerified: null,
         role: 'user',
-        authProvider: 'credentials' as const
-      };
-      
-      createdAccount = await User.create(userData);
+        auth_provider: 'credentials'
+      })
+
+      if (userError) {
+        return NextResponse.json(
+          { error: userError.message },
+          { status: 500 }
+        )
+      }
     }
+
+    const { data: verifyLink } = await supabase.auth.admin.generateLink({
+      type: 'signup',
+      email,
+      password,
+      options: {
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/verify-email?verified=1&type=${accountType}`
+      }
+    })
     // Create welcome notification
-    const welcomeMessage = type === 'ngo' 
-      ? 'QHT qeydiyyatınız üçün təşəkkür edirik. Zəhmət olmasa e-poçtunuzu təsdiqləyin və QHT funksiyalarına çıxış əldə etmək üçün admin təsdiqini gözləyin.'
+    const welcomeMessage = type === 'organization' 
+      ? 'Təşkilat qeydiyyatınız üçün təşəkkür edirik. Zəhmət olmasa e-poçtunuzu təsdiqləyin və təşkilat funksiyalarına çıxış əldə etmək üçün admin təsdiqini gözləyin.'
       : 'İcmamıza qoşulduğunuz üçün təşəkkür edirik. Başlamaq üçün zəhmət olmasa e-poçtunuzu təsdiqləyin.';
     
-    if (type === 'ngo') {
-      // For NGOs, we'll handle notifications after email verification
-      // since NGOs don't have a userId in the traditional sense
-    } else {
-      await NotificationModel.create({
-        userId: createdAccount._id,
+    if (type !== 'organization') {
+      await supabase.from('notifications').insert({
+        user_id: createdUser.user.id,
         type: 'welcome',
         title: 'icma360-a xoş gəlmisiniz!',
         message: welcomeMessage,
         data: { type: 'welcome', userType: type },
-      });
+      })
     }
 
-    // Notify admins about new NGO registration
-    if (type === 'ngo') {
-      const adminUsers = await User.find({ role: 'admin' });
-      for (const admin of adminUsers) {
-        await NotificationModel.create({
-          userId: admin._id,
+    // Notify admins about new organization registration
+    if (type === 'organization') {
+      const { data: adminUsers } = await supabase
+        .from('users')
+        .select('id')
+        .eq('role', 'admin')
+
+      for (const admin of adminUsers || []) {
+        await supabase.from('notifications').insert({
+          user_id: admin.id,
           type: 'admin_action_required',
-          title: 'Yeni QHT qeydiyyatı gözləyir',
-          message: `${ngoProfile?.organizationName} QHT kimi qeydiyyatdan keçib və təsdiq gözləyir.`,
-          data: { 
-            type: 'ngo_approval_required', 
-            ngoId: createdAccount._id,
-            organizationName: ngoProfile?.organizationName 
+          title: 'Yeni təşkilat qeydiyyatı gözləyir',
+          message: `${organizationProfile?.organizationName} təşkilat kimi qeydiyyatdan keçib və təsdiq gözləyir.`,
+          data: {
+            type: 'organization_approval_required',
+            organizationId: createdUser.user.id,
+            organizationName: organizationProfile?.organizationName
           },
-        });
+        })
       }
     }
     // ...existing code...
@@ -153,7 +212,7 @@ export async function POST(request: NextRequest) {
       console.log('Using Brevo SMTP')
       console.log('Email user:', process.env.EMAIL_SERVER_USER)
 
-      const verificationUrl = `${process.env.NEXTAUTH_URL}/auth/verify-email?token=${verificationToken}`
+      const verificationUrl = verifyLink?.properties?.action_link || `${process.env.NEXT_PUBLIC_APP_URL}/auth/verify-email`
 
       const info = await transporter.sendMail({
         from: process.env.EMAIL_FROM,
@@ -162,9 +221,9 @@ export async function POST(request: NextRequest) {
         html: `
           <div style="max-width: 600px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
             <h2 style="color: #333; text-align: center;">icma360-a xoş gəlmisiniz!</h2>
-            <p>Salam ${type === 'ngo' ? ngoProfile?.organizationName : name},</p>
-            <p>${type === 'ngo' 
-              ? `QHT qeydiyyatınız üçün təşəkkür edirik "${ngoProfile?.organizationName || 'təşkilatınız'}". E-poçt ünvanınızı təsdiqləmək üçün aşağıdakı düyməni klikləyin. Təsdiqdən sonra QHT qeydiyyatınız admin komandamız tərəfindən nəzərdən keçiriləcək.`
+            <p>Salam ${type === 'organization' ? organizationProfile?.organizationName : name},</p>
+            <p>${type === 'organization' 
+              ? `Təşkilat qeydiyyatınız üçün təşəkkür edirik "${organizationProfile?.organizationName || 'təşkilatınız'}". E-poçt ünvanınızı təsdiqləmək üçün aşağıdakı düyməni klikləyin. Təsdiqdən sonra təşkilat qeydiyyatınız admin komandamız tərəfindən nəzərdən keçiriləcək.`
               : 'Qeydiyyatdan keçdiyiniz üçün təşəkkür edirik. E-poçt ünvanınızı təsdiqləmək üçün aşağıdakı düyməni klikləyin:'
             }</p>
             <div style="text-align: center; margin: 30px 0;">

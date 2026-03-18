@@ -1,37 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
-import dbConnect from '@/lib/mongoose'
-import User from '@/lib/models/User'
-import NGO from '@/lib/models/NGO'
+import { getServerSession } from '@/lib/auth/server'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 // Force dynamic rendering due to session usage
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    await dbConnect()
+    const supabase = createSupabaseAdminClient()
 
     // Fetch the user's social media accounts
-    const user = await User.findById(session.user.id)
-      .select('socialMedia ngoProfile.socialMedia role')
-      .lean()
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('social_media, role')
+      .eq('id', session.user.id)
+      .single()
 
-    if (!user) {
+    if (userError || !user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const userData = user as any
+    let organizationSocialMedia = null
+    if (session.user.isApprovedOrganization) {
+      const { data: profile } = await supabase
+        .from('organization_profiles')
+        .select('social_links')
+        .eq('account_id', session.user.id)
+        .maybeSingle()
+
+      organizationSocialMedia = profile?.social_links || {}
+    }
 
     return NextResponse.json({
-      socialMedia: userData.socialMedia || {},
-      ngoSocialMedia: userData.role === 'ngo' ? userData.ngoProfile?.socialMedia || {} : null
+      socialMedia: user.social_media || {},
+      organizationSocialMedia
     })
 
   } catch (error) {
@@ -45,16 +53,16 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    await dbConnect()
+    const supabase = createSupabaseAdminClient()
 
     const body = await request.json()
-    const { socialMedia, ngoSocialMedia, type } = body
+    const { socialMedia, organizationSocialMedia, type } = body
 
     // Validate social media URLs
     const validateUrl = (url: string) => {
@@ -81,15 +89,15 @@ export async function PUT(request: NextRequest) {
             )
           }
         }
-        updateData.socialMedia = socialMedia
+        updateData.social_media = socialMedia
       }
     }
 
-    if (type === 'ngo' && session.user.isApprovedNGO) {
-      // Update NGO's social media directly in NGO collection
-      if (ngoSocialMedia) {
+    if (type === 'organization' && session.user.isApprovedOrganization) {
+      // Primary write to organization_profiles
+      if (organizationSocialMedia) {
         // Validate URLs
-        for (const [platform, url] of Object.entries(ngoSocialMedia)) {
+        for (const [platform, url] of Object.entries(organizationSocialMedia)) {
           if (url && !validateUrl(url as string)) {
             return NextResponse.json(
               { error: `Invalid URL for ${platform}` },
@@ -98,17 +106,22 @@ export async function PUT(request: NextRequest) {
           }
         }
         
-        // Update NGO collection
-        const ngo = await NGO.findOne({ email: session.user.email })
-        if (ngo) {
-          ngo.socialMedia = ngoSocialMedia
-          await ngo.save()
-          return NextResponse.json({ 
-            message: 'Social media updated successfully', 
-            socialMedia: {}, 
-            ngoSocialMedia 
-          })
+        const { data: organization, error: organizationError } = await supabase
+          .from('organization_profiles')
+          .update({ social_links: organizationSocialMedia, updated_at: new Date().toISOString() })
+          .eq('account_id', session.user.id)
+          .select('social_links')
+          .single()
+
+        if (organizationError || !organization) {
+          return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
         }
+
+        return NextResponse.json({ 
+          message: 'Social media updated successfully',
+          socialMedia: {},
+          organizationSocialMedia: organization.social_links || {}
+        })
       }
     }
 
@@ -120,22 +133,21 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update the user
-    const updatedUser = await User.findByIdAndUpdate(
-      session.user.id,
-      { $set: updateData },
-      { new: true, runValidators: true }
-    ).select('socialMedia ngoProfile.socialMedia role')
+    const { data: updatedUser, error: updatedUserError } = await supabase
+      .from('users')
+      .update({ ...updateData, updated_at: new Date().toISOString() })
+      .eq('id', session.user.id)
+      .select('social_media, role')
+      .single()
 
-    if (!updatedUser) {
+    if (updatedUserError || !updatedUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const userData = updatedUser as any
-
     return NextResponse.json({
       message: 'Social media accounts updated successfully',
-      socialMedia: userData.socialMedia || {},
-      ngoSocialMedia: userData.role === 'ngo' ? userData.ngoProfile?.socialMedia || {} : null
+      socialMedia: updatedUser.social_media || {},
+      organizationSocialMedia: null
     })
 
   } catch (error) {

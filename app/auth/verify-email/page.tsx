@@ -2,13 +2,11 @@
 
 import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { useLanguage } from '@/contexts/LanguageContext'
 import Link from 'next/link'
+import { CheckCircle2, CircleX, Loader2, MailCheck, ArrowLeft } from 'lucide-react'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
-import { LoadingState } from '@/components/shared'
 
 function VerifyEmailContent() {
-  const { t } = useLanguage()
   const localePath = useLocalizedPath()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
@@ -16,10 +14,17 @@ function VerifyEmailContent() {
 
   useEffect(() => {
     const token = searchParams?.get('token')
-    
+    const verified = searchParams?.get('verified')
+
+    if (verified === '1') {
+      setStatus('success')
+      setMessage('E-poçtunuz təsdiqləndi. İndi daxil ola bilərsiniz.')
+      return
+    }
+
     if (!token) {
       setStatus('error')
-      setMessage(t('verifyEmail.invalidLink'))
+      setMessage('Etibarsız təsdiq keçidi')
       return
     }
 
@@ -33,74 +38,88 @@ function VerifyEmailContent() {
           setMessage(data.message)
         } else {
           setStatus('error')
-          setMessage(data.error || t('verifyEmail.verificationFailed'))
+          setMessage(data.error || 'Təsdiq uğursuz oldu')
         }
-      } catch (error) {
+      } catch {
         setStatus('error')
-        setMessage(t('verifyEmail.errorOccurred'))
+        setMessage('Təsdiq zamanı xəta baş verdi')
       }
     }
 
     verifyEmail()
-  }, [searchParams, t])
+  }, [searchParams])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            {t('verifyEmail.title')}
-          </h2>
-        </div>
-        
-        <div className="bg-white p-8 rounded-lg shadow-md">
+    <div className="relative min-h-screen overflow-hidden bg-background py-10">
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-35" />
+      <div className="absolute left-1/2 top-24 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-200/30 blur-3xl" />
+
+      <div className="relative z-10 mx-auto flex min-h-[80vh] w-full max-w-lg items-center justify-center px-4 sm:px-6">
+        <div className="w-full rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="mb-6 text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+              <MailCheck className="h-6 w-6 text-blue-700" />
+            </div>
+            <h1 className="text-2xl font-black text-gray-900">{'E-poçt təsdiqi'}</h1>
+          </div>
+
           {status === 'loading' && (
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">{t('verifyEmail.verifying')}</p>
+              <Loader2 className="mx-auto mb-3 h-8 w-8 animate-spin text-blue-600" />
+              <p className="text-sm text-gray-600">{'E-poçtunuz təsdiqlənir...'}</p>
             </div>
           )}
-          
+
           {status === 'success' && (
             <div className="text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-                <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                </svg>
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+                <CheckCircle2 className="h-6 w-6 text-green-700" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">{t('verifyEmail.verified')}</h3>
-              <p className="text-gray-600 mb-6">{message}</p>
-              <Link href={localePath("/auth/signin")}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              <h2 className="mb-2 text-lg font-semibold text-gray-900">{'E-poçt təsdiqləndi'}</h2>
+              <p className="mb-6 text-sm text-gray-600">{message}</p>
+              <Link
+                href={localePath('/auth/signin')}
+                className="inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
               >
-                {t('verifyEmail.signIn')}
+                {'Daxil ol'}
               </Link>
             </div>
           )}
-          
+
           {status === 'error' && (
             <div className="text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                <CircleX className="h-6 w-6 text-red-700" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">{t('verifyEmail.failed')}</h3>
-              <p className="text-gray-600 mb-6">{message}</p>
+              <h2 className="mb-2 text-lg font-semibold text-gray-900">{'Təsdiq uğursuz oldu'}</h2>
+              <p className="mb-6 text-sm text-gray-600">{message}</p>
+
               <div className="space-y-3">
-                <Link href={localePath("/auth/signin")}
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                <Link
+                  href={localePath('/auth/signin')}
+                  className="inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
                 >
-                  {t('verifyEmail.backToSignIn')}
+                  {'Girişə qayıt'}
                 </Link>
-                <Link href={localePath("/auth/register")}
-                  className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                <Link
+                  href={localePath('/auth/register')}
+                  className="inline-flex w-full items-center justify-center rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
                 >
-                  {t('verifyEmail.registerAgain')}
+                  {'Yenidən qeydiyyat'}
                 </Link>
               </div>
             </div>
           )}
+
+          <div className="mt-6 text-center">
+            <Link
+              href={localePath('/')}
+              className="inline-flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-blue-600"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {'Ana səhifəyə qayıt'}
+            </Link>
+          </div>
         </div>
       </div>
     </div>
@@ -108,11 +127,14 @@ function VerifyEmailContent() {
 }
 
 export default function VerifyEmailPage() {
-  const localePath = useLocalizedPath()
-  const { t } = useLanguage()
-  
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">{t('verifyEmail.loading')}</div>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-background text-gray-600">
+          {'Yuklənir...'}
+        </div>
+      }
+    >
       <VerifyEmailContent />
     </Suspense>
   )

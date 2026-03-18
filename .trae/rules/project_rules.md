@@ -3,23 +3,22 @@
 ## Critical Data Model Rules
 
 ### Article Model Field Usage
-- **User Reference**: `userId` (mongoose.Types.ObjectId)
+- **User Reference**: `userId` (UUID string)
 - **Display Name**: `author` (String)
 - **Anonymity Flag**: `anonymous` (Boolean)
 - **Content**: Can be String or Object (from BlocknoteEditor)
 
 ### Story Model Field Usage
-- **User Reference**: `author` (mongoose.Types.ObjectId)
+- **User Reference**: `author` (UUID string)
 - **Display Name**: `authorName` (String)
 - **Anonymity Flag**: `isAnonymous` (Boolean)
 - **Content**: Object (from BlocknoteEditor)
 
 ## Mandatory Type Conversion Rules
 
-### ObjectId Comparisons
-**ALWAYS** convert ObjectId to string before comparing with session.user.id:
+### UUID Comparisons
+**ALWAYS** compare UUID strings with session.user.id:
 ```javascript
-const userId = objectId?.toString() || objectId
 if (userId !== session?.user?.id) {
   // Handle permission denial
 }
@@ -29,8 +28,7 @@ if (userId !== session?.user?.id) {
 
 #### Article Permission Check
 ```javascript
-const articleUserId = article.userId?.toString() || article.userId
-if (articleUserId !== session?.user?.id && article.author !== session?.user?.name) {
+if (article.userId !== session?.user?.id && article.author !== session?.user?.name) {
   setError('You do not have permission to edit this article')
   return
 }
@@ -38,8 +36,7 @@ if (articleUserId !== session?.user?.id && article.author !== session?.user?.nam
 
 #### Story Permission Check
 ```javascript
-const storyAuthorId = story.author?.toString() || story.author
-if (storyAuthorId !== session?.user?.id && story.authorName !== session?.user?.name) {
+if (story.author !== session?.user?.id && story.authorName !== session?.user?.name) {
   setError('You do not have permission to edit this story')
   return
 }
@@ -54,7 +51,7 @@ if (storyAuthorId !== session?.user?.id && story.authorName !== session?.user?.n
 - **HTTP Method**: `PUT` for updates
 
 ### Stories API Routes
-- **Find/Update by**: `author` field (ObjectId)
+- **Find/Update by**: `author` field (UUID)
 - **Display with**: `authorName` field
 - **Anonymity check**: `isAnonymous` field
 - **HTTP Method**: `PATCH` for user updates, `PUT` for admin updates

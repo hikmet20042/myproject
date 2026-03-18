@@ -4,10 +4,10 @@
 @tailwind utilities;
 
 :root {
-  --primary-color: #722f37;
-  --accent-color: #f2e8dc;
+  --primary-color: #2563eb;
+  --accent-color: #22c55e;
   --text-color: #111111;
-  --button-hover: #3f3f3f;
+  --button-hover: #1d4ed8;
 }
 
 * {
@@ -153,10 +153,10 @@ a {
 
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 20px rgba(37, 99, 235, 0.5);
   }
   50% {
-    box-shadow: 0 0 40px rgba(59, 130, 246, 0.8);
+    box-shadow: 0 0 40px rgba(37, 99, 235, 0.8);
   }
 }
 
@@ -287,12 +287,12 @@ html {
 
 /* Enhanced Card Hover Effect */
 .card-hover {
-  @apply transition-all duration-300 hover:shadow-2xl hover:-translate-y-1;
+  @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
 }
 
 /* Gradient Text */
 .gradient-text {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600;
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-500;
 }
 
 /* Glass Morphism */

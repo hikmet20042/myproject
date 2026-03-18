@@ -1,5 +1,4 @@
-import mongoose from 'mongoose';
-import ImageBlob from '@/lib/models/ImageBlob';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
 /**
  * Utility functions for handling image blob storage
@@ -14,13 +13,14 @@ export function extractBlobIdFromUrl(url: string): string | null {
   }
   
   const blobId = url.replace('/api/images/', '');
-  return mongoose.Types.ObjectId.isValid(blobId) ? blobId : null;
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(blobId);
+  return isUuid ? blobId : null;
 }
 
 /**
  * Convert blob ID to URL
  */
-export function blobIdToUrl(blobId: string | mongoose.Types.ObjectId): string {
+export function blobIdToUrl(blobId: string): string {
   return `/api/images/${blobId}`;
 }
 
@@ -78,12 +78,12 @@ export function processContentImages(content: any): {
  */
 export function updateMediaWithBlobReferences(
   media: Array<{ type: string; url: string; alt?: string; blobId?: string }> = []
-): Array<{ type: string; url: string; alt?: string; blobId?: mongoose.Types.ObjectId }> {
+): Array<{ type: string; url: string; alt?: string; blobId?: string }> {
   return media.map(item => {
     const blobId = extractBlobIdFromUrl(item.url);
     return {
       ...item,
-      blobId: blobId ? new mongoose.Types.ObjectId(blobId) : undefined
+      blobId: blobId || undefined
     };
   });
 }
@@ -91,11 +91,11 @@ export function updateMediaWithBlobReferences(
 /**
  * Get featured image blob ID from URL
  */
-export function getFeaturedImageBlobId(featuredImageUrl?: string): mongoose.Types.ObjectId | undefined {
+export function getFeaturedImageBlobId(featuredImageUrl?: string): string | undefined {
   if (!featuredImageUrl) return undefined;
   
   const blobId = extractBlobIdFromUrl(featuredImageUrl);
-  return blobId ? new mongoose.Types.ObjectId(blobId) : undefined;
+  return blobId || undefined;
 }
 
 /**
@@ -103,7 +103,7 @@ export function getFeaturedImageBlobId(featuredImageUrl?: string): mongoose.Type
  */
 export async function validateContentImages(
   content: any,
-  userId: string | mongoose.Types.ObjectId
+  userId: string
 ): Promise<{
   isValid: boolean;
   invalidImages: string[];
@@ -119,15 +119,19 @@ export async function validateContentImages(
   }
 
   try {
-    const userIdObj = typeof userId === 'string' ? new mongoose.Types.ObjectId(userId) : userId;
-    
-    // Check which images exist and belong to the user
-    const existingImages = await ImageBlob.find({
-      _id: { $in: blobIds.map(id => new mongoose.Types.ObjectId(id)) },
-      uploadedBy: userIdObj
-    }).select('_id');
+    const supabase = createSupabaseAdminClient();
 
-    const existingIds = existingImages.map(img => (img._id as mongoose.Types.ObjectId).toString());
+    const { data: existingImages, error } = await supabase
+      .from('image_blobs')
+      .select('id')
+      .in('id', blobIds)
+      .eq('uploaded_by', userId);
+
+    if (error) {
+      throw error;
+    }
+
+    const existingIds = (existingImages || []).map(img => img.id);
     const missingImages = blobIds.filter(id => !existingIds.includes(id));
     
     return {
@@ -151,8 +155,17 @@ export async function validateContentImages(
  */
 export async function cleanupUnusedImages(daysOld: number = 30): Promise<number> {
   try {
-    const result = await ImageBlob.cleanupUnusedImages(daysOld);
-    return result.deletedCount || 0;
+    const supabase = createSupabaseAdminClient();
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysOld);
+
+    const { count } = await supabase
+      .from('image_blobs')
+      .delete({ count: 'exact' })
+      .eq('usage_count', 0)
+      .lt('uploaded_at', cutoffDate.toISOString());
+
+    return count || 0;
   } catch (error) {
     console.error('Error cleaning up unused images:', error);
     return 0;
@@ -162,21 +175,26 @@ export async function cleanupUnusedImages(daysOld: number = 30): Promise<number>
 /**
  * Get image metadata for display
  */
-export async function getImageMetadata(blobId: string | mongoose.Types.ObjectId): Promise<any | null> {
+export async function getImageMetadata(blobId: string): Promise<any | null> {
   try {
-    const image = await ImageBlob.findById(blobId).select('-data');
+    const supabase = createSupabaseAdminClient();
+    const { data: image } = await supabase
+      .from('image_blobs')
+      .select('id, filename, original_name, mimetype, content_type, size, width, height, alt, description, uploaded_at')
+      .eq('id', blobId)
+      .single();
     return image ? {
-      id: image._id,
+      id: image.id,
       filename: image.filename,
-      originalName: image.originalName,
-      mimetype: image.mimetype,
+      originalName: image.original_name,
+      mimetype: image.mimetype || image.content_type,
       size: image.size,
       width: image.width,
       height: image.height,
       alt: image.alt,
       description: image.description,
-      uploadedAt: image.uploadedAt,
-      url: blobIdToUrl(image._id as mongoose.Types.ObjectId)
+      uploadedAt: image.uploaded_at,
+      url: blobIdToUrl(image.id)
     } : null;
   } catch (error) {
     console.error('Error getting image metadata:', error);

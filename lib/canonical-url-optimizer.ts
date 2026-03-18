@@ -328,7 +328,7 @@ export function generateSlug(text: string, options: {
  * Get canonical URL for different content types
  */
 export function getContentCanonicalURL(
-  contentType: 'vacancy' | 'event' | 'blog' | 'ngo' | 'material',
+  contentType: 'vacancy' | 'event' | 'blog' | 'organization' | 'material',
   id: string,
   slug?: string,
   locale: 'az' | 'en' = 'az'
@@ -339,7 +339,7 @@ export function getContentCanonicalURL(
     vacancy: `/resources/vacancies/${id}`,
     event: `/resources/events/${id}`,
     blog: `/blogs/${id}`,
-    ngo: `/resources/ngos/${id}`,
+    organization: `/resources/organizations/${id}`,
     material: `/resources/materials/${id}`,
   }
 

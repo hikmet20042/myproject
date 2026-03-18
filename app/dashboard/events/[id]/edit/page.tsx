@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useSession } from 'next-auth/react'
+import { useSession } from '@/lib/auth/client'
 import { useRouter, useParams } from 'next/navigation'
 import { Calendar, MapPin, Users, Link as LinkIcon, Clock, Tag, Image as ImageIcon } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { useLanguage } from '@/contexts/LanguageContext'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
 import { LoadingState, ErrorState } from '@/components/shared'
+import { useDashboardData } from '@/features/dashboard/context/DashboardDataProvider'
 
 const eventCategories = [
   'workshop',
@@ -25,20 +25,17 @@ const eventCategories = [
   'other'
 ]
 
-interface Event {
-  _id: string
+interface Event { _id: string
   title: string
   description: string
   category: string
   eventDate: string
   endDate?: string
-  location: {
-    type: 'online' | 'physical' | 'hybrid'
+  location: { type: 'online' | 'physical' | 'hybrid'
     address?: string
     city?: string
     country?: string
-    onlineLink?: string
-  }
+    onlineLink?: string }
   applicationLink?: string
   applicationDeadline?: string
   maxParticipants?: number
@@ -52,175 +49,123 @@ interface Event {
   isPublished: boolean
   isFeatured: boolean
   createdAt: string
-  updatedAt: string
-}
+  updatedAt: string }
 
-export default function EditEvent() {
-  const { data: session } = useSession()
+export default function EditEvent() { const { data: session, status } = useSession()
   const router = useRouter()
   const params = useParams()
+  const { markEventsDirty } = useDashboardData()
   const [loading, setLoading] = useState(false)
   const [loadingEvent, setLoadingEvent] = useState(true)
   const [event, setEvent] = useState<Event | null>(null)
   const [error, setError] = useState('')
   const localePath = useLocalizedPath()
-  const [formData, setFormData] = useState({
-    title: '',
+  const [formData, setFormData] = useState({ title: '',
     description: '',
     category: '',
     eventDate: '',
     endDate: '',
-    location: {
-      type: 'physical' as 'online' | 'physical' | 'hybrid',
+    location: { type: 'physical' as 'online' | 'physical' | 'hybrid',
       address: '',
       city: '',
       country: '',
-      onlineLink: ''
-    },
+      onlineLink: '' },
     applicationLink: '',
     applicationDeadline: '',
     maxParticipants: '',
     tags: '',
-    imageUrl: ''
-  })
-
-  const { t } = useLanguage()
-
-  const loadEvent = useCallback(async () => {
-    try {
-      setLoadingEvent(true)
+    imageUrl: '' })
+  const loadEvent = useCallback(async () => { try { setLoadingEvent(true)
       const response = await fetch(`/api/events/${params?.id}`)
       const data = await response.json()
       
-      if (response.ok) {
-        const eventData = data.event
+      if (response.ok) { const eventData = data.event
         setEvent(eventData)
-        setFormData({
-          title: eventData.title || '',
+        setFormData({ title: eventData.title || '',
           description: eventData.description || '',
           category: eventData.category || '',
           eventDate: eventData.eventDate ? new Date(eventData.eventDate).toISOString().slice(0, 16) : '',
           endDate: eventData.endDate ? new Date(eventData.endDate).toISOString().slice(0, 16) : '',
-          location: {
-            type: eventData.location?.type || 'physical',
+          location: { type: eventData.location?.type || 'physical',
             address: eventData.location?.address || '',
             city: eventData.location?.city || '',
             country: eventData.location?.country || '',
-            onlineLink: eventData.location?.onlineLink || ''
-          },
+            onlineLink: eventData.location?.onlineLink || '' },
           applicationLink: eventData.applicationLink || '',
           applicationDeadline: eventData.applicationDeadline ? new Date(eventData.applicationDeadline).toISOString().slice(0, 16) : '',
-          maxParticipants: eventData.maxParticipants?.toString() || '',
-          tags: Array.isArray(eventData.tags) ? eventData.tags.join(', ') : '',
-          imageUrl: eventData.imageUrl || ''
-        })
-      } else {
-        setError(data.error || t('errors.failedToLoadEvent'))
-      }
-    } catch (error) {
-      console.error('Error loading event:', error)
-      setError(t('errors.failedToLoadEvent'))
-    } finally {
-      setLoadingEvent(false)
-    }
-  }, [params?.id, t])
+            maxParticipants: eventData.maxParticipants?.toString() || '',
+            tags: Array.isArray(eventData.tags) ? eventData.tags.join(', ') : '',
+            imageUrl: eventData.imageUrl || '' }) } else { setError(data.error || 'Tədbiri yükləmək alınmadı') } } catch (error) { console.error('Error loading event:', error)
+          setError('Tədbiri yükləmək alınmadı') } finally { setLoadingEvent(false) } }, [params?.id])
 
-  useEffect(() => {
-    if (params?.id) {
-      loadEvent()
-    }
-  }, [loadEvent, params?.id])
+  useEffect(() => { if (status === 'loading') return
+    if (!session) { router.push(localePath('/auth/signin'))
+      return }
+    if (params?.id) { loadEvent() } }, [loadEvent, params?.id, status, session, router, localePath])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  if (status === 'loading') { return <LoadingState text={'Yüklənir'} /> }
+
+  const handleSubmit = async (e: React.FormEvent) => { e.preventDefault()
     setLoading(true)
 
-    try {
-      // Prepare data
-      const eventData = {
-        ...formData,
+    try { // Prepare data
+      const eventData = { ...formData,
         maxParticipants: formData.maxParticipants ? parseInt(formData.maxParticipants) : undefined,
         tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
         eventDate: new Date(formData.eventDate).toISOString(),
         endDate: formData.endDate ? new Date(formData.endDate).toISOString() : undefined,
-        applicationDeadline: formData.applicationDeadline ? new Date(formData.applicationDeadline).toISOString() : undefined
-      }
+        applicationDeadline: formData.applicationDeadline ? new Date(formData.applicationDeadline).toISOString() : undefined }
 
-      const response = await fetch(`/api/events/${params?.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(eventData)
-      })
+      const response = await fetch(`/api/events/${params?.id}`, { method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(eventData) })
 
       const data = await response.json()
 
       if (response.ok) {
-        router.push(localePath("/dashboard/events?updated=true"))
-      } else {
-        alert(t('events.errorUpdating') + ': ' + data.error)
-      }
-    } catch (error) {
-      console.error('Error updating event:', error)
-      alert(t('events.failedToUpdate'))
-    } finally {
-      setLoading(false)
-    }
-  }
+        markEventsDirty()
+        router.push(localePath("/dashboard/events"))
+      } else { alert('Tədbir yenilənərkən xəta baş verdi: ' + data.error) } } catch (error) { console.error('Error updating event:', error)
+      alert('Tədbiri yeniləmək alınmadı') } finally { setLoading(false) } }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => { const { name, value } = e.target
     
-    if (name.startsWith('location.')) {
-      const locationField = name.split('.')[1]
-      setFormData(prev => ({
-        ...prev,
-        location: {
-          ...prev.location,
-          [locationField]: value
-        }
-      }))
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }))
-    }
-  }
+    if (name.startsWith('location.')) { const locationField = name.split('.')[1]
+      setFormData(prev => ({ ...prev,
+        location: { ...prev.location,
+          [locationField]: value } })) } else { setFormData(prev => ({ ...prev,
+        [name]: value })) } }
 
-  if (loadingEvent) {
-    return <LoadingState text={t('events.loadingEvent') || 'Loading event...'} gradientFrom="from-blue-500" gradientVia="via-indigo-500" gradientTo="to-purple-500" />
-  }
+  if (loadingEvent) { return <LoadingState text={'Tədbir yüklənir...'} /> }
 
-  if (error || !event) {
-    return (
+  if (error || !event) { return (
       <ErrorState 
-        title={t('events.notFound') || 'Event Not Found'}
-        message={error || t('events.notFoundMessage') || 'The event you are looking for could not be found.'}
-        retryText={t('events.backToEvents') || 'Back to Events'}
+        title={'Tədbir tapılmadı'}
+        message={error || 'Axtardığınız tədbiri tapmaq mümkün olmadı.'}
+        retryText={'Tədbirlərə qayıt'}
         onRetry={() => router.push(localePath("/dashboard/events"))}
       />
-    )
-  }
+    ) }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="relative min-h-screen overflow-hidden bg-background py-8">
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-35" />
+      <div className="absolute left-1/2 top-16 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-200/30 blur-3xl" />
+
+      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">{t('events.editTitle')}</h1>
+        <div className="mb-8 rounded-3xl border border-gray-200 bg-white/90 p-6 shadow-sm backdrop-blur-sm">
+          <h1 className="text-3xl font-black text-gray-900">{'Tədbiri redaktə et'}</h1>
           <p className="mt-2 text-gray-600">
             {event.isApproved 
-              ? t('events.editRequiresReapproval')
-              : t('events.updateYourEventDetails')
-            }
+              ? 'Bu tədbirdə dəyişiklik etdikdə yenidən təsdiq tələb olunur'
+              : 'Tədbir məlumatlarını lazım olduqda yenilə' }
           </p>
           
           {event.rejectionReason && (
-            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4">
               <p className="text-sm text-red-800">
-                <strong>{t('events.previousRejectionReason')}</strong> {event.rejectionReason}
+                <strong>{'Əvvəlki rədd səbəbi'}</strong> {event.rejectionReason}
               </p>
             </div>
           )}
@@ -228,13 +173,13 @@ export default function EditEvent() {
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Basic Information */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('events.basicInformation')}</h2>
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">{'Əsas Məlumatlar'}</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('events.eventTitle')} *
+                  {'Tədbir adı'} *
                 </label>
                 <input
                   type="text"
@@ -244,13 +189,13 @@ export default function EditEvent() {
                   required
                   maxLength={200}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder={t('events.eventTitlePlaceholder')}
+                  placeholder={'Tədbirin adını yaz'}
                 />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('events.category')} *
+                  {'Kateqoriya'} *
                 </label>
                 <select
                   name="category"
@@ -259,16 +204,16 @@ export default function EditEvent() {
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">{t('events.selectCategory')}</option>
+                  <option value="">{'Kateqoriyanı seç'}</option>
                   {eventCategories.map(category => (
-                    <option key={category} value={category}>{t(`events.categoryOptions.${category}`)}</option>
+                    <option key={category} value={category}>{category}</option>
                   ))}
                 </select>
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('events.maxParticipants')}
+                  {'Maks. iştirakçı sayı'}
                 </label>
                 <input
                   type="number"
@@ -277,13 +222,13 @@ export default function EditEvent() {
                   onChange={handleInputChange}
                   min="1"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder={t('events.maxParticipantsPlaceholder')}
+                  placeholder={'məs., 30'}
                 />
               </div>
               
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('events.description')} *
+                  {'Təsvir'} *
                 </label>
                 <textarea
                   name="description"
@@ -293,13 +238,13 @@ export default function EditEvent() {
                   maxLength={2000}
                   rows={4}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder={t('events.descriptionPlaceholder')}
+                  placeholder={'Tədbirin qısa təsvirini yaz'}
                 />
               </div>
               
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('events.tags')}
+                  {'Teglər'}
                 </label>
                 <input
                   type="text"
@@ -307,23 +252,23 @@ export default function EditEvent() {
                   value={formData.tags}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder={t('events.tagsPlaceholder')}
+                  placeholder={'Tegləri vergüllə ayır'}
                 />
               </div>
             </div>
           </div>
 
           {/* Date & Time */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
                 <Calendar className="w-5 h-5 mr-2" />
-                {t('events.dateTime')}
+                {'Tarix və Saat'}
               </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('events.startDate')} *
+                  {'Başlanğıc Tarixi'} *
                 </label>
                 <input
                   type="date"
@@ -337,7 +282,7 @@ export default function EditEvent() {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('events.endDate')}
+                  {'Bitmə Tarixi'}
                 </label>
                 <input
                   type="date"
@@ -350,7 +295,7 @@ export default function EditEvent() {
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('events.applicationDeadline')}
+                  {'Müraciət üçün son tarix'}
                 </label>
                 <input
                   type="datetime-local"
@@ -364,16 +309,16 @@ export default function EditEvent() {
           </div>
 
           {/* Location */}
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
               <MapPin className="w-5 h-5 mr-2" />
-              {t('events.locationLabel')}
+              {'Yer'}
             </h2>
             
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('events.locationType')} *
+                  {'Yer növü'} *
                 </label>
                 <select
                   name="location.type"
@@ -382,9 +327,9 @@ export default function EditEvent() {
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="physical">{t('events.locationTypes.physical')}</option>
-                  <option value="online">{t('events.locationTypes.online')}</option>
-                  <option value="hybrid">{t('events.locationTypes.hybrid')}</option>
+                  <option value="physical">{'Fiziki'}</option>
+                  <option value="online">{'Onlayn'}</option>
+                  <option value="hybrid">{'Hibrid'}</option>
                 </select>
               </div>
               
@@ -392,7 +337,7 @@ export default function EditEvent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t('events.address')}
+                      {'Ünvan'}
                     </label>
                     <input
                       type="text"
@@ -400,13 +345,13 @@ export default function EditEvent() {
                       value={formData.location.address}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder={t('events.addressPlaceholder')}
+                      placeholder={'Küçə ünvanı'}
                     />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t('events.city')}
+                      {'Şəhər'}
                     </label>
                     <input
                       type="text"
@@ -414,13 +359,13 @@ export default function EditEvent() {
                       value={formData.location.city}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder={t('events.cityPlaceholder')}
+                      placeholder={'Şəhər'}
                     />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t('events.country')}
+                      {'Ölkə'}
                     </label>
                     <input
                       type="text"
@@ -428,7 +373,7 @@ export default function EditEvent() {
                       value={formData.location.country}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder={t('events.countryPlaceholder')}
+                      placeholder={'Ölkə'}
                     />
                   </div>
                 </div>
@@ -437,7 +382,7 @@ export default function EditEvent() {
               {(formData.location.type === 'online' || formData.location.type === 'hybrid') && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('events.onlineLink')}
+                    {'Onlayn görüş linki'}
                   </label>
                   <input
                     type="url"
@@ -445,7 +390,7 @@ export default function EditEvent() {
                     value={formData.location.onlineLink}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder={t('events.onlineLinkPlaceholder')}
+                    placeholder={'https://...'}
                   />
                 </div>
               )}
@@ -453,13 +398,13 @@ export default function EditEvent() {
           </div>
 
           {/* Additional Information */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">{t('events.additionalInformation')}</h2>
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">{'Əlavə Məlumat'}</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('events.applicationLink')}
+                  {'Müraciət / Qeydiyyat linki'}
                 </label>
                 <input
                   type="url"
@@ -467,13 +412,13 @@ export default function EditEvent() {
                   value={formData.applicationLink}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder={t('events.urlPlaceholder')}
+                  placeholder={'https://...'}
                 />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('events.imageUrl')}
+                  {'Tədbir şəkil linki'}
                 </label>
                 <input
                   type="url"
@@ -481,31 +426,30 @@ export default function EditEvent() {
                   value={formData.imageUrl}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder={t('events.urlPlaceholder')}
+                  placeholder={'https://...'}
                 />
               </div>
             </div>
           </div>
 
           {/* Submit */}
-          <div className="flex justify-end gap-4">
+          <div className="flex justify-end gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <Button
               type="button"
               onClick={() => router.back()}
               variant="outline"
             >
-              {t('common.cancel')}
+              {'Ləğv et'}
             </Button>
             <Button
               type="submit"
               disabled={loading}
               variant="primary"
             >
-              {loading ? t('events.updating') : t('events.updateEvent')}
+              {loading ? 'Yenilənir...' : 'Tədbiri yenilə'}
             </Button>
           </div>
         </form>
       </div>
     </div>
-  )
-}
+  ) }

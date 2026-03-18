@@ -1,9 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import mongoose from 'mongoose';
-import ImageBlob from '@/lib/models/ImageBlob';
-import Blog from '@/lib/models/Blog';
-import UserProfile from '@/lib/models/UserProfile';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
 /**
  * Migration utility to convert file-based images to blob storage
@@ -21,7 +18,7 @@ interface MigrationResult {
  */
 async function migrateFileToBlob(
   filePath: string,
-  userId: mongoose.Types.ObjectId,
+  userId: string,
   description?: string
 ): Promise<{ success: boolean; blobId?: string; url?: string; error?: string }> {
   try {
@@ -62,23 +59,31 @@ async function migrateFileToBlob(
 
     // Create blob
     const filename = `migrated-${Date.now()}-${path.basename(filePath)}`;
-    const imageBlob = new ImageBlob({
-      filename,
-      originalName: path.basename(filePath),
-      mimetype,
-      size: buffer.length,
-      data: buffer,
-      uploadedBy: userId,
-      description: description || `Migrated from ${filePath}`,
-      usageCount: 1 // Mark as used since it's being migrated
-    });
+    const supabase = createSupabaseAdminClient();
+    const { data: imageBlob, error } = await supabase
+      .from('image_blobs')
+      .insert({
+        filename,
+        original_name: path.basename(filePath),
+        mimetype,
+        content_type: mimetype,
+        size: buffer.length,
+        data: buffer,
+        uploaded_by: userId,
+        description: description || `Migrated from ${filePath}`,
+        usage_count: 1
+      })
+      .select('id')
+      .single();
 
-    await imageBlob.save();
+    if (error || !imageBlob) {
+      throw error || new Error('Failed to create image blob');
+    }
 
     return {
       success: true,
-      blobId: (imageBlob._id as mongoose.Types.ObjectId).toString(),
-      url: `/api/images/${imageBlob._id as mongoose.Types.ObjectId}`
+      blobId: imageBlob.id,
+      url: `/api/images/${imageBlob.id}`
     };
 
   } catch (error) {
@@ -99,13 +104,20 @@ export async function migrateProfileAvatars(): Promise<MigrationResult> {
   };
 
   try {
-    // Find profiles with legacy avatar paths
-    const profiles = await UserProfile.find({
-      avatar: { $exists: true, $nin: [null, ''] },
-      avatarBlobId: { $exists: false }
-    });
+    const supabase = createSupabaseAdminClient();
 
-    for (const profile of profiles) {
+    const { data: profiles, error } = await supabase
+      .from('user_profiles')
+      .select('id, user_id, avatar')
+      .not('avatar', 'is', null)
+      .neq('avatar', '')
+      .is('avatar_blob_id', null);
+
+    if (error) {
+      throw error;
+    }
+
+    for (const profile of profiles || []) {
       if (!profile.avatar || profile.avatar.startsWith('/api/images/')) {
         result.skippedCount++;
         continue;
@@ -113,19 +125,26 @@ export async function migrateProfileAvatars(): Promise<MigrationResult> {
 
       const migration = await migrateFileToBlob(
         profile.avatar,
-        profile.userId,
+        profile.user_id,
         'Profile avatar'
       );
 
       if (migration.success && migration.blobId) {
         // Update profile with blob reference
-        await UserProfile.findByIdAndUpdate(profile._id, {
-          avatarBlobId: new mongoose.Types.ObjectId(migration.blobId),
-          avatar: undefined // Clear legacy field
-        });
+        const { error: updateError } = await supabase
+          .from('user_profiles')
+          .update({
+            avatar_blob_id: migration.blobId,
+            avatar: null
+          })
+          .eq('id', profile.id);
+
+        if (updateError) {
+          throw updateError;
+        }
         result.migratedCount++;
       } else {
-        result.errors.push(`Profile ${profile._id}: ${migration.error}`);
+        result.errors.push(`Profile ${profile.id}: ${migration.error}`);
       }
     }
 
@@ -165,39 +184,53 @@ export async function migrateBlogImages(): Promise<MigrationResult> {
   };
 
   try {
-    // Find blogs with legacy featured images
-    const blogs = await Blog.find({
-      featuredImage: { $exists: true, $nin: [null, ''] },
-      featuredImageBlobId: { $exists: false }
-    });
+    const supabase = createSupabaseAdminClient();
 
-    for (const blog of blogs) {
-      if (!blog.featuredImage || blog.featuredImage.startsWith('/api/images/')) {
+    const { data: blogs, error } = await supabase
+      .from('blogs')
+      .select('id, title, featured_image, author_id')
+      .not('featured_image', 'is', null)
+      .neq('featured_image', '')
+      .is('featured_image_blob_id', null);
+
+    if (error) {
+      throw error;
+    }
+
+    for (const blog of blogs || []) {
+      if (!blog.featured_image || blog.featured_image.startsWith('/api/images/')) {
         result.skippedCount++;
         continue;
       }
 
-      const userId = blog.author;
+      const userId = blog.author_id;
       if (!userId) {
-        result.errors.push(`Blog ${blog._id}: No author ID found`);
+        result.errors.push(`Blog ${blog.id}: No author ID found`);
         continue;
       }
 
       const migration = await migrateFileToBlob(
-        blog.featuredImage,
-        new mongoose.Types.ObjectId(userId.toString()),
+        blog.featured_image,
+        userId,
         `Featured image for blog: ${blog.title}`
       );
 
       if (migration.success && migration.blobId) {
         // Update blog with blob reference
-        await Blog.findByIdAndUpdate(blog._id, {
-          featuredImageBlobId: new mongoose.Types.ObjectId(migration.blobId),
-          featuredImage: undefined // Clear legacy field
-        });
+        const { error: updateError } = await supabase
+          .from('blogs')
+          .update({
+            featured_image_blob_id: migration.blobId,
+            featured_image: null
+          })
+          .eq('id', blog.id);
+
+        if (updateError) {
+          throw updateError;
+        }
         result.migratedCount++;
       } else {
-        result.errors.push(`Blog ${blog._id}: ${migration.error}`);
+        result.errors.push(`Blog ${blog.id}: ${migration.error}`);
       }
     }
 

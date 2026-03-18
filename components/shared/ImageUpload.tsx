@@ -3,56 +3,41 @@
 import { useState, useRef } from 'react'
 import { Upload, X, Image as ImageIcon, Loader } from 'lucide-react'
 import Image from 'next/image'
-import { useLanguage } from '@/contexts/LanguageContext'
 
-interface ImageUploadProps {
-  value?: string
+interface ImageUploadProps { value?: string
   onChange: (url: string) => void
   context?: string
   accept?: string
   maxSize?: number // in MB
-  className?: string
-}
+  className?: string }
 
-export default function ImageUpload({
-  value,
+export default function ImageUpload({ value,
   onChange,
   context = 'general',
   accept = 'image/*',
   maxSize = 10,
-  className = ''
-}: ImageUploadProps) {
-  const { t } = useLanguage()
-  const [uploading, setUploading] = useState(false)
+  className = '' }: ImageUploadProps) { const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [preview, setPreview] = useState<string | null>(value || null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]
     if (!file) return
 
     // Validate file size
-    if (file.size > maxSize * 1024 * 1024) {
-      setError(t('errors.fileMustBeImage'))
-      return
-    }
+    if (file.size > maxSize * 1024 * 1024) { setError('Fayl şəkil olmalıdır')
+      return }
 
     // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setError(t('errors.fileMustBeImage'))
-      return
-    }
+    if (!file.type.startsWith('image/')) { setError('Fayl şəkil olmalıdır')
+      return }
 
     setError(null)
     setUploading(true)
 
-    try {
-      // Create preview
+    try { // Create preview
       const reader = new FileReader()
-      reader.onload = (e) => {
-        setPreview(e.target?.result as string)
-      }
+      reader.onload = (e) => { setPreview(e.target?.result as string) }
       reader.readAsDataURL(file)
 
       // Upload to server
@@ -60,35 +45,21 @@ export default function ImageUpload({
       formData.append('file', file)
       formData.append('context', context)
 
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
-      })
+      const response = await fetch('/api/upload', { method: 'POST',
+        body: formData })
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || t('errors.uploadFailed'))
-      }
+      if (!response.ok) { const error = await response.json()
+        throw new Error(error.error || 'Yükləmə alınmadı') }
 
       const data = await response.json()
       onChange(data.url)
-      setPreview(data.url)
-    } catch (err: any) {
-      console.error('Upload error:', err)
-      setError(err.message || t('errors.failedToUploadImage'))
-      setPreview(null)
-    } finally {
-      setUploading(false)
-    }
-  }
+      setPreview(data.url) } catch (err: any) { console.error('Upload error:', err)
+      setError(err.message || 'Şəkili yükləmək alınmadı')
+      setPreview(null) } finally { setUploading(false) } }
 
-  const handleRemove = () => {
-    setPreview(null)
+  const handleRemove = () => { setPreview(null)
     onChange('')
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
-  }
+    if (fileInputRef.current) { fileInputRef.current.value = '' } }
 
   return (
     <div className={`space-y-2 ${className}`}>
@@ -106,13 +77,13 @@ export default function ImageUpload({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="w-full border-2 border-dashed border-gray-300 rounded-lg p-8 hover:border-blue-500 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full border-2 border-dashed border-blue-200 rounded-lg p-8 hover:border-blue-500 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <div className="flex flex-col items-center justify-center gap-3">
             {uploading ? (
               <>
                 <Loader className="w-12 h-12 text-blue-500 animate-spin" />
-                <p className="text-sm text-gray-600">{t('ui.uploading')}</p>
+                <p className="text-sm text-gray-600">{'Yüklənir...'}</p>
               </>
             ) : (
               <>
@@ -121,10 +92,10 @@ export default function ImageUpload({
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-medium text-gray-700">
-                    {t('upload.clickToUpload')}
+                    {'Şəkil yükləmək üçün klikləyin'}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    {t('upload.fileTypes', { size: maxSize })}
+                    {`PNG, JPG, GIF ${maxSize}MB-a qədər`}
                   </p>
                 </div>
               </>
@@ -133,7 +104,7 @@ export default function ImageUpload({
         </button>
       ) : (
         <div className="relative group">
-          <div className="relative w-full h-64 rounded-lg overflow-hidden border-2 border-gray-200">
+          <div className="relative w-full h-64 rounded-lg overflow-hidden border-2 border-blue-100">
             <Image
               src={preview}
               alt="Preview"
@@ -155,7 +126,7 @@ export default function ImageUpload({
             disabled={uploading}
             className="absolute bottom-2 right-2 px-3 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors shadow-lg opacity-0 group-hover:opacity-100 disabled:opacity-50"
           >
-            {t('upload.changeImage')}
+            {'Şəkli Dəyişdir'}
           </button>
         </div>
       )}
@@ -167,5 +138,4 @@ export default function ImageUpload({
         </p>
       )}
     </div>
-  )
-}
+  ) }

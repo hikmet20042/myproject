@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import dbConnect from '@/lib/mongoose'
-import ImageBlob from '@/lib/models/ImageBlob'
-import mongoose from 'mongoose'
+import { getServerSession } from '@/lib/auth/server'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import sharp from 'sharp'
 import cloudinaryService from '@/lib/services/cloudinaryService'
 
@@ -245,10 +242,10 @@ async function optimizeImageForWeb(buffer: Buffer, mimetype: string): Promise<{ 
 
 export async function POST(request: Request) {
   try {
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
 
     // Check authentication
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -323,21 +320,24 @@ export async function POST(request: Request) {
     }
 
     // Save metadata to database
-    const imageBlob = new ImageBlob({
+    const { data: imageBlob, error } = await supabase
+      .from('image_blobs')
+      .insert({
       filename: file.name,
-      originalName: file.name,
+      original_name: file.name,
       mimetype: file.type,
+      content_type: file.type,
       size: uploadResult.bytes || file.size,
       data: null, // No binary data for Cloudinary images
-      uploadedBy: new mongoose.Types.ObjectId(session.user.id),
-      uploadedAt: new Date(),
+      uploaded_by: session.user.id,
+      uploaded_at: new Date().toISOString(),
       description: description || undefined,
       alt: alt || undefined,
-      tags: tagArray.length > 0 ? tagArray : undefined,
+      tags: tagArray.length > 0 ? tagArray : [],
       width: uploadResult.width || dimensions.width,
       height: uploadResult.height || dimensions.height,
-      isCompressed: false,
-      originalSize: file.size,
+      is_compressed: false,
+      original_size: file.size,
       metadata: {
         context,
         storage: 'cloudinary',
@@ -345,9 +345,14 @@ export async function POST(request: Request) {
         cloudinaryPublicId: uploadResult.publicId,
         format: uploadResult.format,
       }
-    });
+      })
+      .select('*')
+      .single();
 
-    await imageBlob.save();
+    if (error || !imageBlob) {
+      console.error('Image metadata save error:', error);
+      return NextResponse.json({ error: 'Failed to save image metadata' }, { status: 500 });
+    }
 
     // Generate thumbnail URL
     const thumbnailUrl = uploadResult.publicId 
@@ -355,10 +360,10 @@ export async function POST(request: Request) {
       : uploadResult.secureUrl;
 
     return NextResponse.json({
-      id: imageBlob._id,
+      id: imageBlob.id,
       filename: imageBlob.filename,
-      originalName: imageBlob.originalName,
-      mimetype: imageBlob.mimetype,
+      originalName: imageBlob.original_name,
+      mimetype: imageBlob.mimetype || imageBlob.content_type,
       size: imageBlob.size,
       url: uploadResult.secureUrl, // Direct Cloudinary URL
       publicId: uploadResult.publicId,
@@ -367,9 +372,9 @@ export async function POST(request: Request) {
       description: imageBlob.description,
       alt: imageBlob.alt,
       tags: imageBlob.tags,
-      uploadedAt: imageBlob.uploadedAt,
-      isCompressed: imageBlob.isCompressed,
-      originalSize: imageBlob.originalSize,
+      uploadedAt: imageBlob.uploaded_at,
+      isCompressed: imageBlob.is_compressed,
+      originalSize: imageBlob.original_size,
       storage: 'cloudinary',
       thumbnailUrl,
       metadata: imageBlob.metadata

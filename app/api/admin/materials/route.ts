@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import dbConnect from '@/lib/mongoose';
-import Material from '@/lib/models/Material';
+import { getServerSession } from '@/lib/auth/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -10,7 +8,7 @@ export const revalidate = 0;
 // GET: Fetch all materials for admin (including unpublished)
 export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
 
     if (!session || session.user?.role !== 'admin') {
       return NextResponse.json(
@@ -19,52 +17,64 @@ export async function GET(request: Request) {
       );
     }
 
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
 
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
     const search = searchParams.get('search');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limit = parseInt(searchParams.get('limit') || '10');
     const page = parseInt(searchParams.get('page') || '1');
 
     // Build query - NO isPublished filter for admin
-    const query: any = {};
-    
+    let query = supabase
+      .from('materials')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range((page - 1) * limit, (page - 1) * limit + limit - 1);
+
     if (category && category !== 'all') {
-      query.category = category;
+      query = query.eq('category', category);
     }
     
     if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { provider: { $regex: search, $options: 'i' } }
-      ];
+      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%,provider.ilike.%${search}%`);
     }
 
-    // Calculate pagination
-    const skip = (page - 1) * limit;
-
     // Fetch materials
-    const materials = await Material.find(query)
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .skip(skip)
-      .select('-__v')
-      .lean();
+    const { data: materials, error, count: total } = await query;
 
-    const total = await Material.countDocuments(query);
+    if (error) {
+      return NextResponse.json(
+        { error: 'Failed to fetch materials', details: error.message },
+        { status: 500 }
+      );
+    }
+
+    const [publishedResult, featuredResult] = await Promise.all([
+      supabase.from('materials').select('id', { count: 'exact', head: true }).eq('is_published', true),
+      supabase.from('materials').select('id', { count: 'exact', head: true }).eq('featured', true)
+    ])
+    const published = publishedResult.count || 0
+    const featured = featuredResult.count || 0
+    const totalCount = total || 0
+    const unpublished = Math.max(totalCount - published, 0)
 
     return NextResponse.json({
       materials,
       page,
-      totalPages: Math.ceil(total / limit),
-      total,
+      totalPages: Math.ceil(totalCount / limit),
+      total: totalCount,
+      stats: {
+        total: totalCount,
+        published,
+        unpublished,
+        featured
+      },
       pagination: {
         page,
         limit,
-        total,
-        pages: Math.ceil(total / limit)
+        total: totalCount,
+        pages: Math.ceil(totalCount / limit)
       }
     });
   } catch (error: any) {

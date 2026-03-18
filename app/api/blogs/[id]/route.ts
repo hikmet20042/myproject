@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
-import dbConnect from '@/lib/mongoose'
-import Blog from '@/lib/models/Blog'
+import { getServerSession } from '@/lib/auth/server'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,9 +10,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await dbConnect()
+    const supabase = createSupabaseAdminClient()
     
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session?.user) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -22,8 +20,12 @@ export async function GET(
       )
     }
     
-    const blog = await Blog.findById(params.id).lean()
-    if (!blog) {
+    const { data: blog, error } = await supabase
+      .from('blogs')
+      .select('*')
+      .eq('id', params.id)
+      .single()
+    if (error || !blog) {
       return NextResponse.json(
         { error: 'Story not found' },
         { status: 404 }
@@ -31,7 +33,7 @@ export async function GET(
     }
     
     // Check if user owns the blog or is admin
-    const isOwner = (blog as any).author?.toString() === session.user.id
+    const isOwner = blog.author_id?.toString() === session.user.id
     const isAdmin = session.user.role === 'admin'
     
     if (!isOwner && !isAdmin) {

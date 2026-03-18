@@ -1,6 +1,5 @@
 import { Metadata } from 'next'
-import connectToDatabase from '@/lib/mongoose'
-import Blog from '@/lib/models/Blog'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { generateSEOMetadata, generateArticleSchema } from '@/lib/seo'
 
 /**
@@ -8,8 +7,28 @@ import { generateSEOMetadata, generateArticleSchema } from '@/lib/seo'
  */
 export async function generateBlogMetadata(id: string): Promise<Metadata> {
   try {
-    await connectToDatabase()
-    const blog = await Blog.findById(id).lean() as any
+    const supabase = createSupabaseAdminClient()
+    const { data: blogRow, error } = await supabase
+      .from('blogs')
+      .select('id, title, content, author_name, tags, submitted_at, created_at, updated_at, featured_image')
+      .eq('id', id)
+      .single()
+
+    if (error) {
+      throw error
+    }
+
+    const blog: any = blogRow ? {
+      _id: blogRow.id,
+      title: blogRow.title,
+      content: blogRow.content,
+      authorName: blogRow.author_name || 'Anonymous',
+      tags: blogRow.tags || [],
+      submittedAt: blogRow.submitted_at,
+      createdAt: blogRow.created_at,
+      updatedAt: blogRow.updated_at,
+      featuredImage: blogRow.featured_image
+    } : null
     
     if (!blog) {
       return generateSEOMetadata({
@@ -39,6 +58,7 @@ export async function generateBlogMetadata(id: string): Promise<Metadata> {
     }
 
     const description = excerpt || `${blog.title} - ${blog.authorName} tərəfindən icma360-da. Azərbaycan gənclik icmasından real hekayələr.`
+    blog.excerpt = excerpt
 
     return generateSEOMetadata({
       title: `${blog.title} - ${blog.authorName} | İcma Hekayələri | icma360`,

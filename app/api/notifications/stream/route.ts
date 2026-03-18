@@ -1,7 +1,6 @@
 // Server-Sent Events (SSE) endpoint for real-time notifications
 import { NextRequest } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getServerSession } from '@/lib/auth/server'
 import { addConnection, removeConnection } from '@/lib/sse'
 
 export const runtime = 'nodejs'
@@ -10,7 +9,7 @@ export const dynamic = 'force-dynamic'
 // Connections are managed in lib/sse
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession()
   
   if (!session?.user?.id) {
     return new Response('Unauthorized', { status: 401 })

@@ -1,6 +1,5 @@
 import { Metadata } from 'next'
-import connectToDatabase from '@/lib/mongoose'
-import Vacancy from '@/lib/models/Vacancy'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { generateSEOMetadata, generateJobPostingSchema, getLocationKeywords } from '@/lib/seo'
 
 /**
@@ -8,8 +7,36 @@ import { generateSEOMetadata, generateJobPostingSchema, getLocationKeywords } fr
  */
 export async function generateVacancyMetadata(id: string): Promise<Metadata> {
   try {
-    await connectToDatabase()
-    const vacancy = await Vacancy.findById(id).lean() as any
+    const supabase = createSupabaseAdminClient()
+    const { data: vacancyRow, error } = await supabase
+      .from('vacancies')
+      .select('id, title, description, work_type, type, location, application_deadline, organization, tags, focus_areas, created_at, submitted_at, updated_at, compensation')
+      .eq('id', id)
+      .single()
+
+    if (error) {
+      throw error
+    }
+
+    const compensation = vacancyRow?.compensation || {}
+    const salary = compensation.amount ?? compensation.salary ?? compensation.min ?? compensation.max
+
+    const vacancy: any = vacancyRow ? {
+      _id: vacancyRow.id,
+      title: vacancyRow.title,
+      description: vacancyRow.description,
+      employmentType: vacancyRow.work_type || vacancyRow.type,
+      location: vacancyRow.location,
+      applicationDeadline: vacancyRow.application_deadline,
+      organization: vacancyRow.organization,
+      tags: vacancyRow.tags || [],
+      focusAreas: vacancyRow.focus_areas || [],
+      createdAt: vacancyRow.created_at,
+      submittedAt: vacancyRow.submitted_at,
+      updatedAt: vacancyRow.updated_at,
+      compensation,
+      salary
+    } : null
     
     if (!vacancy) {
       return generateSEOMetadata({

@@ -33,7 +33,7 @@ export default function StatusBadge({
           bgColor: 'bg-green-100',
           textColor: 'text-green-800',
           iconColor: 'text-green-600',
-          label: text || 'Approved'
+          label: text || 'Təsdiqlənib'
         }
       case 'rejected':
       case 'error':
@@ -42,29 +42,29 @@ export default function StatusBadge({
           bgColor: 'bg-red-100',
           textColor: 'text-red-800',
           iconColor: 'text-red-600',
-          label: text || 'Rejected'
+          label: text || 'Rədd edilib'
         }
       case 'pending':
       case 'warning':
         return {
           icon: Clock,
-          bgColor: 'bg-yellow-100',
-          textColor: 'text-yellow-800',
-          iconColor: 'text-yellow-600',
-          label: text || 'Pending'
+          bgColor: 'bg-amber-100',
+          textColor: 'text-amber-800',
+          iconColor: 'text-amber-600',
+          label: text || 'Gözləmədə'
         }
       case 'inactive':
         return {
           icon: AlertCircle,
-          bgColor: 'bg-gray-100',
+          bgColor: 'bg-slate-100',
           textColor: 'text-gray-800',
           iconColor: 'text-gray-600',
-          label: text || 'Inactive'
+          label: text || 'Aktiv deyil'
         }
       default:
         return {
           icon: AlertCircle,
-          bgColor: 'bg-gray-100',
+          bgColor: 'bg-slate-100',
           textColor: 'text-gray-800',
           iconColor: 'text-gray-600',
           label: text || status

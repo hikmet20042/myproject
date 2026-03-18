@@ -47,10 +47,10 @@ const DynamicList = React.forwardRef<HTMLDivElement, DynamicListProps>(
     };
     
     const numberColors = {
-      orange: 'bg-orange-100 text-orange-600',
-      indigo: 'bg-indigo-100 text-indigo-600',
-      purple: 'bg-purple-100 text-purple-600',
-      default: 'bg-gray-100 text-gray-600'
+      orange: 'bg-amber-100 text-amber-600',
+      indigo: 'bg-blue-100 text-blue-600',
+      purple: 'bg-cyan-100 text-cyan-600',
+      default: 'bg-slate-100 text-gray-600'
     };
     
     return (

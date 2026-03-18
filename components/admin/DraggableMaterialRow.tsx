@@ -38,7 +38,7 @@ export default function DraggableMaterialRow({
     <tr
       ref={setNodeRef}
       style={style}
-      className={`hover:bg-gray-50 ${isDragging ? 'bg-blue-50 shadow-lg' : ''}`}
+      className={`hover:bg-slate-50 ${isDragging ? 'bg-blue-50 shadow-lg' : ''}`}
     >
       <td className="px-6 py-4 whitespace-nowrap">
         <button
@@ -78,14 +78,14 @@ export default function DraggableMaterialRow({
             className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
               material.isPublished
                 ? 'bg-green-100 text-green-800'
-                : 'bg-gray-100 text-gray-800'
+                : 'bg-slate-100 text-gray-800'
             }`}
           >
-            {material.isPublished ? 'Published' : 'Unpublished'}
+            {material.isPublished ? 'Nəşr olunub' : 'Nəşr olunmayıb'}
           </button>
           {material.featured && (
-            <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
-              Featured
+            <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+              Önə çıxarılıb
             </span>
           )}
         </div>
@@ -94,22 +94,22 @@ export default function DraggableMaterialRow({
         <div className="flex items-center gap-2">
           <button
             onClick={() => onToggleFeatured(material)}
-            className="text-purple-600 hover:text-purple-900"
-            title={material.featured ? 'Unfeature' : 'Feature'}
+            className="text-blue-600 hover:text-blue-900"
+            title={material.featured ? 'Önə çıxarmanı ləğv et' : 'Önə çıxar'}
           >
             <Tag className="w-4 h-4" />
           </button>
           <button
             onClick={() => onEdit(material)}
-            className="text-indigo-600 hover:text-indigo-900"
-            title="Edit"
+            className="text-cyan-600 hover:text-cyan-900"
+            title="Redaktə et"
           >
             <Edit className="w-4 h-4" />
           </button>
           <button
             onClick={() => onDelete(material._id)}
             className="text-red-600 hover:text-red-900"
-            title="Delete"
+            title="Sil"
           >
             <Trash2 className="w-4 h-4" />
           </button>

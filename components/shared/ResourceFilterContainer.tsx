@@ -2,10 +2,8 @@
 
 import { useState, ReactNode } from 'react';
 import { Filter, ChevronDown, ChevronUp } from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext';
 
-interface ResourceFilterContainerProps {
-  /** Title displayed in the filter header */
+interface ResourceFilterContainerProps { /** Title displayed in the filter header */
   title: string;
   /** Subtitle/description displayed in the filter header */
   subtitle?: string;
@@ -22,31 +20,27 @@ interface ResourceFilterContainerProps {
   /** Gradient colors for the icon background */
   iconGradient?: string;
   /** Border color */
-  borderColor?: string;
-}
+  borderColor?: string; }
 
 /**
  * Standardized filter container for resource pages.
  * Shows search input by default, with collapsible section for additional filters.
  */
-export function ResourceFilterContainer({
-  title,
+export function ResourceFilterContainer({ title,
   subtitle,
   icon: Icon = Filter,
   searchInput,
   filterControls,
   activeFilters,
   defaultExpanded = false,
-  iconGradient = 'from-blue-600 to-indigo-600',
-  borderColor = 'border-blue-100',
-}: ResourceFilterContainerProps) {
-  const { t } = useLanguage();
+  iconGradient = 'from-blue-600 to-emerald-600',
+  borderColor = 'border-blue-100', }: ResourceFilterContainerProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   const hasAdditionalFilters = !!filterControls;
 
   return (
-    <div className={`bg-white rounded-2xl shadow-xl border-2 ${borderColor} p-6 sm:p-8 backdrop-blur-sm animate-fade-in`}>
+    <div className={`bg-white rounded-2xl shadow-md border-2 ${borderColor} p-6 sm:p-8 backdrop-blur-sm animate-fade-in`}>
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${iconGradient} flex items-center justify-center shadow-lg`}>
@@ -59,19 +53,19 @@ export function ResourceFilterContainer({
         {hasAdditionalFilters && (
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200 text-sm font-medium text-gray-700"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-blue-100 hover:border-blue-200 hover:bg-slate-50 transition-all duration-200 text-sm font-medium text-gray-700"
             aria-expanded={isExpanded}
-            aria-label={isExpanded ? t('filters.hideFilters') : t('filters.showFilters')}
+            aria-label={isExpanded ? 'Filtrləri Gizlət' : 'Daha Çox Filtr'}
           >
             {isExpanded ? (
               <>
                 <ChevronUp className="w-4 h-4" />
-                <span className="hidden sm:inline">{t('filters.hideFilters')}</span>
+                <span className="hidden sm:inline">{'Filtrləri Gizlət'}</span>
               </>
             ) : (
               <>
                 <Filter className="w-4 h-4" />
-                <span className="hidden sm:inline">{t('filters.showFilters')}</span>
+                <span className="hidden sm:inline">{'Daha Çox Filtr'}</span>
               </>
             )}
           </button>
@@ -86,11 +80,9 @@ export function ResourceFilterContainer({
       {/* Additional Filters - Collapsible */}
       {hasAdditionalFilters && (
         <div
-          className={`transition-all duration-300 ease-in-out overflow-hidden ${
-            isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
-          }`}
+          className={`transition-all duration-300 ease-in-out overflow-hidden ${ isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0' }`}
         >
-          <div className="pt-2 border-t border-gray-200">
+          <div className="pt-2 border-t border-blue-100">
             {filterControls}
           </div>
         </div>
@@ -103,5 +95,4 @@ export function ResourceFilterContainer({
         </div>
       )}
     </div>
-  );
-}
+  ); }

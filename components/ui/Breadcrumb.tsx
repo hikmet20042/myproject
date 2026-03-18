@@ -2,49 +2,35 @@ import React from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { ChevronRight } from 'lucide-react';
-import { useLanguage } from '@/contexts/LanguageContext'
 
-export interface BreadcrumbItem {
-  label: string;
+export interface BreadcrumbItem { label: string;
   href?: string;
-  current?: boolean;
-}
+  current?: boolean; }
 
-export interface BreadcrumbProps extends React.HTMLAttributes<HTMLElement> {
-  items: BreadcrumbItem[];
+export interface BreadcrumbProps extends React.HTMLAttributes<HTMLElement> { items: BreadcrumbItem[];
   separator?: React.ReactNode;
-  variant?: 'default' | 'light';
-}
+  variant?: 'default' | 'light'; }
 
 const Breadcrumb = React.forwardRef<HTMLElement, BreadcrumbProps>(
-  ({
-    className,
+  ({ className,
     items,
     separator = <ChevronRight className="w-4 h-4" />,
     variant = 'default',
-    ...props
-  }, ref) => {
-    const { t } = useLanguage();
-    const variants = {
-      default: 'text-gray-600',
-      light: 'text-white/80'
-    };
+    ...props }, ref) => {
+    const variants = { default: 'text-blue-700',
+      light: 'text-white/80' };
     
-    const linkVariants = {
-      default: 'hover:text-gray-900',
-      light: 'hover:text-white'
-    };
+    const linkVariants = { default: 'hover:text-blue-900',
+      light: 'hover:text-white' };
     
-    const currentVariants = {
-      default: 'text-gray-900',
-      light: 'text-white'
-    };
+    const currentVariants = { default: 'text-blue-900',
+      light: 'text-white' };
     
     return (
       <nav
         ref={ref}
         className={cn('flex items-center space-x-2', variants[variant], className)}
-        aria-label={t('buttons.breadcrumb')}
+        aria-label={'Navigasiya izi'}
         {...props}
       >
         {items.map((item, index) => (
@@ -73,8 +59,7 @@ const Breadcrumb = React.forwardRef<HTMLElement, BreadcrumbProps>(
           </React.Fragment>
         ))}
       </nav>
-    );
-  }
+    ); }
 );
 
 Breadcrumb.displayName = 'Breadcrumb';

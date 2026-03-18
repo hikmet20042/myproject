@@ -28,8 +28,8 @@ export default function GradientHero({
   badge,
   icon: Icon,
   gradientFrom = 'from-blue-600',
-  gradientVia = 'via-indigo-700',
-  gradientTo = 'to-purple-900',
+  gradientVia = 'via-blue-700',
+  gradientTo = 'to-emerald-700',
   children,
   showWave = true
 }: GradientHeroProps) {
@@ -46,7 +46,7 @@ export default function GradientHero({
           {/* Icon and Badge - Arranged Together */}
           <div className="flex flex-col items-center gap-4">
             {Icon && (
-              <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md shadow-xl border border-white/30">
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-md shadow-md border border-white/30">
                 <Icon className="w-10 h-10 text-white" />
               </div>
             )}

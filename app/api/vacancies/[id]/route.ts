@@ -1,11 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth';
-import dbConnect from '@/lib/mongoose'
-import Vacancy from '@/lib/models/Vacancy'
-import User from '@/lib/models/User'
-import Notification from '@/lib/models/Notification'
-import mongoose from 'mongoose'
+import { getServerSession } from '@/lib/auth/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+
+const mapVacancy = (row: any) => ({
+  _id: row.id,
+  id: row.id,
+  title: row.title,
+  description: row.description,
+  type: row.type,
+  category: row.category,
+  workType: row.work_type,
+  location: row.location,
+  requirements: row.requirements || [],
+  responsibilities: row.responsibilities || [],
+  qualifications: row.qualifications || [],
+  experienceLevel: row.experience_level,
+  duration: row.duration,
+  compensation: row.compensation,
+  applicationProcess: row.application_process,
+  applicationDeadline: row.application_deadline,
+  startDate: row.start_date,
+  skills: row.skills || [],
+  languages: row.languages || [],
+  tags: row.tags || [],
+  imageUrl: row.image_url,
+  createdBy: row.created_by
+    ? { _id: row.created_by.id, name: row.created_by.name, email: row.created_by.email }
+    : row.created_by,
+  createdByOrganization: row.created_by_organization
+    ? { _id: row.created_by_organization.id, organizationName: row.created_by_organization.organization_name, email: row.created_by_organization.email }
+    : row.created_by_organization,
+  status: row.status,
+  approvedAt: row.approved_at,
+  approvedBy: row.approved_by
+    ? { _id: row.approved_by.id, name: row.approved_by.name }
+    : row.approved_by,
+  rejectedAt: row.rejected_at,
+  rejectionReason: row.rejection_reason,
+  adminComment: row.admin_comment,
+  isPublished: row.is_published,
+  isFeatured: row.is_featured,
+  isUrgent: row.is_urgent,
+  applicationCount: row.application_count,
+  views: row.views,
+  uniqueViews: row.unique_views,
+  viewedBy: row.viewed_by || [],
+  engagementScore: row.engagement_score,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at
+});
 
 // GET /api/vacancies/[id] - Get single vacancy
 export async function GET(
@@ -13,24 +56,50 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await dbConnect()
+    const supabase = createSupabaseAdminClient()
     
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
-      return NextResponse.json(
-        { error: 'Invalid vacancy ID' },
-        { status: 400 }
-      )
-    }
+    const { data: vacancyRow, error } = await supabase
+      .from('vacancies')
+      .select('*, created_by (id, name, email), created_by_organization (id, organization_name, email)')
+      .eq('id', params.id)
+      .single()
     
-    const vacancy = await Vacancy.findById(params.id)
-      .populate('createdBy', 'name email organizationName')
-      .lean()
-    
-    if (!vacancy) {
+    if (error || !vacancyRow) {
       return NextResponse.json(
         { error: 'Vacancy not found' },
         { status: 404 }
       )
+    }
+
+    const vacancy = mapVacancy(vacancyRow)
+
+    // Restrict unpublished or non-approved vacancies
+    if (vacancy.status !== 'approved' || vacancy.isPublished === false) {
+      const session = await getServerSession()
+      const createdById = typeof vacancy.createdBy === 'object' && vacancy.createdBy?._id
+        ? vacancy.createdBy._id.toString()
+        : vacancy.createdBy?.toString?.()
+      const createdByOrganizationId = typeof vacancy.createdByOrganization === 'object' && vacancy.createdByOrganization?._id
+        ? vacancy.createdByOrganization._id.toString()
+        : vacancy.createdByOrganization?.toString?.()
+      const isOwner = session?.user?.id && (session.user.id === createdById || session.user.id === createdByOrganizationId)
+
+      let isAdmin = false
+      if (session?.user?.id) {
+        const { data: adminUser } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', session.user.id)
+          .single()
+        isAdmin = adminUser?.role === 'admin'
+      }
+
+      if (!isAdmin && !isOwner) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 403 }
+        )
+      }
     }
     
     return NextResponse.json({ vacancy })
@@ -49,7 +118,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -58,38 +127,40 @@ export async function PUT(
       )
     }
     
-    await dbConnect()
+    const supabase = createSupabaseAdminClient()
     
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
-      return NextResponse.json(
-        { error: 'Invalid vacancy ID' },
-        { status: 400 }
-      )
-    }
-    
-    const vacancy = await Vacancy.findById(params.id)
-    if (!vacancy) {
+    const { data: vacancyRow, error: vacancyError } = await supabase
+      .from('vacancies')
+      .select('*')
+      .eq('id', params.id)
+      .single()
+    if (vacancyError || !vacancyRow) {
       return NextResponse.json(
         { error: 'Vacancy not found' },
         { status: 404 }
       )
     }
-    
-    const user = await User.findById(session.user.id)
-    
-    // Check permissions
-    const isOwner = vacancy.createdBy.toString() === session.user.id
+
+    const { data: user } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', session.user.id)
+      .single()
+
+    const createdById = vacancyRow.created_by
+    const createdByOrganizationId = vacancyRow.created_by_organization
+    const isOwner = createdById === session.user.id || createdByOrganizationId === session.user.id
     const isAdmin = user?.role === 'admin'
-    
+
     if (!isOwner && !isAdmin) {
       return NextResponse.json(
         { error: 'Permission denied' },
         { status: 403 }
       )
     }
-    
+
     const body = await request.json()
-    
+
     // Validate required fields
     const requiredFields = ['title', 'description', 'type', 'location']
     
@@ -140,28 +211,83 @@ export async function PUT(
       'contactPhone', 'applicationInstructions', 'tags'
     ]
     
+    const updateData: any = {}
     allowedFields.forEach(field => {
       if (body[field] !== undefined) {
-        vacancy[field] = body[field]
+        updateData[field] = body[field]
       }
     })
+
+    if (updateData.workType !== undefined) {
+      updateData.work_type = updateData.workType
+      delete updateData.workType
+    }
+
+    if (updateData.deadline !== undefined) {
+      updateData.application_deadline = updateData.deadline
+      delete updateData.deadline
+    }
+
+    if (updateData.applicationInstructions !== undefined) {
+      updateData.application_process = {
+        ...(vacancyRow.application_process || {}),
+        instructions: updateData.applicationInstructions
+      }
+      delete updateData.applicationInstructions
+    }
+
+    if (updateData.contactEmail !== undefined) {
+      updateData.application_process = {
+        ...(updateData.application_process || vacancyRow.application_process || {}),
+        email: updateData.contactEmail
+      }
+      delete updateData.contactEmail
+    }
+
+    if (updateData.contactPhone !== undefined) {
+      updateData.application_process = {
+        ...(updateData.application_process || vacancyRow.application_process || {}),
+        contactPhone: updateData.contactPhone
+      }
+      delete updateData.contactPhone
+    }
+
+    if (updateData.benefits !== undefined) {
+      updateData.compensation = {
+        ...(vacancyRow.compensation || {}),
+        benefits: updateData.benefits
+      }
+      delete updateData.benefits
+    }
     
     // Reset approval status if content changed (except for admins)
     if (!isAdmin && isOwner) {
-      vacancy.status = 'pending'
-      vacancy.approvedAt = undefined
-      vacancy.approvedBy = undefined
-      vacancy.rejectedAt = undefined
-      vacancy.rejectionReason = undefined
-      vacancy.adminComment = undefined
+      updateData.status = 'pending'
+      updateData.approved_at = null
+      updateData.approved_by = null
+      updateData.rejected_at = null
+      updateData.rejection_reason = null
+      updateData.admin_comment = null
     }
-    
-    await vacancy.save()
-    
-    const updatedVacancy = await Vacancy.findById(params.id)
-      .populate('createdBy', 'name email organizationName')
-      .lean()
-    
+
+    updateData.updated_at = new Date().toISOString()
+
+    const { data: updatedRow, error: updateError } = await supabase
+      .from('vacancies')
+      .update(updateData)
+      .eq('id', params.id)
+      .select('*, created_by (id, name, email), created_by_organization (id, organization_name, email)')
+      .single()
+
+    if (updateError || !updatedRow) {
+      return NextResponse.json(
+        { error: 'Failed to update vacancy' },
+        { status: 500 }
+      )
+    }
+
+    const updatedVacancy = mapVacancy(updatedRow)
+
     return NextResponse.json({
       message: 'Vacancy updated successfully',
       vacancy: updatedVacancy
@@ -181,7 +307,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -190,27 +316,27 @@ export async function PATCH(
       )
     }
     
-    await dbConnect()
+    const supabase = createSupabaseAdminClient()
     
-    const user = await User.findById(session.user.id)
+    const { data: user } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', session.user.id)
+      .single()
     if (user?.role !== 'admin') {
       return NextResponse.json(
         { error: 'Admin access required' },
         { status: 403 }
       )
     }
+
+    const { data: vacancyRow, error: vacancyError } = await supabase
+      .from('vacancies')
+      .select('*')
+      .eq('id', params.id)
+      .single()
     
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
-      return NextResponse.json(
-        { error: 'Invalid vacancy ID' },
-        { status: 400 }
-      )
-    }
-    
-    const vacancy = await Vacancy.findById(params.id)
-      .populate('organization', 'name email organizationName')
-    
-    if (!vacancy) {
+    if (vacancyError || !vacancyRow) {
       return NextResponse.json(
         { error: 'Vacancy not found' },
         { status: 404 }
@@ -234,53 +360,69 @@ export async function PATCH(
     }
     
     // Update vacancy status
+    const updateData: any = {}
     if (action === 'approve') {
-      vacancy.status = 'approved'
-      vacancy.approvedAt = new Date()
-      vacancy.approvedBy = session.user.id
-      // Clear any previous rejection data
-      vacancy.rejectedAt = undefined
-      vacancy.rejectionReason = undefined
-      vacancy.adminComment = undefined
+      updateData.status = 'approved'
+      updateData.approved_at = new Date().toISOString()
+      updateData.approved_by = session.user.id
+      updateData.rejected_at = null
+      updateData.rejection_reason = null
+      updateData.admin_comment = null
+      updateData.is_published = true
     } else if (action === 'reject') {
-      vacancy.status = 'rejected'
-      vacancy.rejectedAt = new Date()
-      vacancy.rejectionReason = rejectionReason.trim()
-      vacancy.adminComment = rejectionReason.trim()
-      // Clear any previous approval data
-      vacancy.approvedAt = undefined
-      vacancy.approvedBy = undefined
+      updateData.status = 'rejected'
+      updateData.rejected_at = new Date().toISOString()
+      updateData.rejection_reason = rejectionReason.trim()
+      updateData.admin_comment = rejectionReason.trim()
+      updateData.approved_at = null
+      updateData.approved_by = null
+    }
+
+    const { data: updatedRow, error: updateError } = await supabase
+      .from('vacancies')
+      .update(updateData)
+      .eq('id', params.id)
+      .select('*, created_by (id, name, email), created_by_organization (id, organization_name, email), approved_by (id, name)')
+      .single()
+
+    if (updateError || !updatedRow) {
+      return NextResponse.json(
+        { error: 'Failed to update vacancy status' },
+        { status: 500 }
+      )
     }
     
-    await vacancy.save()
-    
-    // Create notification for the NGO
+    // Create notification for the organization
     const notificationTitle = action === 'approve'
       ? 'Vacancy Approved!'
       : 'Vacancy Rejected'
     
     const notificationMessage = action === 'approve'
-      ? `Your vacancy "${vacancy.title}" has been approved and is now live.`
-      : `Your vacancy "${vacancy.title}" was rejected. Reason: ${rejectionReason}`
+      ? `Your vacancy "${vacancyRow.title}" has been approved and is now live.`
+      : `Your vacancy "${vacancyRow.title}" was rejected. Reason: ${rejectionReason}`
     
-    await Notification.create({
-      recipient: vacancy.createdBy._id,
-      title: notificationTitle,
-      message: notificationMessage,
-      type: action === 'approve' ? 'vacancy_approved' : 'vacancy_rejected',
-      relatedId: vacancy._id,
-      relatedModel: 'Vacancy',
-      metadata: {
-        vacancyTitle: vacancy.title,
-        action,
-        ...(action === 'reject' && { rejectionReason })
-      }
-    })
-    
-    const updatedVacancy = await Vacancy.findById(params.id)
-      .populate('createdBy', 'name email organizationName')
-      .populate('approvedBy', 'name')
-      .lean()
+    const notificationTarget = vacancyRow.created_by_organization
+      ? { organization_id: vacancyRow.created_by_organization }
+      : vacancyRow.created_by
+        ? { user_id: vacancyRow.created_by }
+        : {}
+    if (Object.keys(notificationTarget).length > 0) {
+      await supabase.from('notifications').insert({
+        ...notificationTarget,
+        title: notificationTitle,
+        message: notificationMessage,
+        type: action === 'approve' ? 'vacancy_approved' : 'vacancy_rejected',
+        data: {
+          relatedId: params.id,
+          relatedModel: 'Vacancy',
+          vacancyTitle: vacancyRow.title,
+          action,
+          ...(action === 'reject' && { rejectionReason })
+        }
+      })
+    }
+
+    const updatedVacancy = mapVacancy(updatedRow)
     
     return NextResponse.json({
       message: `Vacancy ${action}d successfully`,
@@ -301,7 +443,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -310,37 +452,48 @@ export async function DELETE(
       )
     }
     
-    await dbConnect()
-    
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
-      return NextResponse.json(
-        { error: 'Invalid vacancy ID' },
-        { status: 400 }
-      )
-    }
-    
-    const vacancy = await Vacancy.findById(params.id)
-    if (!vacancy) {
+    const supabase = createSupabaseAdminClient()
+
+    const { data: vacancyRow, error: vacancyError } = await supabase
+      .from('vacancies')
+      .select('id, created_by, created_by_organization')
+      .eq('id', params.id)
+      .single()
+    if (vacancyError || !vacancyRow) {
       return NextResponse.json(
         { error: 'Vacancy not found' },
         { status: 404 }
       )
     }
-    
-    const user = await User.findById(session.user.id)
-    
-    // Check permissions
-    const isOwner = vacancy.createdBy.toString() === session.user.id
+
+    const { data: user } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', session.user.id)
+      .single()
+    const createdById = vacancyRow.created_by
+    const createdByOrganizationId = vacancyRow.created_by_organization
+    const isOwner = createdById === session.user.id || createdByOrganizationId === session.user.id
     const isAdmin = user?.role === 'admin'
-    
+
     if (!isOwner && !isAdmin) {
       return NextResponse.json(
         { error: 'Permission denied' },
         { status: 403 }
       )
     }
-    
-    await Vacancy.findByIdAndDelete(params.id)
+
+    const { error: deleteError } = await supabase
+      .from('vacancies')
+      .delete()
+      .eq('id', params.id)
+
+    if (deleteError) {
+      return NextResponse.json(
+        { error: 'Failed to delete vacancy' },
+        { status: 500 }
+      )
+    }
     
     return NextResponse.json({
       message: 'Vacancy deleted successfully'

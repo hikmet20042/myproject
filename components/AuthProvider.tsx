@@ -1,17 +1,188 @@
 'use client'
 
-import { SessionProvider } from 'next-auth/react'
-import { ReactNode } from 'react'
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import {
+  AuthSessionContext,
+  type ClientSession,
+  type ClientSessionUser,
+  type SessionStatus,
+} from '@/lib/auth/client'
 
 interface AuthProviderProps {
   children: ReactNode
 }
 
-export default function AuthProvider({ children }: AuthProviderProps) {
-  // Always render SessionProvider, let Next.js handle hydration
+function areUsersEqual(a: ClientSessionUser, b: ClientSessionUser) {
   return (
-    <SessionProvider refetchInterval={5 * 60} refetchOnWindowFocus={true}>
+    a.id === b.id &&
+    a.email === b.email &&
+    a.name === b.name &&
+    a.role === b.role &&
+    a.emailVerified === b.emailVerified &&
+    a.isApprovedOrganization === b.isApprovedOrganization &&
+    a.accountType === b.accountType &&
+    a.isActive === b.isActive
+  )
+}
+
+function areSessionsEqual(a: ClientSession, b: ClientSession) {
+  if (a === b) return true
+  if (!a || !b) return false
+  return areUsersEqual(a.user, b.user)
+}
+
+export default function AuthProvider({ children }: AuthProviderProps) {
+  const supabase = useMemo(() => createSupabaseBrowserClient(), [])
+  const [session, setSession] = useState<ClientSession>(null)
+  const [status, setStatus] = useState<SessionStatus>('loading')
+  const previousStatusRef = useRef<SessionStatus>('loading')
+  const isMountedRef = useRef(false)
+  const isSyncingRef = useRef(false)
+
+  const applyAuthState = useCallback((nextSession: ClientSession, nextStatus: SessionStatus) => {
+    setSession((prev) => (areSessionsEqual(prev, nextSession) ? prev : nextSession))
+    setStatus((prev) => (prev === nextStatus ? prev : nextStatus))
+  }, [])
+
+  const syncAuth = useCallback(async (reason: string) => {
+    if (isSyncingRef.current) {
+      console.debug('[auth] sync:skip concurrent', { reason })
+      return
+    }
+
+    isSyncingRef.current = true
+    console.debug('[auth] sync:start', { reason })
+
+    try {
+      const { data } = await supabase.auth.getUser()
+      if (!isMountedRef.current) return
+
+      if (!data?.user) {
+        applyAuthState(null, 'unauthenticated')
+        console.debug('[auth] sync:end unauthenticated', { reason })
+        return
+      }
+
+      const { data: account } = await supabase
+        .from('accounts')
+        .select('account_type, is_admin, is_active')
+        .eq('id', data.user.id)
+        .maybeSingle()
+
+      const accountType = (account?.account_type as 'user' | 'organization' | undefined)
+        || (data.user.app_metadata?.account_type as 'user' | 'organization')
+        || 'user'
+
+      let profileName: string | null | undefined = data.user.user_metadata?.name
+      let role: 'user' | 'admin' | undefined = undefined
+      let isApprovedOrganization = false
+
+      if (accountType === 'organization') {
+        const { data: organizationProfile } = await supabase
+          .from('organization_profiles')
+          .select('organization_name, moderation_status')
+          .eq('account_id', data.user.id)
+          .maybeSingle()
+
+        if (!organizationProfile) {
+          console.warn(`Missing organization_profiles row for account_id=${data.user.id}`)
+        }
+
+        profileName = organizationProfile?.organization_name ?? profileName
+        const moderationStatus = organizationProfile?.moderation_status ?? 'pending'
+        isApprovedOrganization = moderationStatus === 'approved'
+      } else {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('name, role')
+          .eq('id', data.user.id)
+          .maybeSingle()
+
+        profileName = profile?.name ?? profileName
+        role = (account?.is_admin || profile?.role === 'admin') ? 'admin' : 'user'
+      }
+
+      const nextSession: ClientSession = {
+        user: {
+          id: data.user.id,
+          email: data.user.email ?? null,
+          name: profileName ?? null,
+          role,
+          emailVerified: !!data.user.email_confirmed_at,
+          isApprovedOrganization,
+          accountType,
+          isActive: account?.is_active ?? true,
+        },
+      }
+
+      applyAuthState(nextSession, 'authenticated')
+      console.debug('[auth] sync:end authenticated', {
+        reason,
+        userId: nextSession.user.id,
+        role: nextSession.user.role,
+        accountType: nextSession.user.accountType,
+      })
+    } catch (error) {
+      console.error('[auth] sync:error', { reason, error })
+    } finally {
+      isSyncingRef.current = false
+    }
+  }, [applyAuthState, supabase])
+
+  useEffect(() => {
+    isMountedRef.current = true
+    console.debug('[auth] provider:mount')
+
+    void syncAuth('mount')
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      console.debug('[auth] onAuthStateChange', { event })
+
+      // Avoid extra profile/account roundtrips for token refresh churn.
+      if (event === 'TOKEN_REFRESHED') {
+        return
+      }
+
+      void syncAuth(`auth:${event}`)
+    })
+
+    return () => {
+      isMountedRef.current = false
+      console.debug('[auth] provider:unmount')
+      subscription.unsubscribe()
+    }
+    // Mount once: keep one auth subscription for the whole app lifecycle.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (previousStatusRef.current !== status) {
+      console.debug('[auth] status:transition', {
+        from: previousStatusRef.current,
+        to: status,
+      })
+      previousStatusRef.current = status
+    }
+
+    if (status !== 'loading') {
+      console.debug('[auth] ready', {
+        status,
+        userId: session?.user?.id ?? null,
+      })
+    }
+  }, [session?.user?.id, status])
+
+  const contextValue = useMemo(
+    () => ({ data: session, status }),
+    [session, status],
+  )
+
+  return (
+    <AuthSessionContext.Provider value={contextValue}>
       {children}
-    </SessionProvider>
+    </AuthSessionContext.Provider>
   )
 }

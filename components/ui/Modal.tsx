@@ -1,5 +1,6 @@
 'use client'
-import React, { useEffect } from 'react';
+import React from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
 import { cn } from '@/lib/utils';
 import { X } from 'lucide-react';
 import { Button } from './Button';
@@ -32,74 +33,53 @@ export const Modal: React.FC<ModalProps> = ({
   closeOnOverlayClick = true,
   className
 }) => {
-  // Handle escape key
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      {/* Overlay */}
-      <div 
-        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-        onClick={closeOnOverlayClick ? onClose : undefined}
-      />
-      
-      {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div 
+    <Dialog.Root
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+    >
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-[1px]" />
+        <Dialog.Content
           className={cn(
-            'relative bg-white rounded-lg shadow-xl w-full',
+            'fixed left-1/2 top-1/2 z-50 w-full -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-blue-100 bg-white shadow-lg',
             modalSizes[size],
             className
           )}
-          onClick={(e) => e.stopPropagation()}
+          onInteractOutside={(event) => {
+            if (!closeOnOverlayClick) event.preventDefault()
+          }}
         >
-          {/* Header */}
           {(title || showCloseButton) && (
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between border-b border-blue-100 bg-gradient-to-r from-slate-50 to-blue-50/70 p-6">
               {title && (
-                <h3 className="text-lg font-semibold text-gray-900">
+                <Dialog.Title className="text-lg font-semibold text-gray-900">
                   {title}
-                </h3>
+                </Dialog.Title>
               )}
               {showCloseButton && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onClose}
-                  className="p-2"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
+                <Dialog.Close asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="rounded-xl p-2 hover:bg-blue-50 hover:text-blue-700"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </Dialog.Close>
               )}
             </div>
           )}
-          
-          {/* Content */}
+
           <div className="p-6">
             {children}
           </div>
-        </div>
-      </div>
-    </div>
-  );
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  )
 };
 
 export default Modal;

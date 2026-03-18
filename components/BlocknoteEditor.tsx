@@ -54,7 +54,7 @@ export default function BlocknoteEditor({ initialJSON, onChange, className, cont
   }, [editor, onChange])
 
   return (
-  <div className={`${className ?? ''} relative rounded-xl border border-gray-200 bg-white px-3`}> 
+  <div className={`${className ?? ''} relative rounded-xl border border-blue-100 bg-white px-3`}> 
       <div className="p-2 bn-autogrow min-h-[400px] relative">
         
         <BlockNoteView editor={editor} theme="light" />

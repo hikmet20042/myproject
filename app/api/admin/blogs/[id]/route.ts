@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
-import dbConnect from '@/lib/mongoose'
-import Blog from '@/lib/models/Blog'
+import { getServerSession } from '@/lib/auth/server'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { NotificationService } from '@/lib/services/notificationService'
+import { isAdminSession } from '@/lib/roles'
 
 export const dynamic = 'force-dynamic'
 
 async function isAdmin(session: any) {
-  return session?.user?.email === 'hikmat.mammadlii@gmail.com' || session?.user?.role === 'admin'
+  return isAdminSession(session)
 }
 
 // GET /api/admin/blogs/[id] - Get single blog by ID for admin preview
@@ -17,9 +16,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await dbConnect()
+    const supabase = createSupabaseAdminClient()
     
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session || !(await isAdmin(session))) {
       return NextResponse.json(
         { error: 'Admin access required' },
@@ -27,10 +26,12 @@ export async function GET(
       )
     }
     
-    const blog = await Blog.findById(params.id)
-      .populate('author', 'name email _id') // Populate author with name, email, and _id
-      .lean()
-    if (!blog) {
+    const { data: blog, error } = await supabase
+      .from('blogs')
+      .select('*, author_id (id, name, email)')
+      .eq('id', params.id)
+      .single()
+    if (error || !blog) {
       return NextResponse.json(
         { error: 'Story not found' },
         { status: 404 }
@@ -53,9 +54,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await dbConnect()
+    const supabase = createSupabaseAdminClient()
     
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session || !(await isAdmin(session))) {
       return NextResponse.json(
         { error: 'Admin access required' },
@@ -63,9 +64,14 @@ export async function DELETE(
       )
     }
     
-    const blog = await Blog.findByIdAndDelete(params.id)
+    const { data: blog, error } = await supabase
+      .from('blogs')
+      .delete()
+      .eq('id', params.id)
+      .select('*')
+      .single()
     
-    if (!blog) {
+    if (error || !blog) {
       return NextResponse.json(
         { error: 'Story not found' },
         { status: 404 }
@@ -90,9 +96,9 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    await dbConnect()
+    const supabase = createSupabaseAdminClient()
     
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session || !(await isAdmin(session))) {
       return NextResponse.json(
         { error: 'Admin access required' },
@@ -117,18 +123,19 @@ export async function PUT(
       )
     }
     
-    const blog = await Blog.findByIdAndUpdate(
-      params.id,
-      {
+    const { data: blog, error } = await supabase
+      .from('blogs')
+      .update({
         status,
-        adminComment: adminComment || null,
-        reviewedAt: new Date(),
-        reviewedBy: session.user.id
-      },
-      { new: true }
-    )
+        admin_comment: adminComment || null,
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: session.user.id
+      })
+      .eq('id', params.id)
+      .select('*')
+      .single()
     
-    if (!blog) {
+    if (error || !blog) {
       return NextResponse.json(
         { error: 'Story not found' },
         { status: 404 }
@@ -136,11 +143,11 @@ export async function PUT(
     }
 
     // Send notification to blog author about the status change
-    if (blog.authorId) {
+    if (blog.author_id) {
       try {
         await NotificationService.notifyBlogStatus(
-          blog.authorId.toString(),
-          blog._id.toString(),
+          blog.author_id.toString(),
+          blog.id.toString(),
           blog.title,
           status,
           adminComment

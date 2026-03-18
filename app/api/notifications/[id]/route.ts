@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import dbConnect from '@/lib/mongoose'
-import NotificationModel from '@/lib/models/Notification'
+import { getServerSession } from '@/lib/auth/server'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { emitNotificationUpdate } from '@/lib/socket'
 
 export const dynamic = 'force-dynamic'
@@ -12,8 +10,8 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    await dbConnect();
-    const session = await getServerSession(authOptions);
+    const supabase = createSupabaseAdminClient();
+    const session = await getServerSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -26,13 +24,15 @@ export async function PATCH(
       return NextResponse.json({ error: 'isRead must be a boolean' }, { status: 400 });
     }
 
-    const updated = await NotificationModel.findOneAndUpdate(
-      { _id: notificationId, userId: session.user.id },
-      { isRead },
-      { new: true }
-    );
+    const { data: updated, error } = await supabase
+      .from('notifications')
+      .update({ is_read: isRead })
+      .eq('id', notificationId)
+      .eq('user_id', session.user.id)
+      .select('*')
+      .single();
 
-    if (!updated) {
+    if (error || !updated) {
       return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
     }
 

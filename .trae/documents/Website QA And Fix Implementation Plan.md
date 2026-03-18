@@ -20,7 +20,7 @@
 
   * Replace `process.env.CRON_SECRET || 'your-secret-key-here'` with strict env requirement.
 
-  * Replace `process.env.NEXTAUTH_SECRET || 'fallback-secret'` in NGO token verification with strict env requirement.
+  * Replace `process.env.NEXTAUTH_SECRET || 'fallback-secret'` in Organization token verification with strict env requirement.
 
 1. API Validation Consistency
 
@@ -54,7 +54,7 @@
 
   * Event and Vacancy create/update description checks.
 
-  * NGO token flows after removing fallback secret.
+  * Organization token flows after removing fallback secret.
 
   * Sign-in UX and error messages (including `message` query).
 

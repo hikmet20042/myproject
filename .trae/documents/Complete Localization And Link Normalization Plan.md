@@ -15,7 +15,7 @@
   - `Link`/`ButtonLink`/`Breadcrumb` items with `href: '/...'`.
   - `router.push('/...')`, `window.location.href = '/...'`, programmatic navigations.
 - Prioritize high‑traffic areas:
-  - `app`: home, about, blogs (list/detail), resources (list/detail), events/vacancies/NGOs (list/detail), submit/edit flows, auth pages, dashboard, admin.
+  - `app`: home, about, blogs (list/detail), resources (list/detail), events/vacancies/Organizations (list/detail), submit/edit flows, auth pages, dashboard, admin.
   - `components`: `ui/*`, `shared/*`, feature components (cards, headers, breadcrumbs, filters, modals, forms).
 - Convert literals to `t('...')`, add keys to both locale files.
 - Replace internal links and breadcrumb entries with `localePath(...)`.
@@ -29,7 +29,7 @@
 - Dev run; navigate all major flows in both languages:
   - Header, footer, nav menus
   - Auth (signin/register/forgot/reset)
-  - Resources (materials/ngos/events/vacancies), detail pages
+  - Resources (materials/organizations/events/vacancies), detail pages
   - Blogs (list/detail), submit/edit
   - Dashboard/admin key screens
 - Confirm all labels render localized text and all internal links preserve prefix.

@@ -1,29 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import dbConnect from '@/lib/mongoose';
-import Blog from '@/lib/models/Blog';
-import User from '@/lib/models/User';
-import Notification from '@/lib/models/Notification';
-// Removed import of isAdmin - using local function instead
+import { getServerSession } from '@/lib/auth/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { isAdminSession } from '@/lib/roles';
 import { cache, invalidateUserCache } from '@/lib/cache';
 
 export const dynamic = 'force-dynamic';
 
-async function isAdmin(session: any) {
-  return session?.user?.email === 'hikmat.mammadlii@gmail.com' || session?.user?.role === 'admin';
-}
-
 export async function GET(request: NextRequest) {
   try {
-    await dbConnect();
-    const session = await getServerSession(authOptions);
-    if (!session || !(await isAdmin(session))) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    const supabase = createSupabaseAdminClient();
+    const session = await getServerSession();
+    if (!session || !isAdminSession(session)) {
+      return NextResponse.json({ error: 'Admin giriş icazəsi tələb olunur' }, { status: 403 });
     }
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const limit = parseInt(searchParams.get('limit') || '10');
     const status = searchParams.get('status');
     const search = searchParams.get('search');
     const author = searchParams.get('author');
@@ -41,116 +33,134 @@ export async function GET(request: NextRequest) {
       query.status = status;
     }
     
-    if (author) query.author = { $regex: author, $options: 'i' };
+    if (author) {
+      query.author = author;
+    }
+
+    const sortFieldMap: Record<string, string> = {
+      createdAt: 'created_at',
+      updatedAt: 'updated_at'
+    };
+    const orderField = sortFieldMap[sortBy] || 'created_at';
+    const ascending = sortOrder === 'asc';
+
+    let queryBuilder = supabase
+      .from('blogs')
+      .select('*, author_id (id, name, email)', { count: 'exact' })
+      .order(orderField, { ascending })
+      .range(skip, skip + limit - 1);
+
+    if (status) queryBuilder = queryBuilder.eq('status', status);
+
+    if (author) {
+      if (/^[0-9a-f-]{36}$/i.test(author)) {
+        queryBuilder = queryBuilder.eq('author_id', author);
+      } else {
+        queryBuilder = queryBuilder.ilike('author_name', `%${author}%`);
+      }
+    }
 
     if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { abstract: { $regex: search, $options: 'i' } },
-        { content: { $regex: search, $options: 'i' } },
-
-      ];
-    }
-    if (dateFrom || dateTo) {
-      query.createdAt = {};
-      if (dateFrom) query.createdAt.$gte = new Date(dateFrom);
-      if (dateTo) query.createdAt.$lte = new Date(dateTo);
+      queryBuilder = queryBuilder.or(`title.ilike.%${search}%,abstract.ilike.%${search}%,content_html.ilike.%${search}%`);
     }
 
-    // Build sort object
-    const sort: any = {};
-    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+    if (dateFrom) queryBuilder = queryBuilder.gte('created_at', new Date(dateFrom).toISOString());
+    if (dateTo) queryBuilder = queryBuilder.lte('created_at', new Date(dateTo).toISOString());
 
-    const total = await Blog.countDocuments(query);
-    const blogs = await Blog.find(query)
-      .sort(sort)
-      .skip(skip)
-      .limit(limit)
-      .populate('author', 'name email _id') // Populate author with name, email, and _id
-      .lean();
-    
-    // Get unique authors for filtering
-    const allAuthors = await Blog.distinct('author');
+    const { data: blogs, error, count: total } = await queryBuilder;
+
+    if (error) {
+      console.error('GET /api/admin/blogs error:', error);
+      return NextResponse.json({ error: 'Bloqları yükləmək alınmadı' }, { status: 500 });
+    }
     
     return NextResponse.json({ 
-      total, 
+      total: total || 0, 
       page, 
       limit, 
       results: blogs,
       filters: {
-        authors: allAuthors.filter(author => author)
+        authors: blogs
+          .map((blog: any) => blog.author_id)
+          .filter((author: any) => author && author.id)
+          .map((author: any) => ({
+            id: author.id.toString(),
+            name: author.name || author.email || author.id.toString()
+          }))
       }
     });
   } catch (error) {
     console.error('GET /api/admin/blogs error:', error);
-    return NextResponse.json({ error: 'Failed to fetch blogs' }, { status: 500 });
+    return NextResponse.json({ error: 'Bloqları yükləmək alınmadı' }, { status: 500 });
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
-    await dbConnect();
-    const session = await getServerSession(authOptions);
-    if (!session || !(await isAdmin(session))) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    const supabase = createSupabaseAdminClient();
+    const session = await getServerSession();
+    if (!session || !isAdminSession(session)) {
+      return NextResponse.json({ error: 'Admin giriş icazəsi tələb olunur' }, { status: 403 });
     }
     const body = await request.json();
     const { id, status, adminComment } = body;
     if (!id || !status) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json({ error: 'Tələb olunan sahələr çatışmır' }, { status: 400 });
     }
     if (!['approved', 'rejected'].includes(status)) {
-      return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+      return NextResponse.json({ error: 'Yanlış status' }, { status: 400 });
     }
-    const blog = await Blog.findById(id);
-    if (!blog) {
-      return NextResponse.json({ error: 'Story not found' }, { status: 404 });
+    const { data: blog, error: blogError } = await supabase
+      .from('blogs')
+      .select('id, title, author_id')
+      .eq('id', id)
+      .single();
+    if (blogError || !blog) {
+      return NextResponse.json({ error: 'Bloq tapılmadı' }, { status: 404 });
     }
-    blog.status = status;
-    blog.adminComment = adminComment || null;
-    await blog.save();
+    await supabase
+      .from('blogs')
+      .update({ status, admin_comment: adminComment || null, updated_at: new Date().toISOString() })
+      .eq('id', id);
     
     // Invalidate caches
     cache.blogs.invalidateAll();
-    if (blog.author) {
-      invalidateUserCache(blog.author.toString());
+    if (blog.author_id) {
+      invalidateUserCache(blog.author_id.toString());
     }
 
     // Send notification to author
-    if (blog.author) {
-      const user = await User.findById(blog.author);
-      if (user) {
-        await Notification.create({
-          userId: user._id,
-          type: 'blog',
-          title: `Your blog was ${status}`,
-          message: status === 'approved'
-            ? `Congratulations! Your blog "${blog.title}" has been approved and published.`
-            : `Your blog "${blog.title}" was rejected.${adminComment ? ' Reason: ' + adminComment : ''}`,
-          data: { blogId: blog._id, status },
-        });
-      }
+    if (blog.author_id) {
+      await supabase.from('notifications').insert({
+        user_id: blog.author_id,
+        type: 'blog',
+        title: `Bloqunuz ${status === 'approved' ? 'təsdiqləndi' : 'rədd edildi'}`,
+        message: status === 'approved'
+          ? `Təbriklər! "${blog.title}" adlı bloqunuz təsdiqlənərək yayımlandı.`
+          : `"${blog.title}" adlı bloqunuz rədd edildi.${adminComment ? ' Səbəb: ' + adminComment : ''}`,
+        data: { blogId: blog.id, status },
+      });
     }
-    return NextResponse.json({ message: `Blog ${status} successfully` });
+    return NextResponse.json({ message: `Bloq uğurla ${status === 'approved' ? 'təsdiqləndi' : 'rədd edildi'}` });
   } catch (error) {
     console.error('PUT /api/admin/blogs error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Daxili server xətası' }, { status: 500 });
   }
 }
 
 export async function PATCH(request: NextRequest) {
   try {
-    await dbConnect();
-    const session = await getServerSession(authOptions);
-    if (!session || !(await isAdmin(session))) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    const supabase = createSupabaseAdminClient();
+    const session = await getServerSession();
+    if (!session || !isAdminSession(session)) {
+      return NextResponse.json({ error: 'Admin giriş icazəsi tələb olunur' }, { status: 403 });
     }
 
     const body = await request.json();
     const { action, storyIds, status, adminComment } = body;
 
     if (!action || !storyIds || !Array.isArray(storyIds)) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json({ error: 'Tələb olunan sahələr çatışmır' }, { status: 400 });
     }
 
     let updateData: any = {};
@@ -158,60 +168,56 @@ export async function PATCH(request: NextRequest) {
 
     switch (action) {
       case 'bulk_approve':
-        updateData = { status: 'approved', adminComment: adminComment || '' };
+        updateData = { status: 'approved', admin_comment: adminComment || '' };
         break;
       case 'bulk_reject':
-        updateData = { status: 'rejected', adminComment: adminComment || 'Bulk rejected' };
+        updateData = { status: 'rejected', admin_comment: adminComment || 'Toplu şəkildə rədd edildi' };
         break;
       case 'bulk_delete':
         // Soft delete by setting a deleted flag or actually delete
-        await Blog.deleteMany({ _id: { $in: storyIds } });
+        await supabase
+          .from('blogs')
+          .delete()
+          .in('id', storyIds);
         return NextResponse.json({ 
           success: true, 
-          message: `${storyIds.length} blogs deleted successfully`,
+          message: `${storyIds.length} bloq uğurla silindi`,
           deletedCount: storyIds.length
         });
       case 'bulk_status_change':
         if (!status || !['pending', 'approved', 'rejected'].includes(status)) {
-          return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+          return NextResponse.json({ error: 'Yanlış status' }, { status: 400 });
         }
-        updateData = { status, adminComment: adminComment || '' };
+        updateData = { status, admin_comment: adminComment || '' };
         break;
       default:
-        return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+        return NextResponse.json({ error: 'Yanlış əməliyyat' }, { status: 400 });
     }
 
     // Update blogs and collect results
+    const { data: updatedBlogs } = await supabase
+      .from('blogs')
+      .update({ ...updateData, updated_at: new Date().toISOString() })
+      .in('id', storyIds)
+      .select('id, title, author_id');
+
+    const updatedBlogMap = new Map((updatedBlogs || []).map(blog => [blog.id, blog]));
+
     for (const storyId of storyIds) {
-      try {
-        const blog = await Blog.findByIdAndUpdate(
-          storyId,
-          updateData,
-          { new: true }
-        );
-        
-        if (blog) {
-          results.push({ id: storyId, success: true, blog });
-          
-          // Send notification to author if status changed
-          if (updateData.status && blog.author) {
-            const user = await User.findById(blog.author);
-            
-            if (user) {
-              await Notification.create({
-                userId: user._id,
-                type: 'blog_status',
-                title: `Blog ${updateData.status}`,
-                message: `Your blog "${blog.title}" has been ${updateData.status}.${updateData.adminComment ? ` Admin comment: ${updateData.adminComment}` : ''}`,
-                read: false
-              });
-            }
-          }
-        } else {
-          results.push({ id: storyId, success: false, error: 'Blog not found' });
+      const blog = updatedBlogMap.get(storyId);
+      if (blog) {
+        results.push({ id: storyId, success: true, blog });
+        if (updateData.status && blog.author_id) {
+          await supabase.from('notifications').insert({
+            user_id: blog.author_id,
+            type: 'blog_status',
+            title: `Bloq ${updateData.status === 'approved' ? 'təsdiqləndi' : updateData.status === 'rejected' ? 'rədd edildi' : 'gözləmədədir'}`,
+            message: `"${blog.title}" adlı bloqunuz ${updateData.status === 'approved' ? 'təsdiqləndi' : updateData.status === 'rejected' ? 'rədd edildi' : 'gözləməyə alındı'}.${updateData.admin_comment ? ` Admin şərhi: ${updateData.admin_comment}` : ''}`,
+            is_read: false
+          });
         }
-      } catch (error) {
-        results.push({ id: storyId, success: false, error: 'Update failed' });
+      } else {
+        results.push({ id: storyId, success: false, error: 'Bloq tapılmadı' });
       }
     }
 
@@ -220,7 +226,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Bulk operation completed. ${successCount} successful, ${failureCount} failed.`,
+      message: `Toplu əməliyyat tamamlandı. ${successCount} uğurlu, ${failureCount} uğursuz.`,
       results,
       successCount,
       failureCount
@@ -228,6 +234,6 @@ export async function PATCH(request: NextRequest) {
 
   } catch (error) {
     console.error('PATCH /api/admin/blogs error:', error);
-    return NextResponse.json({ error: 'Failed to perform bulk operation' }, { status: 500 });
+    return NextResponse.json({ error: 'Toplu əməliyyatı icra etmək alınmadı' }, { status: 500 });
   }
 }

@@ -1,9 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect } from 'react';
-import { useLanguage } from '@/contexts/LanguageContext'
-import {
-  Chart as ChartJS,
+import { Chart as ChartJS,
   CategoryScale,
   LinearScale,
   PointElement,
@@ -12,8 +10,7 @@ import {
   Title,
   Tooltip,
   Legend,
-  ArcElement,
-} from 'chart.js';
+  ArcElement, } from 'chart.js';
 import { Line, Bar, Pie } from 'react-chartjs-2';
 
 ChartJS.register(
@@ -28,66 +25,42 @@ ChartJS.register(
   ArcElement
 );
 
-interface SimpleChartProps {
-  type: 'line' | 'bar' | 'pie';
+interface SimpleChartProps { type: 'line' | 'bar' | 'pie';
   data: any;
-  options?: any;
-}
+  options?: any; }
 
-export default function SimpleChart({ type, data, options }: SimpleChartProps) {
-  const chartRef = useRef<any>(null);
-  const { t } = useLanguage()
-
-  const defaultOptions = {
-    responsive: true,
+export default function SimpleChart({ type, data, options }: SimpleChartProps) { const chartRef = useRef<any>(null);
+  const defaultOptions = { responsive: true,
     maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top' as const,
-      },
-    },
-  };
+    plugins: { legend: { position: 'top' as const, }, }, };
 
   const chartOptions = { ...defaultOptions, ...options };
 
-  useEffect(() => {
-    const chartInstance = chartRef.current;
-    return () => {
-      // Cleanup chart instance when component unmounts
-      if (chartInstance) {
-        chartInstance.destroy();
-      }
-    };
-  }, []);
+  useEffect(() => { const chartInstance = chartRef.current;
+    return () => { // Cleanup chart instance when component unmounts
+      if (chartInstance) { chartInstance.destroy(); } }; }, []);
 
   const hasData = data && data.datasets && Array.isArray(data.datasets) && data.datasets.length > 0
 
-  // Localized title per chart type
-  const titleText = t(`charts.simple.title.${type}`)
+  const titleMap: Record<'line' | 'bar' | 'pie', string> = { line: 'Trendlər Qrafiki',
+    bar: 'Müqayisə Qrafiki',
+    pie: 'Paylanma Qrafiki', }
+  const titleText = titleMap[type]
 
-  const combinedOptions = {
-    ...chartOptions,
-    plugins: {
-      ...chartOptions.plugins,
-      title: {
-        display: true,
-        text: titleText,
-      },
-    },
-  }
+  const combinedOptions = { ...chartOptions,
+    plugins: { ...chartOptions.plugins,
+      title: { display: true,
+        text: titleText, }, }, }
 
-  const commonProps = {
-    ref: chartRef,
+  const commonProps = { ref: chartRef,
     data: data,
-    options: combinedOptions,
-  };
+    options: combinedOptions, };
 
-  switch (type) {
-    case 'line':
+  switch (type) { case 'line':
       return (
         <div style={{ position: 'relative', height: '400px', width: '100%' }}>
           {!hasData ? (
-            <div className="flex items-center justify-center h-80 text-gray-500">{t('charts.simple.noData')}</div>
+            <div className="flex items-center justify-center h-80 text-gray-500">{'Məlumat yoxdur'}</div>
           ) : (
             <Line {...commonProps} />
           )}
@@ -97,7 +70,7 @@ export default function SimpleChart({ type, data, options }: SimpleChartProps) {
       return (
         <div style={{ position: 'relative', height: '400px', width: '100%' }}>
           {!hasData ? (
-            <div className="flex items-center justify-center h-80 text-gray-500">{t('charts.simple.noData')}</div>
+            <div className="flex items-center justify-center h-80 text-gray-500">{'Məlumat yoxdur'}</div>
           ) : (
             <Bar {...commonProps} />
           )}
@@ -107,13 +80,11 @@ export default function SimpleChart({ type, data, options }: SimpleChartProps) {
       return (
         <div style={{ position: 'relative', height: '400px', width: '100%' }}>
           {!hasData ? (
-            <div className="flex items-center justify-center h-80 text-gray-500">{t('charts.simple.noData')}</div>
+            <div className="flex items-center justify-center h-80 text-gray-500">{'Məlumat yoxdur'}</div>
           ) : (
             <Pie {...commonProps} />
           )}
         </div>
       );
     default:
-      return null;
-  }
-}
+      return null; } }

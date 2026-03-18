@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import dbConnect from '@/lib/mongoose'
-import Vacancy from '@/lib/models/Vacancy'
+import { getServerSession } from '@/lib/auth/server'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,15 +9,15 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
     
     const vacancyId = params.id;
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     const viewerId = session?.user?.id;
     
     // Get client IP for unique view tracking
     const forwarded = request.headers.get('x-forwarded-for');
-    const ip = forwarded ? forwarded.split(',')[0] : request.headers.get('x-real-ip') || 'unknown';
+    const ip = forwarded ? forwarded.split(',')[0] : (request.headers.get('x-real-ip') || 'unknown');
     
     // Get user agent for analytics
     const userAgent = request.headers.get('user-agent') || 'unknown';
@@ -35,8 +33,12 @@ export async function POST(
     const { isFirstView = true } = body;
     
     // Find the vacancy
-    const vacancy = await Vacancy.findById(vacancyId);
-    if (!vacancy) {
+    const { data: vacancy, error } = await supabase
+      .from('vacancies')
+      .select('id, status, views, unique_views, viewed_by, engagement_score')
+      .eq('id', vacancyId)
+      .single();
+    if (error || !vacancy) {
       return NextResponse.json({ error: 'Vacancy not found' }, { status: 404 });
     }
 
@@ -46,7 +48,7 @@ export async function POST(
         success: false,
         message: 'Views only tracked for approved content',
         views: vacancy.views || 0,
-        uniqueViews: vacancy.uniqueViews || 0,
+        uniqueViews: vacancy.unique_views || 0,
         viewIncremented: false
       });
     }
@@ -57,26 +59,27 @@ export async function POST(
     
     if (viewerId) {
       // For logged-in users, check if they haven't viewed this vacancy before
-      const alreadyViewed = vacancy.viewedBy?.some(
+      const viewedBy = Array.isArray(vacancy.viewed_by) ? vacancy.viewed_by : [];
+      const alreadyViewed = viewedBy.some(
         (id: any) => id.toString() === viewerId.toString()
       );
       
       if (!alreadyViewed) {
         isUniqueView = true;
-        if (!vacancy.viewedBy) vacancy.viewedBy = [];
-        vacancy.viewedBy.push(viewerId);
-        vacancy.uniqueViews = (vacancy.uniqueViews || 0) + 1;
+        viewedBy.push(viewerId);
+        vacancy.viewed_by = viewedBy;
+        vacancy.unique_views = (vacancy.unique_views || 0) + 1;
       }
       
       // Always increment total views for authenticated users
-      vacancy.views = (vacancy.views || 0) + 1;
+        vacancy.views = (vacancy.views || 0) + 1;
       viewIncremented = true;
       
     } else {
       // For anonymous users, rely on client-side tracking (session storage)
       if (isFirstView) {
         isUniqueView = true;
-        vacancy.uniqueViews = (vacancy.uniqueViews || 0) + 1;
+        vacancy.unique_views = (vacancy.unique_views || 0) + 1;
         vacancy.views = (vacancy.views || 0) + 1;
         viewIncremented = true;
       }
@@ -84,21 +87,32 @@ export async function POST(
     
     // Calculate engagement score (views * 1 + likes * 3 - dislikes * 2)
     if (viewIncremented) {
-      const engagementScore = (vacancy.views * 1) + 
-                             ((vacancy.likes || 0) * 3) - 
-                             ((vacancy.dislikes || 0) * 2);
-      vacancy.engagementScore = Math.max(0, engagementScore);
-      
-      await vacancy.save();
+      const engagementScore = (vacancy.views * 1);
+      const engagementScoreValue = Math.max(0, engagementScore);
+
+      const { error: updateError } = await supabase
+        .from('vacancies')
+        .update({
+          views: vacancy.views,
+          unique_views: vacancy.unique_views,
+          viewed_by: vacancy.viewed_by || [],
+          engagement_score: engagementScoreValue,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', vacancyId);
+
+      if (updateError) {
+        console.error('View tracking update error:', updateError);
+      }
     }
     
     return NextResponse.json({
       success: true,
       views: vacancy.views || 0,
-      uniqueViews: vacancy.uniqueViews || 0,
-      likes: vacancy.likes || 0,
-      dislikes: vacancy.dislikes || 0,
-      engagementScore: vacancy.engagementScore || 0,
+      uniqueViews: vacancy.unique_views || 0,
+      likes: 0,
+      dislikes: 0,
+      engagementScore: vacancy.engagement_score || 0,
       isUniqueView,
       viewIncremented
     });
@@ -115,21 +129,25 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
     
     const vacancyId = params.id;
-    const vacancy = await Vacancy.findById(vacancyId).select('views uniqueViews likes dislikes engagementScore');
+    const { data: vacancy, error } = await supabase
+      .from('vacancies')
+      .select('views, unique_views, engagement_score')
+      .eq('id', vacancyId)
+      .single();
     
-    if (!vacancy) {
+    if (error || !vacancy) {
       return NextResponse.json({ error: 'Vacancy not found' }, { status: 404 });
     }
     
     return NextResponse.json({
       views: vacancy.views || 0,
-      uniqueViews: vacancy.uniqueViews || 0,
-      likes: vacancy.likes || 0,
-      dislikes: vacancy.dislikes || 0,
-      engagementScore: vacancy.engagementScore || 0
+      uniqueViews: vacancy.unique_views || 0,
+      likes: 0,
+      dislikes: 0,
+      engagementScore: vacancy.engagement_score || 0
     });
     
   } catch (error) {

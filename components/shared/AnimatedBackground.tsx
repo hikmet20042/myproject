@@ -15,9 +15,9 @@ interface AnimatedBackgroundProps {
 
 export default function AnimatedBackground({ 
   colors = {
-    blob1: 'bg-purple-300',
-    blob2: 'bg-indigo-300',
-    blob3: 'bg-pink-300'
+    blob1: 'bg-blue-300',
+    blob2: 'bg-cyan-300',
+    blob3: 'bg-emerald-300'
   },
   opacity = 20
 }: AnimatedBackgroundProps) {

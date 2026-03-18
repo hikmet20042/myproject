@@ -21,22 +21,22 @@ const ContactCard = React.forwardRef<any, ContactCardProps>(
     variant = 'default',
     ...props
   }, ref) => {
-    const baseClasses = 'flex items-center rounded-lg transition-colors duration-200';
+    const baseClasses = 'flex items-center rounded-xl transition-colors duration-200';
     
     const variants = {
-      default: 'p-3 bg-gray-50 hover:bg-gray-100',
-      compact: 'p-2 bg-white border border-gray-200 hover:border-gray-300'
+      default: 'border border-blue-100 bg-blue-50/50 p-3 hover:bg-blue-50',
+      compact: 'border border-blue-100 bg-white p-2 hover:border-blue-200 hover:bg-blue-50/30'
     };
     
     const iconVariants = {
-      default: 'w-8 h-8 bg-accent rounded-lg flex items-center justify-center mr-3',
-      compact: 'w-6 h-6 text-gray-500 mr-2'
+      default: 'mr-3 flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 text-white',
+      compact: 'mr-2 h-6 w-6 text-blue-600'
     };
     
     const content = (
       <>
         <div className={iconVariants[variant]}>
-          <Icon className={variant === 'default' ? 'w-4 h-4 text-primary' : 'w-4 h-4'} />
+          <Icon className={variant === 'default' ? 'h-4 w-4 text-white' : 'h-4 w-4'} />
         </div>
         <div className="flex-1">
           <p className={cn(
@@ -47,7 +47,7 @@ const ContactCard = React.forwardRef<any, ContactCardProps>(
           </p>
           <p className={cn(
             'font-medium break-all',
-            variant === 'default' ? 'text-gray-900 hover:text-primary' : 'text-gray-700'
+            variant === 'default' ? 'text-gray-900 hover:text-blue-700' : 'text-gray-700'
           )}>
             {value}
           </p>

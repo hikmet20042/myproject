@@ -1,6 +1,5 @@
 import { Metadata } from 'next'
-import connectToDatabase from '@/lib/mongoose'
-import Event from '@/lib/models/Event'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { generateSEOMetadata, generateEventSchema, getLocationKeywords } from '@/lib/seo'
 
 /**
@@ -8,8 +7,36 @@ import { generateSEOMetadata, generateEventSchema, getLocationKeywords } from '@
  */
 export async function generateEventMetadata(id: string): Promise<Metadata> {
   try {
-    await connectToDatabase()
-    const event = await Event.findById(id).lean() as any
+    const supabase = createSupabaseAdminClient()
+    const { data: eventRow, error } = await supabase
+      .from('events')
+      .select('id, title, description, event_date, end_date, location, registration_link, organization_name, organization, website, image, created_at, submitted_at, updated_at, tags, focus_areas, event_type')
+      .eq('id', id)
+      .single()
+
+    if (error) {
+      throw error
+    }
+
+    const event = eventRow ? {
+      _id: eventRow.id,
+      title: eventRow.title,
+      description: eventRow.description,
+      eventDate: eventRow.event_date,
+      endDate: eventRow.end_date,
+      location: eventRow.location,
+      registrationLink: eventRow.registration_link,
+      organizationName: eventRow.organization_name,
+      organization: eventRow.organization,
+      website: eventRow.website,
+      image: eventRow.image,
+      createdAt: eventRow.created_at,
+      submittedAt: eventRow.submitted_at,
+      updatedAt: eventRow.updated_at,
+      tags: eventRow.tags || [],
+      focusAreas: eventRow.focus_areas || [],
+      eventType: eventRow.event_type
+    } : null
     
     if (!event) {
       return generateSEOMetadata({

@@ -1,10 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth';
-import  dbConnect  from '@/lib/mongoose'
-import Event from '@/lib/models/Event'
-import User from '@/lib/models/User'
-import mongoose from 'mongoose'
+import { getServerSession } from '@/lib/auth/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+
+const mapEvent = (row: any) => ({
+  _id: row.id,
+  id: row.id,
+  title: row.title,
+  description: row.description,
+  category: row.category,
+  eventType: row.event_type,
+  eventDate: row.event_date,
+  endDate: row.end_date,
+  duration: row.duration,
+  schedule: row.schedule,
+  prerequisites: row.prerequisites || [],
+  learningOutcomes: row.learning_outcomes || [],
+  certification: row.certification,
+  cost: row.cost,
+  targetAudience: row.target_audience || [],
+  syllabus: row.syllabus,
+  location: row.location,
+  applicationLink: row.application_link,
+  applicationDeadline: row.application_deadline,
+  maxParticipants: row.max_participants,
+  currentParticipants: row.current_participants,
+  tags: row.tags || [],
+  imageUrl: row.image_url,
+  images: row.images,
+  createdBy: row.created_by
+    ? { _id: row.created_by.id, name: row.created_by.name, email: row.created_by.email }
+    : row.created_by,
+  createdByOrganization: row.created_by_organization
+    ? { _id: row.created_by_organization.id, organizationName: row.created_by_organization.organization_name, email: row.created_by_organization.email }
+    : row.created_by_organization,
+  organizationName: row.organization_name,
+  status: row.status,
+  approvedAt: row.approved_at,
+  approvedBy: row.approved_by
+    ? { _id: row.approved_by.id, name: row.approved_by.name }
+    : row.approved_by,
+  rejectedAt: row.rejected_at,
+  rejectionReason: row.rejection_reason,
+  adminComment: row.admin_comment,
+  isPublished: row.is_published,
+  isFeatured: row.is_featured,
+  views: row.views,
+  uniqueViews: row.unique_views,
+  viewedBy: row.viewed_by || [],
+  engagementScore: row.engagement_score,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at
+});
 
 // GET /api/events/[id] - Get single event
 export async function GET(
@@ -12,25 +58,50 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await dbConnect()
+    const supabase = createSupabaseAdminClient()
+
+    const { data: eventRow, error } = await supabase
+      .from('events')
+      .select('*, created_by (id, name, email), created_by_organization (id, organization_name, email), approved_by (id, name)')
+      .eq('id', params.id)
+      .single()
     
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
-      return NextResponse.json(
-        { error: 'Invalid event ID' },
-        { status: 400 }
-      )
-    }
-    
-    const event = await Event.findById(params.id)
-      .populate('createdBy', 'name ngoProfile email')
-      .populate('approvedBy', 'name')
-      .lean()
-    
-    if (!event) {
+    if (error || !eventRow) {
       return NextResponse.json(
         { error: 'Event not found' },
         { status: 404 }
       )
+    }
+
+    const event = mapEvent(eventRow)
+
+    // Restrict unpublished or non-approved events
+    if (event.status !== 'approved' || event.isPublished === false) {
+      const session = await getServerSession()
+      const createdById = typeof event.createdBy === 'object' && event.createdBy?._id
+        ? event.createdBy._id.toString()
+        : event.createdBy?.toString?.()
+      const createdByOrganizationId = typeof event.createdByOrganization === 'object' && event.createdByOrganization?._id
+        ? event.createdByOrganization._id.toString()
+        : event.createdByOrganization?.toString?.()
+      const isOwner = session?.user?.id && (session.user.id === createdById || session.user.id === createdByOrganizationId)
+
+      let isAdmin = false
+      if (session?.user?.id) {
+        const { data: adminUser } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', session.user.id)
+          .single()
+        isAdmin = adminUser?.role === 'admin'
+      }
+
+      if (!isAdmin && !isOwner) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 403 }
+        )
+      }
     }
     
     return NextResponse.json({ event })
@@ -49,7 +120,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -58,65 +129,89 @@ export async function PUT(
       )
     }
     
-    await dbConnect()
-    
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
-      return NextResponse.json(
-        { error: 'Invalid event ID' },
-        { status: 400 }
-      )
-    }
-    
-    const event = await Event.findById(params.id)
-    if (!event) {
+    const supabase = createSupabaseAdminClient()
+
+    const { data: eventRow, error: eventError } = await supabase
+      .from('events')
+      .select('*')
+      .eq('id', params.id)
+      .single()
+    if (eventError || !eventRow) {
       return NextResponse.json(
         { error: 'Event not found' },
         { status: 404 }
       )
     }
-    
-    const user = await User.findById(session.user.id)
-    
-    // Check permissions
-    const isOwner = event.createdBy.toString() === session.user.id
+
+    const { data: user } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', session.user.id)
+      .single()
+
+    // Check permissions (owner can be User via createdBy or Organization via createdByOrganization)
+    const createdById = eventRow.created_by
+    const createdByOrganizationId = eventRow.created_by_organization
+    const isOwner = createdById === session.user.id || createdByOrganizationId === session.user.id
     const isAdmin = user?.role === 'admin'
-    
+
     if (!isOwner && !isAdmin) {
       return NextResponse.json(
         { error: 'Permission denied' },
         { status: 403 }
       )
     }
-    
+
     const body = await request.json()
     
     // If admin is approving/rejecting
     if (isAdmin && (body.action === 'approve' || body.action === 'reject')) {
+      const updateData: any = {}
       if (body.action === 'approve') {
-        event.status = 'approved'
-        event.approvedAt = new Date()
-        event.approvedBy = session.user.id
-        event.isPublished = true
-        event.rejectedAt = undefined
-        event.rejectionReason = undefined
-        event.adminComment = body.adminComment || undefined
+        updateData.status = 'approved'
+        updateData.approved_at = new Date().toISOString()
+        updateData.approved_by = session.user.id
+        updateData.is_published = true
+        updateData.rejected_at = null
+        updateData.rejection_reason = null
+        updateData.admin_comment = body.adminComment || null
       } else if (body.action === 'reject') {
-        event.status = 'rejected'
-        event.rejectedAt = new Date()
-        event.rejectionReason = body.rejectionReason || 'No reason provided'
-        event.adminComment = body.adminComment || body.rejectionReason || 'No reason provided'
-        event.approvedAt = undefined
-        event.approvedBy = undefined
-        event.isPublished = false
+        updateData.status = 'rejected'
+        updateData.rejected_at = new Date().toISOString()
+        updateData.rejection_reason = body.rejectionReason || 'No reason provided'
+        updateData.admin_comment = body.adminComment || body.rejectionReason || 'No reason provided'
+        updateData.approved_at = null
+        updateData.approved_by = null
+        updateData.is_published = false
       }
+
+      const { data: updatedRow, error: updateError } = await supabase
+        .from('events')
+        .update({ ...updateData, updated_at: new Date().toISOString() })
+        .eq('id', params.id)
+        .select('*, created_by (id, name, email), created_by_organization (id, organization_name, email), approved_by (id, name)')
+        .single()
+
+      if (updateError || !updatedRow) {
+        return NextResponse.json(
+          { error: 'Failed to update event' },
+          { status: 500 }
+        )
+      }
+
+      return NextResponse.json({
+        message: 'Event updated successfully',
+        event: mapEvent(updatedRow)
+      })
     } else {
       // Regular update by owner
-      if (event.status === 'approved' && isOwner) {
+      const updateData: any = {}
+      if (eventRow.status === 'approved' && isOwner) {
         // If event was approved, reset approval status for re-review
-        event.status = 'pending'
-        event.approvedAt = undefined
-        event.approvedBy = undefined
-        event.isPublished = false
+        updateData.status = 'pending'
+        updateData.approved_at = null
+        updateData.approved_by = null
+        updateData.is_published = false
       }
       
       // Update allowed fields
@@ -142,22 +237,68 @@ export async function PUT(
 
       allowedFields.forEach(field => {
         if (body[field] !== undefined) {
-          event[field] = body[field]
+          updateData[field] = body[field]
         }
       })
+
+      if (updateData.eventType !== undefined) {
+        updateData.event_type = updateData.eventType
+        delete updateData.eventType
+      }
+      if (updateData.eventDate !== undefined) {
+        updateData.event_date = updateData.eventDate
+        delete updateData.eventDate
+      }
+      if (updateData.endDate !== undefined) {
+        updateData.end_date = updateData.endDate
+        delete updateData.endDate
+      }
+      if (updateData.learningOutcomes !== undefined) {
+        updateData.learning_outcomes = updateData.learningOutcomes
+        delete updateData.learningOutcomes
+      }
+      if (updateData.targetAudience !== undefined) {
+        updateData.target_audience = updateData.targetAudience
+        delete updateData.targetAudience
+      }
+      if (updateData.applicationLink !== undefined) {
+        updateData.application_link = updateData.applicationLink
+        delete updateData.applicationLink
+      }
+      if (updateData.applicationDeadline !== undefined) {
+        updateData.application_deadline = updateData.applicationDeadline
+        delete updateData.applicationDeadline
+      }
+      if (updateData.maxParticipants !== undefined) {
+        updateData.max_participants = updateData.maxParticipants
+        delete updateData.maxParticipants
+      }
+      if (updateData.imageUrl !== undefined) {
+        updateData.image_url = updateData.imageUrl
+        delete updateData.imageUrl
+      }
+
+      updateData.updated_at = new Date().toISOString()
+
+      const { data: updatedRow, error: updateError } = await supabase
+        .from('events')
+        .update(updateData)
+        .eq('id', params.id)
+        .select('*, created_by (id, name, email), created_by_organization (id, organization_name, email), approved_by (id, name)')
+        .single()
+
+      if (updateError || !updatedRow) {
+        return NextResponse.json(
+          { error: 'Failed to update event' },
+          { status: 500 }
+        )
+      }
+
+      return NextResponse.json({
+        message: 'Event updated successfully',
+        event: mapEvent(updatedRow)
+      })
     }
-    
-    await event.save()
-    
-    const updatedEvent = await Event.findById(params.id)
-      .populate('createdBy', 'name ngoProfile')
-      .populate('approvedBy', 'name')
-      .lean()
-    
-    return NextResponse.json({
-      message: 'Event updated successfully',
-      event: updatedEvent
-    })
   } catch (error) {
     console.error('Error updating event:', error)
     return NextResponse.json(
@@ -173,7 +314,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -182,37 +323,50 @@ export async function DELETE(
       )
     }
     
-    await dbConnect()
+    const supabase = createSupabaseAdminClient()
     
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
-      return NextResponse.json(
-        { error: 'Invalid event ID' },
-        { status: 400 }
-      )
-    }
-    
-    const event = await Event.findById(params.id)
-    if (!event) {
+    const { data: eventRow, error: eventError } = await supabase
+      .from('events')
+      .select('id, created_by, created_by_organization')
+      .eq('id', params.id)
+      .single()
+    if (eventError || !eventRow) {
       return NextResponse.json(
         { error: 'Event not found' },
         { status: 404 }
       )
     }
-    
-    const user = await User.findById(session.user.id)
-    
-    // Check permissions
-    const isOwner = event.createdBy.toString() === session.user.id
+
+    const { data: user } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', session.user.id)
+      .single()
+
+    // Check permissions (owner can be User via createdBy or Organization via createdByOrganization)
+    const createdById = eventRow.created_by
+    const createdByOrganizationId = eventRow.created_by_organization
+    const isOwner = createdById === session.user.id || createdByOrganizationId === session.user.id
     const isAdmin = user?.role === 'admin'
-    
+
     if (!isOwner && !isAdmin) {
       return NextResponse.json(
         { error: 'Permission denied' },
         { status: 403 }
       )
     }
-    
-    await Event.findByIdAndDelete(params.id)
+
+    const { error: deleteError } = await supabase
+      .from('events')
+      .delete()
+      .eq('id', params.id)
+
+    if (deleteError) {
+      return NextResponse.json(
+        { error: 'Failed to delete event' },
+        { status: 500 }
+      )
+    }
     
     return NextResponse.json({
       message: 'Event deleted successfully'

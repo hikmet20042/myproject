@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
-import { useSession } from 'next-auth/react'
+import { useSession } from '@/lib/auth/client'
 
 interface SSENotification {
   _id: string
@@ -27,13 +27,22 @@ export const useSSENotifications = () => useContext(SSEContext)
 
 export function SSENotificationProvider({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession()
+  const [enabled, setEnabled] = useState(false)
   const [isConnected, setIsConnected] = useState(false)
   const [lastNotification, setLastNotification] = useState<SSENotification | null>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
 
   useEffect(() => {
-    if (!session?.user?.id) {
+    const timer = setTimeout(() => {
+      setEnabled(true)
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [])
+
+  useEffect(() => {
+    if (!enabled || !session?.user?.id) {
       // Cleanup if user logs out
       if (eventSourceRef.current) {
         eventSourceRef.current.close()
@@ -68,7 +77,7 @@ export function SSENotificationProvider({ children }: { children: React.ReactNod
               if (Notification.permission === 'granted') {
                 new Notification(data.notification.title, {
                   body: data.notification.message,
-                  icon: '/logo.png',
+                  icon: '/icma360_logo.png',
                   tag: data.notification._id
                 })
               }
@@ -111,7 +120,7 @@ export function SSENotificationProvider({ children }: { children: React.ReactNod
         clearTimeout(reconnectTimeoutRef.current)
       }
     }
-  }, [session?.user?.id])
+  }, [session?.user?.id, enabled])
 
   return (
     <SSEContext.Provider value={{ isConnected, lastNotification }}>

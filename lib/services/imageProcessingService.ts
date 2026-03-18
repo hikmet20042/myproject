@@ -1,6 +1,5 @@
 import sharp from 'sharp';
-import ImageBlob from '@/lib/models/ImageBlob';
-import mongoose from 'mongoose';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
 /**
  * Image Processing Service
@@ -238,93 +237,128 @@ export async function generateImageVariants(
 export async function saveImageVariants(
   variants: ImageVariants,
   originalFilename: string,
-  uploadedBy: mongoose.Types.ObjectId,
+  uploadedBy: string,
   metadata: {
     description?: string;
     alt?: string;
     tags?: string[];
   } = {}
 ): Promise<{
-  original: mongoose.Types.ObjectId;
-  thumbnail?: mongoose.Types.ObjectId;
-  medium?: mongoose.Types.ObjectId;
+  original: string;
+  thumbnail?: string;
+  medium?: string;
 }> {
   try {
+    const supabase = createSupabaseAdminClient();
     const savedIds: any = {};
 
     // Save original
-    const originalBlob = new ImageBlob({
-      filename: `${Date.now()}-${Math.random().toString(36).substring(2)}-${originalFilename}`,
-      originalName: originalFilename,
-      mimetype: variants.original.mimetype,
-      size: variants.original.size,
-      data: variants.original.buffer,
-      uploadedBy,
-      description: metadata.description,
-      alt: metadata.alt,
-      tags: metadata.tags,
-      width: variants.original.width,
-      height: variants.original.height,
-      isCompressed: variants.original.metadata.wasCompressed,
-      originalSize: variants.original.metadata.wasOptimized ? undefined : variants.original.size,
-      metadata: variants.original.metadata
-    });
+    const { data: originalBlob, error: originalError } = await supabase
+      .from('image_blobs')
+      .insert({
+        filename: `${Date.now()}-${Math.random().toString(36).substring(2)}-${originalFilename}`,
+        original_name: originalFilename,
+        mimetype: variants.original.mimetype,
+        content_type: variants.original.mimetype,
+        size: variants.original.size,
+        data: variants.original.buffer,
+        uploaded_by: uploadedBy,
+        description: metadata.description,
+        alt: metadata.alt,
+        tags: metadata.tags,
+        width: variants.original.width,
+        height: variants.original.height,
+        is_compressed: variants.original.metadata.wasCompressed,
+        original_size: variants.original.metadata.wasOptimized ? null : variants.original.size,
+        metadata: variants.original.metadata
+      })
+      .select('id')
+      .single();
 
-    await originalBlob.save();
-    savedIds.original = originalBlob._id;
+    if (originalError || !originalBlob) {
+      throw originalError || new Error('Failed to save original image');
+    }
+
+    savedIds.original = originalBlob.id;
 
     // Save thumbnail if generated
     if (variants.thumbnail) {
-      const thumbnailBlob = new ImageBlob({
-        filename: `thumb-${Date.now()}-${Math.random().toString(36).substring(2)}-${originalFilename}`,
-        originalName: `thumbnail-${originalFilename}`,
-        mimetype: variants.thumbnail.mimetype,
-        size: variants.thumbnail.size,
-        data: variants.thumbnail.buffer,
-        uploadedBy,
-        description: `Thumbnail of ${metadata.description || originalFilename}`,
-        alt: metadata.alt ? `Thumbnail: ${metadata.alt}` : undefined,
-        tags: metadata.tags ? [...metadata.tags, 'thumbnail'] : ['thumbnail'],
-        width: variants.thumbnail.width,
-        height: variants.thumbnail.height,
-        isCompressed: true,
-        metadata: variants.thumbnail.metadata
-      });
+      const { data: thumbnailBlob, error: thumbnailError } = await supabase
+        .from('image_blobs')
+        .insert({
+          filename: `thumb-${Date.now()}-${Math.random().toString(36).substring(2)}-${originalFilename}`,
+          original_name: `thumbnail-${originalFilename}`,
+          mimetype: variants.thumbnail.mimetype,
+          content_type: variants.thumbnail.mimetype,
+          size: variants.thumbnail.size,
+          data: variants.thumbnail.buffer,
+          uploaded_by: uploadedBy,
+          description: `Thumbnail of ${metadata.description || originalFilename}`,
+          alt: metadata.alt ? `Thumbnail: ${metadata.alt}` : undefined,
+          tags: metadata.tags ? [...metadata.tags, 'thumbnail'] : ['thumbnail'],
+          width: variants.thumbnail.width,
+          height: variants.thumbnail.height,
+          is_compressed: true,
+          metadata: variants.thumbnail.metadata
+        })
+        .select('id')
+        .single();
 
-      await thumbnailBlob.save();
-      savedIds.thumbnail = thumbnailBlob._id;
+      if (thumbnailError || !thumbnailBlob) {
+        throw thumbnailError || new Error('Failed to save thumbnail');
+      }
+
+      savedIds.thumbnail = thumbnailBlob.id;
     }
 
     // Save medium if generated
     if (variants.medium) {
-      const mediumBlob = new ImageBlob({
-        filename: `med-${Date.now()}-${Math.random().toString(36).substring(2)}-${originalFilename}`,
-        originalName: `medium-${originalFilename}`,
-        mimetype: variants.medium.mimetype,
-        size: variants.medium.size,
-        data: variants.medium.buffer,
-        uploadedBy,
-        description: `Medium variant of ${metadata.description || originalFilename}`,
-        alt: metadata.alt ? `Medium: ${metadata.alt}` : undefined,
-        tags: metadata.tags ? [...metadata.tags, 'medium'] : ['medium'],
-        width: variants.medium.width,
-        height: variants.medium.height,
-        isCompressed: true,
-        metadata: variants.medium.metadata
-      });
+      const { data: mediumBlob, error: mediumError } = await supabase
+        .from('image_blobs')
+        .insert({
+          filename: `med-${Date.now()}-${Math.random().toString(36).substring(2)}-${originalFilename}`,
+          original_name: `medium-${originalFilename}`,
+          mimetype: variants.medium.mimetype,
+          content_type: variants.medium.mimetype,
+          size: variants.medium.size,
+          data: variants.medium.buffer,
+          uploaded_by: uploadedBy,
+          description: `Medium variant of ${metadata.description || originalFilename}`,
+          alt: metadata.alt ? `Medium: ${metadata.alt}` : undefined,
+          tags: metadata.tags ? [...metadata.tags, 'medium'] : ['medium'],
+          width: variants.medium.width,
+          height: variants.medium.height,
+          is_compressed: true,
+          metadata: variants.medium.metadata
+        })
+        .select('id')
+        .single();
 
-      await mediumBlob.save();
-      savedIds.medium = mediumBlob._id;
+      if (mediumError || !mediumBlob) {
+        throw mediumError || new Error('Failed to save medium variant');
+      }
+
+      savedIds.medium = mediumBlob.id;
     }
 
     // Update original with variant references
     if (savedIds.thumbnail || savedIds.medium) {
-      await ImageBlob.findByIdAndUpdate(savedIds.original, {
-        'metadata.variants': {
-          thumbnail: savedIds.thumbnail?.toString(),
-          medium: savedIds.medium?.toString()
+      const updatedMetadata = {
+        ...variants.original.metadata,
+        variants: {
+          thumbnail: savedIds.thumbnail,
+          medium: savedIds.medium
         }
-      });
+      };
+
+      const { error: updateError } = await supabase
+        .from('image_blobs')
+        .update({ metadata: updatedMetadata })
+        .eq('id', savedIds.original);
+
+      if (updateError) {
+        throw updateError;
+      }
     }
 
     return savedIds;

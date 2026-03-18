@@ -1,21 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import dbConnect from '@/lib/mongoose';
-import Blog from '@/lib/models/Blog';
+import { getServerSession } from '@/lib/auth/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { processContentImages, updateMediaWithBlobReferences, getFeaturedImageBlobId, validateContentImages } from '@/lib/utils/imageUtils';
 import { cache, generateCacheKey, withCache } from '@/lib/cache';
 
 export async function GET(request: NextRequest) {
   try {
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     
     // If ID is provided, return single blog
     if (id) {
-      const blog = await Blog.findById(id).lean();
-      if (!blog) {
+      const { data: blog, error } = await supabase
+        .from('blogs')
+        .select('*')
+        .eq('id', id)
+        .single();
+      if (error || !blog) {
         return NextResponse.json(
           { error: 'Story not found' },
           { status: 404 }
@@ -23,12 +25,12 @@ export async function GET(request: NextRequest) {
       }
       
       // Check if blog is approved for public access
-      if ((blog as any).status === 'approved') {
+      if (blog.status === 'approved') {
         return NextResponse.json({ blog });
       }
       
       // For non-approved blogs, require authentication and ownership
-      const session = await getServerSession(authOptions);
+      const session = await getServerSession();
       if (!session?.user) {
         return NextResponse.json(
           { error: 'Story not found' },
@@ -37,7 +39,7 @@ export async function GET(request: NextRequest) {
       }
       
       // Check if user owns the blog or is admin
-      if ((blog as any).author?.toString() !== session.user.id && session.user.role !== 'admin') {
+      if (blog.author_id?.toString() !== session.user.id && session.user.role !== 'admin') {
         return NextResponse.json(
           { error: 'Story not found' },
           { status: 404 }
@@ -49,7 +51,7 @@ export async function GET(request: NextRequest) {
     
     // Otherwise, return paginated list
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limit = parseInt(searchParams.get('limit') || '10');
     const search = searchParams.get('search');
     const tags = searchParams.get('tags');
     const status = searchParams.get('status') || 'approved';
@@ -64,27 +66,24 @@ export async function GET(request: NextRequest) {
       cache.blogs,
       cacheKey,
       async () => {
-        const query: any = { status };
+        let queryBuilder = supabase
+          .from('blogs')
+          .select('*', { count: 'exact' })
+          .eq('status', status)
+          .order('created_at', { ascending: false })
+          .range(skip, skip + limit - 1);
+
         if (search && search.trim()) {
-          query.$or = [
-            { title: { $regex: search.trim(), $options: 'i' } },
-            { content: { $regex: search.trim(), $options: 'i' } },
-            { abstract: { $regex: search.trim(), $options: 'i' } }
-          ];
+          queryBuilder = queryBuilder.or(`title.ilike.%${search.trim()}%,content_html.ilike.%${search.trim()}%,abstract.ilike.%${search.trim()}%`);
         }
         if (tags && tags.trim()) {
           const tagArray = tags.split(',').map(tag => tag.trim());
-          query.tags = { $in: tagArray };
+          queryBuilder = queryBuilder.overlaps('tags', tagArray);
         }
 
-        const total = await Blog.countDocuments(query);
-        const blogs = await Blog.find(query)
-          .sort({ createdAt: -1 })
-          .skip(skip)
-          .limit(limit)
-          .lean();
-        
-        return { blogs, total };
+        const { data: blogs, count: total } = await queryBuilder;
+
+        return { blogs: blogs || [], total: total || 0 };
       }
     );
     
@@ -107,8 +106,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await dbConnect();
-    const session = await getServerSession(authOptions);
+    const supabase = createSupabaseAdminClient();
+    const session = await getServerSession();
     if (!session || !session.user) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -187,7 +186,7 @@ export async function POST(request: NextRequest) {
     // Handle author name assignment
     let finalAuthorName = '';
     if (isAnonymous) {
-      finalAuthorName = 'Anonymous';
+      finalAuthorName = 'Anonim';
     } else if (authorName && authorName.trim()) {
       // Use custom author name if provided
       finalAuthorName = authorName.trim();
@@ -195,7 +194,7 @@ export async function POST(request: NextRequest) {
       // Fall back to session user name
       finalAuthorName = session.user.name;
     } else {
-      finalAuthorName = 'Anonymous';
+      finalAuthorName = 'Anonim';
     }
 
     const storyData = {
@@ -212,14 +211,38 @@ export async function POST(request: NextRequest) {
       featuredImage: featuredImage || undefined,
       featuredImageBlobId: featuredImageBlobId || undefined
     };
-    const blog = await Blog.create(storyData);
+    const { data: blog, error } = await supabase
+      .from('blogs')
+      .insert({
+        title: storyData.title,
+        content: storyData.content,
+        content_html: storyData.contentHtml,
+        author_id: storyData.author,
+        author_name: storyData.authorName,
+        tags: storyData.tags,
+        abstract: storyData.abstract,
+        status: storyData.status,
+        is_anonymous: storyData.isAnonymous,
+        media: storyData.media,
+        featured_image: storyData.featuredImage,
+        featured_image_blob_id: storyData.featuredImageBlobId || null
+      })
+      .select('*')
+      .single();
+
+    if (error || !blog) {
+      return NextResponse.json(
+        { error: 'Failed to submit blog' },
+        { status: 500 }
+      );
+    }
     return NextResponse.json({
       message: 'Story submitted successfully',
       blog: {
-        id: blog._id,
+        id: blog.id,
         title: blog.title,
         status: blog.status,
-        authorName: blog.authorName
+        authorName: blog.author_name
       }
     }, { status: 201 });
   } catch (error) {
@@ -234,8 +257,8 @@ export async function POST(request: NextRequest) {
   // PATCH for user editing blogs
   export async function PATCH(request: NextRequest) {
     try {
-      await dbConnect();
-      const session = await getServerSession(authOptions);
+      const supabase = createSupabaseAdminClient();
+      const session = await getServerSession();
       if (!session?.user?.id) {
         return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
       }
@@ -248,7 +271,12 @@ export async function POST(request: NextRequest) {
       }
 
       // Find the blog first to check its current status
-      const existingStory = await Blog.findOne({ _id: id, author: session.user.id });
+      const { data: existingStory } = await supabase
+        .from('blogs')
+        .select('id, status, author_id')
+        .eq('id', id)
+        .eq('author_id', session.user.id)
+        .single();
       
       if (!existingStory) {
         return NextResponse.json({ error: 'Story not found or you do not have permission to edit it' }, { status: 404 });
@@ -295,43 +323,48 @@ export async function POST(request: NextRequest) {
 
       // Prepare update data
       const updateData: any = {
-        updatedAt: new Date()
+        updated_at: new Date().toISOString()
       };
 
     if (title !== undefined) updateData.title = title.trim();
     if (content !== undefined) updateData.content = content;
-    if (contentHtml !== undefined) updateData.contentHtml = contentHtml;
+    if (contentHtml !== undefined) updateData.content_html = contentHtml;
     if (tags !== undefined) updateData.tags = tags;
     if (abstract !== undefined) updateData.abstract = abstract;
-    if (isAnonymous !== undefined) updateData.isAnonymous = isAnonymous;
+    if (isAnonymous !== undefined) updateData.is_anonymous = isAnonymous;
     
     // Handle authorName with same logic as POST
     if (authorName !== undefined) {
       if (isAnonymous) {
-        updateData.authorName = 'Anonymous';
+        updateData.author_name = 'Anonim';
       } else if (authorName && authorName.trim()) {
-        updateData.authorName = authorName.trim();
+        updateData.author_name = authorName.trim();
       } else if (session?.user?.name) {
-        updateData.authorName = session.user.name;
+        updateData.author_name = session.user.name;
       } else {
-        updateData.authorName = 'Anonymous';
+        updateData.author_name = 'Anonim';
       }
     }
     
     if (media !== undefined) updateData.media = media;
-    if (featuredImage !== undefined) updateData.featuredImage = featuredImage;
+    if (featuredImage !== undefined) {
+      updateData.featured_image = featuredImage;
+      updateData.featured_image_blob_id = getFeaturedImageBlobId(featuredImage) ?? null;
+    }
     if (reqStatus !== undefined) updateData.status = reqStatus;
 
     // If editing a rejected blog, automatically change status to pending when submitting
     if (existingStory.status === 'rejected' && reqStatus === 'pending') {
-      updateData.adminComment = undefined; // Clear admin comment when resubmitting
+      updateData.admin_comment = null; // Clear admin comment when resubmitting
     }
 
-    const blog = await Blog.findOneAndUpdate(
-      { _id: id, author: session.user.id },
-      { $set: updateData },
-      { new: true }
-    );
+    const { data: blog } = await supabase
+      .from('blogs')
+      .update(updateData)
+      .eq('id', id)
+      .eq('author_id', session.user.id)
+      .select('*')
+      .single();
 
     return NextResponse.json({ blog, message: 'Story updated successfully' });
     
@@ -344,12 +377,12 @@ export async function POST(request: NextRequest) {
 // PUT for admin review (approve/reject)
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     if (!session?.user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
     const body = await request.json();
     const { id, status, adminComment, title, content, contentHtml, tags, isAnonymous, media } = body;
 
@@ -364,16 +397,17 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ error: 'Story ID and status are required' }, { status: 400 });
       }
 
-      const blog = await Blog.findByIdAndUpdate(
-        id,
-        { 
-          status, 
-          adminComment: status === 'rejected' ? adminComment : undefined,
-          reviewedAt: new Date(),
-          reviewedBy: session.user.id
-        },
-        { new: true }
-      );
+      const { data: blog } = await supabase
+        .from('blogs')
+        .update({
+          status,
+          admin_comment: status === 'rejected' ? adminComment : null,
+          reviewed_at: new Date().toISOString(),
+          reviewed_by: session.user.id
+        })
+        .eq('id', id)
+        .select('*')
+        .single();
 
       if (!blog) {
         return NextResponse.json({ error: 'Story not found' }, { status: 404 });
@@ -390,13 +424,17 @@ export async function PUT(request: NextRequest) {
       }
 
       // Find the existing blog
-      const existingStory = await Blog.findById(id);
+      const { data: existingStory } = await supabase
+        .from('blogs')
+        .select('id, author_id, status')
+        .eq('id', id)
+        .single();
       if (!existingStory) {
         return NextResponse.json({ error: 'Story not found' }, { status: 404 });
       }
 
       // Check if user owns the blog
-      if (existingStory.author.toString() !== session.user.id) {
+      if (existingStory.author_id?.toString() !== session.user.id) {
         return NextResponse.json({ error: 'You can only edit your own blogs' }, { status: 403 });
       }
 
@@ -472,29 +510,30 @@ export async function PUT(request: NextRequest) {
       // Determine author name
       let authorName;
       if (isAnonymous) {
-        authorName = 'Anonymous';
+        authorName = 'Anonim';
       } else if (body.authorName && body.authorName.trim()) {
         authorName = body.authorName.trim();
       } else {
-        authorName = session.user.name || 'Unknown';
+        authorName = session.user.name || 'Naməlum';
       }
 
       // Update the blog
-      const updatedStory = await Blog.findByIdAndUpdate(
-        id,
-        {
+      const { data: updatedStory } = await supabase
+        .from('blogs')
+        .update({
           title,
           content: processedContent,
-          contentHtml: processedContentHtml,
+          content_html: processedContentHtml,
           tags: tags || [],
-          authorName,
+          author_name: authorName,
           media: processedMedia,
           status: 'pending', // Reset to pending when edited
-          adminComment: undefined, // Clear admin comment when resubmitted
-          updatedAt: new Date()
-        },
-        { new: true }
-      );
+          admin_comment: null, // Clear admin comment when resubmitted
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select('*')
+        .single();
 
       if (!updatedStory) {
         return NextResponse.json({ error: 'Failed to update blog' }, { status: 500 });
@@ -505,7 +544,7 @@ export async function PUT(request: NextRequest) {
 
       return NextResponse.json({ 
         blog: updatedStory,
-        authorName: updatedStory.authorName
+        authorName: updatedStory.author_name
       });
     }
   } catch (error) {
@@ -516,12 +555,12 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -529,17 +568,24 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Story ID is required' }, { status: 400 });
     }
 
-    const blog = await Blog.findById(id);
-    if (!blog) {
+    const { data: blog, error } = await supabase
+      .from('blogs')
+      .select('id, author_id')
+      .eq('id', id)
+      .single();
+    if (error || !blog) {
       return NextResponse.json({ error: 'Story not found' }, { status: 404 });
     }
 
     // Check if user owns the blog or is admin
-    if (blog.author.toString() !== session.user.id && session.user.role !== 'admin') {
+    if (blog.author_id?.toString() !== session.user.id && session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    await Blog.findByIdAndDelete(id);
+    await supabase
+      .from('blogs')
+      .delete()
+      .eq('id', id);
 
     // Invalidate cache
     cache.blogs.clear();

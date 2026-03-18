@@ -32,7 +32,7 @@ export function generateSEOMetadata(config: SEOConfig): Metadata {
     modifiedTime,
     author,
     locale = 'az_AZ',
-    alternateLocales = ['en_US', 'az_AZ'],
+    alternateLocales = ['az_AZ'],
     noindex = false,
     structuredData
   } = config
@@ -49,8 +49,7 @@ export function generateSEOMetadata(config: SEOConfig): Metadata {
     alternates: canonical ? {
       canonical,
       languages: {
-        'az': `${siteUrl}/az${canonical}`,
-        'en': `${siteUrl}/en${canonical}`,
+        'az': `${siteUrl}${canonical}`,
       }
     } : undefined,
     
@@ -143,7 +142,7 @@ export function generateOrganizationSchema() {
     name: 'icma360',
     alternateName: 'icma360 Azərbaycan',
     url: siteUrl,
-    logo: `${siteUrl}/logo.png`,
+    logo: `${siteUrl}/icma360_logo.png`,
     description: 'Azərbaycanda gənclər üçün aparıcı imkan platforması - iş, təcrübə, təlim, könüllülük və QHT imkanlarını birləşdirən platforma',
     address: {
       '@type': 'PostalAddress',
@@ -204,7 +203,7 @@ export function generateLocalBusinessSchema() {
     name: 'icma360',
     description: 'Azərbaycanda gənclər üçün aparıcı imkan platforması. İş, təcrübə, təlim, könüllülük və QHT imkanları.',
     url: siteUrl,
-    logo: `${siteUrl}/logo.png`,
+    logo: `${siteUrl}/icma360_logo.png`,
     image: `${siteUrl}/og-image.png`,
     telephone: '+994-XX-XXX-XX-XX', // Add your phone number
     email: 'info@icma360.az', // Add your email
@@ -351,7 +350,7 @@ export function generateArticleSchema(blog: any) {
       name: 'icma360',
       logo: {
         '@type': 'ImageObject',
-        url: `${siteUrl}/logo.png`,
+        url: `${siteUrl}/icma360_logo.png`,
       },
     },
     mainEntityOfPage: {
@@ -363,47 +362,47 @@ export function generateArticleSchema(blog: any) {
 }
 
 /**
- * Generate NGO/Organization structured data with ratings
+ * Generate organization structured data with ratings
  */
-export function generateNGOSchema(ngo: any, includeRating = false) {
+export function generateOrganizationProfileSchema(organization: any, includeRating = false) {
   const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'
   
   const schema: any = {
     '@type': 'Organization',
-    name: ngo.organizationName,
-    description: ngo.description,
-    url: ngo.website,
-    logo: ngo.logo,
+    name: organization.organizationName,
+    description: organization.description,
+    url: organization.website,
+    logo: organization.logo,
     address: {
       '@type': 'PostalAddress',
-      addressLocality: ngo.location?.city,
+      addressLocality: organization.location?.city,
       addressCountry: 'AZ',
     },
     contactPoint: {
       '@type': 'ContactPoint',
-      telephone: ngo.contactPhone,
-      email: ngo.contactEmail,
+      telephone: organization.contactPhone,
+      email: organization.contactEmail,
       contactType: 'Customer Service',
     },
     areaServed: {
       '@type': 'Country',
       name: 'Azerbaijan',
     },
-    knowsAbout: ngo.focusAreas?.join(', '),
+    knowsAbout: organization.focusAreas?.join(', '),
     sameAs: [
-      ngo.website,
-      ngo.facebook,
-      ngo.twitter,
-      ngo.linkedin,
+      organization.website,
+      organization.facebook,
+      organization.twitter,
+      organization.linkedin,
     ].filter(Boolean),
   }
 
   // Add aggregate rating if available
-  if (includeRating && ngo.rating && ngo.reviewCount) {
+  if (includeRating && organization.rating && organization.reviewCount) {
     schema.aggregateRating = {
       '@type': 'AggregateRating',
-      ratingValue: ngo.rating,
-      reviewCount: ngo.reviewCount,
+      ratingValue: organization.rating,
+      reviewCount: organization.reviewCount,
       bestRating: 5,
       worstRating: 1,
     }
@@ -551,7 +550,7 @@ export const azerbaijanKeywords = [
   'gənclər üçün qrant',
   'gənc peşəkarlar',
   
-  // Azerbaijani - NGO/Organizations (QHT)
+  // Azerbaijani - Organizations (QHT)
   'QHT',
   'Azərbaycanda QHT',
   'Bakıda QHT',
@@ -828,7 +827,7 @@ export function generateVideoSchema(video: {
       name: 'icma360',
       logo: {
         '@type': 'ImageObject',
-        url: `${siteUrl}/logo.png`,
+        url: `${siteUrl}/icma360_logo.png`,
       },
     },
   })

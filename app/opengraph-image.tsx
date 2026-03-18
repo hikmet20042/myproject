@@ -113,7 +113,7 @@ export default async function Image() {
               }}
             >
               <div style={{ fontSize: 48, fontWeight: 900, color: '#fff' }}>500+</div>
-              <div style={{ fontSize: 18, color: '#e0e7ff' }}>Opportunities</div>
+              <div style={{ fontSize: 18, color: '#e0e7ff' }}>İmkanlar</div>
             </div>
             
             <div
@@ -128,7 +128,7 @@ export default async function Image() {
               }}
             >
               <div style={{ fontSize: 48, fontWeight: 900, color: '#fff' }}>1000+</div>
-              <div style={{ fontSize: 18, color: '#e0e7ff' }}>Members</div>
+              <div style={{ fontSize: 18, color: '#e0e7ff' }}>Üzvlər</div>
             </div>
             
             <div
@@ -143,7 +143,7 @@ export default async function Image() {
               }}
             >
               <div style={{ fontSize: 48, fontWeight: 900, color: '#fff' }}>100+</div>
-              <div style={{ fontSize: 18, color: '#e0e7ff' }}>NGO Partners</div>
+              <div style={{ fontSize: 18, color: '#e0e7ff' }}>Tərəfdaş təşkilatlar</div>
             </div>
           </div>
         </div>

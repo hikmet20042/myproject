@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import dbConnect from '@/lib/mongoose'
-import Blog from '@/lib/models/Blog'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 /**
  * RSS Feed for Blog Posts
@@ -9,14 +8,20 @@ import Blog from '@/lib/models/Blog'
  */
 export async function GET(request: NextRequest) {
   try {
-    await dbConnect()
+    const supabase = createSupabaseAdminClient()
 
     // Fetch latest 50 published blog posts
-    const blogs = await Blog.find({ status: 'published' })
-      .sort({ createdAt: -1 })
+    const { data: blogs, error } = await supabase
+      .from('blogs')
+      .select('id, title, content_html, abstract, author_name, created_at, updated_at, tags')
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false })
       .limit(50)
-      .select('title content excerpt author createdAt updatedAt slug category tags language')
-      .lean()
+
+    if (error) {
+      console.error('RSS Feed Query Error:', error)
+      return new NextResponse('Error generating RSS feed', { status: 500 })
+    }
 
     const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'
     const currentDate = new Date().toUTCString()
@@ -36,21 +41,20 @@ export async function GET(request: NextRequest) {
     <atom:link href="${siteUrl}/api/rss" rel="self" type="application/rss+xml" />
     <generator>icma360 RSS Generator</generator>
     <image>
-      <url>${siteUrl}/logo.png</url>
+      <url>${siteUrl}/icma360_logo.png</url>
       <title>icma360</title>
       <link>${siteUrl}</link>
     </image>
-    ${blogs.map((blog: any) => `
+    ${(blogs || []).map((blog: any) => `
     <item>
       <title><![CDATA[${blog.title}]]></title>
-      <link>${siteUrl}/blogs/${blog._id}</link>
-      <guid isPermaLink="true">${siteUrl}/blogs/${blog._id}</guid>
-      <description><![CDATA[${blog.excerpt || blog.content?.substring(0, 200) + '...'}]]></description>
-      <content:encoded><![CDATA[${blog.content}]]></content:encoded>
-      <pubDate>${new Date(blog.createdAt).toUTCString()}</pubDate>
-      ${blog.updatedAt ? `<dc:date>${new Date(blog.updatedAt).toISOString()}</dc:date>` : ''}
-      ${blog.author?.name ? `<dc:creator><![CDATA[${blog.author.name}]]></dc:creator>` : ''}
-      ${blog.category ? `<category><![CDATA[${blog.category}]]></category>` : ''}
+      <link>${siteUrl}/blogs/${blog.id}</link>
+      <guid isPermaLink="true">${siteUrl}/blogs/${blog.id}</guid>
+      <description><![CDATA[${blog.abstract || ''}]]></description>
+      <content:encoded><![CDATA[${blog.content_html || ''}]]></content:encoded>
+      <pubDate>${new Date(blog.created_at).toUTCString()}</pubDate>
+      ${blog.updated_at ? `<dc:date>${new Date(blog.updated_at).toISOString()}</dc:date>` : ''}
+      ${blog.author_name ? `<dc:creator><![CDATA[${blog.author_name}]]></dc:creator>` : ''}
       ${blog.tags?.map((tag: string) => `<category><![CDATA[${tag}]]></category>`).join('\n      ') || ''}
     </item>`).join('\n')}
   </channel>

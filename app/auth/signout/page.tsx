@@ -1,58 +1,60 @@
 'use client'
 
 import { useEffect } from 'react'
-import { signOut } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { signOut } from '@/lib/auth/client'
 import Link from 'next/link'
-import { useLanguage } from '@/contexts/LanguageContext'
+import { LogOut, ArrowLeft } from 'lucide-react'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
 
 export default function SignOut() {
-  const { t } = useLanguage()
   const localePath = useLocalizedPath()
+  const router = useRouter()
 
   useEffect(() => {
     const handleSignOut = async () => {
-      await signOut({
-        callbackUrl: localePath("/"),
-        redirect: true
-      })
+      await signOut()
+      router.replace(localePath('/'))
     }
 
     handleSignOut()
-  }, [localePath])
+  }, [localePath, router])
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+    <div className="relative min-h-screen overflow-hidden bg-background py-10">
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-35" />
+      <div className="absolute left-1/2 top-24 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-200/30 blur-3xl" />
+
+      <div className="relative z-10 mx-auto flex min-h-[80vh] w-full max-w-lg items-center justify-center px-4 sm:px-6">
+        <div className="w-full rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
           <div className="text-center">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-              <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+              <LogOut className="h-6 w-6 text-blue-700" />
             </div>
 
-            <h2 className="mt-6 text-2xl font-bold text-gray-900">
-              {t('auth.signingOut')}
-            </h2>
+            <h1 className="text-2xl font-black text-gray-900">
+              {'Çıxış edilir'}
+            </h1>
 
             <p className="mt-2 text-sm text-gray-600">
-              {t('auth.signedOut')}
+              {'Çıxış edildi'}
             </p>
 
             <div className="mt-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+              <div className="mx-auto h-6 w-6 animate-spin rounded-full border-b-2 border-blue-600" />
             </div>
 
             <p className="mt-4 text-xs text-gray-500">
-              {t('auth.redirectingHomepage')}
+              {'Ana səhifəyə yönləndirilir'}
             </p>
 
             <div className="mt-6">
-              <Link href={localePath("/")}
-                className="text-primary hover:text-primary-dark font-medium"
+              <Link
+                href={localePath('/')}
+                className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 transition-colors hover:text-blue-500"
               >
-                {t('auth.goToHomepageNow')}
+                <ArrowLeft className="h-4 w-4" />
+                {'İndi ana səhifəyə keç'}
               </Link>
             </div>
           </div>

@@ -21,8 +21,8 @@ export interface CardContentProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className, variant = 'default', shadow = 'xl', ...props }, ref) => {
-    const baseClasses = 'bg-white rounded-2xl border border-gray-100 overflow-hidden';
+  ({ className, variant = 'default', shadow = 'md', ...props }, ref) => {
+    const baseClasses = 'overflow-hidden rounded-2xl border border-blue-100 bg-white';
     
     const shadows = {
       sm: 'shadow-sm',
@@ -56,7 +56,7 @@ const CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>(
     const baseClasses = 'px-8 py-6';
     const gradientClasses = gradient
       ? `bg-gradient-to-r from-${gradientFrom} to-${gradientTo}`
-      : 'bg-white';
+      : 'bg-gradient-to-r from-slate-50 to-blue-50/60';
     
     return (
       <div
@@ -77,7 +77,7 @@ const CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>(
         {description && (
           <p className={cn(
             'mt-2',
-            gradient ? 'text-red-100' : 'text-gray-600'
+            gradient ? 'text-blue-100' : 'text-gray-600'
           )}>
             {description}
           </p>

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import dbConnect from '@/lib/mongoose'
-import Event from '@/lib/models/Event'
+import { getServerSession } from '@/lib/auth/server'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,15 +9,15 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
     
     const eventId = params.id;
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
     const viewerId = session?.user?.id;
     
     // Get client IP for unique view tracking
     const forwarded = request.headers.get('x-forwarded-for');
-    const ip = forwarded ? forwarded.split(',')[0] : request.headers.get('x-real-ip') || 'unknown';
+    const ip = forwarded ? forwarded.split(',')[0] : (request.headers.get('x-real-ip') || 'unknown');
     
     // Get user agent for analytics
     const userAgent = request.headers.get('user-agent') || 'unknown';
@@ -35,8 +33,12 @@ export async function POST(
     const { isFirstView = true } = body;
     
     // Find the event
-    const event = await Event.findById(eventId);
-    if (!event) {
+    const { data: event, error } = await supabase
+      .from('events')
+      .select('id, status, views, unique_views, viewed_by, engagement_score')
+      .eq('id', eventId)
+      .single();
+    if (error || !event) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
 
@@ -46,7 +48,7 @@ export async function POST(
         success: false,
         message: 'Views only tracked for approved content',
         views: event.views || 0,
-        uniqueViews: event.uniqueViews || 0,
+        uniqueViews: event.unique_views || 0,
         viewIncremented: false
       });
     }
@@ -57,15 +59,14 @@ export async function POST(
     
     if (viewerId) {
       // For logged-in users, check if they haven't viewed this event before
-      const alreadyViewed = event.viewedBy?.some(
-        (id: any) => id.toString() === viewerId.toString()
-      );
+      const viewedBy = Array.isArray(event.viewed_by) ? event.viewed_by : [];
+      const alreadyViewed = viewedBy.some((id: any) => id.toString() === viewerId.toString());
       
       if (!alreadyViewed) {
         isUniqueView = true;
-        if (!event.viewedBy) event.viewedBy = [];
-        event.viewedBy.push(viewerId);
-        event.uniqueViews = (event.uniqueViews || 0) + 1;
+        viewedBy.push(viewerId);
+        event.viewed_by = viewedBy;
+        event.unique_views = (event.unique_views || 0) + 1;
       }
       
       // Always increment total views for authenticated users
@@ -76,7 +77,7 @@ export async function POST(
       // For anonymous users, rely on client-side tracking (session storage)
       if (isFirstView) {
         isUniqueView = true;
-        event.uniqueViews = (event.uniqueViews || 0) + 1;
+        event.unique_views = (event.unique_views || 0) + 1;
         event.views = (event.views || 0) + 1;
         viewIncremented = true;
       }
@@ -84,21 +85,32 @@ export async function POST(
     
     // Calculate engagement score (views * 1 + likes * 3 - dislikes * 2)
     if (viewIncremented) {
-      const engagementScore = (event.views * 1) + 
-                             ((event.likes || 0) * 3) - 
-                             ((event.dislikes || 0) * 2);
-      event.engagementScore = Math.max(0, engagementScore);
-      
-      await event.save();
+      const engagementScore = (event.views * 1);
+      const engagementScoreValue = Math.max(0, engagementScore);
+
+      const { error: updateError } = await supabase
+        .from('events')
+        .update({
+          views: event.views,
+          unique_views: event.unique_views,
+          viewed_by: event.viewed_by || [],
+          engagement_score: engagementScoreValue,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', eventId);
+
+      if (updateError) {
+        console.error('View tracking update error:', updateError);
+      }
     }
     
     return NextResponse.json({
       success: true,
       views: event.views || 0,
-      uniqueViews: event.uniqueViews || 0,
-      likes: event.likes || 0,
-      dislikes: event.dislikes || 0,
-      engagementScore: event.engagementScore || 0,
+      uniqueViews: event.unique_views || 0,
+      likes: 0,
+      dislikes: 0,
+      engagementScore: event.engagement_score || 0,
       isUniqueView,
       viewIncremented
     });
@@ -115,21 +127,25 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
     
     const eventId = params.id;
-    const event = await Event.findById(eventId).select('views uniqueViews likes dislikes engagementScore');
+    const { data: event, error } = await supabase
+      .from('events')
+      .select('views, unique_views, engagement_score')
+      .eq('id', eventId)
+      .single();
     
-    if (!event) {
+    if (error || !event) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
     
     return NextResponse.json({
       views: event.views || 0,
-      uniqueViews: event.uniqueViews || 0,
-      likes: event.likes || 0,
-      dislikes: event.dislikes || 0,
-      engagementScore: event.engagementScore || 0
+      uniqueViews: event.unique_views || 0,
+      likes: 0,
+      dislikes: 0,
+      engagementScore: event.engagement_score || 0
     });
     
   } catch (error) {

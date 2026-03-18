@@ -77,12 +77,12 @@ const internalPages: ContentPage[] = [
     category: 'blogs',
   },
   
-  // NGOs
+  // Organizations
   {
-    url: '/ngo',
-    title: 'QHT Kataloqu',
-    keywords: ['QHT', 'qeyri-hökumət təşkilatı', 'ictimai təşkilat', 'təşkilat'],
-    category: 'ngos',
+    url: '/resources/organizations',
+    title: 'Təşkilatlar Kataloqu',
+    keywords: ['təşkilat', 'ictimai təşkilat', 'QHT', 'tərəfdaşlar'],
+    category: 'organizations',
   },
   
   // About

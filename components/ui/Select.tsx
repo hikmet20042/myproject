@@ -1,6 +1,7 @@
 import React from 'react';
+import * as RadixSelect from '@radix-ui/react-select';
 import { cn } from '@/lib/utils';
-import { ChevronDown } from 'lucide-react';
+import { Check, ChevronDown } from 'lucide-react';
 
 export interface SelectOption {
   value: string;
@@ -8,7 +9,7 @@ export interface SelectOption {
   disabled?: boolean;
 }
 
-export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+export interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'onChange' | 'value' | 'defaultValue'> {
   label?: string;
   description?: string;
   error?: string;
@@ -16,6 +17,9 @@ export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElemen
   placeholder?: string;
   variant?: 'default' | 'orange' | 'indigo' | 'purple';
   selectSize?: 'sm' | 'md' | 'lg';
+  value?: string;
+  defaultValue?: string;
+  onChange?: (event: React.ChangeEvent<HTMLSelectElement>) => void;
 }
 
 const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
@@ -30,17 +34,25 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     selectSize = 'md',
     id,
     required,
-    ...props
+    value,
+    defaultValue,
+    onChange,
+    disabled,
+    name,
+    form,
+    autoFocus
   }, ref) => {
     const selectId = id || label?.toLowerCase().replace(/\s+/g, '-');
+    const descriptionId = description ? `${selectId}-description` : undefined;
+    const errorId = error ? `${selectId}-error` : undefined;
     
-    const baseClasses = 'w-full border-2 rounded-xl transition-all duration-200 focus:outline-none appearance-none bg-white cursor-pointer';
+    const baseClasses = 'relative inline-flex w-full items-center cursor-pointer rounded-xl border bg-white text-left text-gray-900 shadow-sm transition-all duration-200 focus:outline-none';
     
     const variants = {
-      default: 'border-gray-200 focus:ring-4 focus:ring-gray-100 focus:border-gray-500',
-      orange: 'border-gray-200 focus:ring-4 focus:ring-orange-100 focus:border-orange-500',
-      indigo: 'border-gray-200 focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500',
-      purple: 'border-gray-200 focus:ring-4 focus:ring-purple-100 focus:border-purple-500'
+      default: 'border-blue-100 focus:border-blue-400 focus:ring-4 focus:ring-blue-100',
+      orange: 'border-emerald-100 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100',
+      indigo: 'border-blue-100 focus:border-blue-400 focus:ring-4 focus:ring-blue-100',
+      purple: 'border-cyan-100 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100'
     };
     
     const sizes = {
@@ -59,42 +71,71 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         )}
         
         {description && (
-          <p className="text-sm text-gray-600 mb-3">{description}</p>
+          <p id={descriptionId} className="text-sm text-gray-600 mb-3">{description}</p>
         )}
         
         <div className="relative">
-          <select
-            id={selectId}
-            ref={ref}
+          <RadixSelect.Root
+            value={value}
+            defaultValue={defaultValue}
+            onValueChange={(newValue) => {
+              if (onChange) {
+                onChange({ target: { value: newValue, name, id: selectId } } as React.ChangeEvent<HTMLSelectElement>)
+              }
+            }}
+            disabled={disabled}
             required={required}
-            className={cn(
-              baseClasses,
-              variants[variant],
-              sizes[selectSize],
-              error && 'border-red-300 focus:border-red-500 focus:ring-red-100',
-              className
-            )}
-            {...props}
+            name={name}
+            form={form}
           >
-            
-            {options.map((option) => (
-              <option
-                key={option.value}
-                value={option.value}
-                disabled={option.disabled}
+            <RadixSelect.Trigger
+              id={selectId}
+              ref={ref as unknown as React.Ref<HTMLButtonElement>}
+              autoFocus={autoFocus}
+              aria-invalid={!!error}
+              aria-describedby={cn(descriptionId, errorId)}
+              className={cn(
+                baseClasses,
+                variants[variant],
+                sizes[selectSize],
+                error && 'border-red-300 focus:border-red-500 focus:ring-red-100',
+                className
+              )}
+            >
+              <RadixSelect.Value className="block truncate" placeholder={placeholder} />
+              <RadixSelect.Icon className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-blue-400">
+                <ChevronDown className="h-5 w-5" />
+              </RadixSelect.Icon>
+            </RadixSelect.Trigger>
+
+            <RadixSelect.Portal>
+              <RadixSelect.Content
+                position="popper"
+                sideOffset={8}
+                className="z-50 max-h-60 w-[var(--radix-select-trigger-width)] overflow-hidden rounded-xl border border-blue-100 bg-white shadow-md"
               >
-                {option.label}
-              </option>
-            ))}
-          </select>
-          
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-400">
-            <ChevronDown className="w-5 h-5" />
-          </div>
+                <RadixSelect.Viewport className="p-1">
+                  {options.map((option) => (
+                    <RadixSelect.Item
+                      key={option.value}
+                      value={option.value}
+                      disabled={option.disabled}
+                      className="relative flex select-none items-center rounded-md py-2 pl-8 pr-2 text-sm text-gray-700 outline-none focus:bg-blue-50 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50"
+                    >
+                      <RadixSelect.ItemIndicator className="absolute left-2 inline-flex items-center">
+                        <Check className="h-4 w-4 text-blue-600" />
+                      </RadixSelect.ItemIndicator>
+                      <RadixSelect.ItemText>{option.label}</RadixSelect.ItemText>
+                    </RadixSelect.Item>
+                  ))}
+                </RadixSelect.Viewport>
+              </RadixSelect.Content>
+            </RadixSelect.Portal>
+          </RadixSelect.Root>
         </div>
         
         {error && (
-          <p className="text-sm text-red-600 mt-1">{error}</p>
+          <p id={errorId} className="text-sm text-red-600 mt-1">{error}</p>
         )}
       </div>
     );

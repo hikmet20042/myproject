@@ -1,21 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import dbConnect from '@/lib/mongoose'
-import NotificationModel from '@/lib/models/Notification'
-import User from '@/lib/models/User'
+import { getServerSession } from '@/lib/auth/server'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 
 // Get all notifications for admin management
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session?.user || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    await dbConnect()
+    const supabase = createSupabaseAdminClient()
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
@@ -25,63 +22,58 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
 
     // Build query - only show announcements sent by admin
-    const query: any = {
-      type: 'announcement' // Only show announcements for admin notifications tab
+    let query = supabase
+      .from('notifications')
+      .select('id, user_id (id, name, email), type, title, message, data, action_url, is_read, created_at', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(skip, skip + limit - 1)
+
+    // Only show announcements for admin notifications tab unless type explicitly provided
+    if (type) {
+      query = query.eq('type', type)
+    } else {
+      query = query.eq('type', 'announcement')
     }
-    if (type) query.type = type
-    if (userId) query.userId = userId
+
+    if (userId) query = query.eq('user_id', userId)
     if (isRead !== null && isRead !== undefined) {
-      query.isRead = isRead === 'true'
+      query = query.eq('is_read', isRead === 'true')
     }
 
-    const notifications = await NotificationModel.find(query)
-      .populate('userId', 'name email')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean()
+    const { data: notifications, count: total, error } = await query
 
-    const total = await NotificationModel.countDocuments(query)
-    const totalPages = Math.ceil(total / limit)
+    if (error) {
+      console.error('Admin notifications fetch error:', error)
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    }
+    const safeTotal = total ?? 0
+    const totalPages = Math.ceil(safeTotal / limit)
 
     // Get announcement statistics
-    const stats = await NotificationModel.aggregate([
-      {
-        $match: { type: 'announcement' } // Only count announcements
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: 1 },
-          unread: { $sum: { $cond: [{ $eq: ['$isRead', false] }, 1, 0] } },
-          read: { $sum: { $cond: [{ $eq: ['$isRead', true] }, 1, 0] } },
-          today: {
-            $sum: {
-              $cond: [
-                {
-                  $gte: [
-                    '$createdAt',
-                    new Date(new Date().setHours(0, 0, 0, 0))
-                  ]
-                },
-                1,
-                0
-              ]
-            }
-          }
-        }
-      }
+    const todayStart = new Date(new Date().setHours(0, 0, 0, 0)).toISOString()
+    const [totalResult, unreadResult, readResult, todayResult] = await Promise.all([
+      supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('type', 'announcement'),
+      supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('type', 'announcement').eq('is_read', false),
+      supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('type', 'announcement').eq('is_read', true),
+      supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('type', 'announcement').gte('created_at', todayStart)
     ])
+
+    const stats = {
+      total: totalResult.count || 0,
+      unread: unreadResult.count || 0,
+      read: readResult.count || 0,
+      today: todayResult.count || 0
+    }
 
     return NextResponse.json({
       notifications,
       pagination: {
         page,
         limit,
-        total,
+        total: safeTotal,
         totalPages
       },
-      stats: stats[0] || { total: 0, unread: 0, read: 0, today: 0 }
+      stats
     })
   } catch (error) {
     console.error('Admin notifications fetch error:', error)
@@ -92,12 +84,12 @@ export async function GET(request: NextRequest) {
 // Send announcement or notification to users
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session?.user || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    await dbConnect()
+    const supabase = createSupabaseAdminClient()
     const body = await request.json()
     const { type, title, message, targetUsers, data } = body
 
@@ -108,13 +100,11 @@ export async function POST(request: NextRequest) {
     let userIds: string[] = []
 
     if (targetUsers === 'all') {
-      // Send to all users
-      const users = await User.find({}, '_id').lean()
-      userIds = users.map(user => (user._id as any).toString())
+      const { data: users } = await supabase.from('users').select('id')
+      userIds = (users || []).map(user => user.id)
     } else if (targetUsers === 'verified') {
-      // Send to verified users only
-      const users = await User.find({ emailVerified: { $ne: null } }, '_id').lean()
-      userIds = users.map(user => (user._id as any).toString())
+      const { data } = await supabase.auth.admin.listUsers()
+      userIds = (data?.users || []).filter(user => !!user.email_confirmed_at).map(user => user.id)
     } else if (Array.isArray(targetUsers)) {
       // Send to specific users
       userIds = targetUsers
@@ -124,19 +114,24 @@ export async function POST(request: NextRequest) {
 
     // Create notifications for all target users
     const notifications = userIds.map(userId => ({
-      userId,
+      user_id: userId,
       type,
       title,
       message,
       data: data || {},
-      isRead: false
+      is_read: false
     }))
 
-    const result = await NotificationModel.insertMany(notifications)
+    const { error: insertError } = await supabase.from('notifications').insert(notifications)
+
+    if (insertError) {
+      console.error('Admin notification send error:', insertError)
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    }
 
     return NextResponse.json({
-      message: `Notification sent to ${result.length} users`,
-      count: result.length
+      message: `Notification sent to ${notifications.length} users`,
+      count: notifications.length
     })
   } catch (error) {
     console.error('Admin notification send error:', error)
@@ -147,12 +142,12 @@ export async function POST(request: NextRequest) {
 // Delete notifications (admin only)
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session?.user || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    await dbConnect()
+    const supabase = createSupabaseAdminClient()
     const { searchParams } = new URL(request.url)
     const notificationId = searchParams.get('id')
     const userId = searchParams.get('userId')
@@ -161,18 +156,24 @@ export async function DELETE(request: NextRequest) {
 
     if (deleteAll) {
       // Delete all notifications (with optional filters)
-      const query: any = {}
-      if (userId) query.userId = userId
-      if (type) query.type = type
-      
-      const result = await NotificationModel.deleteMany(query)
+      let deleteQuery = supabase.from('notifications').delete()
+      if (userId) deleteQuery = deleteQuery.eq('user_id', userId)
+      if (type) deleteQuery = deleteQuery.eq('type', type)
+      const { data: deletedRows } = await deleteQuery
+        .select('id')
+        .throwOnError()
       return NextResponse.json({
-        message: `Deleted ${result.deletedCount} notifications`
+        message: `Deleted ${deletedRows?.length || 0} notifications`
       })
     } else if (notificationId) {
       // Delete specific notification
-      const result = await NotificationModel.findByIdAndDelete(notificationId)
-      if (!result) {
+      const { data: deleted, error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId)
+        .select('id')
+        .single()
+      if (error || !deleted) {
         return NextResponse.json({ error: 'Notification not found' }, { status: 404 })
       }
       return NextResponse.json({ message: 'Notification deleted successfully' })
@@ -188,24 +189,30 @@ export async function DELETE(request: NextRequest) {
 // Update notification status (admin only)
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     if (!session?.user || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    await dbConnect()
+    const supabase = createSupabaseAdminClient()
     const body = await request.json()
     const { notificationId, isRead, markAllAsRead, userId, type, title, message, editAnnouncement } = body
 
     if (markAllAsRead) {
       // Mark all notifications as read (with optional filters)
-      const query: any = { isRead: false }
-      if (userId) query.userId = userId
-      if (type) query.type = type
-      
-      const result = await NotificationModel.updateMany(query, { isRead: true })
+      let updateQuery = supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('is_read', false)
+
+      if (userId) updateQuery = updateQuery.eq('user_id', userId)
+      if (type) updateQuery = updateQuery.eq('type', type)
+
+      const { data: updatedRows } = await updateQuery
+        .select('id')
+        .throwOnError()
       return NextResponse.json({
-        message: `Marked ${result.modifiedCount} notifications as read`
+        message: `Marked ${updatedRows?.length || 0} notifications as read`
       })
     } else if (editAnnouncement && notificationId) {
       // Edit announcement content
@@ -213,39 +220,41 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ error: 'Title and message are required' }, { status: 400 })
       }
 
-      const result = await NotificationModel.findByIdAndUpdate(
-        notificationId,
-        { 
+      const { data: updated, error } = await supabase
+        .from('notifications')
+        .update({
           title: title.trim(),
           message: message.trim(),
-          updatedAt: new Date()
-        },
-        { new: true }
-      )
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', notificationId)
+        .select('*')
+        .single()
       
-      if (!result) {
+      if (error || !updated) {
         return NextResponse.json({ error: 'Announcement not found' }, { status: 404 })
       }
       
       return NextResponse.json({
         message: 'Announcement updated successfully',
-        notification: result
+        notification: updated
       })
     } else if (notificationId && typeof isRead === 'boolean') {
       // Update specific notification
-      const result = await NotificationModel.findByIdAndUpdate(
-        notificationId,
-        { isRead },
-        { new: true }
-      )
+      const { data: updated, error } = await supabase
+        .from('notifications')
+        .update({ is_read: isRead })
+        .eq('id', notificationId)
+        .select('*')
+        .single()
       
-      if (!result) {
+      if (error || !updated) {
         return NextResponse.json({ error: 'Notification not found' }, { status: 404 })
       }
       
       return NextResponse.json({
         message: `Notification marked as ${isRead ? 'read' : 'unread'}`,
-        notification: result
+        notification: updated
       })
     } else {
       return NextResponse.json({ error: 'Invalid request parameters' }, { status: 400 })

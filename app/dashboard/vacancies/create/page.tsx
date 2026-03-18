@@ -1,22 +1,19 @@
 'use client'
 
-import { useState } from 'react'
-import { useSession } from 'next-auth/react'
+import { useEffect, useState } from 'react'
+import { useSession } from '@/lib/auth/client'
 import { useRouter } from 'next/navigation'
-import { useLanguage } from '@/contexts/LanguageContext'
 import { Calendar, MapPin, Users, Plus, X, Briefcase, DollarSign, Clock, FileText, Send } from 'lucide-react'
 import { Input,Select,Button,TextArea } from '@/components/ui'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { LoadingState } from '@/components/shared'
 
 
-export default function CreateVacancy() {
-  const { data: session } = useSession()
+export default function CreateVacancy() { const { data: session, status } = useSession()
   const router = useRouter()
-  const { t } = useLanguage()
   const [loading, setLoading] = useState(false)
   const localePath = useLocalizedPath()
-  const [formData, setFormData] = useState({
-    title: '',
+  const [formData, setFormData] = useState({ title: '',
     type: 'job' as 'job' | 'volunteer' | 'internship',
     description: '',
     category: '',
@@ -38,197 +35,138 @@ export default function CreateVacancy() {
     compensationAmount: '',
     durationType: '',
     contractLength: '',
-    contractUnit: 'months'
-  })
+    contractUnit: 'months' })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  useEffect(() => { if (status === 'loading') return
+    if (!session) { router.push(localePath('/auth/signin')) } }, [status, session, router, localePath])
+
+  if (status === 'loading') { return <LoadingState text={'Yüklənir'} /> }
+
+  const handleSubmit = async (e: React.FormEvent) => { e.preventDefault()
     setLoading(true)
 
     // Validation
-    if (!formData.title || !formData.description) {
-      alert(t('vacancies.validation.fillRequired'))
+    if (!formData.title || !formData.description) { alert('Lazım olan bütün sahələri doldur')
       setLoading(false)
-      return
-    }
+      return }
 
-    if (!formData.category) {
-      alert(t('vacancies.validation.selectCategory'))
+    if (!formData.category) { alert('Kateqoriya seç')
       setLoading(false)
-      return
-    }
+      return }
 
-    if (!formData.experienceLevel) {
-      alert(t('vacancies.validation.selectExperience'))
+    if (!formData.experienceLevel) { alert('Təcrübə səviyyəsini seç')
       setLoading(false)
-      return
-    }
+      return }
 
     // Optional validation - these fields have defaults in the API
-    // if (!formData.compensationType) {
-    //   alert('Please select a compensation type')
+    // if (!formData.compensationType) { //   alert('Please select a compensation type')
     //   setLoading(false)
     //   return
     // }
 
-    // if (!formData.durationType) {
-    //   alert('Please select a duration type')
+    // if (!formData.durationType) { //   alert('Please select a duration type')
     //   setLoading(false)
     //   return
     // }
 
-    if (!formData.applicationDeadline) {
-      alert(t('vacancies.validation.selectDeadline'))
+    if (!formData.applicationDeadline) { alert('Müraciət üçün son tarixi seç')
       setLoading(false)
-      return
-    }
+      return }
 
-    if (!formData.applicationInstructions.trim()) {
-      alert(t('vacancies.validation.enterInstructions'))
+    if (!formData.applicationInstructions.trim()) { alert('Müraciət təlimatlarını daxil et')
       setLoading(false)
-      return
-    }
+      return }
 
     // Validate application method specific fields
-    if (formData.applicationMethod === 'link' && !formData.applicationLink) {
-      alert(t('vacancies.validation.provideApplicationLink'))
+    if (formData.applicationMethod === 'link' && !formData.applicationLink) { alert('Müraciət linki təmin et')
       setLoading(false)
-      return
-    }
+      return }
 
-    if (formData.applicationMethod === 'email' && !formData.applicationEmail) {
-      alert(t('vacancies.validation.provideApplicationEmail'))
+    if (formData.applicationMethod === 'email' && !formData.applicationEmail) { alert('Müraciət e-poçtunu təmin et')
       setLoading(false)
-      return
-    }
+      return }
 
-    try {
-      const vacancyData = {
-        title: formData.title,
+    try { const vacancyData = { title: formData.title,
         description: formData.description,
         type: formData.type,
         category: formData.category,
         workType: formData.workType,
-        location: {
-          city: formData.city || undefined,
+        location: { city: formData.city || undefined,
           country: formData.country || undefined,
-          isRemote: formData.workType === 'remote'
-        },
-        duration: {
-          type: formData.durationType || 'permanent',
-          ...(formData.contractLength && {
-            contractLength: {
-              value: parseInt(formData.contractLength),
-              unit: formData.contractUnit
-            }
-          })
-        },
-        compensation: {
-          type: formData.compensationType || 'unpaid',
-          ...(formData.compensationAmount && {
-            amount: parseFloat(formData.compensationAmount),
+          isRemote: formData.workType === 'remote' },
+        duration: { type: formData.durationType || 'permanent',
+          ...(formData.contractLength && { contractLength: { value: parseInt(formData.contractLength),
+              unit: formData.contractUnit } }) },
+        compensation: { type: formData.compensationType || 'unpaid',
+          ...(formData.compensationAmount && { amount: parseFloat(formData.compensationAmount),
             currency: 'USD',
-            period: 'monthly'
-          }),
-          benefits: formData.benefits.filter(benefit => benefit.trim() !== '')
-        },
-        applicationProcess: {
-          ...(formData.applicationMethod === 'link' && formData.applicationLink && {
-            applicationLink: formData.applicationLink
-          }),
-          ...(formData.applicationMethod === 'email' && formData.applicationEmail && {
-            email: formData.applicationEmail
-          }),
-          instructions: formData.applicationInstructions || 'Please apply through the provided method.',
-          requiredDocuments: ['CV/Resume']
-        },
+            period: 'monthly' }),
+          benefits: formData.benefits.filter(benefit => benefit.trim() !== '') },
+        applicationProcess: { ...(formData.applicationMethod === 'link' && formData.applicationLink && { applicationLink: formData.applicationLink }),
+          ...(formData.applicationMethod === 'email' && formData.applicationEmail && { email: formData.applicationEmail }),
+          instructions: formData.applicationInstructions || 'Zəhmət olmasa göstərilən müraciət üsulundan istifadə edin.',
+          requiredDocuments: ['CV/Resume'] },
         applicationDeadline: new Date(formData.applicationDeadline),
         experienceLevel: formData.experienceLevel || 'any',
         requirements: formData.requirements.filter(req => req.trim() !== ''),
         responsibilities: formData.responsibilities.filter(resp => resp.trim() !== ''),
         qualifications: formData.qualifications.filter(qual => qual.trim() !== ''),
         skills: formData.tags.filter(tag => tag.trim() !== ''),
-        tags: formData.tags.filter(tag => tag.trim() !== '')
-      }
+        tags: formData.tags.filter(tag => tag.trim() !== '') }
 
-      const response = await fetch('/api/vacancies', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(vacancyData)
-      })
+      const response = await fetch('/api/vacancies', { method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(vacancyData) })
 
-      if (response.ok) {
-        router.push(localePath("/dashboard"))
-      } else {
-        const error = await response.json()
-        alert(error.error || t('vacancies.error.failedCreate'))
-      }
-    } catch (error) {
-      console.error('Error creating vacancy:', error)
-      alert(t('vacancies.error.failedCreate'))
-    } finally {
-      setLoading(false)
-    }
-  }
+      if (response.ok) { router.push(localePath("/dashboard")) } else { const error = await response.json()
+        alert(error.error || 'Vakansiya yaradılmadı') } } catch (error) { console.error('Error creating vacancy:', error)
+      alert('Vakansiya yaradılmadı') } finally { setLoading(false) } }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => { const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value })) }
 
-  const handleArrayChange = (index: number, value: string, field: 'requirements' | 'responsibilities' | 'qualifications' | 'benefits' | 'tags') => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: prev[field].map((item, i) => i === index ? value : item)
-    }))
-  }
+  const handleArrayChange = (index: number, value: string, field: 'requirements' | 'responsibilities' | 'qualifications' | 'benefits' | 'tags') => { setFormData(prev => ({ ...prev,
+      [field]: prev[field].map((item, i) => i === index ? value : item) })) }
 
-  const addArrayItem = (field: 'requirements' | 'responsibilities' | 'qualifications' | 'benefits' | 'tags') => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: [...prev[field], '']
-    }))
-  }
+  const addArrayItem = (field: 'requirements' | 'responsibilities' | 'qualifications' | 'benefits' | 'tags') => { setFormData(prev => ({ ...prev,
+      [field]: [...prev[field], ''] })) }
 
-  const removeArrayItem = (index: number, field: 'requirements' | 'responsibilities' | 'qualifications' | 'benefits' | 'tags') => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: prev[field].filter((_, i) => i !== index)
-    }))
-  }
+  const removeArrayItem = (index: number, field: 'requirements' | 'responsibilities' | 'qualifications' | 'benefits' | 'tags') => { setFormData(prev => ({ ...prev,
+      [field]: prev[field].filter((_, i) => i !== index) })) }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="relative min-h-screen overflow-hidden bg-background py-8">
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-35" />
+      <div className="absolute left-1/2 top-16 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-200/30 blur-3xl" />
+
+      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header Section */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-6">
+        <div className="mb-8 rounded-3xl border border-gray-200 bg-white/90 p-6 text-center shadow-sm backdrop-blur-sm sm:p-8">
+          <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-blue-100">
             <Briefcase className="w-8 h-8 text-blue-600" />
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">{t('vacancies.createTitle')}</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">{t('vacancies.createSubtitle')}</p>
+          <h1 className="mb-3 text-3xl font-black text-gray-900 sm:text-4xl">{'Yeni vakansiya yarat'}</h1>
+          <p className="mx-auto max-w-2xl text-sm text-gray-600 sm:text-base">{'Fərq yaradan fürsətləri paylaşın. İş elanları, könüllülük və təcrübə proqramlarını yerləşdirin və istedadlarla əlaqə yaradın.'}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-10">
           {/* Basic Information Card */}
-          <div className="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-primary to-blue-700 px-8 py-6">
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="bg-gradient-to-r from-blue-600 to-emerald-500 px-8 py-6">
               <h2 className="text-2xl font-bold text-white flex items-center">
                 <Users className="w-6 h-6 mr-3" />
-                {t('vacancies.basicInformation')}
+                {'Əsas Məlumatlar'}
               </h2>
-              <p className="text-blue-100 mt-2">{t('vacancies.basicInformationSubtitle')}</p>
+              <p className="text-blue-100 mt-2">{'Təklif etdiyiniz mövzu haqqında bizə məlumat verin'}</p>
             </div>
             
             <div className="p-8 space-y-8">
               {/* Position Title */}
               <div className="space-y-2">
                 <label htmlFor="title" className="block text-lg font-semibold text-gray-800">
-                  {t('vacancies.positionTitleLabel')}
+                  {'Vəzifə Başlığı *'}
                 </label>
-                <p className="text-sm text-gray-600 mb-3">{t('vacancies.positionTitleHint')}</p>
+                <p className="text-sm text-gray-600 mb-3">{'Hansı rolu doldurmaq istəyirsiniz?'}</p>
                 <input
                   type="text"
                   id="title"
@@ -237,7 +175,7 @@ export default function CreateVacancy() {
                   value={formData.title}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 text-lg border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-red-100 focus:border-primary transition-all duration-200"
-                  placeholder={t('placeholders.programManagerExample')}
+                  placeholder={'məs., Proqram Meneceri, Könüllü Koordinatoru, Marketinq İnternəsi'}
                 />
               </div>
 
@@ -245,9 +183,9 @@ export default function CreateVacancy() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-2">
                   <label htmlFor="type" className="block text-lg font-semibold text-gray-800">
-                    {t('vacancies.opportunityTypeLabel')}
+                    {'Fürsət Növü *'}
                   </label>
-                  <p className="text-sm text-gray-600 mb-3">{t('vacancies.opportunityTypeHint')}</p>
+                  <p className="text-sm text-gray-600 mb-3">{'Bu hansı növ fürsətdir?'}</p>
                   <select
                     id="type"
                     name="type"
@@ -256,17 +194,17 @@ export default function CreateVacancy() {
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 text-lg border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-red-100 focus:border-primary transition-all duration-200"
                   >
-                    <option value="job">{t('vacancies.type.job')}</option>
-                <option value="volunteer">{t('vacancies.type.volunteer')}</option>
-                <option value="internship">{t('vacancies.type.internship')}</option>
+                    <option value="job">{'Ödənişli İş Vəzifəsi'}</option>
+                <option value="volunteer">{'Könüllü Fürsəti'}</option>
+                <option value="internship">{'Təcrübə Proqramı'}</option>
                   </select>
                 </div>
 
                 <div className="space-y-2">
                   <label htmlFor="experienceLevel" className="block text-lg font-semibold text-gray-800">
-                    {t('vacancies.experienceLevelLabel')}
+                    {'Təcrübə Səviyyəsi *'}
                   </label>
-                  <p className="text-sm text-gray-600 mb-3">{t('vacancies.experienceLevelHint')}</p>
+                  <p className="text-sm text-gray-600 mb-3">{'Hansı səviyyədə təcrübə tələb olunur?'}</p>
                   <select
                     id="experienceLevel"
                     name="experienceLevel"
@@ -275,11 +213,11 @@ export default function CreateVacancy() {
                     onChange={handleInputChange}
                     className="w-full px-4 py-4 text-lg border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
                   >
-                    <option value="">{t('vacancies.chooseExperience')}</option>
-                    <option value="entry">{t('vacancies.experience.entry')}</option>
-                <option value="mid">{t('vacancies.experience.mid')}</option>
-                <option value="senior">{t('vacancies.experience.senior')}</option>
-                <option value="any">{t('vacancies.experience.any')}</option>
+                    <option value="">{'Təcrübə səviyyəsini seçin...'}</option>
+                    <option value="entry">{'Başlanğıc Səviyyə (0-2 il)'}</option>
+                <option value="mid">{'Orta Səviyyə (2-5 il)'}</option>
+                <option value="senior">{'Yüksək Səviyyə (5+ il)'}</option>
+                <option value="any">{'Hər hansı Səviyyə Qəbul olunur'}</option>
                   </select>
                 </div>
               </div>
@@ -287,9 +225,9 @@ export default function CreateVacancy() {
               {/* Description */}
               <div className="space-y-2">
                 <label htmlFor="description" className="block text-lg font-semibold text-gray-800">
-                  {t('vacancies.descriptionLabel')}
+                  {'Vəzifə Təsviri *'}
                 </label>
-                <p className="text-sm text-gray-600 mb-3">{t('vacancies.descriptionHint')}</p>
+                <p className="text-sm text-gray-600 mb-3">{'Rolu, təşkilatınızı və bu fürsətin nə üçün vacib olduğunu təsvir edin'}</p>
                 <textarea
                   id="description"
                   name="description"
@@ -298,16 +236,16 @@ export default function CreateVacancy() {
                   value={formData.description}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 text-lg border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-red-100 focus:border-primary transition-all duration-200 resize-none"
-                  placeholder={t('placeholders.describeRoleAndMission')}
+                  placeholder={'Namizədlərə rolu, təşkilatınızın missiyasını və yaradacaqları təsiri izah edin...'}
                 />
               </div>
 
               {/* Category */}
               <div className="space-y-2">
                   <label htmlFor="category" className="block text-lg font-semibold text-gray-800">
-                  {t('vacancies.categoryLabel')}
+                  {'Kateqoriya *'}
                 </label>
-                <p className="text-sm text-gray-600 mb-3">{t('vacancies.categoryHint')}</p>
+                <p className="text-sm text-gray-600 mb-3">{'Bu vəzifəni ən yaxşı hansı sahə təsvir edir?'}</p>
                 <select
                   id="category"
                   name="category"
@@ -316,49 +254,49 @@ export default function CreateVacancy() {
                   onChange={handleInputChange}
                   className="w-full px-4 py-4 text-lg border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
                 >
-                  <option value="">{t('vacancies.selectCategoryPlaceholder')}</option>
-                  <option value="Program Management">Program Management</option>
-                  <option value="Project Coordination">Project Coordination</option>
-                <option value="Research & Analysis">Research & Analysis</option>
-                <option value="Communications & Media">Communications & Media</option>
-                <option value="Fundraising & Development">Fundraising & Development</option>
-                <option value="Legal & Advocacy">Legal & Advocacy</option>
-                <option value="Finance & Administration">Finance & Administration</option>
-                  <option value="Human Resources">Human Resources</option>
-                  <option value="IT & Technology">IT & Technology</option>
-                  <option value="Field Operations">Field Operations</option>
-                  <option value="Community Outreach">Community Outreach</option>
-                  <option value="Education & Training">Education & Training</option>
-                  <option value="Healthcare & Medical">Healthcare & Medical</option>
-                  <option value="Social Work">Social Work</option>
-                  <option value="Environmental">{t('titles.environmental')}</option>
-                  <option value="Emergency Response">Emergency Response</option>
-                  <option value="Monitoring & Evaluation">Monitoring & Evaluation</option>
-                  <option value="Grant Writing">Grant Writing</option>
-                  <option value="Marketing & Design">Marketing & Design</option>
-                  <option value="Other">{t('titles.other')}</option>
+                  <option value="">{'Kateqoriya seçin...'}</option>
+                  <option value="Program Management">Proqram idarəçiliyi</option>
+                  <option value="Project Coordination">Layihə koordinasiyası</option>
+                <option value="Research & Analysis">Araşdırma və analiz</option>
+                <option value="Communications & Media">Kommunikasiya və media</option>
+                <option value="Fundraising & Development">Fundreyzinq və inkişaf</option>
+                <option value="Legal & Advocacy">Hüquq və vəkillik</option>
+                <option value="Finance & Administration">Maliyyə və inzibatçılıq</option>
+                  <option value="Human Resources">İnsan resursları</option>
+                  <option value="IT & Technology">İT və texnologiya</option>
+                  <option value="Field Operations">Sahə əməliyyatları</option>
+                  <option value="Community Outreach">İcma ilə iş</option>
+                  <option value="Education & Training">Təhsil və təlim</option>
+                  <option value="Healthcare & Medical">Səhiyyə və tibb</option>
+                  <option value="Social Work">Sosial iş</option>
+                  <option value="Environmental">{'Ətraf Mühit'}</option>
+                  <option value="Emergency Response">Fövqəladə cavab</option>
+                  <option value="Monitoring & Evaluation">Monitorinq və qiymətləndirmə</option>
+                  <option value="Grant Writing">Qrant yazımı</option>
+                  <option value="Marketing & Design">Marketinq və dizayn</option>
+                  <option value="Other">{'Digər'}</option>
                 </select>
               </div>
             </div>
           </div>
 
           {/* Location & Work Details Card */}
-          <div className="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-primary to-blue-700 px-8 py-6">
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="bg-gradient-to-r from-blue-600 to-emerald-500 px-8 py-6">
               <h2 className="text-2xl font-bold text-white flex items-center">
                 <MapPin className="w-6 h-6 mr-3" />
-                Location & Work Details
+                Yer və iş detalları
               </h2>
-              <p className="text-blue-100 mt-2">Where will this opportunity take place?</p>
+              <p className="text-blue-100 mt-2">Bu fürsət harada baş tutacaq?</p>
             </div>
             
             <div className="p-8 space-y-8">
               {/* Work Type */}
               <div className="space-y-2">
                 <label htmlFor="workType" className="block text-lg font-semibold text-gray-800">
-                  Work Arrangement *
+                  İş formatı *
                 </label>
-                <p className="text-sm text-gray-600 mb-3">How will the work be conducted?</p>
+                <p className="text-sm text-gray-600 mb-3">İş necə təşkil olunacaq?</p>
                 <Select
                    id="workType"
                    name="workType"
@@ -366,11 +304,11 @@ export default function CreateVacancy() {
                    value={formData.workType}
                    onChange={handleInputChange}
                    className="w-full px-4 py-3 text-lg"
-                   placeholder={t('placeholders.chooseWorkArrangement')}
+                   placeholder={'İş təşkilini seçin...'}
                    options={[
-                     { value: 'onsite', label: 'On-site (Office/Location required)' },
-                     { value: 'remote', label: 'Remote (Work from anywhere)' },
-                     { value: 'hybrid', label: 'Hybrid (Mix of remote and on-site)' }
+                     { value: 'onsite', label: 'Ofisdə (məkan tələb olunur)' },
+                     { value: 'remote', label: 'Uzaqdan (istənilən yerdən)' },
+                     { value: 'hybrid', label: 'Hibrid (uzaqdan + ofis)' }
                    ]}
                  />
               </div>
@@ -380,9 +318,9 @@ export default function CreateVacancy() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <div className="space-y-2">
                     <label htmlFor="city" className="block text-lg font-semibold text-gray-800">
-                      {t('vacancies.cityLabel')} *
+                      {'Yer'} *
                     </label>
-                    <p className="text-sm text-gray-600 mb-3">{t('vacancies.cityHint')}</p>
+                    <p className="text-sm text-gray-600 mb-3">{'Bu fürsətin yerləşdiyi şəhər və ya rayonu seçin'}</p>
                     <Select
                       id="city"
                       name="city"
@@ -390,102 +328,102 @@ export default function CreateVacancy() {
                       value={formData.city}
                       onChange={handleInputChange}
                       className="w-full px-4 py-3 text-lg"
-                      placeholder={t('vacancies.selectCity')}
+                      placeholder={'Yer seçin...'}
                       options={[
                         // Cities
-                        { value: 'Baku', label: t('regions.baku') },
-                        { value: 'Ganja', label: t('regions.ganja') },
-                        { value: 'Nakhchivan', label: t('regions.nakhchivan') },
-                        { value: 'Sumgayit', label: t('regions.sumgayit') },
-                        { value: 'Lankaran', label: t('regions.lankaran') },
-                        { value: 'Mingachevir', label: t('regions.mingachevir') },
-                        { value: 'Naftalan', label: t('regions.naftalan') },
-                        { value: 'Khankendi', label: t('regions.khankendi') },
-                        { value: 'Shaki', label: t('regions.shaki') },
-                        { value: 'Shirvan', label: t('regions.shirvan') },
-                        { value: 'Yevlakh', label: t('regions.yevlakh') },
+                        { value: 'Baku', label: 'Bakı' },
+                        { value: 'Ganja', label: 'Gəncə' },
+                        { value: 'Nakhchivan', label: 'Naxçıvan' },
+                        { value: 'Sumgayit', label: 'Sumqayıt' },
+                        { value: 'Lankaran', label: 'Lənkəran' },
+                        { value: 'Mingachevir', label: 'Mingəçevir' },
+                        { value: 'Naftalan', label: 'Naftalan' },
+                        { value: 'Khankendi', label: 'Xankəndi' },
+                        { value: 'Shaki', label: 'Şəki' },
+                        { value: 'Shirvan', label: 'Şirvan' },
+                        { value: 'Yevlakh', label: 'Yevlax' },
                         // Districts
-                        { value: 'Absheron', label: t('regions.absheron') },
-                        { value: 'Aghjabadi', label: t('regions.aghjabadi') },
-                        { value: 'Agdam', label: t('regions.agdam') },
-                        { value: 'Agdash', label: t('regions.agdash') },
-                        { value: 'Agdere', label: t('regions.agdere') },
-                        { value: 'Agstafa', label: t('regions.agstafa') },
-                        { value: 'Agsu', label: t('regions.agsu') },
-                        { value: 'Astara', label: t('regions.astara') },
-                        { value: 'Babek', label: t('regions.babek') },
-                        { value: 'Balakan', label: t('regions.balakan') },
-                        { value: 'Beylagan', label: t('regions.beylagan') },
-                        { value: 'Barda', label: t('regions.barda') },
-                        { value: 'Bilasuvar', label: t('regions.bilasuvar') },
-                        { value: 'Jabrayil', label: t('regions.jabrayil') },
-                        { value: 'Jalilabad', label: t('regions.jalilabad') },
-                        { value: 'Julfa', label: t('regions.julfa') },
-                        { value: 'Dashkasan', label: t('regions.dashkasan') },
-                        { value: 'Fuzuli', label: t('regions.fuzuli') },
-                        { value: 'Gadabay', label: t('regions.gadabay') },
-                        { value: 'Goranboy', label: t('regions.goranboy') },
-                        { value: 'Goychay', label: t('regions.goychay') },
-                        { value: 'Goygol', label: t('regions.goygol') },
-                        { value: 'Hajigabul', label: t('regions.hajigabul') },
-                        { value: 'Khachmaz', label: t('regions.khachmaz') },
-                        { value: 'Khizi', label: t('regions.khizi') },
-                        { value: 'Khojaly', label: t('regions.khojaly') },
-                        { value: 'Khojavend', label: t('regions.khojavend') },
-                        { value: 'Imishli', label: t('regions.imishli') },
-                        { value: 'Ismayilli', label: t('regions.ismayilli') },
-                        { value: 'Kalbajar', label: t('regions.kalbajar') },
-                        { value: 'Kangarli', label: t('regions.kangarli') },
-                        { value: 'Kurdamir', label: t('regions.kurdamir') },
-                        { value: 'Gakh', label: t('regions.gakh') },
-                        { value: 'Gazakh', label: t('regions.gazakh') },
-                        { value: 'Gabala', label: t('regions.gabala') },
-                        { value: 'Gobustan', label: t('regions.gobustan') },
-                        { value: 'Guba', label: t('regions.guba') },
-                        { value: 'Gubadli', label: t('regions.gubadli') },
-                        { value: 'Gusar', label: t('regions.gusar') },
-                        { value: 'Lachin', label: t('regions.lachin') },
-                        { value: 'Lerik', label: t('regions.lerik') },
-                        { value: 'Masalli', label: t('regions.masalli') },
-                        { value: 'Neftchala', label: t('regions.neftchala') },
-                        { value: 'Oghuz', label: t('regions.oghuz') },
-                        { value: 'Ordubad', label: t('regions.ordubad') },
-                        { value: 'Saatli', label: t('regions.saatli') },
-                        { value: 'Sabirabad', label: t('regions.sabirabad') },
-                        { value: 'Salyan', label: t('regions.salyan') },
-                        { value: 'Samukh', label: t('regions.samukh') },
-                        { value: 'Sadarak', label: t('regions.sadarak') },
-                        { value: 'Siyazan', label: t('regions.siyazan') },
-                        { value: 'Shabran', label: t('regions.shabran') },
-                        { value: 'Shahbuz', label: t('regions.shahbuz') },
-                        { value: 'Shamakhi', label: t('regions.shamakhi') },
-                        { value: 'Shamkir', label: t('regions.shamkir') },
-                        { value: 'Sharur', label: t('regions.sharur') },
-                        { value: 'Shusha', label: t('regions.shusha') },
-                        { value: 'Tartar', label: t('regions.tartar') },
-                        { value: 'Tovuz', label: t('regions.tovuz') },
-                        { value: 'Ujar', label: t('regions.ujar') },
-                        { value: 'Yardimli', label: t('regions.yardimli') },
-                        { value: 'Zaqatala', label: t('regions.zaqatala') },
-                        { value: 'Zangilan', label: t('regions.zangilan') },
-                        { value: 'Zardab', label: t('regions.zardab') },
+                        { value: 'Absheron', label: 'Abşeron rayonu' },
+                        { value: 'Aghjabadi', label: 'Ağcabədi rayonu' },
+                        { value: 'Agdam', label: 'Ağdam rayonu' },
+                        { value: 'Agdash', label: 'Ağdaş rayonu' },
+                        { value: 'Agdere', label: 'Ağdərə rayonu' },
+                        { value: 'Agstafa', label: 'Ağstafa rayonu' },
+                        { value: 'Agsu', label: 'Ağsu rayonu' },
+                        { value: 'Astara', label: 'Astara rayonu' },
+                        { value: 'Babek', label: 'Babək rayonu' },
+                        { value: 'Balakan', label: 'Balakən rayonu' },
+                        { value: 'Beylagan', label: 'Beyləqan rayonu' },
+                        { value: 'Barda', label: 'Bərdə rayonu' },
+                        { value: 'Bilasuvar', label: 'Biləsuvar rayonu' },
+                        { value: 'Jabrayil', label: 'Cəbrayıl rayonu' },
+                        { value: 'Jalilabad', label: 'Cəlilabad rayonu' },
+                        { value: 'Julfa', label: 'Culfa rayonu' },
+                        { value: 'Dashkasan', label: 'Daşkəsən rayonu' },
+                        { value: 'Fuzuli', label: 'Füzuli rayonu' },
+                        { value: 'Gadabay', label: 'Gədəbəy rayonu' },
+                        { value: 'Goranboy', label: 'Goranboy rayonu' },
+                        { value: 'Goychay', label: 'Göyçay rayonu' },
+                        { value: 'Goygol', label: 'Göygöl rayonu' },
+                        { value: 'Hajigabul', label: 'Hacıqabul rayonu' },
+                        { value: 'Khachmaz', label: 'Xaçmaz rayonu' },
+                        { value: 'Khizi', label: 'Xızı rayonu' },
+                        { value: 'Khojaly', label: 'Xocalı rayonu' },
+                        { value: 'Khojavend', label: 'Xocavənd rayonu' },
+                        { value: 'Imishli', label: 'İmişli rayonu' },
+                        { value: 'Ismayilli', label: 'İsmayıllı rayonu' },
+                        { value: 'Kalbajar', label: 'Kəlbəcər rayonu' },
+                        { value: 'Kangarli', label: 'Kəngərli rayonu' },
+                        { value: 'Kurdamir', label: 'Kürdəmir rayonu' },
+                        { value: 'Gakh', label: 'Qax rayonu' },
+                        { value: 'Gazakh', label: 'Qazax rayonu' },
+                        { value: 'Gabala', label: 'Qəbələ rayonu' },
+                        { value: 'Gobustan', label: 'Qobustan rayonu' },
+                        { value: 'Guba', label: 'Quba rayonu' },
+                        { value: 'Gubadli', label: 'Qubadlı rayonu' },
+                        { value: 'Gusar', label: 'Qusar rayonu' },
+                        { value: 'Lachin', label: 'Laçın rayonu' },
+                        { value: 'Lerik', label: 'Lerik rayonu' },
+                        { value: 'Masalli', label: 'Masallı rayonu' },
+                        { value: 'Neftchala', label: 'Neftçala rayonu' },
+                        { value: 'Oghuz', label: 'Oğuz rayonu' },
+                        { value: 'Ordubad', label: 'Ordubad rayonu' },
+                        { value: 'Saatli', label: 'Saatlı rayonu' },
+                        { value: 'Sabirabad', label: 'Sabirabad rayonu' },
+                        { value: 'Salyan', label: 'Salyan rayonu' },
+                        { value: 'Samukh', label: 'Samux rayonu' },
+                        { value: 'Sadarak', label: 'Sədərək rayonu' },
+                        { value: 'Siyazan', label: 'Siyəzən rayonu' },
+                        { value: 'Shabran', label: 'Şabran rayonu' },
+                        { value: 'Shahbuz', label: 'Şahbuz rayonu' },
+                        { value: 'Shamakhi', label: 'Şamaxı rayonu' },
+                        { value: 'Shamkir', label: 'Şəmkir rayonu' },
+                        { value: 'Sharur', label: 'Şərur rayonu' },
+                        { value: 'Shusha', label: 'Şuşa rayonu' },
+                        { value: 'Tartar', label: 'Tərtər rayonu' },
+                        { value: 'Tovuz', label: 'Tovuz rayonu' },
+                        { value: 'Ujar', label: 'Ucar rayonu' },
+                        { value: 'Yardimli', label: 'Yardımlı rayonu' },
+                        { value: 'Zaqatala', label: 'Zaqatala rayonu' },
+                        { value: 'Zangilan', label: 'Zəngilan rayonu' },
+                        { value: 'Zardab', label: 'Zərdab rayonu' },
                       ]}
                     />
                   </div>
 
                   <div className="space-y-2">
                     <label htmlFor="country" className="block text-lg font-semibold text-gray-800">
-                      {t('vacancies.countryLabel')}
+                      {'Ölkə'}
                     </label>
-                    <p className="text-sm text-gray-600 mb-3">{t('vacancies.countryHint')}</p>
+                    <p className="text-sm text-gray-600 mb-3">{'Ölkə (standart: Azərbaycan)'}</p>
                     <Input
                       type="text"
                       id="country"
                       name="country"
-                      value={formData.country || 'Azerbaijan'}
+                      value={formData.country || 'Azərbaycan'}
                       onChange={handleInputChange}
                       className="w-full px-4 py-3 text-lg"
-                      placeholder={t('placeholders.azerbaijan')}
+                      placeholder={'Azərbaycan'}
                       readOnly
                     />
                   </div>
@@ -495,16 +433,16 @@ export default function CreateVacancy() {
               {/* Compensation Section */}
               <div className="space-y-6">
                 <h3 className="text-xl font-semibold text-gray-800 flex items-center">
-                  <DollarSign className="w-5 h-5 mr-2 text-purple-600" />
-                  Compensation Details
+                  <DollarSign className="w-5 h-5 mr-2 text-blue-600" />
+                  Kompensasiya detalları
                 </h3>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   <div className="space-y-2">
                     <label htmlFor="compensationType" className="block text-lg font-semibold text-gray-800">
-                      Compensation Type *
+                      Kompensasiya növü *
                     </label>
-                    <p className="text-sm text-gray-600 mb-3">How will participants be compensated?</p>
+                    <p className="text-sm text-gray-600 mb-3">İştirakçılar necə kompensasiya olunacaq?</p>
                     <Select
                       id="compensationType"
                       name="compensationType"
@@ -512,13 +450,13 @@ export default function CreateVacancy() {
                       value={formData.compensationType}
                       onChange={handleInputChange}
                       className="w-full px-4 py-4 text-lg"
-                      placeholder={t('placeholders.chooseCompensationType')}
+                      placeholder={'Kompensasiya növünü seçin...'}
                       options={[
-                        { value: 'salary', label: 'Annual Salary' },
-                        { value: 'hourly', label: 'Hourly Rate' },
-                        { value: 'stipend', label: 'Stipend/Allowance' },
-                        { value: 'volunteer', label: 'Volunteer (Unpaid)' },
-                        { value: 'negotiable', label: 'Negotiable' }
+                        { value: 'salary', label: 'İllik maaş' },
+                        { value: 'hourly', label: 'Saatlıq ödəniş' },
+                        { value: 'stipend', label: 'Stipend/Müavinət' },
+                        { value: 'volunteer', label: 'Könüllü (ödənişsiz)' },
+                        { value: 'negotiable', label: 'Razılaşma yolu ilə' }
                       ]}
                     />
                   </div>
@@ -526,9 +464,9 @@ export default function CreateVacancy() {
                   {formData.compensationType && formData.compensationType !== 'volunteer' && (
                     <div className="space-y-2">
                       <label htmlFor="compensationAmount" className="block text-lg font-semibold text-gray-800">
-                        Amount (USD)
+                        Məbləğ (USD)
                       </label>
-                      <p className="text-sm text-gray-600 mb-3">Enter the compensation amount</p>
+                      <p className="text-sm text-gray-600 mb-3">Kompensasiya məbləğini daxil edin</p>
                       <div className="relative">
                         <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 text-lg">$</span>
                         <Input
@@ -538,7 +476,7 @@ export default function CreateVacancy() {
                           value={formData.compensationAmount}
                           onChange={handleInputChange}
                           className="w-full pl-8 pr-4 py-4 text-lg"
-                          placeholder="50,000 or 15/hour"
+                          placeholder="50,000 və ya 15/saat"
                         />
                       </div>
                     </div>
@@ -549,16 +487,16 @@ export default function CreateVacancy() {
               {/* Duration Section */}
               <div className="space-y-6">
                 <h3 className="text-xl font-semibold text-gray-800 flex items-center">
-                  <Clock className="w-5 h-5 mr-2 text-purple-600" />
-                  Duration & Timeline
+                  <Clock className="w-5 h-5 mr-2 text-cyan-600" />
+                  Müddət və vaxt planı
                 </h3>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div className="space-y-2">
                     <label htmlFor="durationType" className="block text-lg font-semibold text-gray-800">
-                      Duration Type *
+                      Müddət növü *
                     </label>
-                    <p className="text-sm text-gray-600 mb-3">How long will this opportunity last?</p>
+                    <p className="text-sm text-gray-600 mb-3">Bu fürsət nə qədər davam edəcək?</p>
                     <Select
                       id="durationType"
                       name="durationType"
@@ -566,12 +504,12 @@ export default function CreateVacancy() {
                       value={formData.durationType}
                       onChange={handleInputChange}
                       className="w-full px-4 py-4 text-lg"
-                      placeholder={t('placeholders.chooseDurationType')}
+                      placeholder={'Müddət növünü seçin...'}
                       options={[
-                        { value: 'permanent', label: 'Permanent' },
-                        { value: 'fixed', label: 'Fixed Term' },
-                        { value: 'project', label: 'Project-based' },
-                        { value: 'temporary', label: 'Temporary' }
+                        { value: 'permanent', label: 'Daimi' },
+                        { value: 'fixed', label: 'Müddətli' },
+                        { value: 'project', label: 'Layihə əsaslı' },
+                        { value: 'temporary', label: 'Müvəqqəti' }
                        ]}
                      />
                   </div>
@@ -580,9 +518,9 @@ export default function CreateVacancy() {
                     <>
                       <div className="space-y-2">
                         <label htmlFor="contractLength" className="block text-lg font-semibold text-gray-800">
-                          Contract Length
+                          Müqavilə müddəti
                         </label>
-                        <p className="text-sm text-gray-600 mb-3">How long is the contract?</p>
+                        <p className="text-sm text-gray-600 mb-3">Müqavilə nə qədər davam edir?</p>
                         <Input
                           type="number"
                           id="contractLength"
@@ -597,9 +535,9 @@ export default function CreateVacancy() {
 
                       <div className="space-y-2">
                         <label htmlFor="contractUnit" className="block text-lg font-semibold text-gray-800">
-                          Time Unit
+                          Zaman vahidi
                         </label>
-                        <p className="text-sm text-gray-600 mb-3">Select the time unit</p>
+                        <p className="text-sm text-gray-600 mb-3">Zaman vahidini seçin</p>
                         <Select
                           id="contractUnit"
                           name="contractUnit"
@@ -607,9 +545,9 @@ export default function CreateVacancy() {
                           onChange={handleInputChange}
                           className="w-full px-4 py-4 text-lg"
                           options={[
-                            { value: 'weeks', label: 'Weeks' },
-                            { value: 'months', label: 'Months' },
-                            { value: 'years', label: 'Years' }
+                            { value: 'weeks', label: 'Həftə' },
+                            { value: 'months', label: 'Ay' },
+                            { value: 'years', label: 'İl' }
                           ]}
                         />
                       </div>
@@ -623,22 +561,22 @@ export default function CreateVacancy() {
           </div>
 
           {/* Application Details Card */}
-          <div className="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden">
-            <div className="bg-gradient-to-r from-primary to-blue-700 px-8 py-6">
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="bg-gradient-to-r from-blue-600 to-emerald-500 px-8 py-6">
               <h2 className="text-2xl font-bold text-white flex items-center">
                 <Send className="w-6 h-6 mr-3" />
-                Application Details
+                Müraciət detalları
               </h2>
-              <p className="text-blue-100 mt-2">How should candidates apply for this opportunity?</p>
+              <p className="text-blue-100 mt-2">Namizədlər bu fürsətə necə müraciət etməlidir?</p>
             </div>
             
             <div className="p-8 space-y-8">
               {/* Application Method */}
               <div className="space-y-4">
                 <label className="block text-lg font-semibold text-gray-800">
-                  Application Method *
+                  Müraciət üsulu *
                 </label>
-                <p className="text-sm text-gray-600 mb-4">Choose how candidates should submit their applications</p>
+                <p className="text-sm text-gray-600 mb-4">Namizədlərin müraciət formasını seçin</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <label className="relative cursor-pointer">
                     <input
@@ -649,24 +587,20 @@ export default function CreateVacancy() {
                       onChange={handleInputChange}
                       className="sr-only"
                     />
-                    <div className={`p-6 rounded-xl border-2 transition-all duration-200 ${
-                      formData.applicationMethod === 'link'
+                    <div className={`p-6 rounded-xl border-2 transition-all duration-200 ${ formData.applicationMethod === 'link'
                         ? 'border-orange-500 bg-orange-50 ring-4 ring-orange-100'
-                        : 'border-gray-200 hover:border-orange-300 hover:bg-orange-25'
-                    }`}>
+                        : 'border-gray-200 hover:border-orange-300 hover:bg-orange-25' }`}>
                       <div className="flex items-center space-x-3">
-                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                          formData.applicationMethod === 'link'
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${ formData.applicationMethod === 'link'
                             ? 'border-orange-500 bg-orange-500'
-                            : 'border-gray-300'
-                        }`}>
+                            : 'border-gray-300' }`}>
                           {formData.applicationMethod === 'link' && (
                             <div className="w-2 h-2 rounded-full bg-white"></div>
                           )}
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-800">{t('vacancies.application.linkTitle')}</h3>
-                          <p className="text-sm text-gray-600">{t('vacancies.application.linkHint')}</p>
+                          <h3 className="font-semibold text-gray-800">{'Müraciət Linki'}</h3>
+                          <p className="text-sm text-gray-600">{'Namizədləri xarici müraciət formasına yönləndirir'}</p>
                         </div>
                       </div>
                     </div>
@@ -681,24 +615,20 @@ export default function CreateVacancy() {
                       onChange={handleInputChange}
                       className="sr-only"
                     />
-                    <div className={`p-6 rounded-xl border-2 transition-all duration-200 ${
-                      formData.applicationMethod === 'email'
+                    <div className={`p-6 rounded-xl border-2 transition-all duration-200 ${ formData.applicationMethod === 'email'
                         ? 'border-orange-500 bg-orange-50 ring-4 ring-orange-100'
-                        : 'border-gray-200 hover:border-orange-300 hover:bg-orange-25'
-                    }`}>
+                        : 'border-gray-200 hover:border-orange-300 hover:bg-orange-25' }`}>
                       <div className="flex items-center space-x-3">
-                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                          formData.applicationMethod === 'email'
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${ formData.applicationMethod === 'email'
                             ? 'border-orange-500 bg-orange-500'
-                            : 'border-gray-300'
-                        }`}>
+                            : 'border-gray-300' }`}>
                           {formData.applicationMethod === 'email' && (
                             <div className="w-2 h-2 rounded-full bg-white"></div>
                           )}
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-800">{t('vacancies.application.emailTitle')}</h3>
-                          <p className="text-sm text-gray-600">{t('vacancies.application.emailHint')}</p>
+                          <h3 className="font-semibold text-gray-800">{'Müraciət E-poçtu'}</h3>
+                          <p className="text-sm text-gray-600">{'Müraciətləri e-poçt vasitəsilə qəbul edin'}</p>
                         </div>
                       </div>
                     </div>
@@ -710,9 +640,9 @@ export default function CreateVacancy() {
               {formData.applicationMethod === 'link' && (
                 <div className="space-y-2">
                     <label htmlFor="applicationLink" className="block text-lg font-semibold text-gray-800">
-                    {t('vacancies.application.linkLabel')}
+                    {'Müraciət Linki *'}
                   </label>
-                  <p className="text-sm text-gray-600 mb-3">{t('vacancies.application.linkHint')}</p>
+                  <p className="text-sm text-gray-600 mb-3">{'Namizədləri xarici müraciət formasına yönləndirir'}</p>
                   <Input
                     type="url"
                     id="applicationLink"
@@ -721,7 +651,7 @@ export default function CreateVacancy() {
                     value={formData.applicationLink}
                     onChange={handleInputChange}
                     className="w-full px-4 py-4 text-lg"
-                    placeholder={t('vacancies.application.linkPlaceholder')}
+                    placeholder={'https://sizin-teshkilat.org/apply'}
                   />
                 </div>
               )}
@@ -729,9 +659,9 @@ export default function CreateVacancy() {
               {formData.applicationMethod === 'email' && (
                 <div className="space-y-2">
                   <label htmlFor="applicationEmail" className="block text-lg font-semibold text-gray-800">
-                    {t('vacancies.application.emailLabel')}
+                    {'Müraciət E-poçtu *'}
                   </label>
-                  <p className="text-sm text-gray-600 mb-3">{t('vacancies.application.emailHint')}</p>
+                  <p className="text-sm text-gray-600 mb-3">{'Müraciətləri e-poçt vasitəsilə qəbul edin'}</p>
                   <Input
                     type="email"
                     id="applicationEmail"
@@ -740,7 +670,7 @@ export default function CreateVacancy() {
                     value={formData.applicationEmail}
                     onChange={handleInputChange}
                     className="w-full px-4 py-4 text-lg"
-                    placeholder={t('vacancies.application.emailPlaceholder')}
+                    placeholder={'applications@sizin-teshkilat.org'}
                   />
                 </div>
               )}
@@ -748,9 +678,9 @@ export default function CreateVacancy() {
               {/* Application Deadline */}
               <div className="space-y-2">
                 <label htmlFor="applicationDeadline" className="block text-lg font-semibold text-gray-800">
-                  Application Deadline *
+                  Müraciət üçün son tarix *
                 </label>
-                <p className="text-sm text-gray-600 mb-3">When should applications be submitted by?</p>
+                <p className="text-sm text-gray-600 mb-3">Müraciətlər son olaraq nə vaxta qədər qəbul edilir?</p>
                 <Input
                   type="date"
                   id="applicationDeadline"
@@ -766,9 +696,9 @@ export default function CreateVacancy() {
               {/* Application Instructions */}
               <div className="space-y-2">
                 <label htmlFor="applicationInstructions" className="block text-lg font-semibold text-gray-800">
-                  Application Instructions *
+                  Müraciət təlimatı *
                 </label>
-                <p className="text-sm text-gray-600 mb-3">Provide clear instructions for candidates on how to apply and what to include</p>
+                <p className="text-sm text-gray-600 mb-3">Namizədlər üçün necə müraciət etməli olduqlarını və nə daxil etməli olduqlarını aydın yazın</p>
                 <TextArea
                   id="applicationInstructions"
                   name="applicationInstructions"
@@ -777,20 +707,26 @@ export default function CreateVacancy() {
                   value={formData.applicationInstructions}
                   onChange={handleInputChange}
                   className="w-full px-4 py-4 text-lg resize-none"
-                  placeholder={t('placeholders.applicationInstructions')}
+                  placeholder={`Zəhmət olmasa müraciətinizə aşağıdakıları daxil edin:
+• Sizin CV/Özünüzü təqdim məktubu
+• Marağınızı izah edən motivasiya məktubu
+• Portfolio və ya müvafiq iş nümunələri (əgər varsa)
+• 2-3 istinad üçün əlaqə məlumatı
+
+Müraciətlər PDF formatında və mövzu sətri ilə təqdim edilməlidir: [Vəzifə Başlığı] - [Adınız]` }
                 />
               </div>
             </div>
           </div>
 
           {/* Responsibilities Card */}
-          <div className="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="bg-white shadow-sm rounded-2xl border border-gray-200 overflow-hidden">
             <div className="bg-gradient-to-r from-primary to-blue-700 px-8 py-6">
               <h2 className="text-2xl font-bold text-white flex items-center">
                 <FileText className="w-6 h-6 mr-3" />
-                Key Responsibilities
+                Əsas məsuliyyətlər
               </h2>
-              <p className="text-blue-100 mt-2">What will this person be responsible for?</p>
+              <p className="text-blue-100 mt-2">Bu şəxs hansı işlərə cavabdeh olacaq?</p>
             </div>
             
             <div className="p-8">
@@ -798,15 +734,15 @@ export default function CreateVacancy() {
                 {formData.responsibilities.map((responsibility, index) => (
                   <div key={index} className="group relative">
                     <div className="flex items-start gap-4">
-                      <div className="flex-shrink-0 w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center mt-2">
-                        <span className="text-indigo-600 font-semibold text-sm">{index + 1}</span>
+                      <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mt-2">
+                        <span className="text-blue-600 font-semibold text-sm">{index + 1}</span>
                       </div>
                       <div className="flex-1">
                         <TextArea
                           value={responsibility}
                           onChange={(e) => handleArrayChange(index, e.target.value, 'responsibilities')}
                           className="w-full px-4 py-3 text-lg resize-none"
-                          placeholder={t('placeholders.describeKeyResponsibility')}
+                          placeholder={'Əsas məsuliyyəti təsvir edin...'}
                           rows={2}
                         />
                       </div>
@@ -829,23 +765,23 @@ export default function CreateVacancy() {
                   type="button"
                   onClick={() => addArrayItem('responsibilities')}
                   variant="outline"
-                  className="w-full mt-6 px-6 py-4 border-2 border-dashed border-indigo-300 rounded-xl text-indigo-600 hover:border-indigo-400 hover:bg-indigo-50 transition-all duration-200 flex items-center justify-center space-x-2"
+                  className="w-full mt-6 px-6 py-4 border-2 border-dashed border-blue-300 rounded-xl text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 flex items-center justify-center space-x-2"
                 >
                   <Plus className="w-5 h-5" />
-                  <span className="font-semibold">Add Another Responsibility</span>
+                  <span className="font-semibold">Daha bir məsuliyyət əlavə et</span>
                 </Button>
               </div>
             </div>
           </div>
 
           {/* Requirements Card */}
-          <div className="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="bg-white shadow-sm rounded-2xl border border-gray-200 overflow-hidden">
             <div className="bg-gradient-to-r from-primary to-blue-700 px-8 py-6">
               <h2 className="text-2xl font-bold text-white flex items-center">
                 <Users className="w-6 h-6 mr-3" />
-                Requirements
+                Tələblər
               </h2>
-              <p className="text-blue-100 mt-2">What are the essential requirements for this role?</p>
+              <p className="text-blue-100 mt-2">Bu rol üçün əsas tələblər nələrdir?</p>
             </div>
             
             <div className="p-8">
@@ -853,15 +789,15 @@ export default function CreateVacancy() {
                 {formData.requirements.map((requirement, index) => (
                   <div key={index} className="group relative">
                     <div className="flex items-start gap-4">
-                      <div className="flex-shrink-0 w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mt-2">
-                        <span className="text-purple-600 font-semibold text-sm">{index + 1}</span>
+                      <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mt-2">
+                        <span className="text-blue-600 font-semibold text-sm">{index + 1}</span>
                       </div>
                       <div className="flex-1">
                         <TextArea
                           value={requirement}
                           onChange={(e) => handleArrayChange(index, e.target.value, 'requirements')}
                           className="w-full px-4 py-3 text-lg resize-none"
-                          placeholder={t('placeholders.describeEssentialRequirement')}
+                          placeholder={'Zəruri tələbi təsvir edin...'}
                           rows={2}
                         />
                       </div>
@@ -884,23 +820,23 @@ export default function CreateVacancy() {
                   type="button"
                   onClick={() => addArrayItem('requirements')}
                   variant="outline"
-                  className="w-full mt-6 px-6 py-4 border-2 border-dashed border-purple-300 rounded-xl text-purple-600 hover:border-purple-400 hover:bg-purple-50 transition-all duration-200 flex items-center justify-center space-x-2"
+                  className="w-full mt-6 px-6 py-4 border-2 border-dashed border-blue-300 rounded-xl text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 flex items-center justify-center space-x-2"
                 >
                   <Plus className="w-5 h-5" />
-                  <span className="font-semibold">Add Another Requirement</span>
+                  <span className="font-semibold">Daha bir tələb əlavə et</span>
                 </Button>
               </div>
             </div>
           </div>
 
           {/* Qualifications Card */}
-          <div className="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="bg-white shadow-sm rounded-2xl border border-gray-200 overflow-hidden">
             <div className="bg-gradient-to-r from-primary to-blue-700 px-8 py-6">
               <h2 className="text-2xl font-bold text-white flex items-center">
                 <Calendar className="w-6 h-6 mr-3" />
-                Preferred Qualifications
+                Üstünlük verilən keyfiyyətlər
               </h2>
-              <p className="text-blue-100 mt-2">What qualifications would make a candidate stand out?</p>
+              <p className="text-blue-100 mt-2">Hansı keyfiyyətlər namizədi fərqləndirər?</p>
             </div>
             
             <div className="p-8">
@@ -916,7 +852,7 @@ export default function CreateVacancy() {
                           value={qualification}
                           onChange={(e) => handleArrayChange(index, e.target.value, 'qualifications')}
                           className="w-full px-4 py-3 text-lg resize-none"
-                          placeholder={t('placeholders.describePreferredQualification')}
+                          placeholder={'Üstünlük verilən kvalifikasiyanı təsvir edin...'}
                           rows={2}
                         />
                       </div>
@@ -942,7 +878,7 @@ export default function CreateVacancy() {
                   className="w-full mt-6 px-6 py-4 border-2 border-dashed border-emerald-300 rounded-xl text-emerald-600 hover:border-emerald-400 hover:bg-emerald-50 transition-all duration-200 flex items-center justify-center space-x-2"
                 >
                   <Plus className="w-5 h-5" />
-                  <span className="font-semibold">Add Another Qualification</span>
+                  <span className="font-semibold">Daha bir keyfiyyət əlavə et</span>
                 </Button>
               </div>
             </div>
@@ -950,13 +886,13 @@ export default function CreateVacancy() {
 
           {/* Benefits Card - Only for Jobs */}
           {formData.type === 'job' && (
-            <div className="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white shadow-sm rounded-2xl border border-gray-200 overflow-hidden">
               <div className="bg-gradient-to-r from-primary to-blue-700 px-8 py-6">
                 <h2 className="text-2xl font-bold text-white flex items-center">
                   <DollarSign className="w-6 h-6 mr-3" />
-                  Benefits & Perks
+                  Müavinətlər və üstünlüklər
                 </h2>
-                <p className="text-blue-100 mt-2">What benefits and perks do you offer?</p>
+                <p className="text-blue-100 mt-2">Hansı müavinət və üstünlüklər təklif edirsiniz?</p>
               </div>
               
               <div className="p-8">
@@ -972,7 +908,7 @@ export default function CreateVacancy() {
                             value={benefit}
                             onChange={(e) => handleArrayChange(index, e.target.value, 'benefits')}
                             className="w-full px-4 py-3 text-lg resize-none"
-                            placeholder={t('placeholders.describeBenefitOrPerk')}
+                            placeholder={'Müavinət və ya üstünlüyü təsvir edin...'}
                             rows={2}
                           />
                         </div>
@@ -998,7 +934,7 @@ export default function CreateVacancy() {
                     className="w-full mt-6 px-6 py-4 border-2 border-dashed border-amber-300 rounded-xl text-amber-600 hover:border-amber-400 hover:bg-amber-50 transition-all duration-200 flex items-center justify-center space-x-2"
                   >
                     <Plus className="w-5 h-5" />
-                    <span className="font-semibold">Add Another Benefit</span>
+                    <span className="font-semibold">Daha bir müavinət əlavə et</span>
                   </Button>
                 </div>
               </div>
@@ -1006,13 +942,13 @@ export default function CreateVacancy() {
           )}
 
           {/* Tags Card */}
-          <div className="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="bg-white shadow-sm rounded-2xl border border-gray-200 overflow-hidden">
             <div className="bg-gradient-to-r from-primary to-blue-700 px-8 py-6">
               <h2 className="text-2xl font-bold text-white flex items-center">
                 <MapPin className="w-6 h-6 mr-3" />
-                Tags & Keywords
+                Teqlər və açar sözlər
               </h2>
-              <p className="text-blue-100 mt-2">Add tags to help candidates find this opportunity</p>
+              <p className="text-blue-100 mt-2">Namizədlərin fürsəti tapması üçün teqlər əlavə edin</p>
             </div>
             
             <div className="p-8">
@@ -1020,8 +956,8 @@ export default function CreateVacancy() {
                 {formData.tags.map((tag, index) => (
                   <div key={index} className="group relative">
                     <div className="flex items-center gap-4">
-                      <div className="flex-shrink-0 w-6 h-6 bg-rose-100 rounded-full flex items-center justify-center">
-                        <span className="text-rose-600 font-bold text-xs">#</span>
+                      <div className="flex-shrink-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-blue-600 font-bold text-xs">#</span>
                       </div>
                       <div className="flex-1">
                         <Input
@@ -1029,7 +965,7 @@ export default function CreateVacancy() {
                           value={tag}
                           onChange={(e) => handleArrayChange(index, e.target.value, 'tags')}
                           className="w-full px-4 py-3 text-lg"
-                          placeholder={t('placeholders.tagsExample')}
+                          placeholder={'məs., uzaqdan-iş, qeyri-kommersiya, sosial-təsir'}
                         />
                       </div>
                       {formData.tags.length > 1 && (
@@ -1051,31 +987,25 @@ export default function CreateVacancy() {
                   type="button"
                   onClick={() => addArrayItem('tags')}
                   variant="outline"
-                  className="w-full mt-6 px-6 py-4 border-2 border-dashed border-rose-300 rounded-xl text-rose-600 hover:border-rose-400 hover:bg-rose-50 transition-all duration-200 flex items-center justify-center space-x-2"
+                  className="w-full mt-6 px-6 py-4 border-2 border-dashed border-blue-300 rounded-xl text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 flex items-center justify-center space-x-2"
                 >
                   <Plus className="w-5 h-5" />
-                  <span className="font-semibold">Add Another Tag</span>
+                  <span className="font-semibold">Daha bir teq əlavə et</span>
                 </Button>
               </div>
               
               <div className="mt-6 p-4 bg-gray-50 rounded-xl">
-                <p className="text-sm text-gray-600 mb-2">💡 <strong>Tag suggestions:</strong></p>
+                  <p className="text-sm text-gray-600 mb-2">💡 <strong>Təklif olunan teqlər:</strong></p>
                 <div className="flex flex-wrap gap-2">
-                  {['remote-work', 'nonprofit', 'social-impact', 'entry-level', 'full-time', 'part-time', 'flexible-hours', 'healthcare', 'education', 'environment'].map((suggestion) => (
+                  {['uzaqdan-is', 'qeyri-kommersiya', 'sosial-tesir', 'baslangic-seviyye', 'tam-stat', 'yarim-stat', 'cevik-saatlar', 'sehiyye', 'tehsil', 'etraf-muhit'].map((suggestion) => (
                     <Button
                       key={suggestion}
                       type="button"
-                      onClick={() => {
-                        if (!formData.tags.includes(suggestion)) {
-                          setFormData(prev => ({
-                            ...prev,
-                            tags: [...prev.tags.filter(tag => tag.trim() !== ''), suggestion]
-                          }))
-                        }
-                      }}
+                      onClick={() => { if (!formData.tags.includes(suggestion)) { setFormData(prev => ({ ...prev,
+                            tags: [...prev.tags.filter(tag => tag.trim() !== ''), suggestion] })) } }}
                       variant="outline"
                       size="sm"
-                      className="px-3 py-1 text-xs bg-white border border-gray-200 rounded-full hover:border-rose-300 hover:bg-rose-50 transition-all duration-200"
+                      className="px-3 py-1 text-xs bg-white border border-gray-200 rounded-full hover:border-blue-300 hover:bg-blue-50 transition-all duration-200"
                     >
                       #{suggestion}
                     </Button>
@@ -1086,11 +1016,11 @@ export default function CreateVacancy() {
           </div>
 
           {/* Submit Section */}
-          <div className="bg-white shadow-xl rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
             <div className="p-8">
               <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">{t('vacancies.submitSection.readyTitle')}</h3>
-                <p className="text-gray-600">{t('vacancies.submitSection.readySubtitle')}</p>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">{'Fürsətinizi yerləşdirməyə hazırsınız?'}</h3>
+                <p className="text-gray-600">{'Məlumatlarınızı yoxlayın və vakansiyanızı yayımlayaraq istedadlarla əlaqə qurmağa başlayın.'}</p>
               </div>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -1100,30 +1030,27 @@ export default function CreateVacancy() {
                   variant="outline"
                   size="lg"
                 >
-                  {t('common.cancel')}
+                  {'Ləğv et'}
                 </Button>
                 <Button
                   type="submit"
                   disabled={loading}
-                  variant="gradient-blue"
+                  variant="primary"
                   size="lg"
                   loading={loading}
                   icon={Send}
                   iconPosition="left"
-                  shadow="lg"
-                  hoverEffect="lift"
                 >
-                  {loading ? t('vacancies.creating') : t('vacancies.publishButton')}
+                  {loading ? 'Vakansiya yaradılır...' : 'Vakansiyanı Yayımla'}
                 </Button>
               </div>
               
               <div className="mt-6 text-center">
-                <p className="text-sm text-gray-500">By publishing this vacancy, you agree to our terms of service and privacy policy.</p>
+                <p className="text-sm text-gray-500">Vakansiyanı yayımlamaqla xidmət şərtləri və məxfilik siyasətini qəbul etmiş olursunuz.</p>
               </div>
             </div>
           </div>
         </form>
       </div>
     </div>
-  )
-}
+  ) }

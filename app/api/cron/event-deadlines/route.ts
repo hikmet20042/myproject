@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { NotificationService } from '@/lib/services/notificationService'
-import dbConnect from '@/lib/mongoose'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,8 +13,6 @@ export async function POST(request: NextRequest) {
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    
-    await dbConnect()
     
     const result = await NotificationService.checkEventDeadlinesAndNotify()
     
@@ -37,8 +34,6 @@ export async function POST(request: NextRequest) {
 // Manual trigger for testing (admin only)
 export async function GET(request: NextRequest) {
   try {
-    await dbConnect()
-    
     const result = await NotificationService.checkEventDeadlinesAndNotify()
     
     return NextResponse.json({

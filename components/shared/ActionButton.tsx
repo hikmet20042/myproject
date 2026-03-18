@@ -1,6 +1,6 @@
 /**
  * ActionButton Component
- * Gradient action buttons with consistent styling
+ * Solid action buttons with consistent styling
  * Used across: Forms, CTAs, Primary actions
  */
 
@@ -19,8 +19,8 @@ interface ActionButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 export default function ActionButton({
   icon: Icon,
   children,
-  gradientFrom = 'from-pink-500',
-  gradientTo = 'to-purple-600',
+  gradientFrom = 'from-blue-500',
+  gradientTo = 'to-emerald-600',
   size = 'md',
   fullWidth = false,
   className = '',
@@ -38,6 +38,25 @@ export default function ActionButton({
     lg: 'w-6 h-6'
   }
 
+  const tone =
+    gradientFrom.includes('emerald') || gradientTo.includes('emerald')
+      ? 'emerald'
+      : gradientFrom.includes('cyan') || gradientTo.includes('cyan')
+        ? 'cyan'
+        : gradientFrom.includes('teal') || gradientTo.includes('teal')
+          ? 'teal'
+          : gradientFrom.includes('amber') || gradientTo.includes('amber')
+            ? 'amber'
+            : 'blue'
+
+  const toneClasses = {
+    blue: 'border border-blue-600 bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-200',
+    emerald: 'border border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-200',
+    cyan: 'border border-cyan-600 bg-cyan-600 text-white hover:bg-cyan-700 focus:ring-cyan-200',
+    teal: 'border border-teal-600 bg-teal-600 text-white hover:bg-teal-700 focus:ring-teal-200',
+    amber: 'border border-amber-600 bg-amber-600 text-white hover:bg-amber-700 focus:ring-amber-200'
+  }
+
   return (
     <button
       className={`
@@ -45,17 +64,15 @@ export default function ActionButton({
         ${sizeClasses[size]}
         ${fullWidth ? 'w-full' : 'w-full sm:w-auto'}
         font-bold
-        bg-gradient-to-r ${gradientFrom} ${gradientTo}
-        hover:${gradientFrom.replace('from-', 'from-').replace('-500', '-600')}
-        hover:${gradientTo.replace('to-', 'to-').replace('-600', '-700')}
-        text-white
+        ${toneClasses[tone]}
         rounded-xl
-        shadow-lg hover:shadow-xl
-        hover:scale-105
-        transition-all duration-300
-        disabled:from-gray-400 disabled:to-gray-500
+        shadow-md hover:shadow-lg
+        hover:scale-[1.02]
+        transition-all duration-200
+        focus:outline-none focus:ring-2
+        disabled:bg-slate-300 disabled:border-slate-300
         disabled:cursor-not-allowed
-        disabled:hover:scale-100
+        disabled:hover:scale-100 disabled:hover:shadow-md
         ${className}
       `}
       {...props}

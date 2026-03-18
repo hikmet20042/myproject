@@ -1,5 +1,6 @@
 'use client'
 import React, { useState } from 'react';
+import * as RadixTabs from '@radix-ui/react-tabs';
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
 
@@ -26,18 +27,18 @@ export interface TabsProps {
 
 const tabVariants = {
   default: {
-    container: 'border-b border-gray-200',
-    tab: 'px-4 py-2 font-medium text-sm border-b-2 border-transparent hover:text-gray-700 hover:border-gray-300',
+    container: 'border-b border-blue-100',
+    tab: 'px-4 py-2 font-medium text-sm border-b-2 border-transparent text-gray-600 hover:text-blue-700 hover:border-blue-200',
     activeTab: 'border-blue-500 text-blue-600'
   },
   pills: {
-    container: 'bg-gray-100 p-1 rounded-lg',
-    tab: 'px-4 py-2 font-medium text-sm rounded-md hover:bg-gray-200',
-    activeTab: 'bg-white text-gray-900 shadow-sm'
+    container: 'rounded-xl border border-blue-100 bg-blue-50/70 p-1',
+    tab: 'px-4 py-2 font-medium text-sm rounded-lg text-gray-600 hover:bg-white/80 hover:text-blue-700',
+    activeTab: 'bg-white text-blue-700 shadow-sm border border-blue-100'
   },
   underline: {
     container: '',
-    tab: 'px-4 py-2 font-medium text-sm border-b-2 border-transparent hover:text-gray-700',
+    tab: 'px-4 py-2 font-medium text-sm border-b-2 border-transparent text-gray-600 hover:text-blue-700',
     activeTab: 'border-blue-500 text-blue-600'
   }
 };
@@ -59,33 +60,32 @@ export const Tabs: React.FC<TabsProps> = ({
   tabsClassName,
   contentClassName
 }) => {
-  const [internalActiveTab, setInternalActiveTab] = useState(defaultTab || tabs[0]?.id);
-  
+  const fallbackTab = defaultTab || tabs[0]?.id || ''
+  const [internalActiveTab, setInternalActiveTab] = useState(fallbackTab);
+  const isControlled = controlledActiveTab !== undefined;
   const activeTab = controlledActiveTab || internalActiveTab;
   const variantStyles = tabVariants[variant];
 
-  const handleTabClick = (tabId: string) => {
-    if (onTabChange) {
-      onTabChange(tabId);
-    } else {
-      setInternalActiveTab(tabId);
-    }
-  };
-
-  const activeTabContent = tabs.find(tab => tab.id === activeTab)?.content;
+  const handleTabChange = (tabId: string) => {
+    if (onTabChange) onTabChange(tabId)
+    if (!isControlled) setInternalActiveTab(tabId)
+  }
 
   return (
-    <div className={cn('w-full', className)}>
-      {/* Tab Navigation */}
-      <div className={cn('flex space-x-1', variantStyles.container, tabsClassName)}>
+    <RadixTabs.Root
+      value={activeTab}
+      onValueChange={handleTabChange}
+      className={cn('w-full', className)}
+    >
+      <RadixTabs.List className={cn('flex space-x-1', variantStyles.container, tabsClassName)}>
         {tabs.map((tab) => {
           const TabIcon = tab.icon;
           const isActive = activeTab === tab.id;
-          
+
           return (
-            <button
+            <RadixTabs.Trigger
               key={tab.id}
-              onClick={() => !tab.disabled && handleTabClick(tab.id)}
+              value={tab.id}
               disabled={tab.disabled}
               className={cn(
                 'flex items-center space-x-2 transition-colors duration-200',
@@ -101,23 +101,26 @@ export const Tabs: React.FC<TabsProps> = ({
                 )} />
               )}
               <span>{tab.label}</span>
-              {tab.badge && (
-                <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">
+              {tab.badge !== undefined && tab.badge !== null && (
+                <span className="ml-2 rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-xs text-blue-700">
                   {tab.badge}
                 </span>
               )}
-            </button>
+            </RadixTabs.Trigger>
           );
         })}
-      </div>
+      </RadixTabs.List>
 
-      {/* Tab Content */}
-      {activeTabContent && (
-        <div className={cn('mt-4', contentClassName)}>
-          {activeTabContent}
-        </div>
-      )}
-    </div>
+      {tabs.map((tab) => (
+        <RadixTabs.Content
+          key={tab.id}
+          value={tab.id}
+          className={cn('mt-4', contentClassName)}
+        >
+          {tab.content}
+        </RadixTabs.Content>
+      ))}
+    </RadixTabs.Root>
   );
 };
 

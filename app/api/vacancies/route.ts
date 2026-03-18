@@ -1,14 +1,59 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth';
-import dbConnect from '@/lib/mongoose'
-import Vacancy from '@/lib/models/Vacancy'
-import User from '@/lib/models/User'
+import { getServerSession } from '@/lib/auth/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+
+const mapVacancy = (row: any) => ({
+  _id: row.id,
+  id: row.id,
+  title: row.title,
+  description: row.description,
+  type: row.type,
+  category: row.category,
+  workType: row.work_type,
+  location: row.location,
+  requirements: row.requirements || [],
+  responsibilities: row.responsibilities || [],
+  qualifications: row.qualifications || [],
+  experienceLevel: row.experience_level,
+  duration: row.duration,
+  compensation: row.compensation,
+  applicationProcess: row.application_process,
+  applicationDeadline: row.application_deadline,
+  startDate: row.start_date,
+  skills: row.skills || [],
+  languages: row.languages || [],
+  tags: row.tags || [],
+  imageUrl: row.image_url,
+  createdBy: row.created_by
+    ? { _id: row.created_by.id, name: row.created_by.name, email: row.created_by.email }
+    : row.created_by,
+  createdByOrganization: row.created_by_organization
+    ? { _id: row.created_by_organization.id, organizationName: row.created_by_organization.organization_name, email: row.created_by_organization.email }
+    : row.created_by_organization,
+  status: row.status,
+  approvedAt: row.approved_at,
+  approvedBy: row.approved_by
+    ? { _id: row.approved_by.id, name: row.approved_by.name }
+    : row.approved_by,
+  rejectedAt: row.rejected_at,
+  rejectionReason: row.rejection_reason,
+  adminComment: row.admin_comment,
+  isPublished: row.is_published,
+  isFeatured: row.is_featured,
+  isUrgent: row.is_urgent,
+  applicationCount: row.application_count,
+  views: row.views,
+  uniqueViews: row.unique_views,
+  viewedBy: row.viewed_by || [],
+  engagementScore: row.engagement_score,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at
+});
 
 // GET /api/vacancies - Get vacancies with filtering
 export async function GET(request: NextRequest) {
   try {
-    await dbConnect()
+    const supabase = createSupabaseAdminClient()
     
     const { searchParams } = new URL(request.url)
     
@@ -18,7 +63,7 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type')
     const location = searchParams.get('location')
     const search = searchParams.get('search')
-    const createdBy = searchParams.get('createdBy') // For NGO's own vacancies
+    const createdBy = searchParams.get('createdBy') // For organization's own vacancies
     const author = searchParams.get('author') // Handle 'author=me' parameter
     const adminView = searchParams.get('adminView') === 'true'
     const status = searchParams.get('status') || (adminView ? 'all' : 'approved')
@@ -30,7 +75,7 @@ export async function GET(request: NextRequest) {
     // Handle author=me parameter
     let actualCreatedBy = createdBy
     if (author === 'me') {
-      const session = await getServerSession(authOptions)
+      const session = await getServerSession()
       if (!session?.user?.id) {
         return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
       }
@@ -40,6 +85,22 @@ export async function GET(request: NextRequest) {
     // Build filter object
     const filter: any = {}
     
+    // Admin view requires admin session
+    if (adminView) {
+      const session = await getServerSession()
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+      }
+      const { data: adminUser } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', session.user.id)
+        .single()
+      if (!adminUser || adminUser.role !== 'admin') {
+        return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+      }
+    }
+
     // Admin view shows all vacancies, regular view shows only approved
     if (!adminView) {
       // Regular view: only show approved vacancies unless filtering by creator
@@ -60,55 +121,120 @@ export async function GET(request: NextRequest) {
       // If status is 'all' or not specified in admin view, show all vacancies (no additional filter)
     }
     
-    // Filter by creator if specified (for NGO dashboard)
-    if (actualCreatedBy) {
-      filter.createdBy = actualCreatedBy
-    }
-    
     // Type filter
     if (type && type !== 'all') {
       filter.type = type
     }
-    
-    // Location filter
-    if (location && location !== 'all') {
-      filter.location = new RegExp(location, 'i')
-    }
-    
+
+    // Location filter (location is an object: city, country, address)
+    const locationRe = location && location !== 'all' ? new RegExp(location, 'i') : null
+    const locationOr = locationRe
+      ? [
+          { 'location.city': locationRe },
+          { 'location.country': locationRe },
+          { 'location.address': locationRe }
+        ]
+      : null
+
     // Search filter
-    if (search) {
-      filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { requirements: { $regex: search, $options: 'i' } }
-      ]
+    const searchOr = search
+      ? [
+          { title: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } },
+          { requirements: { $regex: search, $options: 'i' } }
+        ]
+      : null
+
+    // Combine creator, location, and search so they don't overwrite each other
+    const creatorOr = actualCreatedBy
+      ? [{ createdBy: actualCreatedBy }, { createdByOrganization: actualCreatedBy }]
+      : null
+    const andParts: any[] = []
+    if (creatorOr) andParts.push({ $or: creatorOr })
+    if (locationOr && searchOr) {
+      andParts.push({ $or: locationOr }, { $or: searchOr })
+    } else if (locationOr) {
+      andParts.push({ $or: locationOr })
+    } else if (searchOr) {
+      andParts.push({ $or: searchOr })
+    }
+    if (andParts.length > 0) {
+      filter.$and = andParts
     }
     
-    // Build sort object
-    const sort: any = {}
-    sort[sortBy] = sortOrder === 'desc' ? -1 : 1
-    
-    // Fetch vacancies with pagination
-    const vacancies = await Vacancy.find(filter)
-      .populate('createdBy', 'name email')
-      .sort(sort)
-      .skip(skip)
-      .limit(limit)
-      .lean()
-    
-    const total = await Vacancy.countDocuments(filter)
+    const sortFieldMap: Record<string, string> = {
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      applicationDeadline: 'application_deadline',
+      startDate: 'start_date'
+    }
+    const orderField = sortFieldMap[sortBy] || 'created_at'
+    const ascending = sortOrder === 'asc'
+
+    let query = supabase
+      .from('vacancies')
+      .select(
+        '*, created_by (id, name, email), created_by_organization (id, organization_name, email), approved_by (id, name)',
+        { count: 'exact' }
+      )
+      .order(orderField, { ascending })
+      .range(skip, skip + limit - 1)
+
+    if (filter.status) {
+      query = query.eq('status', filter.status)
+    }
+
+    if (!adminView && !createdBy) {
+      query = query.eq('is_published', true)
+    }
+
+    if (type && type !== 'all') {
+      query = query.eq('type', type)
+    }
+
+    if (actualCreatedBy) {
+      query = query.or(`created_by.eq.${actualCreatedBy},created_by_organization.eq.${actualCreatedBy}`)
+    }
+
+    if (location && location !== 'all') {
+      const locationFilter = `location->>city.ilike.%${location}%,location->>country.ilike.%${location}%,location->>address.ilike.%${location}%`
+      query = query.or(locationFilter)
+    }
+
+    if (search) {
+      const searchFilter = `title.ilike.%${search}%,description.ilike.%${search}%`
+      query = query.or(searchFilter)
+    }
+
+    const { data: vacancyRows, error, count } = await query
+
+    if (error) {
+      console.error('Error fetching vacancies:', error)
+      return NextResponse.json(
+        { error: 'Failed to fetch vacancies' },
+        { status: 500 }
+      )
+    }
+
+    const vacancies = (vacancyRows || []).map(mapVacancy)
+    const total = count || 0
     
     // Calculate stats for admin view
     let stats = null
     if (adminView) {
-      const [pending, approved, rejected, totalCount] = await Promise.all([
-        Vacancy.countDocuments({ status: 'pending' }),
-        Vacancy.countDocuments({ status: 'approved' }),
-        Vacancy.countDocuments({ status: 'rejected' }),
-        Vacancy.countDocuments({})
+      const [pendingResult, approvedResult, rejectedResult, totalResult] = await Promise.all([
+        supabase.from('vacancies').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('vacancies').select('id', { count: 'exact', head: true }).eq('status', 'approved'),
+        supabase.from('vacancies').select('id', { count: 'exact', head: true }).eq('status', 'rejected'),
+        supabase.from('vacancies').select('id', { count: 'exact', head: true })
       ])
       
-      stats = { pending, approved, rejected, total: totalCount }
+      stats = {
+        pending: pendingResult.count || 0,
+        approved: approvedResult.count || 0,
+        rejected: rejectedResult.count || 0,
+        total: totalResult.count || 0
+      }
     }
     
     const response: any = {
@@ -141,7 +267,7 @@ export async function GET(request: NextRequest) {
 // POST /api/vacancies - Create new vacancy
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession()
     
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -150,12 +276,12 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    await dbConnect()
+    const supabase = createSupabaseAdminClient()
     
-    // Check if user is an approved NGO
-    if (!session.user.isApprovedNGO && session.user.role !== 'admin') {
+    // Check if user is an approved organization
+    if (!session.user.isApprovedOrganization && session.user.role !== 'admin') {
       return NextResponse.json(
-        { error: 'Only approved NGOs can create vacancies' },
+        { error: 'Only approved organizations can create vacancies' },
         { status: 403 }
       )
     }
@@ -318,30 +444,55 @@ export async function POST(request: NextRequest) {
       description: body.description,
       type: body.type,
       category: body.category,
-      workType: body.workType,
-      experienceLevel: body.experienceLevel,
+      work_type: body.workType,
+      experience_level: body.experienceLevel,
       location,
-      compensation,
+      compensation: {
+        ...compensation,
+        benefits: body.benefits || []
+      },
       duration,
-      applicationProcess,
-      applicationDeadline: body.applicationDeadline,
+      application_process: {
+        ...applicationProcess,
+        contactPhone: body.contactPhone || undefined,
+        requiredDocuments: body.requiredDocuments || []
+      },
+      application_deadline: body.applicationDeadline,
       responsibilities: body.responsibilities || [],
       requirements: body.requirements || [],
       qualifications: body.qualifications || [],
-      benefits: body.benefits || [],
       tags: body.tags || [],
-      createdBy: session.user.id,
+      created_by: session.user.isApprovedOrganization ? null : session.user.id,
+      created_by_organization: session.user.isApprovedOrganization ? session.user.id : null,
       status: session.user.role === 'admin' ? 'approved' : 'pending',
-      isPublished: session.user.role === 'admin'
+      is_published: session.user.role === 'admin',
+      is_featured: false,
+      is_urgent: false
     }
 
-    const vacancy = new Vacancy(vacancyData)
-    
-    await vacancy.save()
-    
-    const populatedVacancy = await Vacancy.findById(vacancy._id)
-      .populate('createdBy', 'name email')
-      .lean()
+    const { data: vacancyRow, error } = await supabase
+      .from('vacancies')
+      .insert({
+        ...vacancyData,
+        experience_level: body.experienceLevel,
+        application_deadline: body.applicationDeadline,
+        start_date: body.startDate || null,
+        skills: body.skills || [],
+        languages: body.languages || [],
+        image_url: body.imageUrl || null
+      })
+      .select('*, created_by (id, name, email), created_by_organization (id, organization_name, email)')
+      .single()
+
+    if (error || !vacancyRow) {
+      console.error('Error creating vacancy:', error)
+      return NextResponse.json(
+        { error: 'Failed to create vacancy' },
+        { status: 500 }
+      )
+    }
+
+    const populatedVacancy = mapVacancy(vacancyRow)
     
     return NextResponse.json({
       message: 'Vacancy created successfully',

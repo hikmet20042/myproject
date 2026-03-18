@@ -6,12 +6,12 @@ export default function BlogEditLayout({ children }: { children: React.ReactNode
       <section className="bg-primary text-white py-10">
         <div className="section-padding">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl lg:text-4xl font-bold">Edit Your Blog</h1>
-            <p className="text-gray-100 mt-2">Two steps: details and content.</p>
+            <h1 className="text-3xl lg:text-4xl font-bold">Bloqunu redaktə et</h1>
+            <p className="text-gray-100 mt-2">İki addım: məlumatlar və məzmun.</p>
             <div className="mt-6 flex items-center gap-3 text-sm">
-              <span className="px-3 py-1 rounded-full bg-white/10">1. Details</span>
+              <span className="px-3 py-1 rounded-full bg-white/10">1. Məlumatlar</span>
               <span>→</span>
-              <span className="px-3 py-1 rounded-full bg-white/10">2. Write</span>
+              <span className="px-3 py-1 rounded-full bg-white/10">2. Yazı</span>
             </div>
           </div>
         </div>

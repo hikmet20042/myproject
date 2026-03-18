@@ -1,21 +1,6 @@
-import { withAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-
-// Ensure NextAuth always has an absolute callback URL
-if (!process.env.NEXTAUTH_URL) {
-  const fallbackUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-  process.env.NEXTAUTH_URL = fallbackUrl
-}
-
-// Enable trust host for production serverless environments
-if (process.env.NODE_ENV === 'production') {
-  process.env.AUTH_TRUST_HOST = 'true'
-}
-
-// Language configuration
-const defaultLanguage = 'az'
-const languages = ['az', 'en']
+import { createServerClient } from '@supabase/ssr'
 
 // Routes that should not have language prefix (API, static files, auth, etc.)
 const excludedPaths = [
@@ -24,35 +9,35 @@ const excludedPaths = [
   '/favicon.ico',
   '/robots.txt',
   '/sitemap',
-  '/locales'
+  '/auth/callback'
 ]
 
 function shouldExcludePath(pathname: string): boolean {
   return excludedPaths.some(path => pathname.startsWith(path))
 }
 
-function getLanguageFromPath(pathname: string): { language: string | null; pathWithoutLanguage: string } {
+function getPathWithoutLanguage(pathname: string): { hadLanguagePrefix: boolean; pathWithoutLanguage: string } {
   const segments = pathname.split('/').filter(Boolean)
   const firstSegment = segments[0]
   
-  if (languages.includes(firstSegment)) {
+  if (firstSegment === 'az' || firstSegment === 'en') {
     return {
-      language: firstSegment,
+      hadLanguagePrefix: true,
       pathWithoutLanguage: '/' + segments.slice(1).join('/')
     }
   }
   
   return {
-    language: null,
+    hadLanguagePrefix: false,
     pathWithoutLanguage: pathname
   }
 }
 
 // Authorization check function
-function checkAuthorization(pathWithoutLanguage: string, token: any, pathname: string, language: string, req: any) {
-  // Normalize legacy NGO dashboard route to the unified dashboard
-  if (pathWithoutLanguage.includes('/ngo-dashboard')) {
-    const newPathname = pathname.replace('/ngo-dashboard', '/dashboard')
+async function checkAuthorization(pathWithoutLanguage: string, pathname: string, req: NextRequest) {
+  // Normalize legacy organization dashboard route to the unified dashboard
+  if (pathWithoutLanguage.includes('/organization-dashboard')) {
+    const newPathname = pathname.replace('/organization-dashboard', '/dashboard')
     return NextResponse.redirect(new URL(newPathname, req.url))
   }
 
@@ -62,53 +47,64 @@ function checkAuthorization(pathWithoutLanguage: string, token: any, pathname: s
       pathWithoutLanguage.startsWith('/edit/blog') ||
       pathWithoutLanguage.startsWith('/dashboard') ||
       pathWithoutLanguage.startsWith('/profile')) {
-    
-    // Check if user is trying to access admin routes
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return NextResponse.next()
+    }
+
+    const response = NextResponse.next()
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        get(name: string) {
+          return req.cookies.get(name)?.value
+        },
+        set(name: string, value: string, options: Record<string, any> = {}) {
+          response.cookies.set({ name, value, ...options })
+        },
+        remove(name: string, options: Record<string, any> = {}) {
+          response.cookies.set({ name, value: '', ...options })
+        },
+      },
+    })
+
+    const { data: authData } = await supabase.auth.getUser()
+    const user = authData?.user
+
+    const requireAuth = (pathWithoutLanguage.startsWith('/submit') ||
+      pathWithoutLanguage.startsWith('/edit/blog') ||
+      pathWithoutLanguage.startsWith('/dashboard') ||
+      pathWithoutLanguage.startsWith('/profile') ||
+      pathWithoutLanguage.startsWith('/admin'))
+
+    if (requireAuth && !user) {
+      const signInUrl = new URL('/auth/signin', req.url)
+      signInUrl.searchParams.set('callbackUrl', pathname)
+      return NextResponse.redirect(signInUrl)
+    }
+
     if (pathWithoutLanguage.startsWith('/admin')) {
-      // Check if user has admin role
-      if (!token || token.role !== 'admin') {
-        // Redirect to sign-in with callback URL
-        const signInUrl = new URL(`/${language}/auth/signin`, req.url)
-        signInUrl.searchParams.set('callbackUrl', pathname)
-        return NextResponse.redirect(signInUrl)
-      }
-    }
+      let isAdmin = false
 
-    // Check if user is trying to access submit routes (including /submit/blog)
-    if (pathWithoutLanguage.startsWith('/submit')) {
-      // Require authentication for all submit routes
-      if (!token) {
-        const signInUrl = new URL(`/${language}/auth/signin`, req.url)
-        signInUrl.searchParams.set('callbackUrl', pathname)
-        return NextResponse.redirect(signInUrl)
-      }
-    }
+      if (user) {
+        const { data: account } = await supabase
+          .from('accounts')
+          .select('is_admin')
+          .eq('id', user.id)
+          .maybeSingle()
 
-    // Check if user is trying to access edit routes
-    if (pathWithoutLanguage.startsWith('/edit/blog')) {
-      // Require authentication for edit routes
-      if (!token) {
-        const signInUrl = new URL(`/${language}/auth/signin`, req.url)
-        signInUrl.searchParams.set('callbackUrl', pathname)
-        return NextResponse.redirect(signInUrl)
-      }
-    }
+        isAdmin = account?.is_admin === true
 
-    // Check if user is trying to access dashboard
-    if (pathWithoutLanguage.startsWith('/dashboard') && !pathWithoutLanguage.startsWith('/ngo-dashboard')) {
-      // Require authentication for dashboard
-      if (!token) {
-        const signInUrl = new URL(`/${language}/auth/signin`, req.url)
-        signInUrl.searchParams.set('callbackUrl', pathname)
-        return NextResponse.redirect(signInUrl)
+        // Backward compatibility while legacy metadata still exists.
+        if (!isAdmin) {
+          const legacyRole = (user.app_metadata?.role as string) || 'user'
+          isAdmin = legacyRole === 'admin'
+        }
       }
-    }
 
-    // Check if user is trying to access profile
-    if (pathWithoutLanguage.startsWith('/profile')) {
-      // Require authentication for profile
-      if (!token) {
-        const signInUrl = new URL(`/${language}/auth/signin`, req.url)
+      if (!isAdmin) {
+        const signInUrl = new URL('/auth/signin', req.url)
         signInUrl.searchParams.set('callbackUrl', pathname)
         return NextResponse.redirect(signInUrl)
       }
@@ -118,53 +114,34 @@ function checkAuthorization(pathWithoutLanguage: string, token: any, pathname: s
   return null
 }
 
-export default withAuth(
-  function middleware(req) {
-    const { pathname } = req.nextUrl
-    const token = req.nextauth.token
+export default async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl
 
-    // Skip language handling for excluded paths
-    if (!shouldExcludePath(pathname)) {
-      const { language, pathWithoutLanguage } = getLanguageFromPath(pathname)
-      
-      // If no language prefix, redirect to default language (Azerbaijani)
-      if (!language) {
-        const newUrl = new URL(`/${defaultLanguage}${pathname}`, req.url)
-        newUrl.search = req.nextUrl.search
-        return NextResponse.redirect(newUrl)
-      }
-      
-      const authResponse = checkAuthorization(pathWithoutLanguage, token, pathname, language, req)
-      if (authResponse) {
-        return authResponse
-      }
-      
-      // Rewrite the URL to remove language prefix for Next.js routing
-      // This allows /az/blogs to map to /blogs internally
-      const rewriteUrl = new URL(pathWithoutLanguage || '/', req.url)
-      rewriteUrl.search = req.nextUrl.search
-      
-      // Store language in header for access in components
-      const response = NextResponse.rewrite(rewriteUrl)
-      response.headers.set('x-language', language)
-      
-      return response
-    }
-
+  if (shouldExcludePath(pathname)) {
     return NextResponse.next()
-  },
-  {
-    callbacks: {
-      authorized: () => true,
-    },
   }
-)
+
+  const { hadLanguagePrefix, pathWithoutLanguage } = getPathWithoutLanguage(pathname)
+
+  // Redirect legacy prefixed routes (/az/*, /en/*) to canonical non-prefixed routes.
+  if (hadLanguagePrefix) {
+    const newUrl = new URL(pathWithoutLanguage || '/', req.url)
+    newUrl.search = req.nextUrl.search
+    return NextResponse.redirect(newUrl)
+  }
+
+  const authResponse = await checkAuthorization(pathWithoutLanguage, pathname, req)
+  if (authResponse) {
+    return authResponse
+  }
+
+  return NextResponse.next()
+}
 
 export const config = {
   matcher: [
     /*
-     * Match all paths except static files and API routes
-     * This allows us to handle language prefixes and authentication
+     * Match all paths except static files and API routes.
      */
     '/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap).*)',
   ],

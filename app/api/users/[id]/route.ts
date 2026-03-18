@@ -1,22 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
-import dbConnect from '@/lib/mongoose'
-import User from '@/lib/models/User'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    await dbConnect();
-    const user = await User.findById(params.id).lean();
-    if (!user || Array.isArray(user)) {
+    const supabase = createSupabaseAdminClient();
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, name, email, role')
+      .eq('id', params.id)
+      .single();
+    if (error || !user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('avatar')
+      .eq('user_id', params.id)
+      .single();
     return NextResponse.json({
       user: {
-        id: user._id,
+        id: user.id,
         name: user.name,
-        image: user.image || null,
+        image: profile?.avatar || null,
         email: user.email,
         role: user.role,
       },

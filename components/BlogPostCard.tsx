@@ -1,39 +1,31 @@
 "use client"
 
 import Link from 'next/link'
-import { useLanguage } from '@/contexts/LanguageContext'
 
-interface CommunityBlog {
-  id: number;
+interface CommunityBlog { id: number;
   title: string;
   authorName: string;
   date: string;
   excerpt: string;
   content: any; // Can be string or BlockNote array
   status: string;
-  type: 'community-blog';
-}
+  type: 'community-blog'; }
 
-interface BlogCardProps {
-  blog: CommunityBlog;
-}
+interface BlogCardProps { blog: CommunityBlog; }
 
 export default function BlogCard({ blog }: BlogCardProps) {
-  const { t, language } = useLanguage()
 
   const date = new Date(blog.date)
-  const formattedDate = date.toLocaleDateString(language === 'az' ? 'az-AZ' : 'en-US', {
-    year: 'numeric',
+  const formattedDate = date.toLocaleDateString('az-AZ', { year: 'numeric',
     month: 'short',
-    day: 'numeric'
-  })
+    day: 'numeric' })
 
   return (
-    <article className="group relative bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200">
+    <article className="group relative bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-blue-100">
       {/* Blog Badge */}
       <div className="absolute top-4 left-4 z-10">
         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-          {t('blogs.card.badge')}
+          {'Şəxsi bloq'}
         </span>
       </div>
 
@@ -47,7 +39,7 @@ export default function BlogCard({ blog }: BlogCardProps) {
         </div>
 
         {/* Title */}
-        <h3 className="text-lg font-bold mb-3 text-gray-900 group-hover:text-primary transition-colors duration-200 line-clamp-2">
+        <h3 className="text-lg font-bold mb-3 text-gray-900 group-hover:text-blue-700 transition-colors duration-200 line-clamp-2">
           <Link href={`/blogs/${blog.id}`} className="block">
             {blog.title}
           </Link>
@@ -62,9 +54,9 @@ export default function BlogCard({ blog }: BlogCardProps) {
         <div className="flex items-center justify-between">
           <Link
             href={`/blogs/${blog.id}`}
-            className="inline-flex items-center text-sm font-medium text-primary hover:text-red-800 transition-colors duration-200"
+            className="inline-flex items-center text-sm font-medium text-blue-700 hover:text-red-800 transition-colors duration-200"
           >
-            {t('blogs.card.read')}
+            {'Bloqu Oxu'}
             <svg className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
@@ -72,10 +64,9 @@ export default function BlogCard({ blog }: BlogCardProps) {
 
           {/* Author */}
           <span className="text-xs text-gray-500">
-            {t('blogs.by')} {blog.authorName}
+            {'tərəfindən'} {blog.authorName}
           </span>
         </div>
       </div>
     </article>
-  )
-}
+  ) }

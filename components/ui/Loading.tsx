@@ -27,9 +27,9 @@ const Loading = React.forwardRef<HTMLDivElement, LoadingProps>(
     };
     
     const colors = {
-      primary: 'border-primary border-t-transparent',
+      primary: 'border-blue-600 border-t-transparent',
       white: 'border-white border-t-transparent',
-      gray: 'border-gray-400 border-t-transparent',
+      gray: 'border-slate-400 border-t-transparent',
       current: 'border-current border-t-transparent'
     };
     
@@ -58,7 +58,7 @@ const Loading = React.forwardRef<HTMLDivElement, LoadingProps>(
             className={cn(
               'rounded-full animate-pulse',
               size === 'sm' ? 'w-2 h-2' : size === 'md' ? 'w-3 h-3' : size === 'lg' ? 'w-4 h-4' : 'w-5 h-5',
-              color === 'primary' ? 'bg-primary' : color === 'white' ? 'bg-white' : color === 'gray' ? 'bg-gray-400' : 'bg-current'
+              color === 'primary' ? 'bg-blue-600' : color === 'white' ? 'bg-white' : color === 'gray' ? 'bg-slate-400' : 'bg-current'
             )}
             style={{ animationDelay: `${i * 0.2}s` }}
           />
@@ -71,7 +71,7 @@ const Loading = React.forwardRef<HTMLDivElement, LoadingProps>(
         className={cn(
           'rounded-full animate-pulse',
           sizes[size],
-          color === 'primary' ? 'bg-primary' : color === 'white' ? 'bg-white' : color === 'gray' ? 'bg-gray-400' : 'bg-current'
+          color === 'primary' ? 'bg-blue-600' : color === 'white' ? 'bg-white' : color === 'gray' ? 'bg-slate-400' : 'bg-current'
         )}
       />
     );
@@ -93,7 +93,7 @@ const Loading = React.forwardRef<HTMLDivElement, LoadingProps>(
         className={cn(
           'flex items-center justify-center',
           text && 'space-x-2',
-          fullScreen && 'fixed inset-0 bg-white bg-opacity-75 z-50',
+          fullScreen && 'fixed inset-0 z-50 bg-white/75 backdrop-blur-[1px]',
           className
         )}
         {...props}
@@ -103,7 +103,7 @@ const Loading = React.forwardRef<HTMLDivElement, LoadingProps>(
           <span className={cn(
             'font-medium',
             textSizes[size],
-            color === 'primary' ? 'text-primary' : color === 'white' ? 'text-white' : color === 'gray' ? 'text-gray-600' : 'text-current'
+            color === 'primary' ? 'text-blue-700' : color === 'white' ? 'text-white' : color === 'gray' ? 'text-gray-600' : 'text-current'
           )}>
             {text}
           </span>

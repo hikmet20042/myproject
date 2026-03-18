@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import dbConnect from '@/lib/mongoose';
-import User from '@/lib/models/User';
-import NGO from '@/lib/models/NGO';
+import { getServerSession } from '@/lib/auth/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import cloudinaryService from '@/lib/services/cloudinaryService';
 
 export const dynamic = 'force-dynamic';
@@ -11,7 +8,7 @@ export const dynamic = 'force-dynamic';
 // POST /api/profile/image - Upload or update profile image
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
 
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -20,7 +17,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
 
     // Check if Cloudinary is configured
     if (!cloudinaryService.isConfigured()) {
@@ -49,17 +46,25 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Determine if user is NGO or regular user
-    const isNGO = session.user.isApprovedNGO;
-    let userModel: any;
+    // Determine if user is organization or regular user
+    const isOrganization = session.user.isApprovedOrganization;
     let userDoc: any;
 
-    if (isNGO) {
-      userDoc = await NGO.findOne({ email: session.user.email });
-      userModel = NGO;
+    if (isOrganization) {
+      const { data: profile } = await supabase
+        .from('organization_profiles')
+        .select('account_id, profile_image')
+        .eq('account_id', session.user.id)
+        .maybeSingle();
+
+      userDoc = profile;
     } else {
-      userDoc = await User.findById(session.user.id);
-      userModel = User;
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('id, avatar, avatar_metadata')
+        .eq('user_id', session.user.id)
+        .single();
+      userDoc = profile;
     }
 
     if (!userDoc) {
@@ -70,9 +75,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Delete old profile image from Cloudinary if exists
-    if (userDoc.profileImage?.publicId) {
+    const existingPublicId = isOrganization
+      ? userDoc?.profile_image?.publicId
+      : userDoc?.avatar_metadata?.publicId;
+
+    if (existingPublicId) {
       try {
-        await cloudinaryService.deleteImage(userDoc.profileImage.publicId);
+        await cloudinaryService.deleteImage(existingPublicId);
       } catch (deleteError) {
         console.error('Error deleting old profile image:', deleteError);
         // Continue anyway, as we want to upload the new image
@@ -82,7 +91,7 @@ export async function POST(request: NextRequest) {
     // Upload new profile image to Cloudinary
     const uploadResult = await cloudinaryService.uploadProfileImage(
       buffer,
-      isNGO ? userDoc._id.toString() : session.user.id
+      session.user.id
     );
 
     if (!uploadResult.success || !uploadResult.secureUrl || !uploadResult.publicId) {
@@ -93,25 +102,53 @@ export async function POST(request: NextRequest) {
     }
 
     // Update user profile with new image
-    const updateData = {
-      profileImage: {
-        url: uploadResult.secureUrl,
-        publicId: uploadResult.publicId,
-      },
-      // Also update the legacy 'image' field for backward compatibility
-      image: uploadResult.secureUrl,
-    };
+    if (isOrganization) {
+      await supabase
+        .from('organization_profiles')
+        .update({
+          profile_image: {
+            url: uploadResult.secureUrl,
+            publicId: uploadResult.publicId
+          },
+          updated_at: new Date().toISOString()
+        })
+        .eq('account_id', session.user.id);
+    } else {
+      const { data: existingProfile } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .single();
 
-    const updatedUser = await userModel.findByIdAndUpdate(
-      userDoc._id,
-      { $set: updateData },
-      { new: true }
-    ).select('profileImage image organizationName name email');
+      if (existingProfile?.id) {
+        await supabase
+          .from('user_profiles')
+          .update({
+            avatar: uploadResult.secureUrl,
+            avatar_blob_id: null,
+            avatar_metadata: { publicId: uploadResult.publicId },
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingProfile.id);
+      } else {
+        await supabase
+          .from('user_profiles')
+          .insert({
+            user_id: session.user.id,
+            avatar: uploadResult.secureUrl,
+            avatar_blob_id: null,
+            avatar_metadata: { publicId: uploadResult.publicId }
+          });
+      }
+    }
 
     return NextResponse.json({
       success: true,
       message: 'Profile image updated successfully',
-      profileImage: updatedUser.profileImage,
+      profileImage: {
+        url: uploadResult.secureUrl,
+        publicId: uploadResult.publicId,
+      },
       url: uploadResult.secureUrl,
       thumbnailUrl: cloudinaryService.getThumbnailUrl(uploadResult.publicId, 200),
     });
@@ -127,7 +164,7 @@ export async function POST(request: NextRequest) {
 // DELETE /api/profile/image - Delete profile image
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
 
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -136,19 +173,26 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
 
-    // Determine if user is NGO or regular user
-    const isNGO = session.user.isApprovedNGO;
-    let userModel: any;
+    // Determine if user is organization or regular user
+    const isOrganization = session.user.isApprovedOrganization;
     let userDoc: any;
 
-    if (isNGO) {
-      userDoc = await NGO.findOne({ email: session.user.email });
-      userModel = NGO;
+    if (isOrganization) {
+      const { data: profile } = await supabase
+        .from('organization_profiles')
+        .select('account_id, profile_image')
+        .eq('account_id', session.user.id)
+        .maybeSingle();
+      userDoc = profile;
     } else {
-      userDoc = await User.findById(session.user.id);
-      userModel = User;
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('id, avatar_metadata')
+        .eq('user_id', session.user.id)
+        .single();
+      userDoc = profile;
     }
 
     if (!userDoc) {
@@ -159,9 +203,13 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete profile image from Cloudinary if exists
-    if (userDoc.profileImage?.publicId) {
+    const existingPublicId = isOrganization
+      ? userDoc?.profile_image?.publicId
+      : userDoc?.avatar_metadata?.publicId;
+
+    if (existingPublicId) {
       try {
-        await cloudinaryService.deleteImage(userDoc.profileImage.publicId);
+        await cloudinaryService.deleteImage(existingPublicId);
       } catch (deleteError) {
         console.error('Error deleting profile image:', deleteError);
         // Continue anyway to clear the database reference
@@ -169,15 +217,17 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Clear profile image from database
-    const updateData = {
-      profileImage: undefined,
-      image: undefined,
-    };
-
-    await userModel.findByIdAndUpdate(
-      userDoc._id,
-      { $unset: { profileImage: '', image: '' } }
-    );
+    if (isOrganization) {
+      await supabase
+        .from('organization_profiles')
+        .update({ profile_image: null, updated_at: new Date().toISOString() })
+        .eq('account_id', session.user.id);
+    } else {
+      await supabase
+        .from('user_profiles')
+        .update({ avatar: null, avatar_metadata: null, updated_at: new Date().toISOString() })
+        .eq('user_id', session.user.id);
+    }
 
     return NextResponse.json({
       success: true,
@@ -195,7 +245,7 @@ export async function DELETE(request: NextRequest) {
 // GET /api/profile/image - Get current profile image URL
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession();
 
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -204,16 +254,26 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    await dbConnect();
+    const supabase = createSupabaseAdminClient();
 
-    // Determine if user is NGO or regular user
-    const isNGO = session.user.isApprovedNGO;
+    // Determine if user is organization or regular user
+    const isOrganization = session.user.isApprovedOrganization;
     let userDoc: any;
 
-    if (isNGO) {
-      userDoc = await NGO.findOne({ email: session.user.email }).select('profileImage image');
+    if (isOrganization) {
+      const { data: profile } = await supabase
+        .from('organization_profiles')
+        .select('profile_image')
+        .eq('account_id', session.user.id)
+        .maybeSingle();
+      userDoc = profile;
     } else {
-      userDoc = await User.findById(session.user.id).select('profileImage image');
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('avatar, avatar_metadata')
+        .eq('user_id', session.user.id)
+        .single();
+      userDoc = profile;
     }
 
     if (!userDoc) {
@@ -224,8 +284,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Return profile image info
-    const profileImage = userDoc.profileImage;
-    
+    const profileImage = isOrganization ? userDoc?.profile_image : {
+      url: userDoc?.avatar,
+      publicId: userDoc?.avatar_metadata?.publicId
+    };
+
     if (!profileImage?.url) {
       return NextResponse.json({
         hasImage: false,

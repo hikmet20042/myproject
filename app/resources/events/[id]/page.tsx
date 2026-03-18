@@ -4,53 +4,44 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowLeft, Calendar, MapPin, Users, Clock, ExternalLink, Tag, Sparkles, CheckCircle, AlertCircle, TrendingUp } from 'lucide-react'
+import { ArrowLeft, Calendar, MapPin, Users, Clock, ExternalLink, Tag, Sparkles, TrendingUp } from 'lucide-react'
 import { Button, ButtonLink } from '@/components/ui'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
-import { Breadcrumb, ContactCard, Loading } from '@/components/ui'
+import { Breadcrumb } from '@/components/ui'
 import SaveButton from '@/components/SaveButton'
 import ViewTracker from '@/components/ViewTracker'
-import { LoadingState, ErrorState, AnimatedBackground } from '@/components/shared'
-import { useLanguage } from '@/contexts/LanguageContext'
+import { LoadingState, ErrorState } from '@/components/shared'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
 
-interface Event {
-  _id: string
+interface Event { _id: string
   title: string
   description: string
   category: string
   eventDate: string
   endDate?: string
-  location: {
-    type: 'online' | 'physical' | 'hybrid'
+  location: { type: 'online' | 'physical' | 'hybrid'
     address?: string
     city?: string
     country?: string
-    onlineLink?: string
-  }
+    onlineLink?: string }
   applicationLink?: string
   applicationDeadline?: string
   maxParticipants?: number
   currentParticipants: number
   tags: string[]
   imageUrl?: string
-  createdBy: {
-    _id: string
-    name: string
-  }
+  createdBy: { _id: string
+    name: string }
   organizationName?: string
   isApproved: boolean
   isPublished: boolean
   isFeatured: boolean
   createdAt: string
   updatedAt: string
-  views?: number
-}
+  views?: number }
 
-export default function EventDetailPage() {
-  const { t } = useLanguage()
-  const localePath = useLocalizedPath()
+export default function EventDetailPage() { const localePath = useLocalizedPath()
 
   const params = useParams()
   const router = useRouter()
@@ -58,65 +49,37 @@ export default function EventDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    if (params?.id) {
-      fetchEvent(params.id as string)
-    }
-  }, [params?.id])
+  useEffect(() => { if (params?.id) { fetchEvent(params.id as string) } }, [params?.id])
 
-  const fetchEvent = async (id: string) => {
-    try {
-      const response = await fetch(`/api/events/${id}`)
-      if (!response.ok) {
-        throw new Error('Event not found')
-      }
+  const fetchEvent = async (id: string) => { try { const response = await fetch(`/api/events/${id}`)
+      if (!response.ok) { throw new Error('Tədbir tapılmadı') }
       const data = await response.json()
-      setEvent({
-        ...data.event,
-        views: data.event.views || 0
-      })
-    } catch (error) {
-      console.error('Error fetching event:', error)
-      setError('Failed to load event details')
-    } finally {
-      setLoading(false)
-    }
-  }
+      setEvent({ ...data.event,
+        views: data.event.views || 0 }) } catch (error) { console.error('Tədbir yükləmə xətası:', error)
+      setError('Tədbir detalları yüklənmədi') } finally { setLoading(false) } }
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return t('events.dateTBD') || 'Date TBD'
+  const formatDate = (dateString: string) => { if (!dateString) return 'Tarix müəyyən deyil'
     const date = new Date(dateString)
-    if (isNaN(date.getTime())) return t('events.invalidDate') || 'Invalid Date'
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
+    if (isNaN(date.getTime())) return 'Etibarsız tarix'
+    return date.toLocaleDateString('az-AZ', { weekday: 'long',
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
-    })
-  }
+      day: 'numeric' }) }
 
-  const formatTime = (dateString: string) => {
-    if (!dateString) return t('events.timeTBD') || 'Time TBD'
+  const formatTime = (dateString: string) => { if (!dateString) return 'Vaxt müəyyən deyil'
     const date = new Date(dateString)
-    if (isNaN(date.getTime())) return t('events.timeTBD') || 'Time TBD'
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+    if (isNaN(date.getTime())) return 'Vaxt müəyyən deyil'
+    return date.toLocaleTimeString('az-AZ', { hour: '2-digit',
+      minute: '2-digit' }) }
 
-  const formatDateTime = (dateString: string) => {
-    if (!dateString) return t('events.notSpecified') || 'Not specified'
+  const formatDateTime = (dateString: string) => { if (!dateString) return 'Məlumat yoxdur'
     const date = new Date(dateString)
-    if (isNaN(date.getTime())) return t('events.invalidDate') || 'Invalid Date'
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
+    if (isNaN(date.getTime())) return 'Etibarsız tarix'
+    return date.toLocaleDateString('az-AZ', { year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+      minute: '2-digit' }) }
 
   const slugifyCategory = (s: string) =>
     s
@@ -127,106 +90,99 @@ export default function EventDetailPage() {
       .replace(/_+/g, '_');
 
   const getCategoryLabel = (val: string) => {
-    const key = slugifyCategory(val);
-    try {
-      const translated = (t(`events.categories.${key}` as any) as string) || val;
-      return translated;
-    } catch {
-      return val;
+    const labels: Record<string, string> = {
+      'Human Rights': 'İnsan hüquqları',
+      'Women Rights': 'Qadın hüquqları',
+      'Children Rights': 'Uşaq hüquqları',
+      'Education': 'Təhsil',
+      'Healthcare': 'Səhiyyə',
+      'Environment': 'Ətraf mühit',
+      'Poverty Alleviation': 'Yoxsulluğun azaldılması',
+      'Legal Aid': 'Hüquqi yardım',
+      'Community Development': 'İcmanın inkişafı',
+      'Youth Development': 'Gənclərin inkişafı',
+      'Elderly Care': 'Yaşlılara qayğı',
+      'Disability Rights': 'Əlillik hüquqları',
+      'LGBTQ+ Rights': 'LGBTQ+ hüquqları',
+      'Mental Health': 'Psixi sağlamlıq'
     }
+    return labels[val] || val
   };
 
-  const getCategoryColor = (category: string) => {
-    const colors: { [key: string]: string } = {
-      'Human Rights': 'bg-red-100 text-red-800',
-      'Women Rights': 'bg-pink-100 text-pink-800',
+  const getLocationTypeLabel = (type: string) => {
+    if (type === 'online') return 'Onlayn'
+    if (type === 'physical') return 'Fiziki'
+    if (type === 'hybrid') return 'Hibrid'
+    return type
+  }
+
+    const getCategoryColor = (category: string) => { const colors: { [key: string]: string } = { 'Human Rights': 'bg-red-100 text-red-800',
+      'Women Rights': 'bg-blue-100 text-blue-800',
       'Children Rights': 'bg-blue-100 text-blue-800',
       'Education': 'bg-green-100 text-green-800',
-      'Healthcare': 'bg-purple-100 text-purple-800',
+      'Healthcare': 'bg-cyan-100 text-cyan-800',
       'Environment': 'bg-emerald-100 text-emerald-800',
       'Poverty Alleviation': 'bg-orange-100 text-orange-800',
-      'Legal Aid': 'bg-indigo-100 text-indigo-800',
+      'Legal Aid': 'bg-sky-100 text-sky-800',
       'Community Development': 'bg-yellow-100 text-yellow-800',
       'Youth Development': 'bg-cyan-100 text-cyan-800',
       'Elderly Care': 'bg-gray-100 text-gray-800',
-      'Disability Rights': 'bg-violet-100 text-violet-800',
+      'Disability Rights': 'bg-teal-100 text-teal-800',
       'LGBTQ+ Rights': 'bg-rainbow-100 text-rainbow-800',
-      'Mental Health': 'bg-teal-100 text-teal-800'
-    }
-    return colors[category] || 'bg-gray-100 text-gray-800'
-  }
+      'Mental Health': 'bg-teal-100 text-teal-800' }
+    return colors[category] || 'bg-gray-100 text-gray-800' }
 
-  const isDeadlinePassed = (deadline: string) => {
-    if (!deadline) return false
-    return new Date(deadline) < new Date()
-  }
+  const isDeadlinePassed = (deadline: string) => { if (!deadline) return false
+    return new Date(deadline) < new Date() }
 
-  if (loading) {
-    return (
+  if (loading) { return (
       <LoadingState
-        text={t("events.loadingDetails") || "Loading event details..."}
-        gradientFrom="from-blue-50"
-        gradientVia="via-indigo-50"
-        gradientTo="to-purple-100"
-        spinnerColor="border-blue-500"
+        text={'Tədbir təfərrüatları yüklənir...'}
       />
-    )
-  }
+    ) }
 
-  if (error || !event) {
-    return (
+  if (error || !event) { return (
       <ErrorState
-        title={t("events.notFound") || "Event Not Found"}
-        message={error || t('events.notFoundMessage') || 'The event you are looking for does not exist.'}
+        title={'Tədbir tapılmadı'}
+        message={error || 'Axtardığın tədbir mövcud deyil.'}
         onRetry={() => router.back()}
-        retryText={t('events.goBack') || "Go Back"}
+        retryText={'Geri qayıt'}
         gradientFrom="from-red-50"
         gradientVia="via-orange-50"
         gradientTo="to-yellow-50"
       />
-    )
-  }
+    ) }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100">
-      {/* Animated Background */}
-      <AnimatedBackground
-        colors={{
-          blob1: 'bg-blue-300',
-          blob2: 'bg-indigo-300',
-          blob3: 'bg-purple-300'
-        }}
-      />
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
+      <section className="relative overflow-hidden pt-28 pb-14 md:pt-36 md:pb-20">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-40" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[480px] w-[820px] rounded-full bg-primary/10 blur-3xl" />
 
-      <div className="relative max-w-6xl mx-auto px-4 py-8">
-        {/* Breadcrumb Navigation */}
-        <div className="mb-6 animate-fade-in">
-          <Breadcrumb
-            items={[
-              { label: t('header.home') || 'Home', href: localePath('/') },
-              { label: t('header.events') || 'Events', href: localePath('/resources/events') },
-              { label: event.title, href: '#', current: true }
-            ]}
-          />
-        </div>
+        <div className="section-padding relative z-10">
+          <div className="mx-auto max-w-6xl">
+            <div className="mb-6">
+              <Breadcrumb
+                items={[
+                  { label: 'Ana Səhifə', href: localePath('/') },
+                  { label: 'Tədbirlər', href: localePath('/resources/events') },
+                  { label: event.title, href: '#', current: true }
+                ]}
+              />
+            </div>
 
-        {/* Back Button */}
-        <div className="mb-6 animate-fade-in animation-delay-200">
-          <Button
-            variant="outline"
-            onClick={() => router.back()}
-            className="inline-flex items-center gap-2 hover:scale-105 transition-transform border-2 border-blue-300 hover:bg-blue-50 hover:border-blue-400 font-semibold"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {t('events.backTo')}
-          </Button>
-        </div>
+            <div className="mb-6">
+              <Button
+                variant="outline"
+                onClick={() => router.back()}
+                className="inline-flex items-center gap-2 border-gray-200 bg-white text-gray-700 hover:border-blue-200 hover:bg-blue-50 hover:text-primary"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                {'Tədbirlərə qayıt'}
+              </Button>
+            </div>
 
-        {/* View Tracker */}
-        <ViewTracker itemId={event._id} itemType="event" />
-
-        {/* Header Card with Hero Image */}
-        <Card className="shadow-2xl mb-8 overflow-hidden border-2 border-blue-100 animate-scale-in">
+            <Card className="mb-8 overflow-hidden border border-gray-200 bg-white shadow-sm">
           {event.imageUrl && (
             <div className="relative h-80 sm:h-96 lg:h-[28rem] overflow-hidden group">
               <Image
@@ -235,46 +191,43 @@ export default function EventDetailPage() {
                 fill
                 className="object-cover group-hover:scale-105 transition-transform duration-500"
               />
-              {/* Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-blue-900/90 via-indigo-900/50 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/45 to-transparent"></div>
               
-              {/* Featured Badge */}
               {event.isFeatured && (
-                <div className="absolute top-6 right-6 px-4 py-2 bg-gradient-to-r from-yellow-300 to-yellow-500 rounded-xl shadow-xl animate-pulse">
-                  <span className="text-sm font-bold text-blue-900 flex items-center gap-2">
+                <div className="absolute top-6 right-6 rounded-xl border border-yellow-300 bg-yellow-100/95 px-4 py-2 shadow-lg">
+                  <span className="flex items-center gap-2 text-sm font-bold text-yellow-900">
                     <Sparkles className="w-4 h-4" />
-                    {t('events.featured')}
+                    {'Seçilmiş'}
                   </span>
                 </div>
               )}
 
-              {/* Content Overlay */}
               <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <div className="flex-1">
-                    <Badge variant="primary" className="text-sm mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 font-bold shadow-lg">
+                    <Badge variant="primary" className="mb-3 border border-white/30 bg-white/20 text-sm font-bold backdrop-blur-md">
                       {getCategoryLabel(event.category)}
                     </Badge>
-                    <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white mb-3 drop-shadow-lg">
+                    <h1 className="mb-3 text-3xl font-black text-white drop-shadow-lg sm:text-4xl lg:text-5xl">
                       {event.title}
                     </h1>
                     <div className="flex flex-wrap items-center gap-3 text-sm text-white/90">
-                      <span className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-md rounded-xl border border-white/30 shadow-lg font-semibold">
+                      <span className="flex items-center gap-2 rounded-xl border border-white/30 bg-white/20 px-4 py-2 font-semibold backdrop-blur-md">
                         <Users className="w-4 h-4" />
-                        {t('events.organizedBy')} {event.createdBy?._id ? (
+                        {'Təşkilatçı'} {event.createdBy?._id ? (
                           <Link 
-                            href={localePath(`/resources/ngos/${event.createdBy._id}`)}
+                            href={localePath(`/resources/organizations/${event.createdBy._id}`)}
                             className="text-white hover:text-yellow-300 transition-colors duration-200 hover:underline font-bold"
                           >
-                            {event.organizationName || event.createdBy?.name || t('events.unknown')}
+                            {event.organizationName || event.createdBy?.name || 'Naməlum'}
                           </Link>
                         ) : (
-                          <span className="font-bold">{event.organizationName || event.createdBy?.name || t('events.unknown')}</span>
+                          <span className="font-bold">{event.organizationName || event.createdBy?.name || 'Naməlum'}</span>
                         )}
                       </span>
-                      <span className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-md rounded-xl border border-white/30 shadow-lg font-semibold">
+                      <span className="flex items-center gap-2 rounded-xl border border-white/30 bg-white/20 px-4 py-2 font-semibold backdrop-blur-md">
                         <TrendingUp className="w-4 h-4" />
-                        {event.views || 0} {t('events.views')}
+                        {event.views || 0} {'baxış'}
                       </span>
                     </div>
                   </div>
@@ -285,7 +238,7 @@ export default function EventDetailPage() {
                       itemTitle={event.title}
                       size="lg"
                       showText={false}
-                      className="bg-white/20 backdrop-blur-md hover:bg-white/30 border-2 border-white/40 shadow-lg hover:scale-110 transition-all duration-300"
+                      className="border-2 border-white/40 bg-white/20 shadow-lg backdrop-blur-md transition-all duration-300 hover:scale-110 hover:bg-white/30"
                     />
                   </div>
                 </div>
@@ -294,28 +247,28 @@ export default function EventDetailPage() {
           )}
 
           {!event.imageUrl && (
-            <CardContent className="p-6 sm:p-8 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700">
+            <CardContent className="p-6 sm:p-8">
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex flex-wrap items-center gap-3 mb-4">
-                    <Badge variant="primary" className="text-sm bg-white/20 backdrop-blur-md text-white border border-white/30 font-bold">
+                    <Badge variant="primary" className="border border-blue-200 bg-blue-50 text-sm font-bold text-blue-700">
                       {getCategoryLabel(event.category)}
                     </Badge>
-                    <span className="text-sm text-white/90 flex items-center gap-2">
-                      <Users className="w-4 h-4" />
-                      {t('events.organizedBy')} {event.createdBy?._id ? (
+                    <span className="flex items-center gap-2 text-sm text-gray-700">
+                      <Users className="w-4 h-4 text-primary" />
+                      {'Təşkilatçı'} {event.createdBy?._id ? (
                         <Link 
-                          href={localePath(`/resources/ngos/${event.createdBy._id}`)}
-                          className="text-white hover:text-yellow-300 transition-colors duration-200 hover:underline font-bold"
+                          href={localePath(`/resources/organizations/${event.createdBy._id}`)}
+                          className="font-bold text-primary transition-colors duration-200 hover:text-blue-700 hover:underline"
                         >
-                          {event.organizationName || event.createdBy?.name || t('events.unknown')}
+                          {event.organizationName || event.createdBy?.name || 'Naməlum'}
                         </Link>
                       ) : (
-                        <span className="font-bold">{event.organizationName || event.createdBy?.name || t('events.unknown')}</span>
+                        <span className="font-bold">{event.organizationName || event.createdBy?.name || 'Naməlum'}</span>
                       )}
                     </span>
                   </div>
-                  <h1 className="text-3xl sm:text-4xl font-black text-white mb-4 drop-shadow-lg">{event.title}</h1>
+                  <h1 className="mb-4 text-3xl font-black text-gray-900 sm:text-4xl">{event.title}</h1>
                 </div>
                 <div className="flex items-center gap-2">
                   <SaveButton
@@ -324,25 +277,29 @@ export default function EventDetailPage() {
                     itemTitle={event.title}
                     size="lg"
                     showText={false}
-                    className="bg-white/20 backdrop-blur-md hover:bg-white/30 border-2 border-white/40"
+                    className="border border-blue-200 bg-blue-50 text-primary hover:bg-blue-100"
                   />
                 </div>
               </div>
             </CardContent>
           )}
-        </Card>
+            </Card>
+          </div>
+        </div>
+      </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+      <section className="section-padding pb-16 md:pb-20">
+        <div className="mx-auto max-w-6xl grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-12">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             {/* About Section */}
-            <Card className="shadow-xl border-2 border-blue-100 animate-fade-in">
+            <Card className="border border-gray-200 shadow-sm">
               <CardContent className="p-8">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <Tag className="w-6 h-6 text-white" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                    <Tag className="w-6 h-6 text-primary" />
                   </div>
-                  <h2 className="text-2xl font-black text-gray-900">{t('events.eventDescription')}</h2>
+                  <h2 className="text-2xl font-black text-gray-900">{'Tədbir Təsviri'}</h2>
                 </div>
                 <div className="prose max-w-none text-gray-700 leading-relaxed">
                   {event.description.split('\n').map((paragraph, index) => (
@@ -351,19 +308,19 @@ export default function EventDetailPage() {
                 </div>
 
                 {event.tags && event.tags.length > 0 && (
-                  <div className="mt-8 pt-6 border-t-2 border-blue-100">
+                  <div className="mt-8 border-t border-gray-200 pt-6">
                     <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow-md">
-                        <Tag className="h-4 w-4 text-white" />
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10">
+                        <Tag className="h-4 w-4 text-accent" />
                       </div>
-                      {t('events.tags')}
+                      {'Teglər'}
                     </h3>
                     <div className="flex flex-wrap gap-3">
                       {event.tags.map((tag, index) => (
                         <Badge
                           key={index}
                           variant="secondary"
-                          className="text-sm px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 font-semibold rounded-xl border-2 border-blue-200 shadow-sm hover:shadow-md hover:scale-105 transition-all duration-200"
+                          className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700"
                         >
                           #{tag}
                         </Badge>
@@ -377,18 +334,18 @@ export default function EventDetailPage() {
 
           {/* Sidebar */}
           <div className="space-y-8">
-            {/* {t('events.eventDetails')} */}
-            <Card className="shadow-xl border-2 border-blue-100 animate-fade-in animation-delay-200">
+            {/* {'Tədbir Məlumatları'} */}
+            <Card className="border border-gray-200 shadow-sm">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <Calendar className="w-6 h-6 text-white" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                    <Calendar className="w-6 h-6 text-primary" />
                   </div>
-                  <h3 className="text-xl font-black text-gray-900">{t('events.eventDetails')}</h3>
+                  <h3 className="text-xl font-black text-gray-900">{'Tədbir Məlumatları'}</h3>
                 </div>
                 <div className="space-y-5">
                   {/* View Count */}
-                  <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-100">
+                  <div className="flex items-start gap-4 rounded-xl border border-blue-100 bg-blue-50 p-4">
                     <ViewTracker
                       itemId={event._id}
                       itemType="event"
@@ -398,27 +355,27 @@ export default function EventDetailPage() {
                     />
                   </div>
 
-                  {/* {t('events.dateTime')} */}
-                  <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md">
-                      <Calendar className="h-5 w-5 text-white" />
+                  {/* {'Tarix və Saat'} */}
+                  <div className="flex items-start gap-4 rounded-xl border border-gray-200 bg-slate-50 p-4">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-100">
+                      <Calendar className="h-5 w-5 text-blue-600" />
                     </div>
                     <div>
                       <p className="font-bold text-gray-900 text-base">{formatDate(event.eventDate)}</p>
                       <p className="text-sm text-gray-600 font-medium">{formatTime(event.eventDate)}</p>
                       {event.endDate && (
-                        <p className="text-sm text-gray-600 mt-1">{t('events.until')}: {formatDate(event.endDate)} at {formatTime(event.endDate)}</p>
+                        <p className="text-sm text-gray-600 mt-1">{'tarixinədək'}: {formatDate(event.endDate)} saat {formatTime(event.endDate)}</p>
                       )}
                     </div>
                   </div>
 
-                  {/* {t('filters.location')} */}
-                  <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200">
-                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md">
-                      <MapPin className="h-5 w-5 text-white" />
+                  {/* {'Yer'} */}
+                  <div className="flex items-start gap-4 rounded-xl border border-gray-200 bg-slate-50 p-4">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-100">
+                      <MapPin className="h-5 w-5 text-emerald-600" />
                     </div>
                     <div>
-                      <p className="font-bold text-gray-900 capitalize text-base">{event.location.type}</p>
+                      <p className="font-bold text-gray-900 capitalize text-base">{getLocationTypeLabel(event.location.type)}</p>
                       {event.location.type === 'physical' && event.location.address && (
                         <p className="text-sm text-gray-600 font-medium">
                           {event.location.address}
@@ -433,7 +390,7 @@ export default function EventDetailPage() {
                           rel="noopener noreferrer"
                           className="text-sm text-blue-600 hover:text-blue-700 underline font-semibold mt-1 inline-block"
                         >
-                          {t('events.joinOnline')} →
+                          {'Onlayn Qoşul'} →
                         </a>
                       )}
                     </div>
@@ -441,38 +398,36 @@ export default function EventDetailPage() {
 
                   {/* Participants */}
                   {event.maxParticipants && (
-                    <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200">
-                      <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md">
-                        <Users className="h-5 w-5 text-white" />
+                    <div className="flex items-start gap-4 rounded-xl border border-gray-200 bg-slate-50 p-4">
+                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-100">
+                        <Users className="h-5 w-5 text-blue-600" />
                       </div>
                       <div>
-                        <p className="font-bold text-gray-900 text-base">{t('titles.participants')}</p>
+                        <p className="font-bold text-gray-900 text-base">{'İştirakçılar'}</p>
                         <p className="text-sm text-gray-600 font-medium">
-                          {event.currentParticipants} / {event.maxParticipants} {t('events.registered')}
+                          {event.currentParticipants} / {event.maxParticipants} {'qeydiyyatdan keçib'}
                         </p>
                       </div>
                     </div>
                   )}
 
-                  {/* {t('events.applicationDeadline')} */}
+                  {/* {'Müraciət üçün son tarix'} */}
                   {event.applicationDeadline && (
-                    <div className="flex items-start gap-4 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200">
-                      <div className={`w-10 h-10 bg-gradient-to-br ${
-                        isDeadlinePassed(event.applicationDeadline)
-                          ? 'from-red-500 to-red-600'
-                          : 'from-indigo-500 to-indigo-600'
-                      } rounded-xl flex items-center justify-center flex-shrink-0 shadow-md`}>
-                        <Clock className="h-5 w-5 text-white" />
+                    <div className="flex items-start gap-4 rounded-xl border border-gray-200 bg-slate-50 p-4">
+                      <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${ isDeadlinePassed(event.applicationDeadline)
+                          ? 'bg-red-100'
+                          : 'bg-blue-100' }`}>
+                        <Clock className={`h-5 w-5 ${ isDeadlinePassed(event.applicationDeadline)
+                            ? 'text-red-600'
+                            : 'text-blue-600' }`} />
                       </div>
                       <div>
-                        <p className="font-bold text-gray-900 text-base">{t('events.applicationDeadline')}</p>
-                        <p className={`text-sm font-semibold ${
-                          isDeadlinePassed(event.applicationDeadline) 
+                        <p className="font-bold text-gray-900 text-base">{'Müraciət üçün son tarix'}</p>
+                        <p className={`text-sm font-semibold ${ isDeadlinePassed(event.applicationDeadline) 
                             ? 'text-red-600' 
-                            : 'text-gray-600'
-                        }`}>
+                            : 'text-gray-600' }`}>
                           {formatDateTime(event.applicationDeadline)}
-                          {isDeadlinePassed(event.applicationDeadline) && ` (${t('events.deadlinePassed')})`}
+                          {isDeadlinePassed(event.applicationDeadline) && ` (${'Son tarix keçib'})`}
                         </p>
                       </div>
                     </div>
@@ -483,56 +438,55 @@ export default function EventDetailPage() {
 
             {/* Application Link */}
             {event.applicationLink && !isDeadlinePassed(event.applicationDeadline || '') && (
-              <Card className="shadow-xl border-2 border-blue-100 animate-fade-in animation-delay-400">
+              <Card className="border border-gray-200 shadow-sm">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                      <ExternalLink className="w-6 h-6 text-white" />
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                      <ExternalLink className="w-6 h-6 text-primary" />
                     </div>
-                    <h3 className="text-xl font-black text-gray-900">{t('events.applyNow')}</h3>
+                    <h3 className="text-xl font-black text-gray-900">{'Müraciət Et'}</h3>
                   </div>
                   <ButtonLink
                     href={event.applicationLink}
-                    variant="gradient-blue"
+                    variant="secondary"
                     size="lg"
                     icon={ExternalLink}
                     iconPosition="left"
-                    shadow="lg"
                     hoverEffect="scale"
                     className="w-full"
                     external
                   >
-                    {t('events.applyNow')}
+                    {'Müraciət Et'}
                   </ButtonLink>
                 </CardContent>
               </Card>
             )}
 
-            {/* {t('events.organizer')} Info */}
-            <Card className="shadow-xl border-2 border-blue-100 animate-fade-in animation-delay-600">
+            {/* {'Təşkilatçı'} Info */}
+            <Card className="border border-gray-200 shadow-sm">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <Users className="w-6 h-6 text-white" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10">
+                    <Users className="w-6 h-6 text-accent" />
                   </div>
-                  <h3 className="text-xl font-black text-gray-900">Organized by</h3>
+                  <h3 className="text-xl font-black text-gray-900">Təşkilatçı</h3>
                 </div>
                 <div className="space-y-4">
-                  <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-100">
+                  <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
                     <p className="font-bold text-gray-900 text-lg">
-                      {event.organizationName || 'Unknown Organization'}
+                      {event.organizationName || 'Naməlum təşkilat'}
                     </p>
-                    <p className="text-sm text-gray-600 font-medium mt-1">Contact: {event.createdBy?.name}</p>
+                    <p className="text-sm text-gray-600 font-medium mt-1">Əlaqə: {event.createdBy?.name}</p>
                   </div>
                   {event.createdBy?._id && (
                     <ButtonLink 
-                      href={`/resources/ngos/${event.createdBy._id}`}
+                      href={`/resources/organizations/${event.createdBy._id}`}
                       variant="outline"
                       size="sm"
                       className="w-full"
                       hoverEffect="scale"
                     >
-                      View Organization Profile
+                      Təşkilat profilinə bax
                     </ButtonLink>
                   )}
                 </div>
@@ -540,7 +494,6 @@ export default function EventDetailPage() {
             </Card>
           </div>
         </div>
-      </div>
+      </section>
     </div>
-  )
-}
+  ) }

@@ -1,42 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import dbConnect from '@/lib/mongoose'
-import NotificationModel from '@/lib/models/Notification'
+import { getServerSession } from '@/lib/auth/server'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    await dbConnect();
-    const session = await getServerSession(authOptions);
+    const supabase = createSupabaseAdminClient();
+    const session = await getServerSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const url = new URL(request.url);
     const unreadOnly = url.searchParams.get('unread') === 'true';
     
-    // Build query based on account type (NGO or User)
-    let query: any = {};
-    if (session.user.isApprovedNGO) {
-      query.ngoId = session.user.id;
+    // Build query based on account type (organization or user)
+    let query = supabase
+      .from('notifications')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (session.user.isApprovedOrganization) {
+      query = query.eq('organization_id', session.user.id);
     } else {
-      query.userId = session.user.id;
+      query = query.eq('user_id', session.user.id);
     }
     
-    if (unreadOnly) query.isRead = false;
+    if (unreadOnly) query = query.eq('is_read', false);
     
-    let notifications = await NotificationModel.find(query).sort({ createdAt: -1 }).lean();
+    const { data: notifications, error } = await query;
+    if (error) {
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
     
-    // Count unread notifications for the correct account type
-    const unreadCountQuery = session.user.isApprovedNGO 
-      ? { ngoId: session.user.id, isRead: false }
-      : { userId: session.user.id, isRead: false };
-    const unreadCount = await NotificationModel.countDocuments(unreadCountQuery);
+    let unreadCountQuery = supabase
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_read', false);
+    unreadCountQuery = session.user.isApprovedOrganization
+      ? unreadCountQuery.eq('organization_id', session.user.id)
+      : unreadCountQuery.eq('user_id', session.user.id);
+    const { count: unreadCount } = await unreadCountQuery;
     
     return NextResponse.json({
-      notifications,
-      unreadCount
+      notifications: notifications || [],
+      unreadCount: unreadCount || 0
     });
   } catch (error) {
     console.error('Notifications fetch error:', error);
@@ -46,8 +54,8 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    await dbConnect();
-    const session = await getServerSession(authOptions);
+    const supabase = createSupabaseAdminClient();
+    const session = await getServerSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -55,23 +63,25 @@ export async function PUT(request: NextRequest) {
     const { notificationId, markAllAsRead, isRead } = body;
     
     // Build query based on account type
-    const ownerQuery = session.user.isApprovedNGO 
-      ? { ngoId: session.user.id }
-      : { userId: session.user.id };
+    const ownerColumn = session.user.isApprovedOrganization ? 'organization_id' : 'user_id';
+    const ownerId = session.user.id;
     
     if (markAllAsRead) {
-      await NotificationModel.updateMany(
-        { ...ownerQuery, isRead: false }, 
-        { $set: { isRead: true } }
-      );
+      await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq(ownerColumn, ownerId)
+        .eq('is_read', false);
       return NextResponse.json({ message: 'All notifications marked as read' });
     } else if (notificationId && typeof isRead === 'boolean') {
-      const updated = await NotificationModel.findOneAndUpdate(
-        { _id: notificationId, ...ownerQuery },
-        { isRead },
-        { new: true }
-      );
-      if (!updated) {
+      const { data: updated, error } = await supabase
+        .from('notifications')
+        .update({ is_read: isRead })
+        .eq('id', notificationId)
+        .eq(ownerColumn, ownerId)
+        .select('*')
+        .single();
+      if (error || !updated) {
         return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
       }
       return NextResponse.json({
@@ -88,8 +98,8 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    await dbConnect();
-    const session = await getServerSession(authOptions);
+    const supabase = createSupabaseAdminClient();
+    const session = await getServerSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -100,11 +110,12 @@ export async function DELETE(request: NextRequest) {
     }
     
     // Build query based on account type
-    const ownerQuery = session.user.isApprovedNGO 
-      ? { ngoId: session.user.id }
-      : { userId: session.user.id };
-    
-    await NotificationModel.findOneAndDelete({ _id: notificationId, ...ownerQuery });
+    const ownerColumn = session.user.isApprovedOrganization ? 'organization_id' : 'user_id';
+    await supabase
+      .from('notifications')
+      .delete()
+      .eq('id', notificationId)
+      .eq(ownerColumn, session.user.id);
     return NextResponse.json({ message: 'Notification deleted successfully' });
   } catch (error) {
     console.error('Notification delete error:', error);

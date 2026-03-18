@@ -1,43 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import dbConnect from '@/lib/mongoose'
-import User from '@/lib/models/User'
-import NGO from '@/lib/models/NGO'
-import Blog from '@/lib/models/Blog'
-import UserAnalytics from '@/lib/models/UserAnalytics'
-
-import mongoose from 'mongoose'
+import { getServerSession } from '@/lib/auth/server'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { cache, generateCacheKey, withCache } from '@/lib/cache'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    await dbConnect();
-    const session = await getServerSession(authOptions);
+    const supabase = createSupabaseAdminClient();
+    const session = await getServerSession();
     console.log('Profile Stats GET - Session:', { userId: session?.user?.id, email: session?.user?.email, role: session?.user?.role });
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Redirect NGO users - they should use NGO-specific endpoints
-    if (session.user.isApprovedNGO) {
+    // Redirect organization users - they should use organization-specific endpoints
+    if (session.user.isApprovedOrganization) {
       return NextResponse.json({ 
-        error: 'NGO stats should use /api/ngo/stats endpoint',
-        redirect: '/api/ngo/stats'
+        error: 'Organization stats should use /api/organization/stats endpoint',
+        redirect: '/api/organization/stats'
       }, { status: 400 });
     }
     
-    const user = await User.findById(session.user.id);
-    
-    if (!user) {
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, created_at, updated_at')
+      .eq('id', session.user.id)
+      .single();
+
+    if (userError || !user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-
-    // Get or create user analytics
-    let userAnalytics = await UserAnalytics.findOne({ userId: session.user.id });
 
     // Generate cache key for user stats
     const cacheKey = generateCacheKey.userStats(session.user.id);
@@ -48,45 +42,21 @@ export async function GET(request: NextRequest) {
       cacheKey,
       async () => {
         // Optimized: Use fewer, more efficient aggregation queries
-        const [
-          storyStats,
-          recentActivity,
-          activityStats
-        ] = await Promise.all([
-      // Combined blog statistics in single aggregation
-      Blog.aggregate([
-        { $match: { author: new mongoose.Types.ObjectId(session.user.id) } },
-        {
-          $group: {
-            _id: null,
-            totalStories: { $sum: 1 },
-            approvedStories: {
-              $sum: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] }
-            },
-            totalViews: { $sum: '$views' },
-            totalUniqueViews: { $sum: '$uniqueViews' },
-            totalLikes: { $sum: '$likes' }
-          }
-        }
-      ]),
+        const { data: blogs } = await supabase
+          .from('blogs')
+          .select('status, views, unique_views, likes')
+          .eq('author_id', session.user.id);
 
-      // Recent activity removed - returning empty array
-      Promise.resolve([]),
+        const blogRows = blogs || [];
+        const approvedStories = blogRows.filter(blog => blog.status === 'approved').length;
+        const totalViews = blogRows.reduce((sum, blog) => sum + (blog.views || 0), 0);
+        const totalUniqueViews = blogRows.reduce((sum, blog) => sum + (blog.unique_views || 0), 0);
+        const totalLikes = blogRows.reduce((sum, blog) => sum + (blog.likes || 0), 0);
 
-      // Activity statistics removed - returning default stats
-      Promise.resolve({ totalActivities: 0, streak: 0, lastActivity: null })
-    ]);
-
-    // Extract stats with defaults
-    const blogs = storyStats[0] || {};
+        const recentActivity: string[] = [];
 
     // Calculate metrics from aggregated data
     const totalWordCount = 0;
-
-    // Calculate total views and likes from aggregated data
-    const totalViews = blogs.totalViews || 0;
-    const totalUniqueViews = blogs.totalUniqueViews || 0;
-    const totalLikes = blogs.totalLikes || 0;
 
     // Calculate writing streak from activity data
     const activityDates = recentActivity.map(item =>
@@ -111,14 +81,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Calculate productivity score using the UserAnalytics static method
-    const productivityScore = userAnalytics ?
-      (UserAnalytics as any).calculateProductivityScore({
-        
-        totalStories: blogs.length,
-        writingStreak,
-        avgEngagementRate: totalViews > 0 ? (totalLikes / totalViews) * 100 : 0,
-        totalWordCount
-      }) : 0;
+    const productivityScore = 0;
 
     // Generate achievements
     const achievements = [];
@@ -160,15 +123,15 @@ export async function GET(request: NextRequest) {
 
         return {
           // Basic counts from aggregated data
-          totalStories: blogs.approvedStories || 0,
+          totalStories: approvedStories || 0,
           
           totalViews,
           totalUniqueViews,
           totalLikes,
 
           // User info
-          joinedDate: (user as any).createdAt,
-          lastActive: (user as any).updatedAt,
+          joinedDate: user.created_at,
+          lastActive: user.updated_at,
 
           // Writing metrics
           writingStreak,
@@ -180,7 +143,7 @@ export async function GET(request: NextRequest) {
 
           // Content breakdown from aggregated data
           contentByStatus: {
-            approved: blogs.approvedStories || 0,
+            approved: approvedStories || 0,
             pending: 0, // Would need separate query if needed
             rejected: 0 // Would need separate query if needed
           },

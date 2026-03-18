@@ -10,12 +10,12 @@
 
 2. Dashboard
 - `app/dashboard/events/create/page.tsx`: replace `router.push('/dashboard/events?created=true')` with `useLocalizedPath` and localize success/error messages.
-- Other dashboard pages (events edit, NGOs dashboard if present): convert navigations and labels to `t('...')`.
+- Other dashboard pages (events edit, Organizations dashboard if present): convert navigations and labels to `t('...')`.
 
 3. Listings & Detail Pages
 - `app/resources/events/page.tsx`: ensure all per-card `Link` anchors use `useLocalizedPath` (primary card link). Verify we updated the button link already.
 - `app/resources/vacancies/page.tsx`: normalize any per-card internal links and localize category/type labels if literals remain.
-- `app/resources/ngos/page.tsx`: confirm all CTA/profile links use `useLocalizedPath` and localize remaining literals.
+- `app/resources/organizations/page.tsx`: confirm all CTA/profile links use `useLocalizedPath` and localize remaining literals.
 - `app/blogs/page.tsx`: confirm list uses `BlogCard` (now localized) and localize any remaining page-level strings.
 - `app/resources/materials/page.tsx`: confirm CTA links localized; ensure any page-level literals are under `t('resources.materials.*')`.
 
@@ -27,7 +27,7 @@
 
 ## Verification
 - Navigate admin and dashboard flows in both languages; confirm redirects respect language prefix and UI strings are localized.
-- Test listings (events/vacancies/ngos) and detail pages’ links; confirm language prefix and localized labels.
+- Test listings (events/vacancies/organizations) and detail pages’ links; confirm language prefix and localized labels.
 - Fix any missing keys discovered.
 
 ## Deliverables

@@ -1,42 +1,35 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
-import { Calendar, MapPin, Users, ExternalLink, Clock, Tag, Search, X } from 'lucide-react';
+import { Calendar, MapPin, Users, ExternalLink, Clock, Search, X, Sparkles, ArrowRight } from 'lucide-react';
 import { Button, ButtonLink } from '@/components/ui';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import { useLanguage } from '@/contexts/LanguageContext';
 import SaveButton from '@/components/SaveButton';
 import { useLocalizedPath } from '@/lib/useLocalizedPath';
 import { LoadingState, ErrorState, ResourceFilterContainer, ActiveFilterBadges } from '@/components/shared';
 
-interface Event {
-  _id: string
+interface Event { _id: string
   title: string
   description: string
   category: string
   eventType: 'event' | 'training' | 'workshop' | 'conference' | 'seminar'
   eventDate: string
   endDate?: string
-  location: {
-    type: 'online' | 'physical' | 'hybrid'
+  location: { type: 'online' | 'physical' | 'hybrid'
     address?: string
     city?: string
     country?: string
-    onlineLink?: string
-  }
+    onlineLink?: string }
   applicationLink?: string
   applicationDeadline?: string
   maxParticipants?: number
   currentParticipants: number
   tags: string[]
   imageUrl?: string
-  createdBy: {
-    _id: string
-    name: string
-  }
+  createdBy: { _id: string
+    name: string }
   organizationName?: string
   isApproved: boolean
   isPublished: boolean
@@ -45,36 +38,24 @@ interface Event {
   views?: number
   // Training-specific fields
   duration?: string
-  schedule?: {
-    startTime: string
+  schedule?: { startTime: string
     endTime: string
-    timezone?: string
-  }
+    timezone?: string }
   prerequisites?: string[]
   learningOutcomes?: string[]
-  certification?: {
-    provided: boolean
+  certification?: { provided: boolean
     type?: string
-    accreditedBy?: string
-  }
-  cost?: {
-    isFree: boolean
+    accreditedBy?: string }
+  cost?: { isFree: boolean
     amount?: number
     currency?: string
-    scholarshipAvailable?: boolean
-  }
+    scholarshipAvailable?: boolean }
   targetAudience?: string[]
-  syllabus?: {
-    modules: Array<{
-      title: string
+  syllabus?: { modules: Array<{ title: string
       description: string
-      duration: string
-    }>
-  }
-}
+      duration: string }> } }
 
 export default function EventsPage() {
-  const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLocation, setSelectedLocation] = useState('all');
@@ -85,29 +66,15 @@ export default function EventsPage() {
   const localePath = useLocalizedPath()
   const [error, setError] = useState('');
 
-  const fetchEvents = useCallback(async () => {
-    try {
-      setLoading(true);
+  const fetchEvents = useCallback(async () => { try { setLoading(true);
       const url = '/api/events?status=approved&limit=50';
       
       const response = await fetch(url);
-      if (response.ok) {
-        const data = await response.json();
-        setEvents(data.events || []);
-      } else {
-        setError(t('events.errorFetching'));
-      }
-    } catch (error) {
-      console.error('Error fetching events:', error);
-      setError(t('events.errorLoading'));
-    } finally {
-      setLoading(false);
-    }
-  }, [t]);
+      if (response.ok) { const data = await response.json();
+        setEvents(data.events || []); } else { setError('Tədbirlər yüklənmədi. Bir az sonra yenidən cəhd et.'); } } catch (error) { console.error('Error fetching events:', error);
+      setError('Tədbirlər yüklənərkən xəta baş verdi. Bir az sonra yenidən cəhd et.'); } finally { setLoading(false); } }, []);
 
-  useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
+  useEffect(() => { fetchEvents(); }, [fetchEvents]);
 
   const categories = [
     'all', 'Advocacy', 'Awareness', 'Capacity Building', 'Community Outreach',
@@ -130,43 +97,25 @@ export default function EventsPage() {
       .replace(/^_+|_+$/g, '')
       .replace(/_+/g, '_');
 
-  const getCategoryLabel = (val: string) => {
-    if (val === 'all') return t('filters.allCategories');
-    const key = slugifyCategory(val);
-    try {
-      const translated = (t(`events.categories.${key}` as any) as string) || val;
-      return translated;
-    } catch {
-      return val;
-    }
-  };
+  const getCategoryLabel = (val: string) => { if (val === 'all') return 'Bütün Kateqoriyalar';
+    return val; };
 
-  const getLocationLabel = (val: string) => {
-    if (val === 'all') return t('filters.allLocations');
-    if (val === 'Online') return t('events.online');
-    if (val.toLowerCase() === 'baku') return t('charts.regions.baku');
-    if (val.toLowerCase() === 'ganja') return t('charts.regions.ganja');
-    if (val.toLowerCase() === 'sumgayit') return t('charts.regions.sumqayit');
-    if (val.toLowerCase() === 'other') return t('charts.regions.otherRegions');
-    return val;
-  };
+  const getLocationLabel = (val: string) => { if (val === 'all') return 'Bütün Yerlər';
+    if (val === 'Online') return 'Onlayn';
+    if (val.toLowerCase() === 'baku') return 'Bakı';
+    if (val.toLowerCase() === 'ganja') return 'Gəncə';
+    if (val.toLowerCase() === 'sumgayit') return 'Sumqayıt';
+    if (val.toLowerCase() === 'other') return 'Digər Regionlar';
+    return val; };
 
   const getMonthLabel = (val: string) =>
-    val === 'all' ? t('filters.allMonths') : (t(`events.months.${val}` as any) as string || val);
+    val === 'all' ? 'Bütün Aylar' : val;
 
-  const getEventTypeLabel = (val: string) => {
-    if (val === 'all') return t('filters.allTypes');
-    try {
-      // use events.type.<key> if available
-      return (t(`events.type.${val}` as any) as string) || (val.charAt(0).toUpperCase() + val.slice(1));
-    } catch {
-      return val.charAt(0).toUpperCase() + val.slice(1);
-    }
-  };
+  const getEventTypeLabel = (val: string) => { if (val === 'all') return 'Bütün növlər';
+    return val.charAt(0).toUpperCase() + val.slice(1); };
 
   // Filter events based on search and filters
-  const filteredData = events.filter(event => {
-  const organizationName = event.organizationName || event.createdBy?.name || t('common.unknown');
+  const filteredData = events.filter(event => { const organizationName = event.organizationName || event.createdBy?.name || 'Naməlum';
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          event.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -199,57 +148,42 @@ export default function EventsPage() {
                         (selectedMonth === 'November' && eventMonth === 10) ||
                         (selectedMonth === 'December' && eventMonth === 11);
     
-    return matchesSearch && matchesCategory && matchesEventType && matchesLocation && matchesMonth;
-  });
+    return matchesSearch && matchesCategory && matchesEventType && matchesLocation && matchesMonth; });
 
-  const getCategoryColor = (category: string) => {
-    const colors = {
-      'Celebration': 'bg-pink-100 text-pink-800',
-      'Festival': 'bg-purple-100 text-purple-800',
+    const getCategoryColor = (category: string) => { const colors = { 'Celebration': 'bg-blue-100 text-blue-800',
+      'Festival': 'bg-cyan-100 text-cyan-800',
       'Summit': 'bg-blue-100 text-blue-800',
       'Workshop': 'bg-green-100 text-green-800',
-      'Conference': 'bg-indigo-100 text-indigo-800',
+      'Conference': 'bg-blue-100 text-blue-800',
       'Digital Skills': 'bg-cyan-100 text-cyan-800',
       'Legal Training': 'bg-amber-100 text-amber-800',
-      'Leadership': 'bg-red-100 text-red-800'
-    };
-    return (colors as Record<string, string>)[category] || 'bg-gray-100 text-gray-800';
-  };
+      'Leadership': 'bg-red-100 text-red-800' };
+    return (colors as Record<string, string>)[category] || 'bg-gray-100 text-gray-800'; };
 
-  const isDeadlineNear = (deadline: string) => {
-    const deadlineDate = new Date(deadline);
+  const isDeadlineNear = (deadline: string) => { const deadlineDate = new Date(deadline);
     const today = new Date();
     const diffTime = deadlineDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays <= 3 && diffDays > 0;
-  };
+    return diffDays <= 3 && diffDays > 0; };
 
-  const isDeadlinePassed = (deadline: string) => {
-    const deadlineDate = new Date(deadline);
+  const isDeadlinePassed = (deadline: string) => { const deadlineDate = new Date(deadline);
     const today = new Date();
-    return deadlineDate < today;
-  };
+    return deadlineDate < today; };
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return t('events.locationTBD');
+  const formatDate = (dateString: string) => { if (!dateString) return 'Yer dəqiqləşdiriləcək';
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return t('common.unknown');
+    if (isNaN(date.getTime())) return 'Naməlum';
     const day = date.getDate().toString().padStart(2, '0');
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const year = date.getFullYear();
-    return `${day}.${month}.${year}`;
-  };
+    return `${day}.${month}.${year}`; };
 
-  const formatDateRange = (startDate: string, endDate?: string) => {
-    const start = new Date(startDate);
+  const formatDateRange = (startDate: string, endDate?: string) => { const start = new Date(startDate);
     const end = endDate ? new Date(endDate) : null;
     
-    if (!end || start.toDateString() === end.toDateString()) {
-      return formatDate(startDate);
-    }
+    if (!end || start.toDateString() === end.toDateString()) { return formatDate(startDate); }
     
-    return `${formatDate(startDate)} - ${formatDate(endDate!)}`;
-  };
+    return `${formatDate(startDate)} - ${formatDate(endDate!)}`; };
 
   const hasActiveFilters =
     searchTerm.trim() !== '' ||
@@ -258,77 +192,74 @@ export default function EventsPage() {
     selectedMonth !== 'all' ||
     selectedEventType !== 'all';
 
-  if (loading) {
-    return (
+  if (loading) { return (
       <LoadingState 
-        text={t('common.loading')}
-        gradientFrom="from-indigo-50"
-        gradientVia="via-purple-50"
-        gradientTo="to-pink-50"
-        spinnerColor="border-indigo-600"
+        text={'Yüklənir'}
       />
-    );
-  }
+    ); }
 
   return (
-    <div className="min-h-screen bg-gray-50 transition-colors duration-200">
-      {/* Header */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-900 text-white py-16 sm:py-20 lg:py-24">
-        {/* Animated Blobs */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full mix-blend-overlay filter blur-3xl opacity-50 animate-blob"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full mix-blend-overlay filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-white/10 rounded-full mix-blend-overlay filter blur-3xl opacity-50 animate-blob animation-delay-4000"></div>
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
+      <section className="relative overflow-hidden pt-28 pb-20 md:pt-36 md:pb-24">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-40" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[480px] w-[820px] rounded-full bg-primary/10 blur-3xl" />
 
         <div className="section-padding relative z-10">
-          <div className="max-w-5xl mx-auto text-center">
-            
+          <div className="mx-auto max-w-5xl text-center">
+            <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-medium text-gray-600 mb-8">
+              <Sparkles size={14} className="text-accent" />
+              {'Tədbirlər'}
+            </div>
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black mb-4 sm:mb-6 leading-tight animate-slide-up px-4">
-              {t('events.title')}
+            <h1 className="mx-auto max-w-4xl text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-gray-900 leading-tight">
+              {'Tədbirlər'}
             </h1>
-            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/95 leading-relaxed max-w-3xl mx-auto animate-fade-in px-4">
-              {t('events.subtitle')}
+            <p className="mx-auto mt-6 max-w-3xl text-lg sm:text-xl text-gray-600 leading-relaxed">
+              {'Gender bərabərliyini və sağ qalanlara dəstəyi gücləndirən icma tədbirlərini, təlimləri və proqramları kəşf et.'}
             </p>
+
+            <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+              <ButtonLink href={localePath('/submit')} variant="secondary" size="lg" hoverEffect="scale">
+                {'Bloq Paylaş'}
+              </ButtonLink>
+              <ButtonLink href={localePath('/resources')} variant="outline" size="lg" hoverEffect="scale">
+                {'Fürsətləri Kəşf Et'}
+              </ButtonLink>
+            </div>
           </div>
         </div>
-
       </section>
 
       {/* Main Content */}
-      <section className="section-padding py-16">
+      <section className="section-padding py-14 md:py-16">
         <div className="max-w-7xl mx-auto">
           {/* Search and Filters - Standardized Design */}
           <ResourceFilterContainer
-            title={t('common.filterSearch')}
-            subtitle={t('events.refineYourSearch')}
-            iconGradient="from-blue-600 to-indigo-600"
+            title={'Filtrlə və Axtar'}
+            subtitle={'Filtrləri dəqiqləşdir və hədəfinə uyğun tədbirlər tap.'}
+            iconGradient="from-blue-600 to-emerald-600"
             borderColor="border-blue-100"
-            searchInput={
-              <Input
+            searchInput={ <Input
                 type="text"
-                label={t('common.search')}
-                placeholder={t('events.searchPlaceholder')}
+                label={'Axtar'}
+                placeholder={'Başlıq, təşkilatçı və ya təsvir üzrə axtar...'}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 icon={Search}
                 iconPosition="left"
                 inputSize="md"
-                aria-label={t('events.searchAria')}
-              />
-            }
-            filterControls={
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                aria-label={'Tədbirləri axtar'}
+              /> }
+            filterControls={ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
                 {/* Category Filter */}
                 <div>
                   <Select 
-                    label={t('filters.category')}
+                    label={'Kateqoriya'}
                     value={selectedCategory} 
                     onChange={(e) => setSelectedCategory(e.target.value)}
-                    options={categories.map(category => ({
-                      value: category,
-                      label: getCategoryLabel(category)
-                    }))}
-                    placeholder={t('filters.allCategories')}
+                    options={categories.map(category => ({ value: category,
+                      label: getCategoryLabel(category) }))}
+                    placeholder={'Bütün Kateqoriyalar'}
                     selectSize="md"
                   />
                 </div>
@@ -336,14 +267,12 @@ export default function EventsPage() {
                 {/* Location Filter */}
                 <div>
                   <Select 
-                    label={t('filters.location')}
+                    label={'Yer'}
                     value={selectedLocation} 
                     onChange={(e) => setSelectedLocation(e.target.value)}
-                    options={locations.map(location => ({
-                      value: location,
-                      label: getLocationLabel(location)
-                    }))}
-                    placeholder={t('filters.allLocations')}
+                    options={locations.map(location => ({ value: location,
+                      label: getLocationLabel(location) }))}
+                    placeholder={'Bütün Yerlər'}
                     selectSize="md"
                   />
                 </div>
@@ -351,14 +280,12 @@ export default function EventsPage() {
                 {/* Month Filter */}
                 <div>
                   <Select 
-                    label={t('filters.month')}
+                    label={'Ay'}
                     value={selectedMonth} 
                     onChange={(e) => setSelectedMonth(e.target.value)}
-                    options={months.map(month => ({
-                      value: month,
-                      label: getMonthLabel(month)
-                    }))}
-                    placeholder={t('filters.allMonths')}
+                    options={months.map(month => ({ value: month,
+                      label: getMonthLabel(month) }))}
+                    placeholder={'Bütün Aylar'}
                     selectSize="md"
                   />
                 </div>
@@ -366,69 +293,54 @@ export default function EventsPage() {
                 {/* Event Type Filter */}
                 <div>
                   <Select 
-                    label={t('filters.type')}
+                    label={'Növ'}
                     value={selectedEventType} 
                     onChange={(e) => setSelectedEventType(e.target.value)}
-                    options={eventTypes.map(type => ({
-                      value: type,
-                      label: getEventTypeLabel(type)
-                    }))}
-                    placeholder={t('filters.allTypes')}
+                    options={eventTypes.map(type => ({ value: type,
+                      label: getEventTypeLabel(type) }))}
+                    placeholder={'Bütün növlər'}
                     selectSize="md"
                   />
                 </div>
-              </div>
-            }
-            activeFilters={
-              hasActiveFilters ? (
+              </div> }
+            activeFilters={ hasActiveFilters ? (
                 <ActiveFilterBadges
                   badges={[
-                    ...(selectedCategory !== 'all' ? [{
-                      id: 'category',
-                      label: t('filters.category'),
+                    ...(selectedCategory !== 'all' ? [{ id: 'category',
+                      label: 'Kateqoriya',
                       value: getCategoryLabel(selectedCategory),
                       onRemove: () => setSelectedCategory('all'),
-                      colorScheme: 'indigo' as const,
-                    }] : []),
-                    ...(selectedLocation !== 'all' ? [{
-                      id: 'location',
-                      label: t('filters.location'),
+                      colorScheme: 'teal' as const, }] : []),
+                    ...(selectedLocation !== 'all' ? [{ id: 'location',
+                      label: 'Yer',
                       value: getLocationLabel(selectedLocation),
                       onRemove: () => setSelectedLocation('all'),
-                      colorScheme: 'teal' as const,
-                    }] : []),
-                    ...(selectedMonth !== 'all' ? [{
-                      id: 'month',
-                      label: t('filters.month'),
+                      colorScheme: 'blue' as const, }] : []),
+                    ...(selectedMonth !== 'all' ? [{ id: 'month',
+                      label: 'Ay',
                       value: getMonthLabel(selectedMonth),
                       onRemove: () => setSelectedMonth('all'),
-                      colorScheme: 'purple' as const,
-                    }] : []),
-                    ...(selectedEventType !== 'all' ? [{
-                      id: 'eventType',
-                      label: t('filters.type'),
+                      colorScheme: 'indigo' as const, }] : []),
+                    ...(selectedEventType !== 'all' ? [{ id: 'eventType',
+                      label: 'Növ',
                       value: getEventTypeLabel(selectedEventType),
                       onRemove: () => setSelectedEventType('all'),
-                      colorScheme: 'amber' as const,
-                    }] : []),
+                      colorScheme: 'blue' as const, }] : []),
                   ]}
-                  onClearAll={() => {
-                    setSearchTerm('');
+                  onClearAll={() => { setSearchTerm('');
                     setSelectedCategory('all');
                     setSelectedLocation('all');
                     setSelectedMonth('all');
-                    setSelectedEventType('all');
-                  }}
+                    setSelectedEventType('all'); }}
                 />
-              ) : undefined
-            }
+              ) : undefined }
           />
 
           {/* Loading State */}
           {loading && (
             <div className="text-center py-12 animate-fade-in">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600"></div>
-              <p className="mt-4 text-gray-600 font-medium">{t('common.loading')}</p>
+              <p className="mt-4 text-gray-600 font-medium">{'Yüklənir'}</p>
             </div>
           )}
 
@@ -445,7 +357,7 @@ export default function EventsPage() {
                 shadow="lg"
                 hoverEffect="scale"
               >
-                {t('common.tryAgain')}
+                {'Yenidən cəhd edin'}
               </Button>
             </div>
           )}
@@ -454,17 +366,16 @@ export default function EventsPage() {
           {!loading && !error && (
             <>
               {filteredData.length === 0 ? (
-                <div className="text-center py-16 animate-fade-in mt-12">
-                  <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="text-center py-16 mt-12 rounded-2xl border border-gray-200 bg-white shadow-sm">
+                  <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Calendar className="w-10 h-10 text-gray-400" />
                   </div>
-                  <p className="text-gray-600 text-lg mb-2 font-semibold">{t('events.noEventsFound')}</p>
-                  <p className="text-gray-500">{t('events.noEventsMessage')}</p>
+                  <p className="text-gray-600 text-lg mb-2 font-semibold">{'Tədbir tapılmadı.'}</p>
+                  <p className="text-gray-500">{'Axtarış və ya filtrləri dəyişməyi sına.'}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12">
-                  {filteredData.map((event) => {
-                    const organizationName = event.organizationName || event.createdBy?.name || t('common.unknown');
+                  {filteredData.map((event) => { const organizationName = event.organizationName || event.createdBy?.name || 'Naməlum';
                     const hasDeadline = event.applicationDeadline;
                     const deadlinePassed = hasDeadline ? isDeadlinePassed(event.applicationDeadline!) : false;
                     const deadlineNear = hasDeadline ? isDeadlineNear(event.applicationDeadline!) : false;
@@ -472,7 +383,7 @@ export default function EventsPage() {
                     return (
                       <article 
                         key={event._id} 
-                        className="group relative overflow-hidden bg-gradient-to-br from-white to-blue-50/50 rounded-2xl border-2 border-gray-200 hover:border-blue-500 p-6 transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 flex flex-col"
+                        className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 flex flex-col"
                       >
                         {/* Shine Effect */}
                         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none">
@@ -480,7 +391,7 @@ export default function EventsPage() {
                         </div>
 
                         {/* Gradient Overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-transparent to-indigo-500/0 opacity-0 group-hover:opacity-10 transition-opacity duration-500"></div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-transparent to-emerald-500/0 opacity-0 group-hover:opacity-10 transition-opacity duration-500"></div>
 
                         <div className="relative z-10 flex flex-col h-full">
                           {/* Icon Section with Image */}
@@ -493,7 +404,7 @@ export default function EventsPage() {
                                 className="object-cover group-hover:scale-110 transition-transform duration-500"
                               />
                             ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-blue-500 to-indigo-700 flex items-center justify-center">
+                              <div className="w-full h-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
                                 <Calendar className="w-7 h-7 text-white" />
                               </div>
                             )}
@@ -504,7 +415,7 @@ export default function EventsPage() {
                             <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg">
                               {getCategoryLabel(event.category)}
                             </span>
-                            <span className="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-lg">
+                            <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-lg">
                               {event.eventType ? getEventTypeLabel(event.eventType) : getEventTypeLabel('event')}
                             </span>
                           </div>
@@ -521,7 +432,7 @@ export default function EventsPage() {
                           </div>
                           
                           {/* Title */}
-                          <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                          <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-primary transition-colors">
                             {event.title}
                           </h3>
 
@@ -542,8 +453,8 @@ export default function EventsPage() {
                             <div className="flex items-center gap-2 text-sm">
                               <MapPin className="w-4 h-4 text-blue-600 flex-shrink-0" />
                               <span className="text-gray-700 font-medium truncate">
-                                {event.location.type === 'online' ? t('events.online') : 
-                                 event.location.city || event.location.address || t('events.locationTBD')}
+                                {event.location.type === 'online' ? 'Onlayn' : 
+                                 event.location.city || event.location.address || 'Yer dəqiqləşdiriləcək'}
                               </span>
                             </div>
 
@@ -556,18 +467,14 @@ export default function EventsPage() {
                             {/* Deadline - if exists */}
                             {hasDeadline && (
                               <div className="flex items-center gap-2 text-sm">
-                                <Clock className={`w-4 h-4 flex-shrink-0 ${
-                                  deadlinePassed ? 'text-red-600' :
+                                <Clock className={`w-4 h-4 flex-shrink-0 ${ deadlinePassed ? 'text-red-600' :
                                   deadlineNear ? 'text-orange-600' :
-                                  'text-green-600'
-                                }`} />
-                                <span className={`font-medium ${
-                                  deadlinePassed ? 'text-red-600' :
+                                  'text-green-600' }`} />
+                                <span className={`font-medium ${ deadlinePassed ? 'text-red-600' :
                                   deadlineNear ? 'text-orange-600' :
-                                  'text-green-600'
-                                }`}>
+                                  'text-green-600' }`}>
                                   {formatDate(event.applicationDeadline!)}
-                                  {deadlinePassed && ` (${t('events.passed')})`}
+                                  {deadlinePassed && ` (${'Keçib'})`}
                                 </span>
                               </div>
                             )}
@@ -593,13 +500,13 @@ export default function EventsPage() {
                           <div className="flex gap-2 pt-4 border-t border-gray-200 mt-auto">
                             <ButtonLink 
                               href={localePath(`/resources/events/${event._id}`)}
-                              variant="gradient-blue"
+                              variant="secondary"
                               size="sm"
                               className="flex-1"
                               shadow="sm"
                               hoverEffect="scale"
                             >
-                              {t('events.viewDetails')}
+                              {'Ətraflı bax'}
                             </ButtonLink>
                             {event.applicationLink && !deadlinePassed && (
                               <ButtonLink
@@ -615,8 +522,7 @@ export default function EventsPage() {
                           </div>
                         </div>
                       </article>
-                    );
-                  })}
+                    ); })}
                 </div>
               )}
             </>
@@ -625,51 +531,47 @@ export default function EventsPage() {
           {/* Results Count */}
           {!loading && !error && filteredData.length > 0 && (
             <div className="text-center mt-8 text-gray-600 font-medium">
-              {t('events.showingResults', { count: filteredData.length, total: events.length })}
+              {`${events.length} tədbirdən ${filteredData.length} göstərilir`}
             </div>
           )}
         </div>
       </section>
 
-      {/* Call to Action */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 text-white py-16">
-        {/* Animated Background Blobs */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full mix-blend-overlay filter blur-3xl opacity-50 animate-blob"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full mix-blend-overlay filter blur-3xl opacity-50 animate-blob animation-delay-2000"></div>
-        
-        <div className="section-padding relative z-10">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl font-black mb-6">{t('events.hostEventCta')}</h2>
-            <p className="text-xl text-white/90 mb-8 leading-relaxed">
-              {t('events.hostEventText')}
+      <section className="py-16 md:py-20 bg-slate-50/60">
+        <div className="section-padding">
+          <div className="max-w-4xl mx-auto rounded-2xl border border-gray-200 bg-white p-8 md:p-12 text-center shadow-sm">
+            <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
+              <Calendar className="w-7 h-7 text-primary" />
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 mb-4">{'Tədbir Təşkil Etmək İstəyirsən?'}</h2>
+            <p className="text-base sm:text-lg text-gray-600 mb-8 leading-relaxed">
+              {'Tədbiri icma ilə paylaş və gender bərabərliyini dəstəkləyən şəbəkələri gücləndir.'}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <ButtonLink 
-                href={localePath("/dashboard/events/create")}
-                variant="white-on-dark"
+              <ButtonLink
+                href={localePath('/dashboard/events/create')}
+                variant="secondary"
                 size="lg"
                 icon={Calendar}
                 iconPosition="left"
-                shadow="lg"
                 hoverEffect="scale"
               >
-                {t('events.createEvent')}
+                {'Tədbir Yarat'}
               </ButtonLink>
-              <ButtonLink 
-                href={localePath("/submit")}
+              <ButtonLink
+                href={localePath('/submit')}
                 variant="outline"
                 size="lg"
                 icon={ExternalLink}
                 iconPosition="left"
-                shadow="lg"
                 hoverEffect="scale"
               >
-                {t('events.submitContent')}
+                {'Məzmun Göndər'}
+                <ArrowRight className="w-5 h-5 ml-2" />
               </ButtonLink>
             </div>
           </div>
         </div>
       </section>
     </div>
-  );
-}
+  ); }

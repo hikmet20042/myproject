@@ -38,7 +38,7 @@ export default function SuccessState({
         {/* Success Icon */}
         <div className="relative inline-flex items-center justify-center mx-auto mb-6">
           <div className="absolute inset-0 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full blur opacity-50 animate-pulse"></div>
-          <div className="relative w-24 h-24 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-2xl">
+          <div className="relative w-24 h-24 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-md">
             <CheckCircle className="w-12 h-12 text-white animate-bounce" />
           </div>
         </div>

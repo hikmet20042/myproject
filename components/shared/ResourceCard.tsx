@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -41,7 +42,7 @@ interface ResourceCardProps {
 
 /**
  * Standardized card component for displaying resources
- * Used across vacancies, events, NGOs, and materials pages
+ * Used across vacancies, events, organizations, and materials pages
  */
 export function ResourceCard({
   title,
@@ -51,7 +52,7 @@ export function ResourceCard({
   footer,
   imageUrl,
   hoverBorderColor = 'hover:border-blue-300',
-  hoverGradient = 'group-hover:from-blue-50 group-hover:to-indigo-50',
+  hoverGradient = 'group-hover:from-blue-50 group-hover:to-emerald-50',
   icon,
   actionText,
   onClick,
@@ -60,16 +61,18 @@ export function ResourceCard({
   const localePath = useLocalizedPath()
   const content = (
       <Card
-        className={`h-full border-2 border-gray-200 ${hoverBorderColor} hover:shadow-xl transition-all duration-300 hover:scale-[1.02] ${className}`}
+        className={`h-full border-2 border-blue-100 ${hoverBorderColor} hover:shadow-lg transition-all duration-300 hover:scale-[1.02] ${className}`}
       >
         <CardContent className={`p-6 h-full flex flex-col bg-gradient-to-br from-white to-gray-50 ${hoverGradient} transition-all duration-300`}>
           {/* Image */}
           {imageUrl && (
             <div className="mb-4 rounded-lg overflow-hidden">
-              <img
+              <Image
                 src={imageUrl}
                 alt={title}
                 className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                width={640}
+                height={384}
               />
             </div>
           )}
@@ -110,7 +113,7 @@ export function ResourceCard({
 
           {/* Footer */}
           {footer && (
-            <div className="mt-auto pt-4 border-t border-gray-200">
+            <div className="mt-auto pt-4 border-t border-blue-100">
               {footer}
             </div>
           )}
