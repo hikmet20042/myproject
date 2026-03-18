@@ -33,7 +33,22 @@ function areSessionsEqual(a: ClientSession, b: ClientSession) {
 }
 
 export default function AuthProvider({ children }: AuthProviderProps) {
-  const supabase = useMemo(() => createSupabaseBrowserClient(), [])
+  const supabase = useMemo(() => {
+    // During SSR/prerender (e.g. Netlify build), skip client creation to avoid crashing
+    // when NEXT_PUBLIC_SUPABASE_* vars are missing in the build environment.
+    if (typeof window === 'undefined') {
+      return null
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return null
+    }
+
+    return createSupabaseBrowserClient()
+  }, [])
   const [session, setSession] = useState<ClientSession>(null)
   const [status, setStatus] = useState<SessionStatus>('loading')
   const previousStatusRef = useRef<SessionStatus>('loading')
@@ -46,6 +61,11 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   }, [])
 
   const syncAuth = useCallback(async (reason: string) => {
+    if (!supabase) {
+      applyAuthState(null, 'unauthenticated')
+      return
+    }
+
     if (isSyncingRef.current) {
       console.debug('[auth] sync:skip concurrent', { reason })
       return
@@ -134,6 +154,13 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     isMountedRef.current = true
     console.debug('[auth] provider:mount')
 
+    if (!supabase) {
+      applyAuthState(null, 'unauthenticated')
+      return () => {
+        isMountedRef.current = false
+      }
+    }
+
     void syncAuth('mount')
 
     const {
@@ -156,7 +183,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     }
     // Mount once: keep one auth subscription for the whole app lifecycle.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [applyAuthState, supabase, syncAuth])
 
   useEffect(() => {
     if (previousStatusRef.current !== status) {
