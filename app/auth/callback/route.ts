@@ -26,7 +26,6 @@ export async function GET(request: NextRequest) {
         .maybeSingle()
 
       const accountType = (account?.account_type as 'user' | 'organization' | undefined)
-        || (data.user.app_metadata?.account_type as 'user' | 'organization')
         || 'user'
 
       if (accountType === 'organization') {
@@ -49,7 +48,7 @@ export async function GET(request: NextRequest) {
           id: data.user.id,
           name: data.user.user_metadata?.name || data.user.email,
           email: data.user.email,
-          role: (data.user.app_metadata?.role as string) || 'user',
+          role: 'user',
           auth_provider: 'google'
         }, { onConflict: 'id' })
     }

@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useSession } from '@/lib/auth/client'
 import { useParams, useRouter } from 'next/navigation'
 import * as Dialog from '@radix-ui/react-dialog'
 import { ArrowLeft, CheckCircle, XCircle, AlertCircle, MapPin, Briefcase, Calendar, Building } from 'lucide-react'
@@ -32,7 +31,7 @@ interface Vacancy { _id: string
   adminComment?: string
 }
 
-export default function AdminVacancyPreview() { const { data: session, status } = useSession()
+export default function AdminVacancyPreview() {
   const localePath = useLocalizedPath()
   const router = useRouter()
   const params = useParams()
@@ -51,12 +50,7 @@ export default function AdminVacancyPreview() { const { data: session, status } 
       const data = await response.json()
       setVacancy(data.vacancy) } catch (err) { setError('Vakansiyanı yükləmək alınmadı') } finally { setLoading(false) } }, [params?.id])
 
-  useEffect(() => { if (status === 'loading') return
-
-    if (!session?.user || session.user.role !== 'admin') { router.push(localePath('/admin'))
-      return }
-
-    fetchVacancy() }, [session, status, router, localePath, fetchVacancy])
+  useEffect(() => { fetchVacancy() }, [fetchVacancy])
 
   const handleApprove = async () => { if (!params?.id) return
 

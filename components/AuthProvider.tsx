@@ -20,7 +20,7 @@ function areUsersEqual(a: ClientSessionUser, b: ClientSessionUser) {
     a.name === b.name &&
     a.role === b.role &&
     a.emailVerified === b.emailVerified &&
-    a.isApprovedOrganization === b.isApprovedOrganization &&
+    a.organizationStatus === b.organizationStatus &&
     a.accountType === b.accountType &&
     a.isActive === b.isActive
   )
@@ -91,12 +91,11 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         .maybeSingle()
 
       const accountType = (account?.account_type as 'user' | 'organization' | undefined)
-        || (data.user.app_metadata?.account_type as 'user' | 'organization')
         || 'user'
+      const role: 'admin' | 'user' = account?.is_admin ? 'admin' : 'user'
 
       let profileName: string | null | undefined = data.user.user_metadata?.name
-      let role: 'user' | 'admin' | undefined = undefined
-      let isApprovedOrganization = false
+      let organizationStatus: 'pending' | 'approved' | undefined = undefined
 
       if (accountType === 'organization') {
         const { data: organizationProfile } = await supabase
@@ -110,17 +109,15 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         }
 
         profileName = organizationProfile?.organization_name ?? profileName
-        const moderationStatus = organizationProfile?.moderation_status ?? 'pending'
-        isApprovedOrganization = moderationStatus === 'approved'
+        organizationStatus = (organizationProfile?.moderation_status === 'approved' ? 'approved' : 'pending')
       } else {
         const { data: profile } = await supabase
           .from('users')
-          .select('name, role')
+          .select('name')
           .eq('id', data.user.id)
           .maybeSingle()
 
         profileName = profile?.name ?? profileName
-        role = (account?.is_admin || profile?.role === 'admin') ? 'admin' : 'user'
       }
 
       const nextSession: ClientSession = {
@@ -130,10 +127,19 @@ export default function AuthProvider({ children }: AuthProviderProps) {
           name: profileName ?? null,
           role,
           emailVerified: !!data.user.email_confirmed_at,
-          isApprovedOrganization,
           accountType,
+          organizationStatus,
           isActive: account?.is_active ?? true,
         },
+      }
+
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('[auth][client] authority', {
+          id: nextSession.user.id,
+          role: nextSession.user.role,
+          accountType: nextSession.user.accountType,
+          organizationStatus: nextSession.user.organizationStatus,
+        })
       }
 
       applyAuthState(nextSession, 'authenticated')

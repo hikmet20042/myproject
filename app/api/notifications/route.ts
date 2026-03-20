@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (session.user.isApprovedOrganization) {
+    if (session.user.organizationStatus === 'approved') {
       query = query.eq('organization_id', session.user.id);
     } else {
       query = query.eq('user_id', session.user.id);
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       .from('notifications')
       .select('id', { count: 'exact', head: true })
       .eq('is_read', false);
-    unreadCountQuery = session.user.isApprovedOrganization
+    unreadCountQuery = session.user.organizationStatus === 'approved'
       ? unreadCountQuery.eq('organization_id', session.user.id)
       : unreadCountQuery.eq('user_id', session.user.id);
     const { count: unreadCount } = await unreadCountQuery;
@@ -63,7 +63,7 @@ export async function PUT(request: NextRequest) {
     const { notificationId, markAllAsRead, isRead } = body;
     
     // Build query based on account type
-    const ownerColumn = session.user.isApprovedOrganization ? 'organization_id' : 'user_id';
+    const ownerColumn = session.user.organizationStatus === 'approved' ? 'organization_id' : 'user_id';
     const ownerId = session.user.id;
     
     if (markAllAsRead) {
@@ -110,7 +110,7 @@ export async function DELETE(request: NextRequest) {
     }
     
     // Build query based on account type
-    const ownerColumn = session.user.isApprovedOrganization ? 'organization_id' : 'user_id';
+    const ownerColumn = session.user.organizationStatus === 'approved' ? 'organization_id' : 'user_id';
     await supabase
       .from('notifications')
       .delete()

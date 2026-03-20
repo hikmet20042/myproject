@@ -169,7 +169,7 @@ export default function Blogs({ loadingTab,
                                 if (blogData) { // Prepare blog data for localStorage
                                   const editData = { title: blogData.title || '',
                                     isAnonymous: blogData.isAnonymous || false,
-                                    authorName: blogData.isAnonymous ? 'Anonim' : (blogData.authorName || session.user.name || ''),
+                                    authorName: blogData.isAnonymous ? 'Anonim' : (blogData.authorName || session?.user?.name || ''),
                                     content: blogData.content || null,
                                     contentHtml: blogData.contentHtml || '',
                                     characterCount: 0,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from '@/lib/auth/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { NotificationService } from '@/lib/services/notificationService'
 
 const mapVacancy = (row: any) => ({
   _id: row.id,
@@ -84,15 +85,7 @@ export async function GET(
         : vacancy.createdByOrganization?.toString?.()
       const isOwner = session?.user?.id && (session.user.id === createdById || session.user.id === createdByOrganizationId)
 
-      let isAdmin = false
-      if (session?.user?.id) {
-        const { data: adminUser } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', session.user.id)
-          .single()
-        isAdmin = adminUser?.role === 'admin'
-      }
+      const isAdmin = session?.user?.role === 'admin'
 
       if (!isAdmin && !isOwner) {
         return NextResponse.json(
@@ -141,16 +134,10 @@ export async function PUT(
       )
     }
 
-    const { data: user } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', session.user.id)
-      .single()
-
     const createdById = vacancyRow.created_by
     const createdByOrganizationId = vacancyRow.created_by_organization
     const isOwner = createdById === session.user.id || createdByOrganizationId === session.user.id
-    const isAdmin = user?.role === 'admin'
+    const isAdmin = session.user.role === 'admin'
 
     if (!isOwner && !isAdmin) {
       return NextResponse.json(
@@ -402,12 +389,12 @@ export async function PATCH(
       : `Your vacancy "${vacancyRow.title}" was rejected. Reason: ${rejectionReason}`
     
     const notificationTarget = vacancyRow.created_by_organization
-      ? { organization_id: vacancyRow.created_by_organization }
+      ? { organizationId: vacancyRow.created_by_organization }
       : vacancyRow.created_by
-        ? { user_id: vacancyRow.created_by }
+        ? { userId: vacancyRow.created_by }
         : {}
     if (Object.keys(notificationTarget).length > 0) {
-      await supabase.from('notifications').insert({
+      await NotificationService.createNotification({
         ...notificationTarget,
         title: notificationTitle,
         message: notificationMessage,

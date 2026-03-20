@@ -74,7 +74,7 @@ export async function PUT(
 
     // Check permissions - organization owner or admin
     const session = await getServerSession()
-    const isOrganizationOwner = session?.user?.isApprovedOrganization && session.user.id === id
+    const isOrganizationOwner = session?.user?.organizationStatus === 'approved' && session.user.id === id
     const isAdmin = session?.user?.role === 'admin'
 
     if (!isOrganizationOwner && !isAdmin) {

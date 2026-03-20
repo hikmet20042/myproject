@@ -12,7 +12,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Check if user is an approved organization
-    if (!session.user.isApprovedOrganization) {
+    if (session.user.organizationStatus !== 'approved') {
       return NextResponse.json({ error: 'Access denied. Approved organization account required.' }, { status: 403 })
     }
 

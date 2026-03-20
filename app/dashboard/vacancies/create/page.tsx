@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useSession } from '@/lib/auth/client'
 import { useRouter } from 'next/navigation'
 import { Calendar, MapPin, Users, Plus, X, Briefcase, DollarSign, Clock, FileText, Send } from 'lucide-react'
 import { Input,Select,Button,TextArea } from '@/components/ui'
@@ -9,7 +8,7 @@ import { useLocalizedPath } from '@/lib/useLocalizedPath'
 import { LoadingState } from '@/components/shared'
 
 
-export default function CreateVacancy() { const { data: session, status } = useSession()
+export default function CreateVacancy() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const localePath = useLocalizedPath()
@@ -36,11 +35,6 @@ export default function CreateVacancy() { const { data: session, status } = useS
     durationType: '',
     contractLength: '',
     contractUnit: 'months' })
-
-  useEffect(() => { if (status === 'loading') return
-    if (!session) { router.push(localePath('/auth/signin')) } }, [status, session, router, localePath])
-
-  if (status === 'loading') { return <LoadingState text={'Yüklənir'} /> }
 
   const handleSubmit = async (e: React.FormEvent) => { e.preventDefault()
     setLoading(true)

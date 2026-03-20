@@ -28,6 +28,11 @@ import SettingsTab from "@/components/Profile/SettingsTab";
 import { Button } from "@/components/ui/Button";
 import { LoadingState, ErrorState, StatusBadge } from "@/components/shared";
 import { useLocalizedPath } from "@/lib/useLocalizedPath";
+import { Alert } from "@/components/feedback";
+import {
+  useNotificationContext,
+  type NotificationItem,
+} from "@/components/NotificationContext";
 
 interface UserProfile {
   user: {
@@ -69,23 +74,13 @@ interface UserProfile {
   isOrganization?: boolean;
 }
 
-interface Notification {
-  id?: string;
-  _id?: string;
-  type: string;
-  title: string;
-  message: string;
-  isRead: boolean;
-  createdAt: string;
-}
-
 function ProfilePageContent() {
   const localePath = useLocalizedPath();
 
   // Notification modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [modalNotification, setModalNotification] =
-    useState<Notification | null>(null);
+    useState<NotificationItem | null>(null);
   // Email verification resend state (must be at the very top, before any conditional returns)
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSuccess, setResendSuccess] = useState("");
@@ -94,6 +89,12 @@ function ProfilePageContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const {
+    notifications,
+    unreadCount,
+    toggleNotificationRead,
+    markAllAsRead,
+  } = useNotificationContext();
 
   // Get active tab from URL, default to 'profile'
   const getActiveTabFromUrl = useCallback(() => {
@@ -120,17 +121,20 @@ function ProfilePageContent() {
 
   // Main loading state
   const [loading, setLoading] = useState(true);
+  const [profileLoadError, setProfileLoadError] = useState("");
+  const [statsLoadError, setStatsLoadError] = useState("");
+  const [blogsLoadError, setBlogsLoadError] = useState("");
 
   // Tab switching state - track which tab is being loaded
   const [loadingTab, setLoadingTab] = useState<string | null>(null);
 
   // State for tab content
   const [blogs, setBlogs] = useState<any[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   // Load functions
   const loadProfileStats = useCallback(async () => {
     try {
+      setStatsLoadError("");
       const response = await fetch("/api/users/profile/stats");
       if (response.ok) {
         const data = await response.json();
@@ -145,33 +149,27 @@ function ProfilePageContent() {
           lastActive: new Date().toISOString(),
           writingStreak: Math.floor(Math.random() * 30) + 1,
         });
+        setStatsLoadError("Something went wrong. Please try again.");
       }
     } catch (error) {
       console.error("Error loading profile stats:", error);
+      setStatsLoadError("Something went wrong. Please try again.");
     }
   }, [blogs.length, profile?.user?.createdAt]);
 
   const loadUserBlogs = useCallback(async () => {
     try {
+      setBlogsLoadError("");
       const response = await fetch("/api/blogs/user");
       if (response.ok) {
         const data = await response.json();
         setBlogs(data.results || []);
+      } else {
+        setBlogsLoadError("Something went wrong. Please try again.");
       }
     } catch (error) {
       console.error("Error loading user blogs:", error);
-    }
-  }, []);
-
-  const loadNotifications = useCallback(async () => {
-    try {
-      const response = await fetch("/api/notifications");
-      if (response.ok) {
-        const data = await response.json();
-        setNotifications(data.notifications || []);
-      }
-    } catch (error) {
-      console.error("Error loading notifications:", error);
+      setBlogsLoadError("Something went wrong. Please try again.");
     }
   }, []);
 
@@ -183,16 +181,11 @@ function ProfilePageContent() {
             await loadUserBlogs();
           }
           break;
-        case "notifications":
-          if (notifications.length === 0) {
-            await loadNotifications();
-          }
-          break;
         default:
           break;
       }
     },
-    [blogs.length, notifications.length, loadUserBlogs, loadNotifications],
+    [blogs.length, loadUserBlogs],
   );
 
   // Handle tab change - just update URL, let effect handle loading
@@ -254,7 +247,7 @@ function ProfilePageContent() {
     // Load data if not already loaded based on our ref tracking
     if (status === "authenticated") {
       const shouldLoad =
-        (newTab === "blogs" || newTab === "notifications") &&
+        newTab === "blogs" &&
         !loadedTabsRef.current.has(newTab);
 
       if (shouldLoad && !loadingTab) {
@@ -307,6 +300,7 @@ function ProfilePageContent() {
 
   const loadProfile = useCallback(async () => {
     try {
+      setProfileLoadError("");
       const response = await fetch("/api/users/profile");
       if (response.ok) {
         const data = await response.json();
@@ -338,9 +332,12 @@ function ProfilePageContent() {
           status: data.profile?.status || "",
           contactPerson: data.profile?.contactPerson || "",
         });
+      } else {
+        setProfileLoadError("Failed to load data. Please try again.");
       }
     } catch (error) {
       console.error("Error loading profile:", error);
+      setProfileLoadError("Failed to load data. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -400,54 +397,6 @@ function ProfilePageContent() {
     }
   };
 
-  // Toggle notification read/unread
-  const toggleNotificationRead = async (
-    notificationId: string,
-    isRead: boolean,
-  ) => {
-    try {
-      const res = await fetch("/api/notifications", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notificationId, isRead }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.notification) {
-          setNotifications((prev) =>
-            prev.map((n) =>
-              n.id === data.notification._id || n._id === data.notification._id
-                ? { ...n, isRead: data.notification.isRead }
-                : n,
-            ),
-          );
-        } else {
-          loadNotifications();
-        }
-      } else {
-        loadNotifications();
-      }
-    } catch (error) {
-      console.error("Error toggling notification read state:", error);
-    }
-  };
-
-  // Mark all notifications as read
-  const markAllAsRead = async () => {
-    try {
-      const res = await fetch("/api/notifications", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ markAllAsRead: true }),
-      });
-      if (res.ok) {
-        setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-      }
-    } catch (error) {
-      console.error("Error marking all as read:", error);
-    }
-  };
-
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "approved":
@@ -477,8 +426,8 @@ function ProfilePageContent() {
   if (!profile) {
     return (
       <ErrorState
-        title={"Profil tapılmadı"}
-        message={"Profil məlumatlarını yükləmək mümkün olmadı."}
+        title={"Something went wrong"}
+        message={profileLoadError || "Failed to load data. Please try again."}
         onRetry={() => router.push(localePath("/"))}
         retryText={"Ana səhifəyə qayıt"}
         gradientFrom="from-red-50"
@@ -562,7 +511,7 @@ function ProfilePageContent() {
                     {"Admin"}
                   </span>
                 )}
-                {session?.user?.isApprovedOrganization && (
+                {session?.user?.organizationStatus === 'approved' && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-blue-100 text-blue-800">
                     <Award className="w-4 h-4" />
                     {"Təşkilat Hesabı"}
@@ -581,6 +530,16 @@ function ProfilePageContent() {
       </section>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 py-6">
+        {statsLoadError && (
+          <div className="mb-4">
+            <Alert variant="error">{statsLoadError}</Alert>
+          </div>
+        )}
+        {activeTab === "blogs" && blogsLoadError && (
+          <div className="mb-4">
+            <Alert variant="error">{blogsLoadError}</Alert>
+          </div>
+        )}
         <div className="pb-6 sm:pb-12">
           {/* Email Verification Banner */}
           {isUnverified && (
@@ -638,9 +597,9 @@ function ProfilePageContent() {
             handleTabChange={handleTabChange}
             loadingTab={loadingTab}
             activeTab={activeTab}
-            notifications={notifications}
+            unreadCount={unreadCount}
             userRole={profile?.user?.role}
-            isOrganization={session?.user?.isApprovedOrganization}
+            isOrganization={session?.user?.organizationStatus === 'approved'}
           />
 
           {/* Profile Tab */}
@@ -657,7 +616,7 @@ function ProfilePageContent() {
           )}
 
           {/* Blogs Tab */}
-          {activeTab === "blogs" && !session?.user?.isApprovedOrganization && (
+          {activeTab === "blogs" && session?.user?.organizationStatus !== 'approved' && (
             <Blogs
               loadingTab={loadingTab}
               blogs={blogs}
@@ -671,6 +630,7 @@ function ProfilePageContent() {
           {activeTab === "notifications" && (
             <Notifications
               notifications={notifications}
+              unreadCount={unreadCount}
               setModalNotification={setModalNotification}
               setModalOpen={setModalOpen}
               modalNotification={modalNotification}

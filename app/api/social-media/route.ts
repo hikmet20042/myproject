@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     }
 
     let organizationSocialMedia = null
-    if (session.user.isApprovedOrganization) {
+    if (session.user.organizationStatus === 'approved') {
       const { data: profile } = await supabase
         .from('organization_profiles')
         .select('social_links')
@@ -93,7 +93,7 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    if (type === 'organization' && session.user.isApprovedOrganization) {
+    if (type === 'organization' && session.user.organizationStatus === 'approved') {
       // Primary write to organization_profiles
       if (organizationSocialMedia) {
         // Validate URLs

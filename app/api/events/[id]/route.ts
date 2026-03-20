@@ -86,15 +86,7 @@ export async function GET(
         : event.createdByOrganization?.toString?.()
       const isOwner = session?.user?.id && (session.user.id === createdById || session.user.id === createdByOrganizationId)
 
-      let isAdmin = false
-      if (session?.user?.id) {
-        const { data: adminUser } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', session.user.id)
-          .single()
-        isAdmin = adminUser?.role === 'admin'
-      }
+      const isAdmin = session?.user?.role === 'admin'
 
       if (!isAdmin && !isOwner) {
         return NextResponse.json(
@@ -143,17 +135,11 @@ export async function PUT(
       )
     }
 
-    const { data: user } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', session.user.id)
-      .single()
-
     // Check permissions (owner can be User via createdBy or Organization via createdByOrganization)
     const createdById = eventRow.created_by
     const createdByOrganizationId = eventRow.created_by_organization
     const isOwner = createdById === session.user.id || createdByOrganizationId === session.user.id
-    const isAdmin = user?.role === 'admin'
+    const isAdmin = session.user.role === 'admin'
 
     if (!isOwner && !isAdmin) {
       return NextResponse.json(

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { emitNotificationUpdate } from '@/lib/socket'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,20 +23,18 @@ export async function PATCH(
       return NextResponse.json({ error: 'isRead must be a boolean' }, { status: 400 });
     }
 
+    const ownerColumn = session.user.organizationStatus === 'approved' ? 'organization_id' : 'user_id'
     const { data: updated, error } = await supabase
       .from('notifications')
       .update({ is_read: isRead })
       .eq('id', notificationId)
-      .eq('user_id', session.user.id)
+      .eq(ownerColumn, session.user.id)
       .select('*')
       .single();
 
     if (error || !updated) {
       return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
     }
-
-    // Emit real-time update to user
-    emitNotificationUpdate(session.user.id, notificationId, { isRead })
 
     return NextResponse.json({
       message: `Notification marked as ${isRead ? 'read' : 'unread'}`,

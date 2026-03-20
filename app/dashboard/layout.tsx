@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import DashboardShell from "@/components/dashboard/DashboardShell";
-import { Loading } from "@/components/ui/Loading";
+import { LoadingState, UnauthorizedState } from "@/components/shared";
 import { DashboardDataProvider } from "@/features/dashboard/context/DashboardDataProvider";
 import { useSession } from "@/lib/auth/client";
 import { useLocalizedPath } from "@/lib/useLocalizedPath";
@@ -47,22 +47,42 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       return;
     }
 
-    if (status === "authenticated" && !isOrganizationAccount) {
-      routerRef.current.replace(homePath);
-      return;
-    }
-
     if (status === "authenticated" && !isApprovedKnown) {
       return;
     }
 
-    if (status === "authenticated" && isApprovedOrganization === false) {
-      routerRef.current.replace(homePath);
-    }
-  }, [accountType, homePath, isApprovedKnown, isApprovedOrganization, isOrganizationAccount, signInPath, status, mounted]);
+  }, [accountType, isApprovedKnown, signInPath, status, mounted]);
 
-  if (status === "loading") {
-    return <Loading />;
+  if (!mounted || status === "loading") {
+    return <LoadingState text={"Dashboard yüklənir..."} />;
+  }
+
+  if (status === "authenticated" && accountType === undefined) {
+    return <LoadingState text={"İcazələr yoxlanılır..."} />;
+  }
+
+  if (status === "authenticated" && !isApprovedKnown) {
+    return <LoadingState text={"İcazələr yoxlanılır..."} />;
+  }
+
+  if (status === "authenticated" && !isOrganizationAccount) {
+    return (
+      <UnauthorizedState
+        message={"Bu bölməyə daxil olmaq üçün təşkilat hesabı tələb olunur."}
+        actionText={"Ana səhifəyə qayıt"}
+        onAction={() => routerRef.current.replace(homePath)}
+      />
+    );
+  }
+
+  if (status === "authenticated" && isApprovedOrganization === false) {
+    return (
+      <UnauthorizedState
+        message={"Bu bölməyə daxil olmaq üçün təsdiqlənmiş təşkilat hesabı tələb olunur."}
+        actionText={"Ana səhifəyə qayıt"}
+        onAction={() => routerRef.current.replace(homePath)}
+      />
+    );
   }
 
   return (

@@ -5,7 +5,6 @@
  */
 
 import { CheckCircle } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
 import { ReactNode } from 'react'
 
 interface SuccessStateProps {
@@ -27,28 +26,16 @@ export default function SuccessState({
 }: SuccessStateProps) {
   return (
     <div className={`min-h-screen bg-gradient-to-br ${gradientFrom} ${gradientVia} ${gradientTo} flex items-center justify-center p-4`}>
-      {/* Animated background blobs */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-green-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div className="absolute bottom-0 left-1/2 w-96 h-96 bg-teal-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
-      </div>
-
-      <div className="relative text-center max-w-md animate-scale-in">
-        {/* Success Icon */}
-        <div className="relative inline-flex items-center justify-center mx-auto mb-6">
-          <div className="absolute inset-0 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full blur opacity-50 animate-pulse"></div>
-          <div className="relative w-24 h-24 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-md">
-            <CheckCircle className="w-12 h-12 text-white animate-bounce" />
-          </div>
+      <div className="w-full max-w-md rounded-2xl border border-emerald-200 bg-white p-8 text-center shadow-sm">
+        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+          <CheckCircle className="h-8 w-8" />
         </div>
 
-        <h3 className="text-2xl sm:text-3xl font-black text-gray-900 mb-4">{title}</h3>
-        <p className="text-base sm:text-lg text-gray-700 mb-8 leading-relaxed">{message}</p>
+        <h3 className="text-2xl font-bold text-gray-900">{title}</h3>
+        <p className="mt-3 text-base text-gray-600">{message}</p>
 
-        {/* Action Buttons */}
         {actions && (
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
             {actions}
           </div>
         )}

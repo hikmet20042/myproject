@@ -26,15 +26,8 @@ export default function EditBlogStep1() { const router = useRouter()
   const cleanupLocalStorage = () => { localStorage.removeItem('editBlogData')
     localStorage.removeItem('currentBlogEditId') }
 
-  useEffect(() => { if (status === 'loading') return
-    if (!session) { router.push(localePath('/auth/signin')) } }, [status, session, router, localePath])
-
   // Load blog data - prioritize localStorage over API when navigating within flow
-  useEffect(() => { const loadBlogData = async () => { if (!blogId || status === 'loading') return
-      
-      if (status !== 'authenticated') { setError('Bloqları redaktə etmək üçün daxil olun.')
-        setLoading(false)
-        return }
+  useEffect(() => { const loadBlogData = async () => { if (!blogId) return
 
       try { setLoading(true)
         
@@ -59,12 +52,7 @@ export default function EditBlogStep1() { const router = useRouter()
         if (response.ok) { const data = await response.json()
           const blog = data.blog
 
-          if (blog) { // Check if user can edit this blog
-            const storyAuthorId = blog.author?.toString() || blog.author
-            if (storyAuthorId !== session?.user?.id && blog.authorName !== session?.user?.name) { setError('Bu bloqu redaktə etmək icazəniz yoxdur')
-              setLoading(false)
-              return }
-
+          if (blog) {
             // Set form fields
             setTitle(blog.title || '')
 
@@ -95,7 +83,7 @@ export default function EditBlogStep1() { const router = useRouter()
           setError(`Bloqu yükləmək alınmadı: ${response.status}`) } } catch (error) { console.error('Bloq məlumatlarını alma xətası:', error)
         setError('Bloq məlumatlarını yükləmək alınmadı. Zəhmət olmasa yenidən cəhd edin.') } finally { setLoading(false) } }
 
-    loadBlogData() }, [blogId, status, session])
+  loadBlogData() }, [blogId, session])
 
   // Update localStorage whenever form data changes
   useEffect(() => { if (typeof window !== 'undefined' && blogId && !loading) { const saved = localStorage.getItem('editBlogData')
@@ -121,8 +109,6 @@ export default function EditBlogStep1() { const router = useRouter()
       // Don't remove navigatingWithinBlogFlow flag here - let destination component handle it
     }
   }, [])
-
-  if (status === 'loading') { return <LoadingState text={'Yüklənir'} /> }
 
   const next = (e: React.FormEvent) => { e.preventDefault()
     setNameError('')

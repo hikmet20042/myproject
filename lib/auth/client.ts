@@ -7,10 +7,10 @@ export type ClientSessionUser = {
   id: string
   email: string | null
   name?: string | null
-  role?: 'user' | 'admin'
+  role: 'user' | 'admin'
   emailVerified?: boolean
-  isApprovedOrganization?: boolean
   accountType: 'user' | 'organization'
+  organizationStatus?: 'pending' | 'approved'
   isActive?: boolean
 }
 

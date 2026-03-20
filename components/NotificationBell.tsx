@@ -1,36 +1,51 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Bell, Check, CheckCheck } from 'lucide-react'
+import { Bell, Loader2 } from 'lucide-react'
 import { useSession } from '@/lib/auth/client'
-import { useNotificationContext } from './NotificationContext'
-import { useSocket } from './SocketProvider'
+import { type NotificationItem, useNotificationContext } from './NotificationContext'
 import { useSSENotifications } from './SSENotificationProvider'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import NotificationListItem from '@/components/notifications/NotificationListItem'
 
-interface Notification { _id: string
-  title: string
-  message: string
-  isRead: boolean
-  createdAt: string
-  type: string
-  actionUrl?: string }
+interface NotificationBellProps {
+  className?: string
+}
 
-interface NotificationBellProps { className?: string }
-
-export default function NotificationBell({ className = '' }: NotificationBellProps) { const { data: session } = useSession()
+export default function NotificationBell({ className = '' }: NotificationBellProps) {
+  const { data: session } = useSession()
   const router = useRouter()
-  const { socket, isConnected } = useSocket()
-  const { lastNotification: sseNotification, isConnected: sseConnected } = useSSENotifications()
+  const { isConnected: sseConnected } = useSSENotifications()
   const [enabled, setEnabled] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [loading, setLoading] = useState(false)
-  const { unreadCount, refreshNotifications } = useNotificationContext()
+  const {
+    notifications,
+    unreadCount,
+    isLoading,
+    refreshNotifications,
+    ensureFreshNotifications,
+    toggleNotificationRead,
+    markAllAsRead,
+  } = useNotificationContext()
   const localePath = useLocalizedPath()
+  const viewAllNotificationsPath = localePath('/dashboard/notifications')
   const notificationsRef = useRef<HTMLDivElement>(null)
+
+  const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set())
+  const [enteringIds, setEnteringIds] = useState<Set<string>>(new Set())
+  const [actionLoadingIds, setActionLoadingIds] = useState<Set<string>>(new Set())
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set())
+  const [markAllLoading, setMarkAllLoading] = useState(false)
+  const [badgePopping, setBadgePopping] = useState(false)
+
+  const prevNotificationIdsRef = useRef<Set<string>>(new Set())
+  const initializedIdsRef = useRef(false)
+  const previousUnreadRef = useRef(unreadCount)
+
+  const enteringTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+  const highlightTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -40,180 +55,195 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
     return () => clearTimeout(timer)
   }, [])
 
-  // Listen for SSE notifications
-  useEffect(() => { if (sseNotification) { console.log('Received SSE notification in NotificationBell:', sseNotification)
+  // Polling fallback when SSE connection is down.
+  useEffect(() => {
+    if (!enabled || !session?.user?.id || sseConnected) return
 
-      // Add to beginning of notifications list
-      setNotifications(prev => [sseNotification, ...prev])
+    const pollInterval = setInterval(() => {
+      refreshNotifications()
+    }, 30000)
 
-      // Refresh unread count
-      refreshNotifications() } }, [sseNotification, refreshNotifications])
+    return () => clearInterval(pollInterval)
+  }, [enabled, session?.user?.id, sseConnected, refreshNotifications])
 
-  // Listen for real-time notifications via Socket.IO or polling fallback
-  useEffect(() => { if (!enabled || !session?.user?.id) return
+  useEffect(() => {
+    if (!initializedIdsRef.current) {
+      prevNotificationIdsRef.current = new Set(notifications.map((n) => n._id))
+      initializedIdsRef.current = true
+      return
+    }
 
-    if (socket && isConnected) { // Use Socket.IO for real-time updates
-      console.log('Using Socket.IO for real-time notifications')
+    const currentIds = notifications.map((notification) => notification._id)
+    const previousIds = prevNotificationIdsRef.current
+    const newIds = currentIds.filter((id) => !previousIds.has(id))
 
-      // Handler for new notifications
-      const handleNewNotification = (notification: any) => { console.log('Received real-time notification:', notification)
+    if (newIds.length > 0) {
+      setEnteringIds((prev) => {
+        const next = new Set(prev)
+        for (const id of newIds) next.add(id)
+        return next
+      })
 
-        // Add to beginning of notifications list
-        setNotifications(prev => [{ _id: notification.id,
-          title: notification.title,
-          message: notification.message,
-          isRead: notification.isRead,
-          createdAt: notification.createdAt,
-          type: notification.type,
-          actionUrl: notification.actionUrl }, ...prev])
+      setHighlightedIds((prev) => {
+        const next = new Set(prev)
+        for (const id of newIds) next.add(id)
+        return next
+      })
 
-        // Refresh unread count
-        refreshNotifications()
+      for (const id of newIds) {
+        const existingEnterTimer = enteringTimeoutsRef.current[id]
+        if (existingEnterTimer) clearTimeout(existingEnterTimer)
 
-        // Show browser notification if permission granted
-        if (Notification.permission === 'granted') { new Notification(notification.title, { body: notification.message,
-            icon: '/icma360_logo.png',
-            tag: notification.id }) } }
+        const existingHighlightTimer = highlightTimeoutsRef.current[id]
+        if (existingHighlightTimer) clearTimeout(existingHighlightTimer)
 
-      // Handler for notification updates (mark as read)
-      const handleNotificationUpdate = (update: any) => { console.log('Received notification update:', update)
-        setNotifications(prev =>
-          prev.map(notif =>
-            notif._id === update.notificationId
-              ? { ...notif, isRead: update.isRead }
-              : notif
-          )
-        )
-        refreshNotifications() }
+        enteringTimeoutsRef.current[id] = setTimeout(() => {
+          setEnteringIds((prev) => {
+            const next = new Set(prev)
+            next.delete(id)
+            return next
+          })
+          delete enteringTimeoutsRef.current[id]
+        }, 320)
 
-      // Handler for bulk updates (mark all as read)
-      const handleBulkUpdate = (update: any) => { console.log('Received bulk notification update')
-        if (update.markAllAsRead) { setNotifications(prev => prev.map(notif => ({ ...notif, isRead: true })))
-          refreshNotifications() } }
+        highlightTimeoutsRef.current[id] = setTimeout(() => {
+          setHighlightedIds((prev) => {
+            const next = new Set(prev)
+            next.delete(id)
+            return next
+          })
+          delete highlightTimeoutsRef.current[id]
+        }, 2600)
+      }
+    }
 
-      // Register event listeners
-      socket.on('notification', handleNewNotification)
-      socket.on('notification:update', handleNotificationUpdate)
-      socket.on('notification:bulk-update', handleBulkUpdate)
+    prevNotificationIdsRef.current = new Set(currentIds)
+  }, [notifications])
 
-      // Request notification permission on first load
-      if (Notification.permission === 'default') { Notification.requestPermission() }
+  useEffect(() => {
+    if (previousUnreadRef.current !== unreadCount) {
+      setBadgePopping(true)
+      const timer = setTimeout(() => setBadgePopping(false), 260)
+      previousUnreadRef.current = unreadCount
+      return () => clearTimeout(timer)
+    }
 
-      // Cleanup listeners on unmount
-      return () => { socket.off('notification', handleNewNotification)
-        socket.off('notification:update', handleNotificationUpdate)
-        socket.off('notification:bulk-update', handleBulkUpdate) } } else { // Use polling as fallback when Socket.IO is not available (Vercel)
-      console.log('Using polling fallback for notifications (Socket.IO unavailable)')
+    previousUnreadRef.current = unreadCount
+  }, [unreadCount])
 
-      // Poll for new notifications every 30 seconds
-      const pollInterval = setInterval(() => { refreshNotifications() }, 30000) // 30 seconds
+  useEffect(() => {
+    const enteringTimeouts = enteringTimeoutsRef.current
+    const highlightTimeouts = highlightTimeoutsRef.current
 
-      return () => clearInterval(pollInterval) } }, [socket, isConnected, session?.user?.id, refreshNotifications, enabled])
+    return () => {
+      Object.values(enteringTimeouts).forEach((timer) => clearTimeout(timer))
+      Object.values(highlightTimeouts).forEach((timer) => clearTimeout(timer))
+    }
+  }, [])
 
-  // Load notifications when dropdown opens
-  const loadNotifications = async () => { if (!session?.user?.id) return
-    setLoading(true)
-    try { const response = await fetch('/api/notifications')
-      if (response.ok) { const data = await response.json()
-        setNotifications(data.notifications || []) } } catch (error) { console.error('Error loading notifications:', error) } finally { setLoading(false) } }
+  const visibleNotifications = useMemo(() => notifications.slice(0, 10), [notifications])
 
-  // Toggle notification read status
-  const toggleNotificationRead = async (notificationId: string, isRead: boolean) => { try { const response = await fetch(`/api/notifications/${notificationId}`, { method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isRead }) })
-      if (response.ok) { // Update local state
-        setNotifications(prev =>
-          prev.map(notif =>
-            notif._id === notificationId ? { ...notif, isRead } : notif
-          )
-        )
-        // Refresh unread count
-        refreshNotifications() } } catch (error) { console.error('Error updating notification:', error) } }
+  const handleNotificationsToggle = useCallback(() => {
+    if (!notificationsOpen) {
+      void ensureFreshNotifications(45000)
+    }
+    setNotificationsOpen((prev) => !prev)
+  }, [notificationsOpen, ensureFreshNotifications])
 
-  // Mark all as read
-  const markAllAsRead = async () => { try { const unreadNotifications = notifications.filter(n => !n.isRead)
-      await Promise.all(
-        unreadNotifications.map(notif =>
-          fetch(`/api/notifications/${notif._id}`, { method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isRead: true }) })
-        )
-      )
-      // Update local state
-      setNotifications(prev => prev.map(notif => ({ ...notif, isRead: true })))
-      // Refresh unread count
-      refreshNotifications() } catch (error) { console.error('Error marking all as read:', error) } }
-
-  // Handle notifications dropdown toggle
-  const handleNotificationsToggle = () => { if (!notificationsOpen) { loadNotifications() }
-    setNotificationsOpen(!notificationsOpen) }
-
-  // Handle clicking on a notification
-  const handleNotificationClick = (notification: Notification) => { // Mark as read if unread
-    if (!notification.isRead) { toggleNotificationRead(notification._id, true) }
-    // Close dropdown
-    setNotificationsOpen(false)
-
-    // Navigate to action URL if available
-    if (notification.actionUrl) {
-      try {
-        const targetUrl = new URL(notification.actionUrl, window.location.origin)
-        if (targetUrl.origin === window.location.origin) {
-          router.push(`${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}`)
-          return
-        }
-      } catch {
-        // Fallback to hard navigation below for malformed URLs.
+  const handleNotificationClick = useCallback(
+    (notification: NotificationItem) => {
+      if (!notification.isRead) {
+        void toggleNotificationRead(notification._id, true)
       }
 
-      window.location.href = notification.actionUrl
+    setNotificationsOpen(false)
+
+      if (notification.actionUrl) {
+        try {
+          const targetUrl = new URL(notification.actionUrl, window.location.origin)
+          if (targetUrl.origin === window.location.origin) {
+            router.push(`${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}`)
+            return
+          }
+        } catch {
+          // Fallback to hard navigation below for malformed URLs.
+        }
+
+        window.location.href = notification.actionUrl
+      }
+    },
+    [router, toggleNotificationRead]
+  )
+
+  const handleToggleRead = useCallback(
+    async (notificationId: string, nextReadValue: boolean) => {
+      setActionLoadingIds((prev) => {
+        const next = new Set(prev)
+        next.add(notificationId)
+        return next
+      })
+
+      try {
+        await toggleNotificationRead(notificationId, nextReadValue)
+      } finally {
+        setActionLoadingIds((prev) => {
+          const next = new Set(prev)
+          next.delete(notificationId)
+          return next
+        })
+      }
+    },
+    [toggleNotificationRead]
+  )
+
+  const handleDelete = useCallback(
+    async (notificationId: string) => {
+      setDeletingIds((prev) => {
+        const next = new Set(prev)
+        next.add(notificationId)
+        return next
+      })
+
+      try {
+        const response = await fetch(`/api/notifications?id=${encodeURIComponent(notificationId)}`, {
+          method: 'DELETE',
+        })
+
+        if (response.ok) {
+          await refreshNotifications({ force: true })
+        }
+      } finally {
+        setDeletingIds((prev) => {
+          const next = new Set(prev)
+          next.delete(notificationId)
+          return next
+        })
+      }
+    },
+    [refreshNotifications]
+  )
+
+  const handleMarkAllAsRead = useCallback(async () => {
+    setMarkAllLoading(true)
+    try {
+      await markAllAsRead()
+    } finally {
+      setMarkAllLoading(false)
     }
-  }
+  }, [markAllAsRead])
 
-  // Format relative time
-  const formatRelativeTime = (dateString: string) => { const date = new Date(dateString)
-    const now = new Date()
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setNotificationsOpen(false)
+      }
+    }
 
-    if (diffInSeconds < 60) return 'İndicə'
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}${'d əvvəl'}`
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}${'s əvvəl'}`
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}${'g əvvəl'}`
-    return date.toLocaleDateString() }
-
-  // Get notification type label
-  const getNotificationTypeLabel = (type: string) => { const typeKey = type.toUpperCase().replace('-', '_')
-    const typeLabels: Record<string, string> = { BLOG_LIKE: 'Bloq Bəyənməsi',
-      BLOG_DISLIKE: 'Bloq Bəyənməməsi',
-      COMMENT_ADDED: 'Yeni Şərh',
-      COMMENT_REPLY: 'Şərhə Cavab',
-      COMMENT_LIKE: 'Şərh Bəyənməsi',
-      COMMENT_DISLIKE: 'Şərh Bəyənməməsi',
-      EVENT_DEADLINE: 'Tədbir Son Tarixi',
-      EVENT_UPDATED: 'Tədbir Yeniləməsi',
-      VACANCY_DEADLINE: 'Vakansiya Son Tarixi',
-      VACANCY_UPDATED: 'Vakansiya Yeniləməsi',
-      SYSTEM_ANNOUNCEMENT: 'Sistem Elanı', }
-    return typeLabels[typeKey] || type.replace('_', ' ').toUpperCase() }
-
-  // Get notification icon based on type
-  const getNotificationTypeColor = (type: string) => { switch (type) { case 'blog_like':
-      case 'blog_dislike':
-        return 'text-blue-600'
-      case 'comment_reply':
-      case 'comment_like':
-      case 'comment_dislike':
-        return 'text-blue-600'
-      case 'event_deadline':
-        return 'text-amber-600'
-      default:
-        return 'text-gray-600' } }
-
-  // Close notifications when clicking outside
-  useEffect(() => { const handleClickOutside = (event: MouseEvent) => { if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) { setNotificationsOpen(false) } }
-
-    if (notificationsOpen) { document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside) } }, [notificationsOpen])
+    if (notificationsOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [notificationsOpen])
 
   if (!session) return null
 
@@ -226,7 +256,12 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-gradient-to-r from-amber-300 to-amber-500 text-blue-900 text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg">
+          <span
+            className={[
+              'absolute -top-1 -right-1 bg-gradient-to-r from-amber-300 to-amber-500 text-blue-900 text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg',
+              badgePopping ? 'notification-badge-pop' : '',
+            ].join(' ')}
+          >
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -242,13 +277,16 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
               <div className="flex items-center gap-2">
                 {unreadCount > 0 && (
                   <button
-                    onClick={markAllAsRead}
-                    className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                    onClick={handleMarkAllAsRead}
+                    disabled={markAllLoading}
+                    className="text-xs text-blue-600 hover:text-blue-700 disabled:text-blue-400 font-medium transition-colors inline-flex items-center gap-1"
                   >
+                    {markAllLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                     {'Hamısını oxunmuş kimi işarələ'}
                   </button>
                 )}
-                <Link href={localePath("/profile?tab=notifications")}
+                <Link
+                  href={viewAllNotificationsPath}
                   className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
                   onClick={() => setNotificationsOpen(false)}
                 >
@@ -260,90 +298,57 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
 
           {/* Notifications List */}
           <div className="flex-1 overflow-y-auto">
-            {loading ? (
-              <div className="px-4 py-8 text-center text-gray-500">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-3 text-sm">{'Yüklənir...'}</p>
+            {isLoading && notifications.length > 0 && (
+              <div className="px-4 py-2 border-b border-blue-100 bg-blue-50/60">
+                <div className="h-1.5 w-full rounded-full overflow-hidden bg-blue-100">
+                  <div className="h-full w-1/3 bg-blue-500 notification-loading-bar" />
+                </div>
+              </div>
+            )}
+
+            {isLoading && notifications.length === 0 ? (
+              <div className="px-4 py-4 space-y-3">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index} className="rounded-md border border-blue-100 p-3">
+                    <div className="h-3 w-3/5 bg-slate-200 rounded animate-pulse" />
+                    <div className="mt-2 h-2.5 w-4/5 bg-slate-100 rounded animate-pulse" />
+                    <div className="mt-2 h-2.5 w-2/5 bg-slate-100 rounded animate-pulse" />
+                  </div>
+                ))}
               </div>
             ) : notifications.length === 0 ? (
-              <div className="px-4 py-12 text-center text-gray-500">
-                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Bell className="h-8 w-8 text-blue-200" />
+              <div className="px-4 py-12 text-center text-gray-500 select-none">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-100">
+                  <Bell className="h-8 w-8 text-blue-300" />
                 </div>
-                <p className="text-sm font-medium text-gray-600">{'Hələ bildiriş yoxdur'}</p>
-                <p className="text-xs text-gray-400 mt-1">
-                  {'Bildiriş aldığınızda burada görünəcək'}
-                </p>
+                <p className="text-sm font-semibold text-slate-700">{'No notifications yet'}</p>
+                <p className="text-xs text-slate-400 mt-1">{'Yeni bildirişlər burada görünəcək'}</p>
               </div>
             ) : (
               <div>
-                {notifications.slice(0, 10).map((notification) => (
-                  <div
+                {visibleNotifications.map((notification) => (
+                  <NotificationListItem
                     key={notification._id}
-                    className={`px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-blue-100 transition-colors ${!notification.isRead ? 'bg-blue-50/50' : '' }`}
-                  >
-                    <div className="flex justify-between items-start gap-3">
-                      {/* Content */}
-                      <div
-                        className="flex-1 min-w-0"
-                        onClick={() => handleNotificationClick(notification)}
-                      >
-                        <div className="flex items-start gap-2">
-                          {!notification.isRead && (
-                            <span className="w-2 h-2 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></span>
-                          )}
-                          <div className="flex-1">
-                            <p className={`text-sm ${!notification.isRead ? 'font-semibold text-gray-900' : 'text-gray-700'}`}>
-                              {notification.title}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                              {notification.message}
-                            </p>
-                            <div className="flex items-center gap-2 mt-1.5">
-                              <span className={`text-xs font-medium ${getNotificationTypeColor(notification.type)}`}>
-                                {getNotificationTypeLabel(notification.type)}
-                              </span>
-                              <span className="text-xs text-gray-400">
-                                {formatRelativeTime(notification.createdAt)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex items-center flex-shrink-0">
-                        {!notification.isRead ? (
-                          <button
-                            onClick={(e) => { e.stopPropagation()
-                              toggleNotificationRead(notification._id, true) }}
-                            className="p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-100 rounded transition-colors"
-                            title={'Oxunmuş kimi işarələ'}
-                          >
-                            <Check className="h-4 w-4" />
-                          </button>
-                        ) : (
-                          <button
-                            onClick={(e) => { e.stopPropagation()
-                              toggleNotificationRead(notification._id, false) }}
-                            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-slate-100 rounded transition-colors"
-                            title={'Oxunmamış kimi işarələ'}
-                          >
-                            <CheckCheck className="h-4 w-4" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                    notification={notification}
+                    isHighlighted={highlightedIds.has(notification._id)}
+                    isEntering={enteringIds.has(notification._id)}
+                    isActionLoading={actionLoadingIds.has(notification._id)}
+                    isDeleting={deletingIds.has(notification._id)}
+                    onOpen={handleNotificationClick}
+                    onToggleRead={handleToggleRead}
+                    onDelete={handleDelete}
+                    compact
+                  />
                 ))}
               </div>
             )}
           </div>
 
           {/* Footer */}
-          {notifications.length > 0 && (
+          {visibleNotifications.length > 0 && (
             <div className="px-4 py-2 border-t border-blue-100 bg-slate-50 rounded-b-lg">
-              <Link href={localePath("/profile?tab=notifications")}
+              <Link
+                href={viewAllNotificationsPath}
                 className="text-xs text-center text-blue-600 hover:text-blue-700 font-medium block transition-colors"
                 onClick={() => setNotificationsOpen(false)}
               >
@@ -353,5 +358,65 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
           )}
         </div>
       )}
+
+      <style jsx>{`
+        .notification-enter {
+          animation: notification-enter 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .notification-highlight {
+          animation: notification-highlight 2.6s ease-out;
+        }
+
+        .notification-badge-pop {
+          animation: notification-badge-pop 0.24s ease-out;
+        }
+
+        .notification-loading-bar {
+          animation: notification-loading-slide 1.1s ease-in-out infinite;
+        }
+
+        @keyframes notification-enter {
+          0% {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes notification-highlight {
+          0% {
+            box-shadow: inset 0 0 0 999px rgba(253, 230, 138, 0.35);
+          }
+          100% {
+            box-shadow: inset 0 0 0 999px rgba(253, 230, 138, 0);
+          }
+        }
+
+        @keyframes notification-badge-pop {
+          0% {
+            transform: scale(0.85);
+          }
+          70% {
+            transform: scale(1.15);
+          }
+          100% {
+            transform: scale(1);
+          }
+        }
+
+        @keyframes notification-loading-slide {
+          0% {
+            transform: translateX(-120%);
+          }
+          100% {
+            transform: translateX(360%);
+          }
+        }
+      `}</style>
     </div>
-  ) }
+  )
+}

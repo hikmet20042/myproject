@@ -23,7 +23,7 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
     children,
     ...props
   }, ref) => {
-    const baseClasses = 'rounded-xl border-2 transition-all duration-200';
+    const baseClasses = 'rounded-2xl border shadow-sm transition-colors duration-200';
     
     const variants = {
       success: 'bg-green-50 border-green-200 text-green-800',
@@ -34,8 +34,8 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
     
     const sizes = {
       sm: 'p-3 text-sm',
-      md: 'p-4 text-base',
-      lg: 'p-6 text-lg'
+      md: 'p-4 text-sm',
+      lg: 'p-5 text-base'
     };
     
     const icons = {
@@ -65,9 +65,9 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
         )}
         {...props}
       >
-        <div className="flex items-start">
+        <div className="flex items-start gap-3">
           {icon && (
-            <div className={cn('flex-shrink-0 mr-3', iconColors[variant])}>
+            <div className={cn('mt-0.5 flex-shrink-0', iconColors[variant])}>
               <IconComponent className={size === 'sm' ? 'w-4 h-4' : size === 'md' ? 'w-5 h-5' : 'w-6 h-6'} />
             </div>
           )}
@@ -75,14 +75,15 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
           <div className="flex-1">
             {title && (
               <h4 className={cn(
-                'font-semibold mb-1',
-                size === 'sm' ? 'text-sm' : size === 'md' ? 'text-base' : 'text-lg'
+                'mb-1 font-semibold text-gray-900',
+                size === 'sm' ? 'text-sm' : size === 'md' ? 'text-sm' : 'text-base'
               )}>
                 {title}
               </h4>
             )}
             
             <div className={cn(
+              'leading-relaxed',
               title && 'text-sm opacity-90'
             )}>
               {children}
@@ -93,7 +94,7 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
             <button
               onClick={onDismiss}
               className={cn(
-                'flex-shrink-0 ml-3 p-1 rounded-full hover:bg-black hover:bg-opacity-10 transition-colors duration-200',
+                'ml-2 flex-shrink-0 rounded-full p-1 transition-colors duration-200 hover:bg-black/5',
                 iconColors[variant]
               )}
             >

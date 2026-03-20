@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useSession } from '@/lib/auth/client'
 import { useRouter, useParams } from 'next/navigation'
 import { Calendar, MapPin, Users, Link as LinkIcon, Clock, Tag, Image as ImageIcon } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -51,7 +50,7 @@ interface Event { _id: string
   createdAt: string
   updatedAt: string }
 
-export default function EditEvent() { const { data: session, status } = useSession()
+export default function EditEvent() {
   const router = useRouter()
   const params = useParams()
   const { markEventsDirty } = useDashboardData()
@@ -98,12 +97,7 @@ export default function EditEvent() { const { data: session, status } = useSessi
             imageUrl: eventData.imageUrl || '' }) } else { setError(data.error || 'Tədbiri yükləmək alınmadı') } } catch (error) { console.error('Error loading event:', error)
           setError('Tədbiri yükləmək alınmadı') } finally { setLoadingEvent(false) } }, [params?.id])
 
-  useEffect(() => { if (status === 'loading') return
-    if (!session) { router.push(localePath('/auth/signin'))
-      return }
-    if (params?.id) { loadEvent() } }, [loadEvent, params?.id, status, session, router, localePath])
-
-  if (status === 'loading') { return <LoadingState text={'Yüklənir'} /> }
+  useEffect(() => { if (params?.id) { loadEvent() } }, [loadEvent, params?.id])
 
   const handleSubmit = async (e: React.FormEvent) => { e.preventDefault()
     setLoading(true)

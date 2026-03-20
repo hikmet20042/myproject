@@ -9,7 +9,7 @@ export const revalidate = 0
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession()
-    if (!session?.user?.id || !session.user.isApprovedOrganization) {
+    if (!session?.user?.id || session.user.organizationStatus !== 'approved') {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession()
-    if (!session?.user?.id || !session.user.isApprovedOrganization) {
+    if (!session?.user?.id || session.user.organizationStatus !== 'approved') {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }

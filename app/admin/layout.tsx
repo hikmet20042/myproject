@@ -4,7 +4,7 @@ import { useSession } from '@/lib/auth/client'
 import { useRouter } from 'next/navigation'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
 import { useEffect, useRef, useState } from 'react'
-import { LoadingState, ErrorState } from '@/components/shared'
+import { LoadingState } from '@/components/shared'
 
 export default function AdminLayout({ children, }: { children: React.ReactNode }) { const { data: session, status } = useSession()
   const userId = session?.user?.id ?? null
@@ -77,8 +77,20 @@ export default function AdminLayout({ children, }: { children: React.ReactNode }
     }
   }, [accountType, homePath, isAdmin, role, signInPath, status, userId, mounted])
 
-  if (status === 'loading') { return (
+  if (!mounted || status === 'loading') { return (
       <LoadingState text={'Yüklənir'} />
+    ) }
+
+  if (status === 'unauthenticated') { return (
+      <LoadingState text={'Yönləndirilir...'} />
+    ) }
+
+  if (status === 'authenticated' && (userId == null || accountType === undefined || role === undefined)) { return (
+      <LoadingState text={'İcazələr yoxlanılır...'} />
+    ) }
+
+  if (status === 'authenticated' && isAdmin === false) { return (
+      <LoadingState text={'Yönləndirilir...'} />
     ) }
 
   return (

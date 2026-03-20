@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useSession } from '@/lib/auth/client'
 import { useRouter, useParams } from 'next/navigation'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Calendar, MapPin, Users, Link as LinkIcon, Clock, Tag, ArrowLeft, CheckCircle, XCircle, AlertCircle, ExternalLink } from 'lucide-react'
@@ -56,7 +55,7 @@ interface Event { _id: string
       description: string
       duration: string }> } }
 
-export default function AdminEventPreview() { const { data: session, status } = useSession()
+    export default function AdminEventPreview() {
   const router = useRouter()
   const params = useParams()
   const [event, setEvent] = useState<Event | null>(null)
@@ -75,10 +74,7 @@ export default function AdminEventPreview() { const { data: session, status } = 
       if (response.ok) { const data = await response.json()
         setEvent(data.event) } else { setError('Yükləmək alınmadı') } } catch (error) { setError('Yükləmə xətası') } finally { setLoading(false) } }, [params?.id])
 
-  useEffect(() => { if (status === 'loading') return
-    if (session?.user?.role !== 'admin') { router.push(localePath("/"))
-      return }
-    fetchEvent() }, [fetchEvent, router, session, status, params?.id, localePath])
+  useEffect(() => { fetchEvent() }, [fetchEvent])
 
   const handleApprove = async () => { if (!params?.id) return
     

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useSession } from '@/lib/auth/client'
 import { useRouter, useParams } from 'next/navigation'
 import Image from 'next/image'
 import * as Dialog from '@radix-ui/react-dialog'
@@ -41,7 +40,6 @@ interface Event { _id: string
 
 export default function EventDetail() {
   const localePath = useLocalizedPath()
-  const { data: session, status } = useSession()
   const router = useRouter()
   const params = useParams()
   const [event, setEvent] = useState<Event | null>(null)
@@ -58,12 +56,7 @@ export default function EventDetail() {
       if (response.ok) { setEvent(data.event) } else { setError(data.error || 'Tədbiri yükləmək mümkün olmadı') } } catch (error) { console.error('Error loading event:', error)
       setError('Tədbiri yükləmək mümkün olmadı') } finally { setLoading(false) } }, [params?.id])
 
-  useEffect(() => { if (status === 'loading') return
-    if (!session) { router.push(localePath('/auth/signin'))
-      return }
-    if (params?.id) { loadEvent() } }, [loadEvent, params?.id, status, session, router, localePath])
-
-  if (status === 'loading') { return <LoadingState text={'Yüklənir'} /> }
+  useEffect(() => { if (params?.id) { loadEvent() } }, [loadEvent, params?.id])
 
   const handleDelete = async () => { try { setDeleting(true)
       const response = await fetch(`/api/events/${params?.id}`, { method: 'DELETE' })

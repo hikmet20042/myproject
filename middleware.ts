@@ -95,12 +95,6 @@ async function checkAuthorization(pathWithoutLanguage: string, pathname: string,
           .maybeSingle()
 
         isAdmin = account?.is_admin === true
-
-        // Backward compatibility while legacy metadata still exists.
-        if (!isAdmin) {
-          const legacyRole = (user.app_metadata?.role as string) || 'user'
-          isAdmin = legacyRole === 'admin'
-        }
       }
 
       if (!isAdmin) {

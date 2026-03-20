@@ -34,8 +34,8 @@ function CreateEventContent() { const { data: session, status } = useSession()
   const searchParams = useSearchParams()
   const accountType = session?.user?.accountType
   const isOrganizationAccount = accountType === 'organization'
-  const isApprovedKnown = session?.user?.isApprovedOrganization !== undefined
-  const isApprovedOrganization = session?.user?.isApprovedOrganization === true
+  const isApprovedKnown = accountType !== 'organization' || session?.user?.organizationStatus !== undefined
+  const isApprovedOrganization = session?.user?.organizationStatus === 'approved'
   const [mounted, setMounted] = useState(false)
   const signInPath = localePath('/auth/signin?callbackUrl=/dashboard/events/create')
   const homePath = localePath('/')

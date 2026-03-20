@@ -3,15 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Briefcase, Plus, Search } from "lucide-react";
-import { useSession } from "@/lib/auth/client";
-import { useRouter } from "next/navigation";
 import { useLocalizedPath } from "@/lib/useLocalizedPath";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Loading } from "@/components/ui/Loading";
-import { ErrorState } from "@/components/shared";
 import { Alert } from "@/components/feedback";
 import VacanciesList from "@/features/vacancies/components/VacanciesList";
 import VacancyDeleteDialog from "@/features/vacancies/components/VacancyDeleteDialog";
@@ -23,17 +20,7 @@ import {
 } from "@/features/vacancies/components/types";
 
 export default function VacanciesPageContainer() {
-  const { data: session, status } = useSession();
-  const sessionUserId = session?.user?.id ?? null;
-  const accountType = session?.user?.accountType;
-  const isOrganizationAccount = accountType === "organization";
-  const isApprovedKnown = session?.user?.isApprovedOrganization !== undefined;
-  const isApprovedOrganization = session?.user?.isApprovedOrganization === true;
-  const router = useRouter();
-  const routerRef = useRef(router);
   const localePath = useLocalizedPath();
-  const signInPath = localePath("/auth/signin");
-  const homePath = localePath("/");
   const [vacancies, setVacancies] = useState<VacancyItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -49,10 +36,7 @@ export default function VacanciesPageContainer() {
 
   useEffect(() => {
     setMounted(true);
-    console.debug("[vacancies-page] mount", { userId: sessionUserId });
-    return () => {
-      console.debug("[vacancies-page] unmount", { userId: sessionUserId });
-    };
+    return () => {};
     // Mount-only lifecycle debug.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -62,61 +46,8 @@ export default function VacanciesPageContainer() {
       return;
     }
 
-    if (status === "loading") {
-      return;
-    }
-
-    if (status === "unauthenticated") {
-      console.debug("[auth-guard][vacancies] redirect -> signin", { status });
-      routerRef.current.replace(signInPath);
-      return;
-    }
-
-    if (status === "authenticated" && !sessionUserId) {
-      console.debug("[auth-guard][vacancies] authenticated but userId not ready");
-      return;
-    }
-
-    if (status === "authenticated" && accountType === undefined) {
-      console.debug("[auth-guard][vacancies] authenticated but accountType not ready", {
-        userId: sessionUserId,
-      });
-      return;
-    }
-
-    if (status === "authenticated" && !isOrganizationAccount) {
-      console.debug("[auth-guard][vacancies] redirect -> home (non-organization account)", {
-        userId: sessionUserId,
-        accountType,
-      });
-      routerRef.current.replace(homePath);
-      return;
-    }
-
-    if (status === "authenticated" && !isApprovedKnown) {
-      console.debug("[auth-guard][vacancies] authenticated but approval state not ready", {
-        userId: sessionUserId,
-      });
-      return;
-    }
-
-    if (status === "authenticated" && isApprovedOrganization === false) {
-      console.debug("[auth-guard][vacancies] redirect -> home (not approved org)", {
-        userId: sessionUserId,
-      });
-      routerRef.current.replace(homePath);
-      return;
-    }
-
-    console.debug("[auth-guard][vacancies] ready", {
-      userId: sessionUserId,
-      status,
-      accountType,
-      isApprovedOrganization,
-    });
-    console.debug("[vacancies-page] fetch trigger", { reason: "guard-ready" });
     fetchVacancies();
-  }, [accountType, homePath, isApprovedKnown, isApprovedOrganization, isOrganizationAccount, sessionUserId, signInPath, status, mounted]);
+  }, [mounted]);
 
   const fetchVacancies = async () => {
     try {
@@ -188,44 +119,8 @@ export default function VacanciesPageContainer() {
     );
   });
 
-  if (status === "loading" || loading) {
+  if (loading) {
     return <Loading />;
-  }
-
-  if (
-    status === "authenticated" &&
-    accountType !== undefined &&
-    !isOrganizationAccount
-  ) {
-    return (
-      <ErrorState
-        title={"Giriş Qadağandır"}
-        message={"Bu səhifəyə daxil olmaq üçün təşkilat hesabı tələb olunur."}
-        onRetry={() => routerRef.current.replace(homePath)}
-        retryText={"Ana səhifəyə qayıt"}
-        gradientFrom="from-red-50"
-        gradientVia="via-orange-50"
-        gradientTo="to-yellow-50"
-      />
-    );
-  }
-
-  if (
-    status === "authenticated" &&
-    isApprovedKnown &&
-    isApprovedOrganization === false
-  ) {
-    return (
-      <ErrorState
-        title={"Giriş Qadağandır"}
-        message={"Bu səhifəyə daxil olmaq üçün təsdiqlənmiş təşkilat olmalısınız."}
-        onRetry={() => routerRef.current.replace(homePath)}
-        retryText={"Ana səhifəyə qayıt"}
-        gradientFrom="from-red-50"
-        gradientVia="via-orange-50"
-        gradientTo="to-yellow-50"
-      />
-    );
   }
 
   return (
@@ -274,7 +169,7 @@ export default function VacanciesPageContainer() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 variant="indigo"
-                className="h-12 border-blue-100 bg-white pl-10"
+                className="h-12 border-blue-100 bg-white pl-7"
               />
             </div>
             <Select

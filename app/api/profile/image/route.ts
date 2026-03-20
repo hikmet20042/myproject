@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
 
     // Determine if user is organization or regular user
-    const isOrganization = session.user.isApprovedOrganization;
+    const isOrganization = session.user.organizationStatus === 'approved';
     let userDoc: any;
 
     if (isOrganization) {
@@ -176,7 +176,7 @@ export async function DELETE(request: NextRequest) {
     const supabase = createSupabaseAdminClient();
 
     // Determine if user is organization or regular user
-    const isOrganization = session.user.isApprovedOrganization;
+    const isOrganization = session.user.organizationStatus === 'approved';
     let userDoc: any;
 
     if (isOrganization) {
@@ -257,7 +257,7 @@ export async function GET(request: NextRequest) {
     const supabase = createSupabaseAdminClient();
 
     // Determine if user is organization or regular user
-    const isOrganization = session.user.isApprovedOrganization;
+    const isOrganization = session.user.organizationStatus === 'approved';
     let userDoc: any;
 
     if (isOrganization) {

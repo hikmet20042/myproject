@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Redirect organization users - they should use organization-specific endpoints
-    if (session.user.isApprovedOrganization) {
+    if (session.user.organizationStatus === 'approved') {
       return NextResponse.json({ 
         error: 'Organization stats should use /api/organization/stats endpoint',
         redirect: '/api/organization/stats'

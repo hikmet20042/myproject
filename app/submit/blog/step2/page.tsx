@@ -48,12 +48,6 @@ function Step2Page({ searchParams }: Step2Props) {
   const [init, setInit] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
-  useEffect(() => {
-    if (status === "loading") return;
-    if (!session) {
-      router.push(localePath("/auth/signin"));
-    }
-  }, [status, session, router, localePath]);
 
   // Helper function to update character count in localStorage
   const updateCharacterCountInLocalStorage = useCallback((count: number) => {

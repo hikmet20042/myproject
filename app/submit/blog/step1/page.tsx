@@ -22,9 +22,6 @@ function BlogStep1() { const router = useRouter()
   const [loading, setLoading] = useState(false)
   const localePath = useLocalizedPath()
 
-  useEffect(() => { if (status === 'loading') return
-    if (!session) { router.push(localePath('/auth/signin')) } }, [status, session, router, localePath])
-
   const loadBlogForEditing = useCallback(async (blogId: string) => { if (!session || status !== 'authenticated') return
     
     setLoading(true)
@@ -89,7 +86,7 @@ function BlogStep1() { const router = useRouter()
     const nextUrl = editId ? `/submit/blog/step2?edit=${editId}` : '/submit/blog/step2'
     router.push(localePath(nextUrl)) }
 
-  if (status === 'loading' || loading) { return <LoadingState text={'Bloq məlumatları yüklənir...'} /> }
+  if (loading) { return <LoadingState text={'Bloq məlumatları yüklənir...'} /> }
   
   return (
     <div className="relative min-h-screen bg-background py-8 sm:py-12 text-foreground transition-colors duration-200">

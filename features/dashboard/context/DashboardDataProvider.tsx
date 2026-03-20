@@ -51,7 +51,7 @@ interface DashboardDataProviderProps {
 export function DashboardDataProvider({ children }: DashboardDataProviderProps) {
   const { data: session, status } = useSession();
   const sessionUserId = session?.user?.id ?? null;
-  const isApprovedOrganization = session?.user?.isApprovedOrganization === true;
+  const isOrganizationApproved = session?.user?.organizationStatus === 'approved';
   const hasFetchedEventsRef = useRef(false);
 
   const [profile, setProfile] = useState<any | null>(null);
@@ -109,7 +109,7 @@ export function DashboardDataProvider({ children }: DashboardDataProviderProps) 
       return;
     }
 
-    if (!isApprovedOrganization) {
+    if (!isOrganizationApproved) {
       hasFetchedEventsRef.current = false;
       setEventsState([]);
       setEventsLoading(false);
@@ -125,7 +125,7 @@ export function DashboardDataProvider({ children }: DashboardDataProviderProps) 
 
     hasFetchedEventsRef.current = true;
     refreshEvents();
-  }, [isApprovedOrganization, refreshEvents, status]);
+  }, [isOrganizationApproved, refreshEvents, status]);
 
   const setEvents = useCallback((nextEvents: EventItem[]) => {
     setEventsState(nextEvents);

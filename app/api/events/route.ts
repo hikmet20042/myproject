@@ -324,7 +324,7 @@ export async function POST(request: NextRequest) {
     const supabase = createSupabaseAdminClient()
     
     // Check if user is an approved organization
-    if (!session.user.isApprovedOrganization) {
+    if (session.user.organizationStatus !== 'approved') {
       return NextResponse.json(
         { error: 'Only approved organizations can create events' },
         { status: 403 }

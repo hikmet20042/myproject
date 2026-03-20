@@ -4,10 +4,10 @@ export type AppSessionUser = {
   id: string
   email: string | null
   name?: string | null
-  role?: 'user' | 'admin'
+  role: 'user' | 'admin'
   emailVerified?: boolean
-  isApprovedOrganization?: boolean
   accountType: 'user' | 'organization'
+  organizationStatus?: 'pending' | 'approved'
   isActive?: boolean
 }
 
@@ -31,8 +31,8 @@ export async function getServerSession() {
     .maybeSingle()
 
   const accountType = (account?.account_type as 'user' | 'organization' | undefined)
-    || (user.app_metadata?.account_type as 'user' | 'organization')
     || 'user'
+  const role: 'admin' | 'user' = account?.is_admin ? 'admin' : 'user'
 
   if (accountType === 'organization') {
     const { data: organizationProfile } = await supabase
@@ -52,15 +52,24 @@ export async function getServerSession() {
     const moderationStatus = organizationProfile?.moderation_status
       ?? 'pending'
 
+    if (process.env.NODE_ENV === 'development') {
+      console.debug('[auth][server] authority', {
+        id: user.id,
+        role,
+        accountType,
+        organizationStatus: moderationStatus,
+      })
+    }
+
     return {
       user: {
         id: user.id,
         email: user.email ?? null,
         name: organizationName,
-        role: undefined,
+        role,
         emailVerified: !!user.email_confirmed_at,
-        isApprovedOrganization: moderationStatus === 'approved',
         accountType: 'organization',
+        organizationStatus: moderationStatus as 'pending' | 'approved',
         isActive: account?.is_active ?? true,
       },
     } satisfies AppSession
@@ -68,20 +77,26 @@ export async function getServerSession() {
 
   const { data: profile } = await supabase
     .from('users')
-    .select('id, name, role')
+    .select('id, name')
     .eq('id', user.id)
     .maybeSingle()
 
-  const isAdmin = (account?.is_admin ?? false) || profile?.role === 'admin'
+  if (process.env.NODE_ENV === 'development') {
+    console.debug('[auth][server] authority', {
+      id: user.id,
+      role,
+      accountType,
+      organizationStatus: undefined,
+    })
+  }
 
   return {
     user: {
       id: user.id,
       email: user.email ?? null,
       name: profile?.name ?? user.user_metadata?.name ?? null,
-      role: isAdmin ? 'admin' : 'user',
+      role,
       emailVerified: !!user.email_confirmed_at,
-      isApprovedOrganization: false,
       accountType: 'user',
       isActive: account?.is_active ?? true,
     },

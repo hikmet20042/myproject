@@ -30,8 +30,6 @@ export default function EditBlogStep2() { const { data: session, status } = useS
   const [showAuthorNameInput, setShowAuthorNameInput] = useState(false);
   const [init, setInit] = useState(false);
   const [loading, setLoading] = useState(false);
-  useEffect(() => { if (status === 'loading') return
-    if (!session) { router.push(localePath('/auth/signin')) } }, [status, session, router, localePath])
 
 
   // Cleanup function to clear localStorage when leaving the blog editing flow
@@ -106,7 +104,7 @@ export default function EditBlogStep2() { const { data: session, status } = useS
   // Show author name input if not anonymous and not logged in
   useEffect(() => { setShowAuthorNameInput(!isAnonymous && !session?.user?.name); }, [isAnonymous, session]);
 
-  if (status === 'loading' || loading) { return <LoadingState text={'Yüklənir'} /> }
+  if (loading) { return <LoadingState text={'Yüklənir'} /> }
 
   const handleEditorChange = (newContent: any, htmlContent: string) => { setContent(newContent);
     setContentHtml(htmlContent);

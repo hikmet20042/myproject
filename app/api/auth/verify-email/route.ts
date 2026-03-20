@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { NotificationService } from '@/lib/services/notificationService'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,13 +38,12 @@ export async function GET(request: NextRequest) {
       .maybeSingle()
 
     const accountType = (account?.account_type as 'user' | 'organization' | undefined)
-      || (verified.user.app_metadata?.account_type as 'user' | 'organization')
       || 'user'
     const isOrganization = accountType === 'organization'
 
     if (!isOrganization) {
-      await supabase.from('notifications').insert({
-        user_id: verified.user.id,
+      await NotificationService.createNotification({
+        userId: verified.user.id,
         type: 'email_verification',
         title: 'E-poçt uğurla təsdiqləndi!',
         message: 'E-poçtunuz təsdiqləndi. İndi hesabınıza daxil ola bilərsiniz.',

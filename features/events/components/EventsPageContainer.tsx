@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Calendar, Plus, Search } from "lucide-react";
-import { useSession } from "@/lib/auth/client";
-import { useRouter } from "next/navigation";
 import { useLocalizedPath } from "@/lib/useLocalizedPath";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -24,17 +22,7 @@ import {
 
 export default function EventsPageContainer() {
   const EVENTS_STALE_MS = 2 * 60 * 1000;
-  const { data: session, status } = useSession();
-  const sessionUserId = session?.user?.id ?? null;
-  const accountType = session?.user?.accountType;
-  const isOrganizationAccount = accountType === "organization";
-  const isApprovedKnown = session?.user?.isApprovedOrganization !== undefined;
-  const isApprovedOrganization = session?.user?.isApprovedOrganization === true;
-  const router = useRouter();
-  const routerRef = useRef(router);
   const localePath = useLocalizedPath();
-  const signInPath = localePath("/auth/signin");
-  const homePath = localePath("/");
   const {
     events,
     eventsLoading,
@@ -46,7 +34,6 @@ export default function EventsPageContainer() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [mounted, setMounted] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<EventItem | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -54,86 +41,8 @@ export default function EventsPageContainer() {
   const [feedbackVariant, setFeedbackVariant] = useState<"success" | "error">("success");
 
   useEffect(() => {
-    setMounted(true);
-    console.debug("[events-page] mount", { userId: sessionUserId });
-    return () => {
-      console.debug("[events-page] unmount", { userId: sessionUserId });
-    };
-    // Mount-only lifecycle debug.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) {
-      return;
-    }
-
-    if (status === "loading") {
-      return;
-    }
-
-    if (status === "unauthenticated") {
-      console.debug("[auth-guard][events] redirect -> signin", { status });
-      routerRef.current.replace(signInPath);
-      return;
-    }
-
-    if (status === "authenticated" && !sessionUserId) {
-      console.debug("[auth-guard][events] authenticated but userId not ready");
-      return;
-    }
-
-    if (status === "authenticated" && accountType === undefined) {
-      console.debug("[auth-guard][events] authenticated but accountType not ready", {
-        userId: sessionUserId,
-      });
-      return;
-    }
-
-    if (status === "authenticated" && !isOrganizationAccount) {
-      console.debug("[auth-guard][events] redirect -> home (non-organization account)", {
-        userId: sessionUserId,
-        accountType,
-      });
-      routerRef.current.replace(homePath);
-      return;
-    }
-
-    if (status === "authenticated" && !isApprovedKnown) {
-      console.debug("[auth-guard][events] authenticated but approval state not ready", {
-        userId: sessionUserId,
-      });
-      return;
-    }
-
-    if (status === "authenticated" && isApprovedOrganization === false) {
-      console.debug("[auth-guard][events] redirect -> home (not approved org)", {
-        userId: sessionUserId,
-      });
-      routerRef.current.replace(homePath);
-      return;
-    }
-
-    console.debug("[auth-guard][events] ready", {
-      userId: sessionUserId,
-      status,
-      accountType,
-      isApprovedOrganization,
-    });
-    console.debug("[events-page] fetch trigger", { reason: "guard-ready" });
     void ensureFreshEvents(EVENTS_STALE_MS);
-  }, [
-    accountType,
-    ensureFreshEvents,
-    isApprovedKnown,
-    isApprovedOrganization,
-    isOrganizationAccount,
-    homePath,
-    sessionUserId,
-    signInPath,
-    status,
-    mounted,
-  ]);
+  }, [ensureFreshEvents]);
 
   const handleDeleteRequest = (event: EventItem) => {
     setFeedbackMessage(null);
@@ -192,44 +101,8 @@ export default function EventsPageContainer() {
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
-  if (status === "loading" || eventsLoading) {
+  if (eventsLoading) {
     return <Loading />;
-  }
-
-  if (
-    status === "authenticated" &&
-    accountType !== undefined &&
-    !isOrganizationAccount
-  ) {
-    return (
-      <ErrorState
-        title={"Giriş Qadağandır"}
-        message={"Bu səhifəyə daxil olmaq üçün təşkilat hesabı tələb olunur."}
-        onRetry={() => routerRef.current.replace(homePath)}
-        retryText={"Ana səhifəyə qayıt"}
-        gradientFrom="from-red-50"
-        gradientVia="via-orange-50"
-        gradientTo="to-yellow-50"
-      />
-    );
-  }
-
-  if (
-    status === "authenticated" &&
-    isApprovedKnown &&
-    isApprovedOrganization === false
-  ) {
-    return (
-      <ErrorState
-        title={"Giriş Qadağandır"}
-        message={"Bu səhifəyə daxil olmaq üçün təsdiqlənmiş təşkilat olmalısınız."}
-        onRetry={() => routerRef.current.replace(homePath)}
-        retryText={"Ana səhifəyə qayıt"}
-        gradientFrom="from-red-50"
-        gradientVia="via-orange-50"
-        gradientTo="to-yellow-50"
-      />
-    );
   }
 
   if (eventsError) {
@@ -292,7 +165,7 @@ export default function EventsPageContainer() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 variant="indigo"
-                className="h-12 border-blue-100 bg-white pl-10"
+                className="h-12 border-blue-100 bg-white pl-7"
               />
             </div>
             <Select

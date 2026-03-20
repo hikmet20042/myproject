@@ -254,11 +254,7 @@ type SiteSettings = {
 };
 
 export default function AdminPage() {
-  const { data: session, status } = useSession();
-  const userId = session?.user?.id ?? null;
-  const accountType = session?.user?.accountType;
-  const role = session?.user?.role;
-  const isAdmin = role === "admin";
+  const { data: session } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams?.get("tab") || null;
@@ -486,71 +482,18 @@ export default function AdminPage() {
     }
   };
 
-  // Ensure we load data when the user session is ready and when the active tab changes.
+  // Layout owns access control; page only syncs tab state and loads data.
   useEffect(() => {
-    if (status === "loading") {
-      return;
-    }
-
-    if (status === "authenticated" && !userId) {
-      console.debug("[auth-guard][admin-page] authenticated but userId not ready");
-      return;
-    }
-
-    if (status === "authenticated" && accountType === undefined) {
-      console.debug("[auth-guard][admin-page] authenticated but accountType not ready", {
-        userId,
-      });
-      return;
-    }
-
-    if (status === "authenticated" && role === undefined) {
-      console.debug("[auth-guard][admin-page] authenticated but role not ready", {
-        userId,
-      });
-      return;
-    }
-
     if (tabParam && tabParam !== activeTab) {
       setActiveTab(tabParam);
     }
 
-    if (status === "unauthenticated") {
-      // AdminLayout handles redirect. Keep page guard passive to avoid redirect races.
-      console.debug(
-        "[auth-guard][admin-page] waiting for layout redirect (unauthenticated)",
-      );
-      return;
-    }
-
-    if (status === "authenticated" && isAdmin === false) {
-      // AdminLayout handles redirect for non-admin users.
-      console.debug(
-        "[auth-guard][admin-page] waiting for layout redirect (non-admin)",
-        {
-          userId,
-        },
-      );
-      return;
-    }
-
-    if (status === "authenticated" && isAdmin) {
-      console.debug("[auth-guard][admin-page] fully ready -> loading admin data", {
-        userId,
-        activeTab,
-        accountType,
-      });
-      console.debug("[admin-page] fetch trigger", {
-        reason: "auth-ready",
-        activeTab,
-      });
-      setLoading(true);
-      loadSubmissions();
-      // Load organization stats on initial load for the badge
-      loadOrganizationStats();
-    }
+    setLoading(true);
+    loadSubmissions();
+    // Load organization stats on initial load for the badge
+    loadOrganizationStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accountType, activeTab, isAdmin, role, status, tabParam, userId]);
+  }, [activeTab, tabParam]);
 
   const loadBlogs = async () => {
     try {

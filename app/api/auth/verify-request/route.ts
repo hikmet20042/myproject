@@ -24,7 +24,6 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     const accountType = (account?.account_type as 'user' | 'organization' | undefined)
-      || (authData.user.app_metadata?.account_type as 'user' | 'organization')
       || 'user'
     let accountRow: any = null
 

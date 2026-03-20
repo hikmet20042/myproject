@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const supabase = createSupabaseAdminClient()
 
     // If session is organization, fetch from Organization collection
-    if (session.user.isApprovedOrganization) {
+    if (session.user.organizationStatus === 'approved') {
       const { data: organizationProfile } = await supabase
         .from('organization_profiles')
         .select('account_id, organization_name, email, moderation_status, created_at, profile_image')
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
           name: organizationProfile.organization_name,
           email: organizationProfile.email,
           role: undefined, // Organizations don't have role in User collection
-          isApprovedOrganization: organizationProfile.moderation_status === 'approved',
+          organizationStatus: organizationProfile.moderation_status,
           createdAt: organizationProfile.created_at,
           profileImage: organizationProfile.profile_image,
           image: (organizationProfile.profile_image as any)?.url || undefined

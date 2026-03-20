@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useSession } from '@/lib/auth/client'
 import { useRouter } from 'next/navigation'
 import DOMPurify from 'dompurify'
 import dynamic from 'next/dynamic'
@@ -32,7 +31,7 @@ type Blog = { _id: string
   likes?: number
   category?: string }
 
-export default function AdminStoryPreview({ params }: { params: { id: string } }) { const { data: session, status } = useSession()
+export default function AdminStoryPreview({ params }: { params: { id: string } }) {
   const router = useRouter()
   const [blog, setBlog] = useState<Blog | null>(null)
   const [loading, setLoading] = useState(true)
@@ -52,12 +51,7 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
       setBlog(data.blog) } catch (error) { console.error('Error loading blog:', error)
       setError('Bloqu yükləmək mümkün olmadı') } finally { setLoading(false) } }, [params.id])
 
-  useEffect(() => { if (status === 'loading') return
-    
-    if (!session?.user || session.user.role !== 'admin') { router.push(localePath("/admin"))
-      return }
-
-    loadStory() }, [loadStory, params.id, session, status, router, localePath])
+  useEffect(() => { loadStory() }, [loadStory])
 
   const getStatusBadge = (status: string) => { switch (status) { case 'approved':
         return (
