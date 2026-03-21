@@ -17,10 +17,10 @@ export async function GET(request: NextRequest) {
 
     console.log('Profile GET - Session user ID:', session.user.id, 'Type:', typeof session.user.id);
     console.log('Profile GET - Session user role:', session.user.role);
-    console.log('Profile GET - Is Organization:', session.user.organizationStatus === 'approved');
+    console.log('Profile GET - Is Organization:', session.user.accountType === 'organization' && session.user.organizationStatus === 'approved');
 
     // Check if user is organization - if so, redirect to organization-specific profile endpoint
-    if (session.user.organizationStatus === 'approved') {
+    if (session.user.accountType === 'organization' && session.user.organizationStatus === 'approved') {
       return NextResponse.json({ 
         error: 'Organization profiles should use /api/organization/profile endpoint',
         redirect: '/api/organization/profile'
@@ -77,7 +77,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
 
     // Reject organization profile updates - they should use organization-specific endpoints
-    if (session.user.organizationStatus === 'approved') {
+    if (session.user.accountType === 'organization' && session.user.organizationStatus === 'approved') {
       return NextResponse.json({ 
         error: 'Organization profiles should use /api/organization/profile endpoint',
         redirect: '/api/organization/profile'

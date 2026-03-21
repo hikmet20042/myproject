@@ -22,8 +22,11 @@ export async function POST(
 
     const supabase = createSupabaseAdminClient();
 
-    // Check if user is an approved organization
-    if (session.user.organizationStatus !== 'approved') {
+    // Only approved organizations can manage event images
+    if (
+      session.user.accountType !== 'organization' ||
+      session.user.organizationStatus !== 'approved'
+    ) {
       return NextResponse.json(
         { error: 'Only approved organizations can upload event images' },
         { status: 403 }
@@ -161,8 +164,11 @@ export async function DELETE(
 
     const supabase = createSupabaseAdminClient();
 
-    // Check if user is an approved organization
-    if (session.user.organizationStatus !== 'approved') {
+    // Only approved organizations can manage event images
+    if (
+      session.user.accountType !== 'organization' ||
+      session.user.organizationStatus !== 'approved'
+    ) {
       return NextResponse.json(
         { error: 'Only approved organizations can manage event images' },
         { status: 403 }
@@ -261,8 +267,11 @@ export async function PATCH(
 
     const supabase = createSupabaseAdminClient();
 
-    // Check if user is an approved organization
-    if (session.user.organizationStatus !== 'approved') {
+    // Only approved organizations can manage event images
+    if (
+      session.user.accountType !== 'organization' ||
+      session.user.organizationStatus !== 'approved'
+    ) {
       return NextResponse.json(
         { error: 'Only approved organizations can manage event images' },
         { status: 403 }

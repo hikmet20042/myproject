@@ -17,8 +17,7 @@ export default function Header() {
   const localePath = useLocalizedPath();
   const { data: session, status } = useSession()
   const isAuthLoading = status === 'loading'
-  const isOrganizationUser =
-    session?.user?.accountType === 'organization' || session?.user?.organizationStatus === 'approved'
+  const isOrganizationUser = session?.user?.accountType === 'organization'
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
@@ -158,7 +157,7 @@ export default function Header() {
                         {'İdarəetmə Paneli'}
                       </Link>
                     )}
-                    {session.user?.organizationStatus === 'approved' && (
+                    {session.user?.accountType === 'organization' && session.user?.organizationStatus === 'approved' && (
                       <Link
                         href={localePath('/dashboard/profile')}
                         className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors duration-150 font-medium"
@@ -304,7 +303,7 @@ export default function Header() {
                           {'İdarəetmə Paneli'}
                         </Link>
                       )}
-                      {session.user?.organizationStatus === 'approved' && (
+                      {session.user?.accountType === 'organization' && session.user?.organizationStatus === 'approved' && (
                         <Link
                           href={localePath('/dashboard/profile')}
                           className="-mx-3 block rounded-lg px-4 py-3 text-base font-semibold leading-7 text-gray-900 hover:bg-slate-100 transition-colors"

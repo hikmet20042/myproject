@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Briefcase, Plus, Search } from "lucide-react";
 import { useLocalizedPath } from "@/lib/useLocalizedPath";
@@ -8,11 +8,17 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Card, CardContent } from "@/components/ui/Card";
-import { Loading } from "@/components/ui/Loading";
 import { Alert } from "@/components/feedback";
 import VacanciesList from "@/features/vacancies/components/VacanciesList";
 import VacancyDeleteDialog from "@/features/vacancies/components/VacancyDeleteDialog";
 import type { VacancyItem } from "@/features/vacancies/components/types";
+import {
+  renderSectionByState,
+  resolveSectionState,
+  SectionErrorInline,
+  SectionLoading,
+  useRefreshVisibility,
+} from "@/features/ui-state";
 import {
   statusOptions,
   categoryOptions,
@@ -23,10 +29,10 @@ export default function VacanciesPageContainer() {
   const localePath = useLocalizedPath();
   const [vacancies, setVacancies] = useState<VacancyItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [mounted, setMounted] = useState(false);
   const [compensationFilter, setCompensationFilter] = useState("all");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [vacancyToDelete, setVacancyToDelete] = useState<VacancyItem | null>(null);
@@ -35,31 +41,25 @@ export default function VacanciesPageContainer() {
   const [feedbackVariant, setFeedbackVariant] = useState<"success" | "error">("success");
 
   useEffect(() => {
-    setMounted(true);
-    return () => {};
-    // Mount-only lifecycle debug.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void fetchVacancies();
   }, []);
-
-  useEffect(() => {
-    if (!mounted) {
-      return;
-    }
-
-    fetchVacancies();
-  }, [mounted]);
 
   const fetchVacancies = async () => {
     try {
-      console.debug("[vacancies-page] fetch vacancies request");
       setLoading(true);
+      setFetchError(null);
       const response = await fetch(`/api/vacancies?author=me`);
-      if (response.ok) {
-        const data = await response.json();
-        setVacancies(data.vacancies || data);
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        setFetchError(payload.error || "Vakansiyaları yükləmək mümkün olmadı.");
+        return;
       }
-    } catch (error) {
-      console.error("Error fetching vacancies:", error);
+
+      const data = await response.json();
+      setVacancies(data.vacancies || data || []);
+    } catch {
+      setFetchError("Vakansiyaları yükləmək mümkün olmadı.");
     } finally {
       setLoading(false);
     }
@@ -81,18 +81,16 @@ export default function VacanciesPageContainer() {
       });
 
       if (response.ok) {
-        setVacancies(vacancies.filter((v) => v._id !== vacancyToDelete._id));
+        setVacancies((prev) => prev.filter((v) => v._id !== vacancyToDelete._id));
         setFeedbackVariant("success");
         setFeedbackMessage("Vacancy deleted successfully.");
         setDeleteModalOpen(false);
         setVacancyToDelete(null);
       } else {
-        console.error("Failed to delete vacancy");
         setFeedbackVariant("error");
         setFeedbackMessage("Could not delete the vacancy. Please try again.");
       }
-    } catch (error) {
-      console.error("Error deleting vacancy:", error);
+    } catch {
       setFeedbackVariant("error");
       setFeedbackMessage("Something went wrong while deleting the vacancy.");
     } finally {
@@ -105,8 +103,8 @@ export default function VacanciesPageContainer() {
       vacancy.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       vacancy.description.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const status = vacancy.status || "pending";
-    const matchesStatus = statusFilter === "all" || status === statusFilter;
+    const vacancyStatus = vacancy.status || "pending";
+    const matchesStatus = statusFilter === "all" || vacancyStatus === statusFilter;
 
     const matchesCategory =
       categoryFilter === "all" || vacancy.category === categoryFilter;
@@ -119,9 +117,58 @@ export default function VacanciesPageContainer() {
     );
   });
 
-  if (loading) {
-    return <Loading />;
-  }
+  const sectionState = resolveSectionState({
+    dataState:
+      loading && vacancies.length === 0
+        ? "loading"
+        : filteredVacancies.length === 0
+          ? searchTerm.trim().length > 0 ||
+            statusFilter !== "all" ||
+            categoryFilter !== "all" ||
+            compensationFilter !== "all"
+            ? "filtered-empty"
+            : "empty"
+          : "success",
+    errorState: fetchError ? "present" : "none",
+    isRefreshing: loading && vacancies.length > 0,
+  });
+  const showRefreshingNotice = useRefreshVisibility(sectionState === "loading-refresh");
+
+  const renderSectionBody = () =>
+    renderSectionByState(sectionState, {
+      "error-blocking": () => (
+        <SectionErrorInline
+          framed
+          title="Vakansiyaları yükləmək mümkün olmadı"
+          message={fetchError || "Vakansiyaları yükləmək mümkün olmadı."}
+          onRetry={() => {
+            void fetchVacancies();
+          }}
+        />
+      ),
+      "loading-initial": () => <SectionLoading variant="list" rows={3} />,
+      "empty-list": () => (
+        <VacanciesList
+          vacancies={vacancies}
+          filteredVacancies={filteredVacancies}
+          onRequestDelete={handleDeleteRequest}
+        />
+      ),
+      "empty-filtered": () => (
+        <VacanciesList
+          vacancies={vacancies}
+          filteredVacancies={filteredVacancies}
+          onRequestDelete={handleDeleteRequest}
+        />
+      ),
+      content: () => (
+        <VacanciesList
+          vacancies={vacancies}
+          filteredVacancies={filteredVacancies}
+          onRequestDelete={handleDeleteRequest}
+        />
+      ),
+    });
 
   return (
     <div className="space-y-6">
@@ -154,6 +201,16 @@ export default function VacanciesPageContainer() {
         </Alert>
       )}
 
+      {sectionState === "error-nonblocking" && (
+        <SectionErrorInline
+          title="Vakansiyalar yenilənmədi"
+          message={fetchError || "Vakansiyaları yeniləmək mümkün olmadı."}
+          onRetry={() => {
+            void fetchVacancies();
+          }}
+        />
+      )}
+
       <Card className="overflow-hidden border border-slate-200 shadow-sm">
         <CardContent padding="md" className="bg-white">
           <div className="mb-4">
@@ -170,6 +227,7 @@ export default function VacanciesPageContainer() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 variant="indigo"
                 className="h-12 border-blue-100 bg-white pl-7"
+                disabled={sectionState === "loading-initial"}
               />
             </div>
             <Select
@@ -179,6 +237,7 @@ export default function VacanciesPageContainer() {
               placeholder={"Statusa görə filtr"}
               variant="indigo"
               className="h-12 border-blue-100 bg-white"
+              disabled={sectionState === "loading-initial"}
             />
             <Select
               options={categoryOptions}
@@ -187,6 +246,7 @@ export default function VacanciesPageContainer() {
               placeholder={"Kateqoriyaya görə filtr"}
               variant="indigo"
               className="h-12 border-blue-100 bg-white"
+              disabled={sectionState === "loading-initial"}
             />
             <Select
               options={compensationOptions}
@@ -195,16 +255,19 @@ export default function VacanciesPageContainer() {
               placeholder={"Ödənişə görə filtr"}
               variant="indigo"
               className="h-12 border-blue-100 bg-white"
+              disabled={sectionState === "loading-initial"}
             />
           </div>
         </CardContent>
       </Card>
 
-      <VacanciesList
-        vacancies={vacancies}
-        filteredVacancies={filteredVacancies}
-        onRequestDelete={handleDeleteRequest}
-      />
+      {showRefreshingNotice && (
+        <Alert variant="info" title="Vakansiyalar yenilənir">
+          Son yenilənmiş məlumatlar göstərilir.
+        </Alert>
+      )}
+
+      {renderSectionBody()}
 
       <VacancyDeleteDialog
         isOpen={deleteModalOpen}

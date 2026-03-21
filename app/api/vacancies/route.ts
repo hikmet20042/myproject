@@ -278,8 +278,14 @@ export async function POST(request: NextRequest) {
     
     const supabase = createSupabaseAdminClient()
     
-    // Check if user is an approved organization
-    if (session.user.organizationStatus !== 'approved' && session.user.role !== 'admin') {
+    // Allow admin or approved organization only
+    if (
+      session.user.role !== 'admin' &&
+      !(
+        session.user.accountType === 'organization' &&
+        session.user.organizationStatus === 'approved'
+      )
+    ) {
       return NextResponse.json(
         { error: 'Only approved organizations can create vacancies' },
         { status: 403 }
@@ -462,8 +468,8 @@ export async function POST(request: NextRequest) {
       requirements: body.requirements || [],
       qualifications: body.qualifications || [],
       tags: body.tags || [],
-      created_by: session.user.organizationStatus === 'approved' ? null : session.user.id,
-      created_by_organization: session.user.organizationStatus === 'approved' ? session.user.id : null,
+      created_by: session.user.accountType === 'organization' && session.user.organizationStatus === 'approved' ? null : session.user.id,
+      created_by_organization: session.user.accountType === 'organization' && session.user.organizationStatus === 'approved' ? session.user.id : null,
       status: session.user.role === 'admin' ? 'approved' : 'pending',
       is_published: session.user.role === 'admin',
       is_featured: false,

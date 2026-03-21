@@ -27,7 +27,7 @@ export default function Blogs({ loadingTab,
   blogs,
   getStatusIcon,
   getStatusColor,
-  setDeleteConfirm }: BlogsProps) { const { data: session, status } = useSession();
+  setDeleteConfirm }: BlogsProps) { const { data: session } = useSession();
   const localePath = useLocalizedPath()
   const router = useRouter()
 
@@ -135,11 +135,7 @@ export default function Blogs({ loadingTab,
                       {/* Allow editing for pending and rejected blogs */}
                       {blog.status === 'pending' && (
                         <button
-                          onClick={() => { // Check if user is authenticated
-                            if (!session || status !== 'authenticated') { alert('Bloqları redaktə etmək üçün daxil olun.');
-                              return; }
-
-                            // Navigate directly to edit page
+                          onClick={() => {
                             router.push(localePath(`/edit/blog/${blog._id}/step1`)); }}
                           className="inline-flex items-center px-4 py-2.5 border border-amber-600 bg-amber-600 text-white shadow-sm text-sm font-semibold rounded-xl hover:bg-amber-700 hover:scale-[1.02] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-200"
                         >
@@ -148,10 +144,7 @@ export default function Blogs({ loadingTab,
                       )}
                       {blog.status === 'rejected' && (
                         <button
-                          onClick={async () => { try { // Check if user is authenticated
-                              if (!session || status !== 'authenticated') { alert('Bloqları redaktə etmək üçün daxil olun.');
-                                return; }
-
+                          onClick={async () => { try {
                               // Clear any existing blog edit data from localStorage
                               localStorage.removeItem('editBlogData');
                               localStorage.removeItem('currentBlogEditId');

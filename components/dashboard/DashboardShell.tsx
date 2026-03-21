@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Briefcase, Calendar, User } from "lucide-react";
+import { Bell, Briefcase, Calendar, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLocalizedPath } from "@/lib/useLocalizedPath";
 
@@ -12,6 +12,7 @@ interface DashboardShellProps {
 
 const navItems = [
   { key: "profile", label: "Organization Profile", href: "/dashboard/profile", icon: User },
+  { key: "notifications", label: "Notifications", href: "/dashboard/notifications", icon: Bell },
   { key: "events", label: "Your Events", href: "/dashboard/events", icon: Calendar },
   {
     key: "vacancies",

@@ -90,12 +90,11 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         .eq('id', data.user.id)
         .maybeSingle()
 
-      const accountType = (account?.account_type as 'user' | 'organization' | undefined)
-        || 'user'
+      const accountType = account?.account_type as 'user' | 'organization' | undefined
       const role: 'admin' | 'user' = account?.is_admin ? 'admin' : 'user'
 
       let profileName: string | null | undefined = data.user.user_metadata?.name
-      let organizationStatus: 'pending' | 'approved' | undefined = undefined
+      let organizationStatus: 'pending' | 'approved' | 'rejected' | null = null
 
       if (accountType === 'organization') {
         const { data: organizationProfile } = await supabase
@@ -109,7 +108,11 @@ export default function AuthProvider({ children }: AuthProviderProps) {
         }
 
         profileName = organizationProfile?.organization_name ?? profileName
-        organizationStatus = (organizationProfile?.moderation_status === 'approved' ? 'approved' : 'pending')
+        const moderationStatus = organizationProfile?.moderation_status
+        organizationStatus =
+          moderationStatus === 'pending' || moderationStatus === 'approved' || moderationStatus === 'rejected'
+            ? moderationStatus
+            : null
       } else {
         const { data: profile } = await supabase
           .from('users')
@@ -127,7 +130,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
           name: profileName ?? null,
           role,
           emailVerified: !!data.user.email_confirmed_at,
-          accountType,
+          accountType: accountType === 'organization' ? 'organization' : 'user',
           organizationStatus,
           isActive: account?.is_active ?? true,
         },

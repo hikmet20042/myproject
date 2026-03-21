@@ -109,7 +109,7 @@ function Step2Page({ searchParams }: Step2Props) {
   // Load functions - defined before useEffect hooks
   const loadBlogForEditing = useCallback(
     async (storyId: string) => {
-      if (!session || status !== "authenticated") return;
+      if (status === "loading" || !session) return;
 
       setLoading(true);
       try {

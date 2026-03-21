@@ -29,10 +29,17 @@ import { Button } from "@/components/ui/Button";
 import { LoadingState, ErrorState, StatusBadge } from "@/components/shared";
 import { useLocalizedPath } from "@/lib/useLocalizedPath";
 import { Alert } from "@/components/feedback";
-import {
-  useNotificationContext,
-  type NotificationItem,
-} from "@/components/NotificationContext";
+import { useNotificationContext } from "@/components/NotificationContext";
+
+interface NotificationItem {
+  id?: string;
+  _id?: string;
+  type: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+}
 
 interface UserProfile {
   user: {
@@ -89,12 +96,7 @@ function ProfilePageContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const {
-    notifications,
-    unreadCount,
-    toggleNotificationRead,
-    markAllAsRead,
-  } = useNotificationContext();
+  const { refreshNotifications } = useNotificationContext();
 
   // Get active tab from URL, default to 'profile'
   const getActiveTabFromUrl = useCallback(() => {
@@ -130,6 +132,7 @@ function ProfilePageContent() {
 
   // State for tab content
   const [blogs, setBlogs] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   // Load functions
   const loadProfileStats = useCallback(async () => {
@@ -173,6 +176,52 @@ function ProfilePageContent() {
     }
   }, []);
 
+  const loadNotifications = useCallback(async () => {
+    try {
+      const response = await fetch("/api/notifications");
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data.notifications || []);
+      }
+    } catch (error) {
+      console.error("Error loading notifications:", error);
+    }
+  }, []);
+
+  const toggleNotificationRead = useCallback(async (notificationId: string, isRead: boolean) => {
+    try {
+      const response = await fetch("/api/notifications", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationId, isRead }),
+      });
+
+      if (response.ok) {
+        await loadNotifications();
+        refreshNotifications();
+      }
+    } catch (error) {
+      console.error("Error toggling notification state:", error);
+    }
+  }, [loadNotifications, refreshNotifications]);
+
+  const markAllAsRead = useCallback(async () => {
+    try {
+      const response = await fetch("/api/notifications", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ markAllAsRead: true }),
+      });
+
+      if (response.ok) {
+        await loadNotifications();
+        refreshNotifications();
+      }
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+    }
+  }, [loadNotifications, refreshNotifications]);
+
   const loadTabData = useCallback(
     async (tab: string) => {
       switch (tab) {
@@ -181,11 +230,14 @@ function ProfilePageContent() {
             await loadUserBlogs();
           }
           break;
+        case "notifications":
+          await loadNotifications();
+          break;
         default:
           break;
       }
     },
-    [blogs.length, loadUserBlogs],
+    [blogs.length, loadUserBlogs, loadNotifications],
   );
 
   // Handle tab change - just update URL, let effect handle loading
@@ -345,10 +397,6 @@ function ProfilePageContent() {
 
   useEffect(() => {
     if (status === "loading") return;
-    if (status === "unauthenticated") {
-      router.push(localePath("/auth/signin"));
-      return;
-    }
 
     const loadEssentialData = async () => {
       if (!profile) {
@@ -511,7 +559,7 @@ function ProfilePageContent() {
                     {"Admin"}
                   </span>
                 )}
-                {session?.user?.organizationStatus === 'approved' && (
+                {session?.user?.accountType === 'organization' && session?.user?.organizationStatus === 'approved' && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-blue-100 text-blue-800">
                     <Award className="w-4 h-4" />
                     {"Təşkilat Hesabı"}
@@ -597,9 +645,9 @@ function ProfilePageContent() {
             handleTabChange={handleTabChange}
             loadingTab={loadingTab}
             activeTab={activeTab}
-            unreadCount={unreadCount}
+            notifications={notifications}
             userRole={profile?.user?.role}
-            isOrganization={session?.user?.organizationStatus === 'approved'}
+            isOrganization={session?.user?.accountType === 'organization' && session?.user?.organizationStatus === 'approved'}
           />
 
           {/* Profile Tab */}
@@ -616,7 +664,7 @@ function ProfilePageContent() {
           )}
 
           {/* Blogs Tab */}
-          {activeTab === "blogs" && session?.user?.organizationStatus !== 'approved' && (
+          {activeTab === "blogs" && session?.user?.accountType === 'organization' && session?.user?.organizationStatus !== 'approved' && (
             <Blogs
               loadingTab={loadingTab}
               blogs={blogs}
@@ -630,7 +678,6 @@ function ProfilePageContent() {
           {activeTab === "notifications" && (
             <Notifications
               notifications={notifications}
-              unreadCount={unreadCount}
               setModalNotification={setModalNotification}
               setModalOpen={setModalOpen}
               modalNotification={modalNotification}

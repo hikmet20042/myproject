@@ -11,8 +11,11 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Check if user is an approved organization
-    if (session.user.organizationStatus !== 'approved') {
+    // Only approved organizations can access this endpoint
+    if (
+      session.user.accountType !== 'organization' ||
+      session.user.organizationStatus !== 'approved'
+    ) {
       return NextResponse.json({ error: 'Access denied. Approved organization account required.' }, { status: 403 })
     }
 

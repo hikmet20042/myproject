@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Calendar, Plus, Search } from "lucide-react";
 import { useLocalizedPath } from "@/lib/useLocalizedPath";
@@ -8,13 +8,18 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Card, CardContent } from "@/components/ui/Card";
-import { Loading } from "@/components/ui/Loading";
-import { ErrorState } from "@/components/shared";
 import { Alert } from "@/components/feedback";
 import EventsList from "@/features/events/components/EventsList";
 import EventDeleteDialog from "@/features/events/components/EventDeleteDialog";
 import type { EventItem } from "@/features/events/components/types";
 import { useDashboardData } from "@/features/dashboard/context/DashboardDataProvider";
+import {
+  renderSectionByState,
+  resolveSectionState,
+  SectionErrorInline,
+  SectionLoading,
+  useRefreshVisibility,
+} from "@/features/ui-state";
 import {
   statusOptions,
   categoryOptions,
@@ -31,6 +36,7 @@ export default function EventsPageContainer() {
     refreshEvents,
     removeEventById,
   } = useDashboardData();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -66,12 +72,10 @@ export default function EventsPageContainer() {
         setDeleteModalOpen(false);
         setEventToDelete(null);
       } else {
-        console.error("Failed to delete event");
         setFeedbackVariant("error");
         setFeedbackMessage("Could not delete the event. Please try again.");
       }
-    } catch (error) {
-      console.error("Error deleting event:", error);
+    } catch {
       setFeedbackVariant("error");
       setFeedbackMessage("Something went wrong while deleting the event.");
     } finally {
@@ -101,23 +105,55 @@ export default function EventsPageContainer() {
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
-  if (eventsLoading) {
-    return <Loading />;
-  }
+  const sectionState = resolveSectionState({
+    dataState:
+      eventsLoading && events.length === 0
+        ? "loading"
+        : filteredEvents.length === 0
+          ? searchTerm.trim().length > 0 || statusFilter !== "all" || categoryFilter !== "all"
+            ? "filtered-empty"
+            : "empty"
+          : "success",
+    errorState: eventsError ? "present" : "none",
+    isRefreshing: eventsLoading && events.length > 0,
+  });
+  const showRefreshingNotice = useRefreshVisibility(sectionState === "loading-refresh");
 
-  if (eventsError) {
-    return (
-      <ErrorState
-        title={"Xəta baş verdi"}
-        message={eventsError}
-        onRetry={refreshEvents}
-        retryText={"Yenidən cəhd et"}
-        gradientFrom="from-red-50"
-        gradientVia="via-orange-50"
-        gradientTo="to-yellow-50"
-      />
-    );
-  }
+  const renderSectionBody = () =>
+    renderSectionByState(sectionState, {
+      "error-blocking": () => (
+        <SectionErrorInline
+          framed
+          title="Tədbirləri yükləmək mümkün olmadı"
+          message={eventsError || "Tədbirləri yükləmək mümkün olmadı."}
+          onRetry={() => {
+            void refreshEvents();
+          }}
+        />
+      ),
+      "loading-initial": () => <SectionLoading variant="list" rows={3} />,
+      "empty-list": () => (
+        <EventsList
+          events={events}
+          filteredEvents={filteredEvents}
+          onRequestDelete={handleDeleteRequest}
+        />
+      ),
+      "empty-filtered": () => (
+        <EventsList
+          events={events}
+          filteredEvents={filteredEvents}
+          onRequestDelete={handleDeleteRequest}
+        />
+      ),
+      content: () => (
+        <EventsList
+          events={events}
+          filteredEvents={filteredEvents}
+          onRequestDelete={handleDeleteRequest}
+        />
+      ),
+    });
 
   return (
     <div className="space-y-6">
@@ -150,6 +186,16 @@ export default function EventsPageContainer() {
         </Alert>
       )}
 
+      {sectionState === "error-nonblocking" && (
+        <SectionErrorInline
+          title="Tədbirlər yenilənmədi"
+          message={eventsError || "Tədbirləri yeniləmək mümkün olmadı."}
+          onRetry={() => {
+            void refreshEvents();
+          }}
+        />
+      )}
+
       <Card className="overflow-hidden border border-slate-200 shadow-sm">
         <CardContent padding="md" className="bg-white">
           <div className="mb-4">
@@ -166,6 +212,7 @@ export default function EventsPageContainer() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 variant="indigo"
                 className="h-12 border-blue-100 bg-white pl-7"
+                disabled={sectionState === "loading-initial"}
               />
             </div>
             <Select
@@ -175,6 +222,7 @@ export default function EventsPageContainer() {
               placeholder={"Statusa görə filtr"}
               variant="indigo"
               className="h-12 border-blue-100 bg-white"
+              disabled={sectionState === "loading-initial"}
             />
             <Select
               options={categoryOptions}
@@ -183,16 +231,19 @@ export default function EventsPageContainer() {
               placeholder={"Kateqoriyaya görə filtr"}
               variant="indigo"
               className="h-12 border-blue-100 bg-white"
+              disabled={sectionState === "loading-initial"}
             />
           </div>
         </CardContent>
       </Card>
 
-      <EventsList
-        events={events}
-        filteredEvents={filteredEvents}
-        onRequestDelete={handleDeleteRequest}
-      />
+      {showRefreshingNotice && (
+        <Alert variant="info" title="Tədbirlər yenilənir">
+          Son yenilənmiş məlumatlar göstərilir.
+        </Alert>
+      )}
+
+      {renderSectionBody()}
 
       <EventDeleteDialog
         isOpen={deleteModalOpen}

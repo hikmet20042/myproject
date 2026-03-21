@@ -10,7 +10,7 @@ export type ClientSessionUser = {
   role: 'user' | 'admin'
   emailVerified?: boolean
   accountType: 'user' | 'organization'
-  organizationStatus?: 'pending' | 'approved'
+  organizationStatus: 'pending' | 'approved' | 'rejected' | null
   isActive?: boolean
 }
 

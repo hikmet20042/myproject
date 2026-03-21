@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const supabase = createSupabaseAdminClient()
 
     // If session is organization, fetch from Organization collection
-    if (session.user.organizationStatus === 'approved') {
+    if (session.user.accountType === 'organization' && session.user.organizationStatus === 'approved') {
       const { data: organizationProfile } = await supabase
         .from('organization_profiles')
         .select('account_id, organization_name, email, moderation_status, created_at, profile_image')

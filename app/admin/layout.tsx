@@ -1,97 +1,25 @@
 'use client'
 
 import { useSession } from '@/lib/auth/client'
-import { useRouter } from 'next/navigation'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
-import { useEffect, useRef, useState } from 'react'
-import { LoadingState } from '@/components/shared'
+import { UnauthorizedState } from '@/components/shared'
 
-export default function AdminLayout({ children, }: { children: React.ReactNode }) { const { data: session, status } = useSession()
-  const userId = session?.user?.id ?? null
-  const accountType = session?.user?.accountType
-  const role = session?.user?.role
-  const isAdmin = role === 'admin'
-  const router = useRouter()
-  const routerRef = useRef(router)
-  const [mounted, setMounted] = useState(false)
-  const localePath = useLocalizedPath()
-  const signInPath = localePath('/auth/signin?callbackUrl=/admin')
-  const homePath = localePath('/')
+export default function AdminLayout({ children, }: { children: React.ReactNode }) {
+  const { data: session } = useSession()
 
-  useEffect(() => {
-    setMounted(true)
-    console.debug('[admin-layout] mount')
-    return () => {
-      console.debug('[admin-layout] unmount')
-    }
-  }, [])
+  if (!session) {
+    return null
+  }
 
-  useEffect(() => {
-    if (!mounted) return
+  const isAdmin = session.user?.role === 'admin'
 
-    if (status === 'loading') return
-
-    if (status === 'authenticated' && !userId) {
-      console.debug('[auth-guard][admin-layout] authenticated but userId not ready')
-      return
-    }
-
-    if (status === 'authenticated' && accountType === undefined) {
-      console.debug('[auth-guard][admin-layout] authenticated but accountType not ready', {
-        userId,
-      })
-      return
-    }
-
-    if (status === 'authenticated' && role === undefined) {
-      console.debug('[auth-guard][admin-layout] authenticated but role not ready', {
-        userId,
-      })
-      return
-    }
-
-    if (status === 'unauthenticated') {
-      console.debug('[auth-guard][admin-layout] redirect -> signin', {
-        status,
-        userId,
-      })
-      routerRef.current.replace(signInPath)
-      return
-    }
-
-    if (status === 'authenticated' && isAdmin === false) {
-      console.debug('[auth-guard][admin-layout] redirect -> home (non-admin)', {
-        status,
-        userId,
-      })
-      routerRef.current.replace(homePath)
-      return
-    }
-
-    if (status === 'authenticated' && isAdmin) {
-      console.debug('[auth-guard][admin-layout] fully ready', {
-        status,
-        userId,
-        accountType,
-      })
-    }
-  }, [accountType, homePath, isAdmin, role, signInPath, status, userId, mounted])
-
-  if (!mounted || status === 'loading') { return (
-      <LoadingState text={'Yüklənir'} />
-    ) }
-
-  if (status === 'unauthenticated') { return (
-      <LoadingState text={'Yönləndirilir...'} />
-    ) }
-
-  if (status === 'authenticated' && (userId == null || accountType === undefined || role === undefined)) { return (
-      <LoadingState text={'İcazələr yoxlanılır...'} />
-    ) }
-
-  if (status === 'authenticated' && isAdmin === false) { return (
-      <LoadingState text={'Yönləndirilir...'} />
-    ) }
+  if (!isAdmin) {
+    return (
+      <UnauthorizedState
+        title={'Giriş Qadağandır'}
+        message={'Bu sahəyə daxil olmaq üçün icazən yoxdur.'}
+      />
+    )
+  }
 
   return (
   <div className="relative min-h-screen overflow-hidden bg-background">
@@ -101,12 +29,12 @@ export default function AdminLayout({ children, }: { children: React.ReactNode }
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{'İdarəetmə Paneli'}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{'Admin Paneli'}</h1>
               <p className="text-gray-600">{'icma360 platformasını idarə et'}</p>
             </div>
             <div className="flex items-center space-x-3">
               <div className="text-sm text-gray-600">
-                {'Xoş gəldin'}, {session?.user?.name || 'İdarəçi'}
+                {'Xoş gəldin'}, {session?.user?.name || 'Admin'}
               </div>
             </div>
           </div>

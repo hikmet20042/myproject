@@ -22,7 +22,7 @@ function BlogStep1() { const router = useRouter()
   const [loading, setLoading] = useState(false)
   const localePath = useLocalizedPath()
 
-  const loadBlogForEditing = useCallback(async (blogId: string) => { if (!session || status !== 'authenticated') return
+  const loadBlogForEditing = useCallback(async (blogId: string) => { if (status === 'loading' || !session) return
     
     setLoading(true)
     try { const response = await fetch(`/api/blogs?id=${blogId}`)

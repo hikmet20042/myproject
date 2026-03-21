@@ -3,7 +3,8 @@ import { emitNotificationToUser } from '@/lib/socket'
 import { sendNotificationToUser as sendSSENotification } from '@/lib/sse'
 
 interface CreateNotificationParams {
-  userId: string
+  userId?: string
+  organizationId?: string
   type: string
   title: string
   message: string
@@ -20,11 +21,16 @@ export class NotificationService {
    */
   static async createNotification(params: CreateNotificationParams) {
     try {
+      if (!params.userId && !params.organizationId) {
+        throw new Error('Either userId or organizationId is required to create a notification')
+      }
+
       const supabase = createSupabaseAdminClient()
       const { data: notification, error } = await supabase
         .from('notifications')
         .insert({
-          user_id: params.userId,
+          user_id: params.userId || null,
+          organization_id: params.organizationId || null,
           type: params.type,
           title: params.title,
           message: params.message,
@@ -40,20 +46,8 @@ export class NotificationService {
       }
       
       // Emit real-time notification to user (Socket.IO when available)
-      emitNotificationToUser(params.userId, {
-        id: notification.id,
-        type: notification.type,
-        title: notification.title,
-        message: notification.message,
-        actionUrl: notification.action_url,
-        data: notification.data,
-        isRead: notification.is_read,
-        createdAt: notification.created_at
-      })
-      
-      // Also attempt to send via SSE (server-sent events) if a connection exists
-      try {
-        await sendSSENotification(params.userId, {
+      if (params.userId) {
+        emitNotificationToUser(params.userId, {
           id: notification.id,
           type: notification.type,
           title: notification.title,
@@ -63,6 +57,22 @@ export class NotificationService {
           isRead: notification.is_read,
           createdAt: notification.created_at
         })
+      }
+      
+      // Also attempt to send via SSE (server-sent events) if a connection exists
+      try {
+        if (params.userId) {
+          await sendSSENotification(params.userId, {
+            id: notification.id,
+            type: notification.type,
+            title: notification.title,
+            message: notification.message,
+            actionUrl: notification.action_url,
+            data: notification.data,
+            isRead: notification.is_read,
+            createdAt: notification.created_at
+          })
+        }
       } catch (err: any) {
         // Non-fatal: SSE may not be available or user not connected to stream
         // Keep silent but log for debugging

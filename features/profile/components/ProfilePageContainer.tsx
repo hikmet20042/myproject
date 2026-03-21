@@ -1,28 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, PencilLine, User } from "lucide-react";
 import { useSession } from "@/lib/auth/client";
-import { useLocalizedPath } from "@/lib/useLocalizedPath";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
-import { LoadingState, ErrorState } from "@/components/shared";
+import { LoadingState } from "@/components/shared";
 import ProfileView from "@/features/profile/components/ProfileView";
 import ProfileForm from "@/features/profile/components/ProfileForm";
 
 export default function ProfilePageContainer() {
   const { data: session, status } = useSession();
   const sessionUserId = session?.user?.id ?? null;
-  const accountType = session?.user?.accountType;
-  const isOrganizationAccount = accountType === "organization";
-  const isApprovedKnown = session?.user?.isApprovedOrganization !== undefined;
-  const isApprovedOrganization = session?.user?.isApprovedOrganization === true;
-  const router = useRouter();
-  const routerRef = useRef(router);
-  const localePath = useLocalizedPath();
-  const signInPath = localePath("/auth/signin");
-  const homePath = localePath("/");
   const [organizationProfile, setOrganizationProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
@@ -63,95 +52,20 @@ export default function ProfilePageContainer() {
       return;
     }
 
-    if (status === "unauthenticated") {
-      console.debug("[auth-guard][profile] redirect -> signin", { status });
-      routerRef.current.replace(signInPath);
-      return;
-    }
-
-    if (status === "authenticated" && !sessionUserId) {
+    if (!sessionUserId) {
       console.debug("[auth-guard][profile] authenticated but userId not ready");
-      return;
-    }
-
-    if (status === "authenticated" && accountType === undefined) {
-      console.debug("[auth-guard][profile] authenticated but accountType not ready", {
-        userId: sessionUserId,
-      });
-      return;
-    }
-
-    if (status === "authenticated" && !isOrganizationAccount) {
-      console.debug("[auth-guard][profile] redirect -> home (non-organization account)", {
-        userId: sessionUserId,
-        accountType,
-      });
-      routerRef.current.replace(homePath);
-      return;
-    }
-
-    if (status === "authenticated" && !isApprovedKnown) {
-      console.debug("[auth-guard][profile] authenticated but approval state not ready", {
-        userId: sessionUserId,
-      });
-      return;
-    }
-
-    if (status === "authenticated" && isApprovedOrganization === false) {
-      console.debug("[auth-guard][profile] redirect -> home (not approved org)", {
-        userId: sessionUserId,
-      });
-      routerRef.current.replace(homePath);
       return;
     }
 
     console.debug("[auth-guard][profile] ready", {
       userId: sessionUserId,
       status,
-      accountType,
-      isApprovedOrganization,
     });
     fetchProfile();
-  }, [accountType, fetchProfile, homePath, isApprovedKnown, isApprovedOrganization, isOrganizationAccount, sessionUserId, signInPath, status, mounted]);
+  }, [fetchProfile, sessionUserId, status, mounted]);
 
   if (status === "loading" || loading) {
     return <LoadingState text={"Yüklənir"} />;
-  }
-
-  if (
-    status === "authenticated" &&
-    accountType !== undefined &&
-    !isOrganizationAccount
-  ) {
-    return (
-      <ErrorState
-        title={"Giriş Qadağandır"}
-        message={"Bu səhifəyə daxil olmaq üçün təşkilat hesabı tələb olunur."}
-        onRetry={() => routerRef.current.replace(homePath)}
-        retryText={"Ana səhifəyə qayıt"}
-        gradientFrom="from-red-50"
-        gradientVia="via-orange-50"
-        gradientTo="to-yellow-50"
-      />
-    );
-  }
-
-  if (
-    status === "authenticated" &&
-    isApprovedKnown &&
-    isApprovedOrganization === false
-  ) {
-    return (
-      <ErrorState
-        title={"Giriş Qadağandır"}
-        message={"Bu səhifəyə daxil olmaq üçün təsdiqlənmiş təşkilat olmalısınız."}
-        onRetry={() => routerRef.current.replace(homePath)}
-        retryText={"Ana səhifəyə qayıt"}
-        gradientFrom="from-red-50"
-        gradientVia="via-orange-50"
-        gradientTo="to-yellow-50"
-      />
-    );
   }
 
   return (

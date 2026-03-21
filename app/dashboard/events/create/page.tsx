@@ -1,12 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef, Suspense } from 'react'
-import { useSession } from '@/lib/auth/client'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Calendar, MapPin, Users, Link as LinkIcon, Clock, Tag, Image as ImageIcon, Loader2 } from 'lucide-react'
 import { Input, Select, Button, TextArea } from '@/components/ui'
 import { FormSection } from '@/components/forms'
-import { LoadingState } from '@/components/shared'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
 import { useDashboardData } from '@/features/dashboard/context/DashboardDataProvider'
 
@@ -26,19 +24,11 @@ const eventCategories = [
   'other'
 ]
 
-function CreateEventContent() { const { data: session, status } = useSession()
+function CreateEventContent() {
   const router = useRouter()
-  const routerRef = useRef(router)
   const localePath = useLocalizedPath()
   const { markEventsDirty } = useDashboardData()
   const searchParams = useSearchParams()
-  const accountType = session?.user?.accountType
-  const isOrganizationAccount = accountType === 'organization'
-  const isApprovedKnown = accountType !== 'organization' || session?.user?.organizationStatus !== undefined
-  const isApprovedOrganization = session?.user?.organizationStatus === 'approved'
-  const [mounted, setMounted] = useState(false)
-  const signInPath = localePath('/auth/signin?callbackUrl=/dashboard/events/create')
-  const homePath = localePath('/')
   // Normalize field sizes for visual consistency
   const commonInputProps = { inputSize: 'md' as const }
   const commonSelectProps = { selectSize: 'md' as const }
@@ -76,61 +66,10 @@ function CreateEventContent() { const { data: session, status } = useSession()
       currency: 'USD',
       scholarshipAvailable: false } })
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  useEffect(() => {
-    if (!mounted) return
-    if (status === 'loading') return
-
-    if (status === 'unauthenticated') {
-      routerRef.current.replace(signInPath)
-      return
-    }
-
-    if (status === 'authenticated' && accountType === undefined) {
-      return
-    }
-
-    if (status === 'authenticated' && !isOrganizationAccount) {
-      routerRef.current.replace(homePath)
-      return
-    }
-
-    if (status === 'authenticated' && !isApprovedKnown) {
-      return
-    }
-
-    if (status === 'authenticated' && isApprovedOrganization === false) {
-      routerRef.current.replace(homePath)
-    }
-  }, [
-    accountType,
-    homePath,
-    isApprovedKnown,
-    isApprovedOrganization,
-    isOrganizationAccount,
-    mounted,
-    signInPath,
-    status
-  ])
-
   // Handle URL parameters for event type
   useEffect(() => { const typeParam = searchParams?.get('type')
     if (typeParam && ['training', 'workshop', 'seminar'].includes(typeParam)) { setFormData(prev => ({ ...prev,
         eventType: typeParam as 'training' | 'workshop' | 'seminar' })) } }, [searchParams])
-
-  if (
-    status === 'loading' ||
-    !mounted ||
-    (status === 'authenticated' && accountType === undefined) ||
-    (status === 'authenticated' && !isApprovedKnown)
-  ) {
-    return <LoadingState text={'Yüklənir'} />
-  }
-
-
 
   const handleSubmit = async (e: React.FormEvent) => { e.preventDefault()
     setLoading(true)

@@ -23,7 +23,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'isRead must be a boolean' }, { status: 400 });
     }
 
-    const ownerColumn = session.user.organizationStatus === 'approved' ? 'organization_id' : 'user_id'
+    const ownerColumn = session.user.accountType === 'organization' && session.user.organizationStatus === 'approved' ? 'organization_id' : 'user_id'
     const { data: updated, error } = await supabase
       .from('notifications')
       .update({ is_read: isRead })

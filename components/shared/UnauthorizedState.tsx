@@ -9,28 +9,26 @@ interface UnauthorizedStateProps {
 }
 
 export default function UnauthorizedState({
-  title = 'Giriş məhduddur',
+  title = 'Giriş Qadağandır',
   message,
   actionText,
-  onAction,
+  onAction
 }: UnauthorizedStateProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-2xl border border-amber-200 bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-amber-50 text-amber-600">
-          <ShieldAlert className="h-8 w-8" />
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-md border-2 border-amber-200 p-8 text-center animate-scale-in">
+        <div className="relative inline-flex items-center justify-center w-20 h-20 mx-auto mb-6">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-400 to-red-500 rounded-full blur opacity-40"></div>
+          <div className="relative w-full h-full bg-gradient-to-br from-amber-500 to-red-500 rounded-full flex items-center justify-center">
+            <ShieldAlert className="w-10 h-10 text-white" />
+          </div>
         </div>
 
-        <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
-        <p className="mt-3 text-base text-gray-600">{message}</p>
+        <h2 className="text-2xl font-black text-gray-900 mb-4">{title}</h2>
+        <p className="text-gray-600 mb-8">{message}</p>
 
-        {onAction && actionText && (
-          <Button
-            onClick={onAction}
-            variant="secondary"
-            size="md"
-            className="mt-7"
-          >
+        {actionText && onAction && (
+          <Button onClick={onAction} variant="primary" size="lg">
             {actionText}
           </Button>
         )}

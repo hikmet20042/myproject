@@ -61,7 +61,7 @@ export function ResourceCard({
   const localePath = useLocalizedPath()
   const content = (
       <Card
-        className={`h-full border-2 border-blue-100 ${hoverBorderColor} hover:shadow-lg transition-all duration-300 hover:scale-[1.02] ${className}`}
+        className={`h-full border-2 border-gray-200 ${hoverBorderColor} hover:shadow-lg transition-all duration-300 hover:scale-[1.02] ${className}`}
       >
         <CardContent className={`p-6 h-full flex flex-col bg-gradient-to-br from-white to-gray-50 ${hoverGradient} transition-all duration-300`}>
           {/* Image */}
@@ -113,7 +113,7 @@ export function ResourceCard({
 
           {/* Footer */}
           {footer && (
-            <div className="mt-auto pt-4 border-t border-blue-100">
+            <div className="mt-auto pt-4 border-t border-gray-200">
               {footer}
             </div>
           )}

@@ -51,7 +51,7 @@ interface DashboardDataProviderProps {
 export function DashboardDataProvider({ children }: DashboardDataProviderProps) {
   const { data: session, status } = useSession();
   const sessionUserId = session?.user?.id ?? null;
-  const isOrganizationApproved = session?.user?.organizationStatus === 'approved';
+  const isOrganizationApproved = session?.user?.accountType === 'organization' && session?.user?.organizationStatus === 'approved';
   const hasFetchedEventsRef = useRef(false);
 
   const [profile, setProfile] = useState<any | null>(null);

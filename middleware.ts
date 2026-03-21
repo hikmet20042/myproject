@@ -84,25 +84,6 @@ async function checkAuthorization(pathWithoutLanguage: string, pathname: string,
       return NextResponse.redirect(signInUrl)
     }
 
-    if (pathWithoutLanguage.startsWith('/admin')) {
-      let isAdmin = false
-
-      if (user) {
-        const { data: account } = await supabase
-          .from('accounts')
-          .select('is_admin')
-          .eq('id', user.id)
-          .maybeSingle()
-
-        isAdmin = account?.is_admin === true
-      }
-
-      if (!isAdmin) {
-        const signInUrl = new URL('/auth/signin', req.url)
-        signInUrl.searchParams.set('callbackUrl', pathname)
-        return NextResponse.redirect(signInUrl)
-      }
-    }
   }
   
   return null

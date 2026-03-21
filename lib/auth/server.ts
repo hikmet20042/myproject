@@ -7,7 +7,7 @@ export type AppSessionUser = {
   role: 'user' | 'admin'
   emailVerified?: boolean
   accountType: 'user' | 'organization'
-  organizationStatus?: 'pending' | 'approved'
+  organizationStatus: 'pending' | 'approved' | 'rejected' | null
   isActive?: boolean
 }
 
@@ -30,8 +30,7 @@ export async function getServerSession() {
     .eq('id', user.id)
     .maybeSingle()
 
-  const accountType = (account?.account_type as 'user' | 'organization' | undefined)
-    || 'user'
+  const accountType = account?.account_type as 'user' | 'organization' | undefined
   const role: 'admin' | 'user' = account?.is_admin ? 'admin' : 'user'
 
   if (accountType === 'organization') {
@@ -50,14 +49,17 @@ export async function getServerSession() {
       ?? null
 
     const moderationStatus = organizationProfile?.moderation_status
-      ?? 'pending'
+    const normalizedOrganizationStatus: 'pending' | 'approved' | 'rejected' | null =
+      moderationStatus === 'pending' || moderationStatus === 'approved' || moderationStatus === 'rejected'
+        ? moderationStatus
+        : null
 
     if (process.env.NODE_ENV === 'development') {
       console.debug('[auth][server] authority', {
         id: user.id,
         role,
         accountType,
-        organizationStatus: moderationStatus,
+        organizationStatus: normalizedOrganizationStatus,
       })
     }
 
@@ -69,7 +71,7 @@ export async function getServerSession() {
         role,
         emailVerified: !!user.email_confirmed_at,
         accountType: 'organization',
-        organizationStatus: moderationStatus as 'pending' | 'approved',
+        organizationStatus: normalizedOrganizationStatus,
         isActive: account?.is_active ?? true,
       },
     } satisfies AppSession
@@ -86,7 +88,7 @@ export async function getServerSession() {
       id: user.id,
       role,
       accountType,
-      organizationStatus: undefined,
+      organizationStatus: null,
     })
   }
 
@@ -97,7 +99,8 @@ export async function getServerSession() {
       name: profile?.name ?? user.user_metadata?.name ?? null,
       role,
       emailVerified: !!user.email_confirmed_at,
-      accountType: 'user',
+      accountType: accountType === 'organization' ? 'organization' : 'user',
+      organizationStatus: null,
       isActive: account?.is_active ?? true,
     },
   } satisfies AppSession

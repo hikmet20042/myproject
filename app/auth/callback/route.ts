@@ -19,14 +19,31 @@ export async function GET(request: NextRequest) {
     if (data?.user) {
       const adminSupabase = createSupabaseAdminClient()
 
-      const { data: account } = await adminSupabase
+      const { data: existingAccount } = await adminSupabase
         .from('accounts')
-        .select('account_type')
+        .select('account_type, is_admin')
         .eq('id', data.user.id)
         .maybeSingle()
 
-      const accountType = (account?.account_type as 'user' | 'organization' | undefined)
-        || 'user'
+      if (!existingAccount) {
+        await adminSupabase
+          .from('accounts')
+          .upsert({
+            id: data.user.id,
+            account_type: 'user',
+            is_admin: false,
+            is_active: true,
+          }, { onConflict: 'id' })
+      }
+
+      const { data: account } = await adminSupabase
+        .from('accounts')
+        .select('account_type, is_admin')
+        .eq('id', data.user.id)
+        .maybeSingle()
+
+      const accountType = account?.account_type as 'user' | 'organization' | undefined
+      const role = account?.is_admin ? 'admin' : 'user'
 
       if (accountType === 'organization') {
         await supabase.auth.signOut()
@@ -34,21 +51,12 @@ export async function GET(request: NextRequest) {
       }
 
       await adminSupabase
-        .from('accounts')
-        .upsert({
-          id: data.user.id,
-          account_type: 'user',
-          is_admin: false,
-          is_active: true,
-        }, { onConflict: 'id' })
-
-      await adminSupabase
         .from('users')
         .upsert({
           id: data.user.id,
           name: data.user.user_metadata?.name || data.user.email,
           email: data.user.email,
-          role: 'user',
+          role,
           auth_provider: 'google'
         }, { onConflict: 'id' })
     }
