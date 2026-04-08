@@ -3,7 +3,8 @@ import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 
-const ALLOWED_INTERESTS = ['IT', 'Təhsil', 'Könüllülük', 'Sosial fəaliyyət', 'Digər']
+const ALLOWED_INTERESTS = ['IT', 'Təhsil', 'Könüllülük', 'Sosial fəaliyyət', 'Digər'] as const
+type AllowedInterest = (typeof ALLOWED_INTERESTS)[number]
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,8 +15,8 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const interestsRaw = Array.isArray(body?.interests) ? body.interests : []
-    const interests = Array.from(new Set(interestsRaw.map((v: unknown) => String(v).trim()))).filter((v) =>
-      ALLOWED_INTERESTS.includes(v),
+    const interests = Array.from(new Set(interestsRaw.map((v: unknown) => String(v).trim()))).filter(
+      (v): v is AllowedInterest => ALLOWED_INTERESTS.includes(v as AllowedInterest),
     )
 
     if (interests.length < 1) {

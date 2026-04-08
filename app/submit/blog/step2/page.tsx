@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/auth/client'
 import { apiFetch, ApiError } from '@/lib/apiClient'
@@ -96,10 +96,10 @@ export default function SubmitBlogStep2Page() {
 
   const displayAuthor = isAnonymous ? 'Anonim' : authorName || session?.user?.name || 'İcma Üzvü'
 
-  const progressHint = useMemo(() => {
-    if (characterCount < 100) return `Minimum 100 simvol tələb olunur (${100 - characterCount} simvol qalıb)`
-    return 'Məzmun hazırdır. Göndərə bilərsiniz.'
-  }, [characterCount])
+  const progressHint =
+    characterCount < 100
+      ? `Minimum 100 simvol tələb olunur (${100 - characterCount} simvol qalıb)`
+      : 'Məzmun hazırdır. Göndərə bilərsiniz.'
 
   if (success) {
     return (

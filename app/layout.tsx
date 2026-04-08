@@ -112,25 +112,27 @@ export default function RootLayout({
           <GoogleAnalytics />
         </Suspense>
         <QueryProvider>
-          <AuthProvider>
-            <SocketProvider>
-              <SSENotificationProvider>
-                <NotificationProvider>
-                  <GlobalFeedbackProvider>
-                    <ErrorBoundary>
-                      <EventsRealtimeSync />
-                      <GlobalFeedback />
-                      <Header />
-                      <main className="min-h-screen">
-                        {children}
-                      </main>
-                      <Footer />
-                    </ErrorBoundary>
-                  </GlobalFeedbackProvider>
-                </NotificationProvider>
-              </SSENotificationProvider>
-            </SocketProvider>
-          </AuthProvider>
+          <Suspense fallback={null}>
+            <AuthProvider>
+              <SocketProvider>
+                <SSENotificationProvider>
+                  <NotificationProvider>
+                    <GlobalFeedbackProvider>
+                      <ErrorBoundary>
+                        <EventsRealtimeSync />
+                        <GlobalFeedback />
+                        <Header />
+                        <main className="min-h-screen">
+                          {children}
+                        </main>
+                        <Footer />
+                      </ErrorBoundary>
+                    </GlobalFeedbackProvider>
+                  </NotificationProvider>
+                </SSENotificationProvider>
+              </SocketProvider>
+            </AuthProvider>
+          </Suspense>
         </QueryProvider>
       </body>
     </html>
