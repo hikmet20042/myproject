@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { canAccessAdmin } from '@/lib/auth/permissions'
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,11 +15,8 @@ export async function DELETE(
     const supabase = createSupabaseAdminClient()
     
     const session = await getServerSession()
-    if (!session || session.user.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      )
+    if (!session || !canAccessAdmin(session)) {
+      return errorResponse('Admin access required', "API_ERROR", {}, 403)
     }
     
     const { data: profile } = await supabase
@@ -27,10 +26,7 @@ export async function DELETE(
       .maybeSingle()
 
     if (!profile) {
-      return NextResponse.json(
-        { error: 'Organization not found' },
-        { status: 404 }
-      )
+      return errorResponse('Organization not found', "API_ERROR", {}, 404)
     }
 
     await supabase
@@ -40,14 +36,11 @@ export async function DELETE(
 
     await supabase.auth.admin.deleteUser(params.id)
     
-    return NextResponse.json({ 
+    return successResponse({ 
       message: 'Organization deleted successfully'
     })
   } catch (error) {
     console.error('DELETE /api/admin/organizations/[id] error:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete organization' },
-      { status: 500 }
-    )
+    return errorResponse('Failed to delete organization', "API_ERROR", {}, 500)
   }
 }

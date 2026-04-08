@@ -1,11 +1,49 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { Mail, ArrowLeft } from 'lucide-react'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { Input, Button } from '@/components/ui'
+import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 
 export default function VerifyRequest() {
   const localePath = useLocalizedPath()
+  const [email, setEmail] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setIsLoading(true)
+    setError('')
+    setMessage('')
+
+    try {
+      const supabase = createSupabaseBrowserClient()
+      const appUrl = window.location.origin
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email: email.trim(),
+        options: {
+          emailRedirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent('/auth/verify-email?verified=1')}`,
+        },
+      })
+
+      if (resendError) {
+        setError(resendError.message || 'Təsdiq e-poçtu göndərilmədi')
+        return
+      }
+
+      setMessage('Təsdiq e-poçtu göndərildi. Gələnlər qutunu yoxla.')
+      setEmail('')
+    } catch {
+      setError('Təsdiq e-poçtu göndərilmədi')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background py-10">
@@ -24,16 +62,48 @@ export default function VerifyRequest() {
             </h1>
 
             <p className="mt-2 text-sm text-gray-600">
-              {'Giriş linki e-poçt ünvanınıza göndərildi.'}
+              {'Təsdiq e-poçtu göndərmək üçün e-poçt ünvanını daxil edin.'}
             </p>
 
-            <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50/60 p-4 text-left text-sm text-gray-600">
-              <div className="space-y-2">
-                <p>• {'Giriş üçün e-poçtunuzdakı linkə klikləyin'}</p>
-                <p>• {'Link 24 saat ərzində etibarlıdır'}</p>
-                <p>• {'Bu pəncərəni bağlaya bilərsiniz'}</p>
+            {message && (
+              <div className="mt-6 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+                {message}
               </div>
-            </div>
+            )}
+
+            {error && (
+              <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+              <div>
+                <label htmlFor="email" className="block text-left text-sm font-medium text-gray-700">
+                  {'E-poçt ünvanı'}
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder={'E-poçt ünvanınızı daxil edin'}
+                  required
+                  disabled={isLoading}
+                  className="mt-1"
+                />
+              </div>
+
+              <Button
+                type="submit"
+                variant="primary"
+                fullWidth
+                loading={isLoading}
+                disabled={isLoading || !email.trim()}
+              >
+                {'Təsdiq e-poçtu göndər'}
+              </Button>
+            </form>
 
             <div className="mt-6 space-y-3">
               <Link

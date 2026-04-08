@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getServerSession } from '@/lib/auth/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import cloudinaryService from '@/lib/services/cloudinaryService';
+import { canCreateEvent, isAdminOrOwner } from '@/lib/auth/permissions';
+import { successResponse, errorResponse } from '@/lib/apiResponse';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,23 +16,14 @@ export async function POST(
     const session = await getServerSession();
 
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      return errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401);
     }
 
     const supabase = createSupabaseAdminClient();
 
     // Only approved organizations can manage event images
-    if (
-      session.user.accountType !== 'organization' ||
-      session.user.organizationStatus !== 'approved'
-    ) {
-      return NextResponse.json(
-        { error: 'Only approved organizations can upload event images' },
-        { status: 403 }
-      );
+    if (!canCreateEvent(session)) {
+      return errorResponse('Only approved organizations can upload event images', 'FORBIDDEN', {}, 403);
     }
 
     const eventId = params.id;
@@ -41,18 +34,11 @@ export async function POST(
       .single();
 
     if (eventError || !event) {
-      return NextResponse.json(
-        { error: 'Event not found' },
-        { status: 404 }
-      );
+      return errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404);
     }
 
-    const isOwner = (event.created_by?.toString() === session.user.id) || (event.created_by_organization?.toString() === session.user.id);
-    if (!isOwner) {
-      return NextResponse.json(
-        { error: 'You can only upload images to your own events' },
-        { status: 403 }
-      );
+    if (!isAdminOrOwner(session, event)) {
+      return errorResponse('You can only upload images to your own events', 'FORBIDDEN', {}, 403);
     }
 
     const formData = await request.formData();
@@ -60,10 +46,7 @@ export async function POST(
     const imageFiles = files.filter((file): file is File => file instanceof File);
 
     if (imageFiles.length === 0) {
-      return NextResponse.json(
-        { error: 'No images provided' },
-        { status: 400 }
-      );
+      return errorResponse('No images provided', 'VALIDATION_ERROR', {}, 400);
     }
 
     const uploadedImages: any[] = [];
@@ -127,9 +110,7 @@ export async function POST(
         .eq('id', eventId);
     }
 
-    return NextResponse.json({
-      success: true,
-      message: `${uploadedImages.length} image(s) uploaded successfully`,
+    return successResponse({
       uploadedImages,
       errors: errors.length > 0 ? errors : undefined,
       event: {
@@ -137,13 +118,10 @@ export async function POST(
         images: updatedImages,
         imageUrl: updatedImageUrl,
       },
-    });
+    }, { message: `${uploadedImages.length} image(s) uploaded successfully` });
   } catch (error) {
     console.error('Error uploading event images:', error);
-    return NextResponse.json(
-      { error: 'Failed to upload event images' },
-      { status: 500 }
-    );
+    return errorResponse('Failed to upload event images', 'UPLOAD_EVENT_IMAGES_FAILED', {}, 500);
   }
 }
 
@@ -156,23 +134,14 @@ export async function DELETE(
     const session = await getServerSession();
 
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      return errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401);
     }
 
     const supabase = createSupabaseAdminClient();
 
     // Only approved organizations can manage event images
-    if (
-      session.user.accountType !== 'organization' ||
-      session.user.organizationStatus !== 'approved'
-    ) {
-      return NextResponse.json(
-        { error: 'Only approved organizations can manage event images' },
-        { status: 403 }
-      );
+    if (!canCreateEvent(session)) {
+      return errorResponse('Only approved organizations can manage event images', 'FORBIDDEN', {}, 403);
     }
 
     const eventId = params.id;
@@ -183,28 +152,18 @@ export async function DELETE(
       .single();
 
     if (eventError || !event) {
-      return NextResponse.json(
-        { error: 'Event not found' },
-        { status: 404 }
-      );
+      return errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404);
     }
 
-    const isOwner = (event.created_by?.toString() === session.user.id) || (event.created_by_organization?.toString() === session.user.id);
-    if (!isOwner) {
-      return NextResponse.json(
-        { error: 'You can only delete images from your own events' },
-        { status: 403 }
-      );
+    if (!isAdminOrOwner(session, event)) {
+      return errorResponse('You can only delete images from your own events', 'FORBIDDEN', {}, 403);
     }
 
     const body = await request.json();
     const { publicIds } = body;
 
     if (!publicIds || !Array.isArray(publicIds) || publicIds.length === 0) {
-      return NextResponse.json(
-        { error: 'No image public IDs provided' },
-        { status: 400 }
-      );
+      return errorResponse('No image public IDs provided', 'VALIDATION_ERROR', {}, 400);
     }
 
     // Delete images from Cloudinary
@@ -230,9 +189,7 @@ export async function DELETE(
       .update({ images: updatedImages, image_url: updatedImageUrl, updated_at: new Date().toISOString() })
       .eq('id', eventId);
 
-    return NextResponse.json({
-      success: true,
-      message: `${deleteResults.deletedCount} image(s) deleted successfully`,
+    return successResponse({
       deletedCount: deleteResults.deletedCount,
       errors: deleteResults.errors.length > 0 ? deleteResults.errors : undefined,
       event: {
@@ -240,13 +197,10 @@ export async function DELETE(
         images: updatedImages,
         imageUrl: updatedImageUrl,
       },
-    });
+    }, { message: `${deleteResults.deletedCount} image(s) deleted successfully` });
   } catch (error) {
     console.error('Error deleting event images:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete event images' },
-      { status: 500 }
-    );
+    return errorResponse('Failed to delete event images', 'DELETE_EVENT_IMAGES_FAILED', {}, 500);
   }
 }
 
@@ -259,23 +213,14 @@ export async function PATCH(
     const session = await getServerSession();
 
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      return errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401);
     }
 
     const supabase = createSupabaseAdminClient();
 
     // Only approved organizations can manage event images
-    if (
-      session.user.accountType !== 'organization' ||
-      session.user.organizationStatus !== 'approved'
-    ) {
-      return NextResponse.json(
-        { error: 'Only approved organizations can manage event images' },
-        { status: 403 }
-      );
+    if (!canCreateEvent(session)) {
+      return errorResponse('Only approved organizations can manage event images', 'FORBIDDEN', {}, 403);
     }
 
     const eventId = params.id;
@@ -286,28 +231,18 @@ export async function PATCH(
       .single();
 
     if (eventError || !event) {
-      return NextResponse.json(
-        { error: 'Event not found' },
-        { status: 404 }
-      );
+      return errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404);
     }
 
-    const isOwner = (event.created_by?.toString() === session.user.id) || (event.created_by_organization?.toString() === session.user.id);
-    if (!isOwner) {
-      return NextResponse.json(
-        { error: 'You can only update images for your own events' },
-        { status: 403 }
-      );
+    if (!isAdminOrOwner(session, event)) {
+      return errorResponse('You can only update images for your own events', 'FORBIDDEN', {}, 403);
     }
 
     const body = await request.json();
     const { publicId, updates } = body;
 
     if (!publicId || !updates) {
-      return NextResponse.json(
-        { error: 'Public ID and updates are required' },
-        { status: 400 }
-      );
+      return errorResponse('Public ID and updates are required', 'VALIDATION_ERROR', {}, 400);
     }
 
     // Update image properties
@@ -316,10 +251,7 @@ export async function PATCH(
       const imageIndex = updatedImages.findIndex((img: any) => img.publicId === publicId);
       
       if (imageIndex === -1) {
-        return NextResponse.json(
-          { error: 'Image not found in event' },
-          { status: 404 }
-        );
+        return errorResponse('Image not found in event', 'IMAGE_NOT_FOUND', {}, 404);
       }
 
       // If setting as primary, remove primary flag from other images
@@ -344,20 +276,15 @@ export async function PATCH(
         .eq('id', eventId);
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Image updated successfully',
+    return successResponse({
       event: {
         id: event.id,
         images: updatedImages,
         imageUrl: updatedImages.find((img: any) => img.isPrimary)?.url || event.image_url,
       },
-    });
+    }, { message: 'Image updated successfully' });
   } catch (error) {
     console.error('Error updating event image:', error);
-    return NextResponse.json(
-      { error: 'Failed to update event image' },
-      { status: 500 }
-    );
+    return errorResponse('Failed to update event image', 'UPDATE_EVENT_IMAGE_FAILED', {}, 500);
   }
 }

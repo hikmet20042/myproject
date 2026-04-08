@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 export async function GET(
   request: NextRequest,
@@ -13,23 +14,24 @@ export async function GET(
       .eq('id', params.id)
       .single();
     if (error || !user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return errorResponse('User not found', "API_ERROR", {}, 404);
     }
     const { data: profile } = await supabase
       .from('user_profiles')
       .select('avatar')
       .eq('user_id', params.id)
       .single();
-    return NextResponse.json({
+    return successResponse({
       user: {
         id: user.id,
         name: user.name,
         image: profile?.avatar || null,
         email: user.email,
+        // Legacy display field only; never use users.role for authorization.
         role: user.role,
       },
     });
   } catch (error) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errorResponse('Internal server error', "API_ERROR", {}, 500);
   }
 }

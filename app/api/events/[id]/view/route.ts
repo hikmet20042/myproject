@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,13 +40,12 @@ export async function POST(
       .eq('id', eventId)
       .single();
     if (error || !event) {
-      return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+      return errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404);
     }
 
     // Only track views for approved events
     if (event.status !== 'approved') {
-      return NextResponse.json({
-        success: false,
+      return successResponse({
         message: 'Views only tracked for approved content',
         views: event.views || 0,
         uniqueViews: event.unique_views || 0,
@@ -104,8 +104,7 @@ export async function POST(
       }
     }
     
-    return NextResponse.json({
-      success: true,
+    return successResponse({
       views: event.views || 0,
       uniqueViews: event.unique_views || 0,
       likes: 0,
@@ -117,7 +116,7 @@ export async function POST(
     
   } catch (error) {
     console.error('View tracking error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500);
   }
 }
 
@@ -137,10 +136,10 @@ export async function GET(
       .single();
     
     if (error || !event) {
-      return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+      return errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404);
     }
     
-    return NextResponse.json({
+    return successResponse({
       views: event.views || 0,
       uniqueViews: event.unique_views || 0,
       likes: 0,
@@ -150,6 +149,6 @@ export async function GET(
     
   } catch (error) {
     console.error('Get view count error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500);
   }
 }

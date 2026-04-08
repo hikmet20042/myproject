@@ -18,6 +18,8 @@ create table if not exists public.users (
   mongo_id text unique,
   name text not null,
   email text not null,
+  -- DEPRECATED FOR AUTHORIZATION: Do not use users.role for admin/permission checks.
+  -- Canonical admin authority is public.accounts.is_admin.
   role text not null default 'user' check (role in ('user','admin')),
   auth_provider text not null default 'credentials' check (auth_provider in ('credentials','google')),
   verification_email_last_sent timestamptz,
@@ -95,6 +97,7 @@ create table if not exists public.organization_profiles (
   focus_areas text[] default '{}',
   contact_person jsonb,
   social_links jsonb,
+  is_verified boolean not null default false,
   moderation_status text not null default 'pending' check (moderation_status in ('pending', 'approved', 'rejected')),
   admin_comment text,
   reviewed_at timestamptz,
@@ -114,6 +117,7 @@ alter table public.organization_profiles add column if not exists profile_image 
 alter table public.organization_profiles add column if not exists registration_number text;
 alter table public.organization_profiles add column if not exists focus_areas text[] default '{}';
 alter table public.organization_profiles add column if not exists contact_person jsonb;
+alter table public.organization_profiles add column if not exists is_verified boolean not null default false;
 alter table public.organization_profiles add column if not exists moderation_status text not null default 'pending';
 alter table public.organization_profiles add column if not exists admin_comment text;
 alter table public.organization_profiles add column if not exists reviewed_at timestamptz;
@@ -164,19 +168,50 @@ create table if not exists public.blogs (
   reviewed_at timestamptz,
   reviewed_by uuid references public.users(id),
   media jsonb,
-  views integer default 0,
-  unique_views integer default 0,
-  viewed_by uuid[] default '{}',
-  likes integer default 0,
-  liked_by uuid[] default '{}',
-  dislikes integer default 0,
-  disliked_by uuid[] default '{}',
-  engagement_score integer default 0,
   featured_image text,
   featured_image_blob_id uuid,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+alter table public.blogs drop column if exists views;
+alter table public.blogs drop column if exists unique_views;
+alter table public.blogs drop column if exists viewed_by;
+alter table public.blogs drop column if exists likes;
+alter table public.blogs drop column if exists liked_by;
+alter table public.blogs drop column if exists dislikes;
+alter table public.blogs drop column if exists disliked_by;
+alter table public.blogs drop column if exists engagement_score;
+
+-- BLOG ENGAGEMENT EVENTS (FOUNDATION)
+create table if not exists public.blog_views (
+  id uuid primary key default gen_random_uuid(),
+  blog_id uuid not null references public.blogs(id) on delete cascade,
+  session_id text not null,
+  user_id uuid null references public.users(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_blog_views_blog_created_at
+  on public.blog_views(blog_id, created_at desc);
+create index if not exists idx_blog_views_session_blog
+  on public.blog_views(session_id, blog_id);
+create index if not exists idx_blog_views_user_blog
+  on public.blog_views(user_id, blog_id);
+
+create table if not exists public.blog_reactions (
+  id uuid primary key default gen_random_uuid(),
+  blog_id uuid not null references public.blogs(id) on delete cascade,
+  user_id uuid not null references public.users(id) on delete cascade,
+  reaction_type text not null check (reaction_type in ('like', 'dislike')),
+  created_at timestamptz not null default now(),
+  unique(user_id, blog_id)
+);
+
+create index if not exists idx_blog_reactions_blog_type
+  on public.blog_reactions(blog_id, reaction_type);
+create index if not exists idx_blog_reactions_user_blog
+  on public.blog_reactions(user_id, blog_id);
 
 -- EVENTS
 create table if not exists public.events (
@@ -301,9 +336,45 @@ create table if not exists public.notifications (
   data jsonb,
   action_url text,
   is_read boolean default false,
+  related_item_id text,
+  related_item_type text check (related_item_type in ('event', 'vacancy', 'blog')),
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+create table if not exists public.organization_followers (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid not null references public.organization_profiles(account_id) on delete cascade,
+  user_id uuid not null references public.users(id) on delete cascade,
+  created_at timestamptz default now(),
+  unique(organization_id, user_id)
+);
+
+create table if not exists public.saved_items (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.users(id) on delete cascade,
+  item_id text not null,
+  item_type text not null check (item_type in ('event', 'vacancy', 'blog')),
+  created_at timestamptz not null default now(),
+  unique(user_id, item_id, item_type)
+);
+
+create index if not exists idx_saved_items_user_id on public.saved_items(user_id);
+create index if not exists idx_saved_items_type_item on public.saved_items(item_type, item_id);
+
+create table if not exists public.content_saves (
+  id uuid primary key default gen_random_uuid(),
+  content_type text not null check (content_type in ('blog', 'event', 'vacancy')),
+  content_id uuid not null,
+  user_id uuid not null references public.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique(user_id, content_type, content_id)
+);
+
+create index if not exists idx_content_saves_content on public.content_saves(content_type, content_id);
+create index if not exists idx_content_saves_user on public.content_saves(user_id, created_at desc);
+
+
 
 -- SITE SETTINGS
 create table if not exists public.site_settings (
@@ -335,6 +406,9 @@ alter table public.events enable row level security;
 alter table public.vacancies enable row level security;
 alter table public.materials enable row level security;
 alter table public.notifications enable row level security;
+alter table public.organization_followers enable row level security;
+alter table public.saved_items enable row level security;
+alter table public.content_saves enable row level security;
 alter table public.site_settings enable row level security;
 alter table public.user_analytics enable row level security;
 
@@ -403,6 +477,35 @@ drop policy if exists "Organizations manage own organization profile" on public.
 create policy "Organizations manage own organization profile" on public.organization_profiles
   for all using (auth.uid() = account_id);
 
+drop policy if exists "Users can view organization followers" on public.organization_followers;
+create policy "Users can view organization followers" on public.organization_followers
+  for select using (true);
+
+drop policy if exists "Users can follow organizations" on public.organization_followers;
+create policy "Users can follow organizations" on public.organization_followers
+  for insert with check (auth.uid() = user_id);
+
+drop policy if exists "Users can unfollow organizations" on public.organization_followers;
+create policy "Users can unfollow organizations" on public.organization_followers
+  for delete using (auth.uid() = user_id);
+
+drop policy if exists "Users can view own saved items" on public.saved_items;
+create policy "Users can view own saved items" on public.saved_items
+  for select using (auth.uid() = user_id);
+
+drop policy if exists "Users can manage own saved items" on public.saved_items;
+create policy "Users can manage own saved items" on public.saved_items
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "Users can view own content saves" on public.content_saves;
+create policy "Users can view own content saves" on public.content_saves
+  for select using (auth.uid() = user_id);
+
+drop policy if exists "Users can manage own content saves" on public.content_saves;
+create policy "Users can manage own content saves" on public.content_saves
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+
 -- Seed/backfill accounts from existing auth/users/organizations data.
 insert into public.accounts (id, account_type, is_admin, is_active)
 select
@@ -435,6 +538,9 @@ create trigger trg_accounts_updated_at
 before update on public.accounts
 for each row
 execute function public.set_updated_at();
+
+create index if not exists idx_events_org_created_at on public.events(created_by_organization, created_at desc);
+create index if not exists idx_vacancies_org_created_at on public.vacancies(created_by_organization, created_at desc);
 
 drop trigger if exists trg_organization_profiles_updated_at on public.organization_profiles;
 create trigger trg_organization_profiles_updated_at

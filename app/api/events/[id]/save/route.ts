@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,7 +14,7 @@ export async function POST(
     
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401);
     }
     
     const eventId = params.id;
@@ -26,46 +27,39 @@ export async function POST(
       .eq('id', eventId)
       .single();
     if (eventError || !event) {
-      return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+      return errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404);
     }
     
-    // Find the user
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('id, saved_events')
-      .eq('id', userId)
-      .single();
-    if (userError || !user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-    
-    // Check if user already saved this event
-    const savedEvents = Array.isArray(user.saved_events) ? user.saved_events : [];
-    const hasSaved = savedEvents.some((id: any) => id.toString() === eventId);
+    const { data: existingSave } = await supabase
+      .from('content_saves')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('content_type', 'event')
+      .eq('content_id', eventId)
+      .maybeSingle()
     
     let action: 'saved' | 'unsaved';
     
-    if (hasSaved) {
-      // Unsave the event
-      const updated = savedEvents.filter((id: any) => id.toString() !== eventId);
-      await supabase.from('users').update({ saved_events: updated }).eq('id', userId);
+    if (existingSave?.id) {
+      await supabase.from('content_saves').delete().eq('id', existingSave.id);
       action = 'unsaved';
     } else {
-      // Save the event
-      const updated = [...savedEvents, eventId];
-      await supabase.from('users').update({ saved_events: updated }).eq('id', userId);
+      await supabase.from('content_saves').insert({
+        user_id: userId,
+        content_type: 'event',
+        content_id: eventId,
+      });
       action = 'saved';
     }
     
-    return NextResponse.json({
-      success: true,
+    return successResponse({
       action,
-      hasSaved: !hasSaved
+      hasSaved: action === 'saved'
     });
     
   } catch (error) {
     console.error('Save/unsave event error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500);
   }
 }
 
@@ -79,31 +73,32 @@ export async function GET(
     
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return NextResponse.json({ hasSaved: false, canSave: false });
+      return successResponse({ hasSaved: false, canSave: false });
     }
     
     const eventId = params.id;
     const userId = session.user.id;
     
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('saved_events')
-      .eq('id', userId)
-      .single();
-    if (userError || !user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    const { data: saveRow, error: saveError } = await supabase
+      .from('content_saves')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('content_type', 'event')
+      .eq('content_id', eventId)
+      .maybeSingle();
+    if (saveError) {
+      return errorResponse('Failed to fetch save state', 'API_ERROR', {}, 500);
     }
     
-    const savedEvents = Array.isArray(user.saved_events) ? user.saved_events : [];
-    const hasSaved = savedEvents.some((id: any) => id.toString() === eventId) || false;
+    const hasSaved = Boolean(saveRow?.id);
     
-    return NextResponse.json({
+    return successResponse({
       hasSaved,
       canSave: true
     });
     
   } catch (error) {
     console.error('Get save status error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500);
   }
 }

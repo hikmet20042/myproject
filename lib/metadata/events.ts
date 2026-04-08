@@ -50,7 +50,7 @@ export async function generateEventMetadata(id: string): Promise<Metadata> {
       ? 'Online' 
       : event.location?.city || 'Azerbaijan'
     
-    const eventDate = new Date(event.eventDate).toLocaleDateString('en-US', {
+    const eventDate = new Date(event.eventDate).toLocaleDateString('az-AZ', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'

@@ -1,9 +1,65 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { isAdminSession } from '@/lib/roles'
+import { isAdmin } from '@/lib/auth/permissions'
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
-const mapEvent = (row: any) => ({
+type EventPersonRef = {
+  id?: string
+  name?: string
+  email?: string
+} | null
+
+type EventOrganizationRef = {
+  id?: string
+  organization_name?: string
+  email?: string
+} | null
+
+type EventDbRow = {
+  id: string
+  title?: string | null
+  description?: string | null
+  category?: string | null
+  event_type?: string | null
+  event_date?: string | null
+  end_date?: string | null
+  duration?: string | null
+  schedule?: unknown
+  prerequisites?: string[] | null
+  learning_outcomes?: string[] | null
+  certification?: string | null
+  cost?: unknown
+  target_audience?: string[] | null
+  syllabus?: unknown
+  location?: unknown
+  application_link?: string | null
+  application_deadline?: string | null
+  max_participants?: number | null
+  current_participants?: number | null
+  tags?: string[] | null
+  image_url?: string | null
+  images?: unknown
+  created_by?: EventPersonRef
+  created_by_organization?: EventOrganizationRef
+  organization_name?: string | null
+  status?: string | null
+  approved_at?: string | null
+  approved_by?: EventPersonRef
+  rejected_at?: string | null
+  rejection_reason?: string | null
+  admin_comment?: string | null
+  is_published?: boolean | null
+  is_featured?: boolean | null
+  views?: number | null
+  unique_views?: number | null
+  viewed_by?: string[] | null
+  engagement_score?: number | null
+  created_at?: string | null
+  updated_at?: string | null
+}
+
+const mapEvent = (row: EventDbRow) => ({
   _id: row.id,
   id: row.id,
   title: row.title,
@@ -55,9 +111,6 @@ const mapEvent = (row: any) => ({
 
 export const dynamic = 'force-dynamic'
 
-async function isAdmin(session: any) {
-  return isAdminSession(session)
-}
 
 // GET /api/admin/events - Get all events for admin management
 export async function GET(request: NextRequest) {
@@ -65,11 +118,8 @@ export async function GET(request: NextRequest) {
     const supabase = createSupabaseAdminClient()
     
     const session = await getServerSession()
-    if (!session || !(await isAdmin(session))) {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      )
+    if (!isAdmin(session)) {
+      return errorResponse('Admin access required', 'ADMIN_ACCESS_REQUIRED', {}, 403)
     }
     
     const { searchParams } = new URL(request.url)
@@ -88,7 +138,11 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
     
     // Build query object
-    const query: any = {}
+    const query: {
+      status?: string
+      eventDate?: { $gte?: Date; $lte?: Date }
+      [key: string]: unknown
+    } = {}
     
     // Status filtering
     if (status === 'pending') {
@@ -193,10 +247,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('GET /api/admin/events error:', error)
-      return NextResponse.json(
-        { error: 'Failed to fetch events' },
-        { status: 500 }
-      )
+      return errorResponse('Failed to fetch events', 'FETCH_EVENTS_FAILED', {}, 500)
     }
 
     const events = (eventRows || []).map(mapEvent)
@@ -217,7 +268,7 @@ export async function GET(request: NextRequest) {
       total: totalResult.count || 0
     }
     
-    return NextResponse.json({
+    return successResponse({
       events,
       stats,
       pagination: {
@@ -229,81 +280,6 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('GET /api/admin/events error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch events' },
-      { status: 500 }
-    )
-  }
-}
-
-// PUT /api/admin/events - Bulk approve/reject events
-export async function PUT(request: NextRequest) {
-  try {
-    const supabase = createSupabaseAdminClient()
-    
-    const session = await getServerSession()
-    if (!session || !(await isAdmin(session))) {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      )
-    }
-    
-    const body = await request.json()
-    const { id, status, adminComment } = body
-    
-    if (!id || !status || !['approved', 'rejected'].includes(status)) {
-      return NextResponse.json(
-        { error: 'Event ID and valid status are required' },
-        { status: 400 }
-      )
-    }
-    
-    const { data: event, error: eventError } = await supabase
-      .from('events')
-      .select('id')
-      .eq('id', id)
-      .single()
-    if (eventError || !event) {
-      return NextResponse.json(
-        { error: 'Event not found' },
-        { status: 404 }
-      )
-    }
-    
-    let updateData: any = {}
-    
-    if (status === 'approved') {
-      updateData = {
-        status: 'approved',
-        approved_at: new Date().toISOString(),
-        approved_by: session.user.id,
-        is_published: true,
-        rejected_at: null,
-        rejection_reason: null
-      }
-    } else if (status === 'rejected') {
-      updateData = {
-        status: 'rejected',
-        rejected_at: new Date().toISOString(),
-        rejection_reason: adminComment || 'No reason provided',
-        approved_at: null,
-        approved_by: null,
-        is_published: false
-      }
-    }
-    
-    await supabase
-      .from('events')
-      .update({ ...updateData, updated_at: new Date().toISOString() })
-      .eq('id', id)
-    
-    return NextResponse.json({ message: `Event ${status} successfully` })
-  } catch (error) {
-    console.error('PUT /api/admin/events error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return errorResponse('Failed to fetch events', 'FETCH_EVENTS_FAILED', {}, 500)
   }
 }

@@ -23,8 +23,9 @@ export default function BlocknoteEditor({ initialJSON, onChange, className, cont
       form.append('context', context) // Add context for storage determination
       try {
         const res = await fetch('/api/upload', { method: 'POST', body: form })
-        const data = await res.json()
-        if (data.url) return data.url
+        const result = await res.json()
+        const uploadedUrl = result?.data?.url || result?.url
+        if (uploadedUrl) return uploadedUrl
       } catch {}
       // fallback to data url
       return await new Promise<string>((resolve, reject) => {

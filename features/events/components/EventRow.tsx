@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Calendar,
   MapPin,
@@ -17,6 +18,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
 import type { EventItem } from "@/features/events/components/types";
+import { prefetchEventDetail } from "@/lib/eventQueries";
 
 interface EventRowProps {
   event: EventItem;
@@ -25,9 +27,13 @@ interface EventRowProps {
 
 export default function EventRow({ event, onRequestDelete }: EventRowProps) {
   const localePath = useLocalizedPath();
+  const queryClient = useQueryClient();
+  const prefetchDetail = () => {
+    void prefetchEventDetail(queryClient, event._id);
+  };
 
   const getStatusIcon = () => {
-    if (event.status === "approved" && event.isPublished) {
+    if (event.status === "approved") {
       return <CheckCircle className="h-4 w-4 text-emerald-500" />;
     }
     if (event.status === "rejected") {
@@ -37,7 +43,7 @@ export default function EventRow({ event, onRequestDelete }: EventRowProps) {
   };
 
   const getStatusBadge = () => {
-    if (event.status === "approved" && event.isPublished) {
+    if (event.status === "approved") {
       return (
         <Badge
           variant="success"
@@ -67,6 +73,15 @@ export default function EventRow({ event, onRequestDelete }: EventRowProps) {
     );
   };
 
+  const moderationHint =
+    event.status === "pending"
+      ? "Tədbir moderasiya mərhələsindədir."
+      : event.status === "approved"
+        ? "Redaktə etdikdən sonra tədbir yenidən moderasiyaya göndəriləcək."
+        : "Dəyişiklik edib yenidən göndərə bilərsiniz.";
+
+  const rejectionReason = event.rejectionReason || event.adminComment || null;
+
   return (
     <Card className="border border-slate-200 bg-white shadow-sm">
       <CardContent padding="md">
@@ -79,6 +94,16 @@ export default function EventRow({ event, onRequestDelete }: EventRowProps) {
             </div>
 
             <p className="mb-3 line-clamp-2 text-gray-600">{event.description}</p>
+
+            <div className="mb-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+              {moderationHint}
+            </div>
+
+            {event.status === "rejected" && rejectionReason && (
+              <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                <span className="font-semibold">Rədd səbəbi:</span> {rejectionReason}
+              </div>
+            )}
 
             <div className="grid grid-cols-1 gap-3 text-sm text-gray-500 sm:grid-cols-2 lg:grid-cols-3">
               <div className="flex items-center gap-1.5">
@@ -132,7 +157,7 @@ export default function EventRow({ event, onRequestDelete }: EventRowProps) {
           </div>
 
           <div className="flex items-center gap-2 lg:ml-4">
-            <Link href={localePath(`/resources/events/${event._id}`)}>
+            <Link href={localePath(`/resources/events/${event._id}`)} onMouseEnter={prefetchDetail} onFocus={prefetchDetail}>
               <Button
                 variant="ghost"
                 size="sm"
@@ -141,7 +166,7 @@ export default function EventRow({ event, onRequestDelete }: EventRowProps) {
                 className="rounded-xl border border-transparent hover:border-blue-200 hover:bg-blue-50"
               />
             </Link>
-            <Link href={localePath(`/dashboard/events/${event._id}/edit`)}>
+            <Link href={localePath(`/dashboard/events/${event._id}/edit`)} onMouseEnter={prefetchDetail} onFocus={prefetchDetail}>
               <Button
                 variant="ghost"
                 size="sm"

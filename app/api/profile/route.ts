@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { isApprovedOrganization } from '@/lib/auth/permissions'
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 // Force dynamic rendering due to session usage
 export const dynamic = 'force-dynamic'
@@ -10,13 +12,13 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession()
     
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
     }
 
     const supabase = createSupabaseAdminClient()
 
     // If session is organization, fetch from Organization collection
-    if (session.user.accountType === 'organization' && session.user.organizationStatus === 'approved') {
+    if (isApprovedOrganization(session)) {
       const { data: organizationProfile } = await supabase
         .from('organization_profiles')
         .select('account_id, organization_name, email, moderation_status, created_at, profile_image')
@@ -24,10 +26,10 @@ export async function GET(request: NextRequest) {
         .maybeSingle()
 
       if (!organizationProfile) {
-        return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
+        return errorResponse('Organization not found', "API_ERROR", {}, 404)
       }
 
-      return NextResponse.json({
+      return successResponse({
         user: {
           _id: organizationProfile.account_id,
           name: organizationProfile.organization_name,
@@ -49,7 +51,7 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (userError || !user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return errorResponse('User not found', 'USER_NOT_FOUND', {}, 404)
     }
 
     const { data: userProfile } = await supabase
@@ -58,7 +60,7 @@ export async function GET(request: NextRequest) {
       .eq('user_id', session.user.id)
       .single()
 
-    return NextResponse.json({
+    return successResponse({
       user: {
         _id: user.id,
         name: user.name,
@@ -74,9 +76,6 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Error fetching user profile:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch profile' },
-      { status: 500 }
-    )
+    return errorResponse('Failed to fetch profile', 'FETCH_PROFILE_FAILED', {}, 500)
   }
 }

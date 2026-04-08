@@ -14,7 +14,7 @@ import {
   SectionEmptyStateSlot,
   SectionErrorInline,
   SectionLoading,
-} from "@/features/ui-state/index";
+} from "@/features/ui-state";
 import {
   useNotificationContext,
   type NotificationItem,

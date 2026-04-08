@@ -9,7 +9,7 @@ export type ClientSessionUser = {
   name?: string | null
   role: 'user' | 'admin'
   emailVerified?: boolean
-  accountType: 'user' | 'organization'
+  accountType: 'user' | 'organization' | null
   organizationStatus: 'pending' | 'approved' | 'rejected' | null
   isActive?: boolean
 }
@@ -23,11 +23,15 @@ export type SessionStatus = 'loading' | 'authenticated' | 'unauthenticated'
 export type AuthSessionContextValue = {
   data: ClientSession
   status: SessionStatus
+  isSessionReady: boolean
+  refreshSession: () => Promise<void>
 }
 
 export const AuthSessionContext = createContext<AuthSessionContextValue>({
   data: null,
   status: 'loading',
+  isSessionReady: false,
+  refreshSession: async () => {},
 })
 
 export function useSession() {

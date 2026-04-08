@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/auth/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 // GET: Fetch all materials (with optional filters)
 export async function GET(request: Request) {
@@ -37,15 +37,12 @@ export async function GET(request: Request) {
     const { data: materials, error, count } = await query;
 
     if (error) {
-      return NextResponse.json(
-        { error: 'Failed to fetch materials', details: error.message },
-        { status: 500 }
-      );
+      return errorResponse('Failed to fetch materials', "API_ERROR", {}, 500);
     }
 
     const total = count || 0;
 
-    return NextResponse.json({
+    return successResponse({
       materials,
       pagination: {
         page,
@@ -56,10 +53,7 @@ export async function GET(request: Request) {
     });
   } catch (error: any) {
     console.error('Error fetching materials:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch materials', details: error.message },
-      { status: 500 }
-    );
+    return errorResponse('Failed to fetch materials', "API_ERROR", {}, 500);
   }
 }
 
@@ -69,10 +63,7 @@ export async function POST(request: Request) {
     const session = await getServerSession();
 
     if (!session || session.user?.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Unauthorized. Admin access required.' },
-        { status: 403 }
-      );
+      return errorResponse('Unauthorized. Admin access required.', "API_ERROR", {}, 403);
     }
 
     const supabase = createSupabaseAdminClient();
@@ -96,10 +87,7 @@ export async function POST(request: Request) {
 
     // Validate required fields
     if (!title || !description || !category || !type || !url) {
-      return NextResponse.json(
-        { error: 'Missing required fields: title, description, category, type, url' },
-        { status: 400 }
-      );
+      return errorResponse('Missing required fields: title, description, category, type, and url', "API_ERROR", {}, 400);
     }
 
     // Create material
@@ -125,21 +113,12 @@ export async function POST(request: Request) {
       .single();
 
     if (error || !material) {
-      return NextResponse.json(
-        { error: 'Failed to create material', details: error?.message },
-        { status: 500 }
-      );
+      return errorResponse('Failed to create material', "API_ERROR", {}, 500);
     }
 
-    return NextResponse.json(
-      { message: 'Material created successfully', material },
-      { status: 201 }
-    );
+    return successResponse({ message: 'Material created successfully', material }, {}, 201);
   } catch (error: any) {
     console.error('Error creating material:', error);
-    return NextResponse.json(
-      { error: 'Failed to create material', details: error.message },
-      { status: 500 }
-    );
+    return errorResponse('Failed to create material', "API_ERROR", {}, 500);
   }
 }

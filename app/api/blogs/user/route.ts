@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getServerSession } from '@/lib/auth/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { successResponse, errorResponse } from '@/lib/apiResponse';
+import { getBlogStats } from '@/lib/blogStats';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +11,7 @@ export async function GET(request: NextRequest) {
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', 'AUTH_REQUIRED', {}, 401);
     }
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status'); // optional: filter by status
@@ -22,11 +24,18 @@ export async function GET(request: NextRequest) {
     const { data: blogs, error } = await query;
     if (error) {
       console.error('GET /api/blogs/user query error:', error);
-      return NextResponse.json({ error: 'Failed to fetch user blogs' }, { status: 500 });
+      return errorResponse('Failed to fetch user blogs', 'FETCH_USER_BLOGS_FAILED', {}, 500);
     }
-    return NextResponse.json({ results: blogs || [] });
+    const rows = blogs || []
+    const itemsWithStats = await Promise.all(
+      rows.map(async (blog: any) => {
+        const stats = await getBlogStats(supabase, blog.id, session.user.id)
+        return { ...blog, ...stats }
+      })
+    )
+    return successResponse({ items: itemsWithStats });
   } catch (error) {
     console.error('GET /api/blogs/user error:', error);
-    return NextResponse.json({ error: 'Failed to fetch user blogs' }, { status: 500 });
+    return errorResponse('Failed to fetch user blogs', 'FETCH_USER_BLOGS_FAILED', {}, 500);
   }
 }

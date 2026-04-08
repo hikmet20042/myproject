@@ -1,9 +1,11 @@
 import { FileText, Trash2 } from "lucide-react";
 import { ReactNode } from "react";
 import { useRouter } from 'next/navigation'
-import { Button, ButtonLink } from '@/components/ui';
+import { Button } from '@/components/ui';
 import { useSession } from '@/lib/auth/client';
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { LoadingState, ErrorState, EmptyState } from '@/components/shared'
+import { useGlobalFeedback } from '@/lib/useGlobalFeedback'
 
 interface Blog { _id: string;
   title: string;
@@ -19,17 +21,24 @@ interface Blog { _id: string;
 
 interface BlogsProps { loadingTab: string | null;
   blogs: Blog[];
+  isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
   getStatusIcon: (status: string) => ReactNode;
   getStatusColor: (status: string) => string;
   setDeleteConfirm: (confirm: { type: 'blog', id: string, title: string } | null) => void; }
 
 export default function Blogs({ loadingTab,
   blogs,
+  isLoading = false,
+  isError = false,
+  onRetry,
   getStatusIcon,
   getStatusColor,
   setDeleteConfirm }: BlogsProps) { const { data: session } = useSession();
   const localePath = useLocalizedPath()
   const router = useRouter()
+  const { showError } = useGlobalFeedback()
 
   return (
     <div className="bg-white shadow-md rounded-2xl border-2 border-blue-100 overflow-hidden">
@@ -45,60 +54,22 @@ export default function Blogs({ loadingTab,
         </div>
       </div>
       <div className="px-6 py-6">
-        {loadingTab === 'blogs' ? (
-          <div className="animate-pulse space-y-4">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="border-2 border-blue-100 rounded-xl p-6 bg-gradient-to-br from-slate-50 to-blue-50">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-3 flex-1">
-                    <div className="h-6 bg-slate-300 rounded-lg w-3/4"></div>
-                    <div className="h-4 bg-slate-200 rounded w-1/2"></div>
-                  </div>
-                  <div className="h-8 bg-slate-300 rounded-lg w-24"></div>
-                </div>
-              </div>
-            ))}
-          </div>
+        {isLoading || loadingTab === 'blogs' ? (
+          <LoadingState fullPage={false} text={'Bloqlar yüklənir...'} />
+        ) : isError ? (
+          <ErrorState
+            fullPage={false}
+            title={'Bloqlar yüklənmədi'}
+            message={'Mənim bloqlarım bölməsi yüklənərkən problem baş verdi.'}
+            onRetry={onRetry}
+          />
         ) : blogs.length === 0 ? (
-          <div className="text-center py-12 px-4">
-            <div className="relative inline-flex items-center justify-center w-20 h-20 mx-auto mb-6">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-emerald-600 rounded-2xl blur opacity-25"></div>
-              <div className="relative w-full h-full bg-gradient-to-br from-blue-100 to-emerald-100 rounded-2xl flex items-center justify-center">
-                <FileText className="w-10 h-10 text-blue-600" />
-              </div>
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">{'Hələ bloq yoxdur'}</h3>
-            <p className="text-base text-gray-600 mb-8">
-              {'Bloq göndərərək başlayın.'}
-            </p>
-            <div>
-              {!session?.user?.emailVerified ? (
-                <Button
-                  type="button"
-                  disabled
-                  variant="secondary"
-                  className="cursor-not-allowed w-full sm:w-auto"
-                  tabIndex={-1}
-                  aria-disabled="true"
-                >
-                  {'Bloq Göndər'}
-                </Button>
-              ) : (
-                <ButtonLink
-                  href={localePath('/submit/blog/step1')}
-                  variant="primary"
-                  size="md"
-                  icon={FileText}
-                  iconPosition="left"
-                  shadow="lg"
-                  hoverEffect="scale"
-                  className="w-full sm:w-auto"
-                >
-                  {'Bloq Göndər'}
-                </ButtonLink>
-              )}
-            </div>
-          </div>
+          <EmptyState
+            title={'Hələ bloq yoxdur'}
+            message={'Bloq göndərərək başlayın.'}
+            actionText={session?.user?.emailVerified ? 'Bloq Göndər' : undefined}
+            onAction={session?.user?.emailVerified ? () => router.push(localePath('/submit/blog/step1')) : undefined}
+          />
         ) : (
           <div className="space-y-4">
             {blogs.map((blog, idx) => (
@@ -147,35 +118,32 @@ export default function Blogs({ loadingTab,
                           onClick={async () => { try {
                               // Clear any existing blog edit data from localStorage
                               localStorage.removeItem('editBlogData');
-                              localStorage.removeItem('currentBlogEditId');
                               localStorage.removeItem('blogStep1Data');
                               localStorage.removeItem('blogStep2Data');
 
                               // Fetch blog data from API with credentials
-                              const response = await fetch(`/api/blogs?id=${blog._id}`, { method: 'GET',
+                              const response = await fetch(`/api/blogs/${blog._id}`, { method: 'GET',
                                 credentials: 'include',
                                 headers: { 'Content-Type': 'application/json', }, });
 
                               if (response.ok) { const data = await response.json();
-                                const blogData = data.story;
+                                const blogData = data.blog;
 
                                 if (blogData) { // Prepare blog data for localStorage
-                                  const editData = { title: blogData.title || '',
-                                    isAnonymous: blogData.isAnonymous || false,
-                                    authorName: blogData.isAnonymous ? 'Anonim' : (blogData.authorName || session?.user?.name || ''),
+                                  const editData = { id: blog._id,
+                                    title: blogData.title || '',
+                                    isAnonymous: blogData.isAnonymous ?? blogData.is_anonymous ?? false,
+                                    authorName: (blogData.isAnonymous ?? blogData.is_anonymous) ? 'Anonim' : (blogData.authorName || blogData.author_name || session?.user?.name || ''),
                                     content: blogData.content || null,
-                                    contentHtml: blogData.contentHtml || '',
-                                    characterCount: 0,
-                                    editId: blog._id };
+                                    contentHtml: blogData.contentHtml || blogData.content_html || '' };
 
                                   // Store blog data in localStorage for the edit page
                                   localStorage.setItem('editBlogData', JSON.stringify(editData));
-                                  localStorage.setItem('currentBlogEditId', blog._id);
 
                                   // Navigate to edit page
-                                  router.push(localePath(`/edit/blog/${blog._id}/step1`)); } else { alert('Bloq məlumatı tapılmadı.'); } } else { console.error('Failed to fetch blog data:', response.statusText);
-                                alert('Bloq məlumatlarını yükləmək alınmadı. Zəhmət olmasa yenidən cəhd edin.'); } } catch (error) { console.error('Error fetching blog data:', error);
-                              alert('Bloq məlumatlarını yükləmək alınmadı. Zəhmət olmasa yenidən cəhd edin.'); } }}
+                                  router.push(localePath(`/edit/blog/${blog._id}/step1`)); } else { showError('Bloq məlumatı tapılmadı.'); } } else { console.error('Failed to fetch blog data:', response.statusText);
+                                showError('Bloq məlumatlarını yükləmək alınmadı. Zəhmət olmasa yenidən cəhd edin.'); } } catch (error) { console.error('Error fetching blog data:', error);
+                              showError('Bloq məlumatlarını yükləmək alınmadı. Zəhmət olmasa yenidən cəhd edin.'); } }}
                           className="inline-flex items-center px-4 py-2.5 border border-blue-600 bg-blue-600 text-white shadow-sm text-sm font-semibold rounded-xl hover:bg-blue-700 hover:scale-[1.02] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-200"
                         >
                           {'Redaktə et və yenidən göndər'}

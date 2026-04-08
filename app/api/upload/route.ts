@@ -1,372 +1,155 @@
-import { NextResponse } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import sharp from 'sharp'
-import cloudinaryService from '@/lib/services/cloudinaryService'
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 export const dynamic = 'force-dynamic'
 
-// Helper function to get image dimensions
-async function getImageDimensions(buffer: Buffer, mimetype: string): Promise<{ width?: number; height?: number }> {
+const ALLOWED_IMAGE_TYPES = new Set([
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+])
+
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
+const MAX_WIDTH = 1920
+const MAX_HEIGHT = 1080
+
+async function optimizeImage(buffer: Buffer, mimeType: string): Promise<{ buffer: Buffer; mimeType: string; compressed: boolean; width?: number; height?: number }> {
   try {
-    // Use Sharp to get image metadata
-    const metadata = await sharp(buffer).metadata();
-    return {
-      width: metadata.width,
-      height: metadata.height
-    };
-  } catch (error) {
-    console.error('Error getting image dimensions with Sharp:', error);
-    // Fallback: try to parse basic image headers for common formats
-    try {
-      if (mimetype === 'image/jpeg' || mimetype === 'image/jpg') {
-        return parseJPEGDimensions(buffer);
-      } else if (mimetype === 'image/png') {
-        return parsePNGDimensions(buffer);
-      }
-    } catch (fallbackError) {
-      console.error('Fallback dimension parsing failed:', fallbackError);
-    }
-    return {};
-  }
-}
-
-// Fallback JPEG dimension parser
-function parseJPEGDimensions(buffer: Buffer): { width?: number; height?: number } {
-  try {
-    // Look for SOF (Start of Frame) markers
-    for (let i = 0; i < buffer.length - 8; i++) {
-      if (buffer[i] === 0xFF && (buffer[i + 1] === 0xC0 || buffer[i + 1] === 0xC2)) {
-        const height = buffer.readUInt16BE(i + 5);
-        const width = buffer.readUInt16BE(i + 7);
-        return { width, height };
-      }
-    }
-  } catch (error) {
-    console.error('Error parsing JPEG dimensions:', error);
-  }
-  return {};
-}
-
-// Fallback PNG dimension parser
-function parsePNGDimensions(buffer: Buffer): { width?: number; height?: number } {
-  try {
-    // PNG signature: 89 50 4E 47 0D 0A 1A 0A
-    if (buffer.length >= 24 &&
-        buffer[0] === 0x89 && buffer[1] === 0x50 &&
-        buffer[2] === 0x4E && buffer[3] === 0x47) {
-      // IHDR chunk starts at byte 12
-      const width = buffer.readUInt32BE(16);
-      const height = buffer.readUInt32BE(20);
-      return { width, height };
-    }
-  } catch (error) {
-    console.error('Error parsing PNG dimensions:', error);
-  }
-  return {};
-}
-
-// Helper function to compress image if needed
-async function compressImageIfNeeded(buffer: Buffer, mimetype: string): Promise<{ buffer: Buffer; isCompressed: boolean; originalSize: number }> {
-  const originalSize = buffer.length;
-  const maxSize = 5 * 1024 * 1024; // 5MB
-
-  const targetSize = 2 * 1024 * 1024; // Target 2MB for compression
-
-  // If image is already small enough, return as-is
-  if (originalSize <= targetSize) {
-    return { buffer, isCompressed: false, originalSize };
-  }
-
-  try {
-    let compressedBuffer: Buffer;
-    let quality = 85; // Start with high quality
-
-    // Use Sharp for compression based on image type
-    if (mimetype === 'image/jpeg' || mimetype === 'image/jpg') {
-      compressedBuffer = await sharp(buffer)
-        .jpeg({ quality, progressive: true, mozjpeg: true })
-        .toBuffer();
-    } else if (mimetype === 'image/png') {
-      compressedBuffer = await sharp(buffer)
-        .png({ quality, progressive: true, compressionLevel: 9 })
-        .toBuffer();
-    } else if (mimetype === 'image/webp') {
-      compressedBuffer = await sharp(buffer)
-        .webp({ quality, effort: 6 })
-        .toBuffer();
-    } else {
-      // For other formats, try to convert to JPEG
-      compressedBuffer = await sharp(buffer)
-        .jpeg({ quality, progressive: true, mozjpeg: true })
-        .toBuffer();
-    }
-
-    // If still too large, reduce quality further
-    while (compressedBuffer.length > maxSize && quality > 20) {
-      quality -= 15;
-
-      if (mimetype === 'image/jpeg' || mimetype === 'image/jpg') {
-        compressedBuffer = await sharp(buffer)
-          .jpeg({ quality, progressive: true, mozjpeg: true })
-          .toBuffer();
-      } else if (mimetype === 'image/png') {
-        compressedBuffer = await sharp(buffer)
-          .png({ quality, progressive: true, compressionLevel: 9 })
-          .toBuffer();
-      } else if (mimetype === 'image/webp') {
-        compressedBuffer = await sharp(buffer)
-          .webp({ quality, effort: 6 })
-          .toBuffer();
-      } else {
-        compressedBuffer = await sharp(buffer)
-          .jpeg({ quality, progressive: true, mozjpeg: true })
-          .toBuffer();
-      }
-    }
-
-    // If still too large, resize the image
-    if (compressedBuffer.length > maxSize) {
-      const metadata = await sharp(buffer).metadata();
-      const currentWidth = metadata.width || 1920;
-      const currentHeight = metadata.height || 1080;
-
-      // Calculate new dimensions (reduce by 20% each iteration)
-      let newWidth = Math.floor(currentWidth * 0.8);
-      let newHeight = Math.floor(currentHeight * 0.8);
-
-      compressedBuffer = await sharp(buffer)
-        .resize(newWidth, newHeight, {
-          fit: 'inside',
-          withoutEnlargement: true
-        })
-        .jpeg({ quality: 75, progressive: true, mozjpeg: true })
-        .toBuffer();
-
-      // Continue reducing size if needed
-      while (compressedBuffer.length > maxSize && newWidth > 200) {
-        newWidth = Math.floor(newWidth * 0.8);
-        newHeight = Math.floor(newHeight * 0.8);
-
-        compressedBuffer = await sharp(buffer)
-          .resize(newWidth, newHeight, {
-            fit: 'inside',
-            withoutEnlargement: true
-          })
-          .jpeg({ quality: 60, progressive: true, mozjpeg: true })
-          .toBuffer();
-      }
-    }
-
-    const compressionRatio = ((originalSize - compressedBuffer.length) / originalSize * 100).toFixed(1);
-    console.log(`Image compressed: ${originalSize} bytes → ${compressedBuffer.length} bytes (${compressionRatio}% reduction)`);
-
-    return {
-      buffer: compressedBuffer,
-      isCompressed: true,
-      originalSize
-    };
-
-  } catch (error) {
-    console.error('Error compressing image with Sharp:', error);
-    // If compression fails, return original if it's not too large
-    if (originalSize <= maxSize) {
-      return { buffer, isCompressed: false, originalSize };
-    }
-    // If original is too large and compression failed, throw error
-    throw new Error('Image is too large and compression failed');
-  }
-}
-
-// Helper function to optimize image for web
-async function optimizeImageForWeb(buffer: Buffer, mimetype: string): Promise<{ buffer: Buffer; mimetype: string; optimized: boolean }> {
-  try {
-    const metadata = await sharp(buffer).metadata();
-    const { width, height } = metadata;
-
-    // Maximum dimensions for web images
-    const maxWidth = 1920;
-    const maxHeight = 1080;
-
-    let sharpInstance = sharp(buffer);
-    let optimized = false;
-    let outputMimetype = mimetype;
-
-    // Resize if too large
-    if (width && height && (width > maxWidth || height > maxHeight)) {
-      sharpInstance = sharpInstance.resize(maxWidth, maxHeight, {
-        fit: 'inside',
-        withoutEnlargement: true
-      });
-      optimized = true;
-    }
-
-    // Convert to WebP for better compression (except for SVG)
-    if (mimetype !== 'image/svg+xml' && mimetype !== 'image/webp') {
-      sharpInstance = sharpInstance.webp({
-        quality: 85,
-        effort: 6,
-        lossless: false
-      });
-      outputMimetype = 'image/webp';
-      optimized = true;
-    } else if (mimetype === 'image/webp') {
-      // Re-optimize WebP
-      sharpInstance = sharpInstance.webp({
-        quality: 85,
-        effort: 6,
-        lossless: false
-      });
-      optimized = true;
-    }
-
-    // Apply optimization
-    if (optimized) {
-      const optimizedBuffer = await sharpInstance.toBuffer();
+    // Keep GIF as-is to preserve animation
+    if (mimeType.toLowerCase() === 'image/gif') {
+      const metadata = await sharp(buffer, { failOn: 'none' }).metadata().catch(() => null)
       return {
-        buffer: optimizedBuffer,
-        mimetype: outputMimetype,
-        optimized: true
-      };
+        buffer,
+        mimeType: 'image/gif',
+        compressed: false,
+        width: metadata?.width,
+        height: metadata?.height,
+      }
     }
 
-    return { buffer, mimetype, optimized: false };
+    let pipeline = sharp(buffer, { failOn: 'none' }).rotate()
+    const metadata = await pipeline.metadata()
+    const width = metadata.width
+    const height = metadata.height
 
+    if ((width && width > MAX_WIDTH) || (height && height > MAX_HEIGHT)) {
+      pipeline = pipeline.resize(MAX_WIDTH, MAX_HEIGHT, {
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
+    }
+
+    const optimized = await pipeline.webp({ quality: 82, effort: 5 }).toBuffer()
+    const optimizedMeta = await sharp(optimized, { failOn: 'none' }).metadata().catch(() => null)
+
+    return {
+      buffer: optimized,
+      mimeType: 'image/webp',
+      compressed: optimized.length < buffer.length,
+      width: optimizedMeta?.width || width,
+      height: optimizedMeta?.height || height,
+    }
   } catch (error) {
-    console.error('Error optimizing image:', error);
-    return { buffer, mimetype, optimized: false };
+    console.error('Upload optimization failed, using original image:', error)
+    const metadata = await sharp(buffer, { failOn: 'none' }).metadata().catch(() => null)
+    return {
+      buffer,
+      mimeType,
+      compressed: false,
+      width: metadata?.width,
+      height: metadata?.height,
+    }
   }
 }
-
-
 
 export async function POST(request: Request) {
   try {
-    const supabase = createSupabaseAdminClient();
+    const supabase = createSupabaseAdminClient()
 
-    // Check authentication
-    const session = await getServerSession();
+    const session = await getServerSession()
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if Cloudinary is configured
-    if (!cloudinaryService.isConfigured()) {
-      return NextResponse.json(
-        { error: 'Image upload service is not configured' },
-        { status: 503 }
-      );
+      return errorResponse('Unauthorized', 'API_ERROR', {}, 401)
     }
 
     const formData = await request.formData()
     const file = formData.get('file') as unknown as File | null
-    const description = formData.get('description') as string || ''
-    const alt = formData.get('alt') as string || ''
-    const tags = formData.get('tags') as string || ''
-    const context = formData.get('context') as string || 'general' // article, story, profile, event, etc.
+    const description = (formData.get('description') as string) || ''
+    const alt = (formData.get('alt') as string) || ''
+    const tags = (formData.get('tags') as string) || ''
+    const context = (formData.get('context') as string) || 'general'
 
     if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+      return errorResponse('No file provided', 'API_ERROR', {}, 400)
     }
 
-    // Validate file
-    const validation = cloudinaryService.validateImageFile(file, 10);
-    if (!validation.valid) {
-      return NextResponse.json({ error: validation.error }, { status: 400 });
+    if (!ALLOWED_IMAGE_TYPES.has(file.type.toLowerCase())) {
+      return errorResponse('Invalid file type. Only image files are allowed.', 'API_ERROR', {}, 400)
     }
 
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-
-    // Parse tags
-    const tagArray = tags ? tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0) : [];
-
-    // Get image dimensions for metadata
-    const dimensions = await getImageDimensions(buffer, file.type);
-
-    // Upload to Cloudinary based on context
-    let uploadResult;
-    
-    switch (context) {
-      case 'profile':
-        uploadResult = await cloudinaryService.uploadProfileImage(buffer, session.user.id);
-        break;
-      case 'blog':
-      case 'article':
-        uploadResult = await cloudinaryService.uploadBlogImage(buffer, file.name);
-        break;
-      case 'event':
-        // For events, we'll use a temporary ID that will be updated later
-        uploadResult = await cloudinaryService.uploadImage(buffer, {
-          folder: 'events',
-          tags: ['event', ...tagArray],
-        });
-        break;
-      case 'material':
-        uploadResult = await cloudinaryService.uploadMaterialImage(buffer);
-        break;
-      default:
-        uploadResult = await cloudinaryService.uploadImage(buffer, {
-          folder: 'general',
-          tags: tagArray,
-        });
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      return errorResponse('File is too large. Maximum allowed size is 10MB.', 'API_ERROR', {}, 400)
     }
 
-    if (!uploadResult.success) {
-      return NextResponse.json(
-        { error: uploadResult.error || 'Image upload failed' },
-        { status: 500 }
-      );
-    }
+    const originalBytes = await file.arrayBuffer()
+    const originalBuffer = Buffer.from(originalBytes)
+    const optimized = await optimizeImage(originalBuffer, file.type)
 
-    // Save metadata to database
+    const tagArray = tags
+      ? tags
+          .split(',')
+          .map((tag) => tag.trim())
+          .filter((tag) => tag.length > 0)
+      : []
+
     const { data: imageBlob, error } = await supabase
       .from('image_blobs')
       .insert({
-      filename: file.name,
-      original_name: file.name,
-      mimetype: file.type,
-      content_type: file.type,
-      size: uploadResult.bytes || file.size,
-      data: null, // No binary data for Cloudinary images
-      uploaded_by: session.user.id,
-      uploaded_at: new Date().toISOString(),
-      description: description || undefined,
-      alt: alt || undefined,
-      tags: tagArray.length > 0 ? tagArray : [],
-      width: uploadResult.width || dimensions.width,
-      height: uploadResult.height || dimensions.height,
-      is_compressed: false,
-      original_size: file.size,
-      metadata: {
-        context,
-        storage: 'cloudinary',
-        cloudinaryUrl: uploadResult.secureUrl,
-        cloudinaryPublicId: uploadResult.publicId,
-        format: uploadResult.format,
-      }
+        filename: file.name,
+        original_name: file.name,
+        mimetype: optimized.mimeType,
+        content_type: optimized.mimeType,
+        size: optimized.buffer.length,
+        data: optimized.buffer,
+        uploaded_by: session.user.id,
+        uploaded_at: new Date().toISOString(),
+        description: description || undefined,
+        alt: alt || undefined,
+        tags: tagArray.length > 0 ? tagArray : [],
+        width: optimized.width,
+        height: optimized.height,
+        is_compressed: optimized.compressed,
+        original_size: file.size,
+        metadata: {
+          context,
+          storage: 'supabase_db',
+          optimization: {
+            originalSize: file.size,
+            optimizedSize: optimized.buffer.length,
+            reducedBytes: Math.max(0, file.size - optimized.buffer.length),
+          },
+        },
       })
       .select('*')
-      .single();
+      .single()
 
     if (error || !imageBlob) {
-      console.error('Image metadata save error:', error);
-      return NextResponse.json({ error: 'Failed to save image metadata' }, { status: 500 });
+      console.error('Image blob save error:', error)
+      return errorResponse('Failed to save image', 'API_ERROR', {}, 500)
     }
 
-    // Generate thumbnail URL
-    const thumbnailUrl = uploadResult.publicId 
-      ? cloudinaryService.getThumbnailUrl(uploadResult.publicId, 300)
-      : uploadResult.secureUrl;
+    const imageUrl = `/api/images/${imageBlob.id}`
 
-    return NextResponse.json({
+    return successResponse({
       id: imageBlob.id,
       filename: imageBlob.filename,
       originalName: imageBlob.original_name,
       mimetype: imageBlob.mimetype || imageBlob.content_type,
       size: imageBlob.size,
-      url: uploadResult.secureUrl, // Direct Cloudinary URL
-      publicId: uploadResult.publicId,
+      url: imageUrl,
       width: imageBlob.width,
       height: imageBlob.height,
       description: imageBlob.description,
@@ -375,14 +158,12 @@ export async function POST(request: Request) {
       uploadedAt: imageBlob.uploaded_at,
       isCompressed: imageBlob.is_compressed,
       originalSize: imageBlob.original_size,
-      storage: 'cloudinary',
-      thumbnailUrl,
-      metadata: imageBlob.metadata
-    });
+      storage: 'supabase_db',
+      thumbnailUrl: imageUrl,
+      metadata: imageBlob.metadata,
+    })
   } catch (error) {
     console.error('Upload error:', error)
-    return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
+    return errorResponse('Upload failed', 'API_ERROR', {}, 500)
   }
 }
-
-

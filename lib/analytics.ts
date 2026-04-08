@@ -3,6 +3,14 @@
  * Tracks page views and custom events for SEO monitoring
  */
 
+export function trackEvent(name: string, data?: any) {
+  console.log("[ANALYTICS]", {
+    event: name,
+    timestamp: new Date().toISOString(),
+    ...data,
+  })
+}
+
 // Google Analytics Measurement ID (set in .env)
 export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || ''
 
@@ -162,6 +170,15 @@ export const trackSocialShare = (platform: string, contentUrl: string) => {
     action: 'social_share',
     category: 'engagement',
     label: `${platform}: ${contentUrl}`,
+  })
+}
+
+export const trackOrganizationFollow = (organizationName: string, actionType: 'follow' | 'unfollow') => {
+  event({
+    action: actionType === 'follow' ? 'follow_organization' : 'unfollow_organization',
+    category: 'organization',
+    label: organizationName,
+    value: 1,
   })
 }
 

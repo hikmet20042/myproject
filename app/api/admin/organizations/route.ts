@@ -1,20 +1,49 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getServerSession } from '@/lib/auth/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import { isAdminSession } from '@/lib/roles';
+import { isAdmin } from '@/lib/auth/permissions';
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
-// Helper function to check admin access
-async function isAdmin(session: any) {
-  return isAdminSession(session);
-}
+type OrganizationProfileRow = {
+  account_id: string;
+  organization_name: string | null;
+  email: string | null;
+  description: string | null;
+  moderation_status: 'pending' | 'approved' | 'rejected' | null;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  admin_comment: string | null;
+  created_at: string;
+  updated_at: string;
+  contact_person: string | null;
+};
+
+type OrganizationListRow = {
+  account_id: string;
+  organization_name: string | null;
+};
+
+type OrganizationActionBody = {
+  id?: string;
+  organizationId?: string;
+  action?: 'approve' | 'reject';
+  rejectionReason?: string;
+};
+
+type OrganizationBulkActionBody = {
+  action?: 'approve' | 'reject';
+  organizationIds?: string[];
+  rejectionReason?: string;
+};
+
 
 // GET - Fetch all organization registrations for admin review
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession();
     
-    if (!session || !(await isAdmin(session))) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    if (!isAdmin(session)) {
+      return errorResponse('Admin access required', "API_ERROR", {}, 403);
     }
 
     const supabase = createSupabaseAdminClient();
@@ -69,8 +98,8 @@ export async function GET(request: NextRequest) {
       .select('*', { count: 'exact', head: true })
       .eq('moderation_status', 'rejected');
 
-    return NextResponse.json({
-      organizations: organizationRows.map((org: any) => ({
+    return successResponse({
+      organizations: (organizationRows as OrganizationProfileRow[]).map((org) => ({
         _id: org.account_id,
         organizationName: org.organization_name,
         email: org.email,
@@ -100,7 +129,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('GET /api/admin/organizations error:', error);
-    return NextResponse.json({ error: 'Failed to fetch organizations' }, { status: 500 });
+    return errorResponse('Failed to fetch organizations', "API_ERROR", {}, 500);
   }
 }
 
@@ -109,23 +138,25 @@ export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession();
     
-    if (!session || !(await isAdmin(session))) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    if (!isAdmin(session)) {
+      return errorResponse('Admin access required', "API_ERROR", {}, 403);
     }
 
     const supabase = createSupabaseAdminClient();
     
-    const { id, organizationId, action, rejectionReason } = await request.json();
+    const { id, organizationId, action, rejectionReason } = await request.json() as OrganizationActionBody;
     
     // Support both 'id' and 'organizationId'
     const userId = id || organizationId;
     
     if (!userId || !action || !['approve', 'reject'].includes(action)) {
-      return NextResponse.json({ error: 'Invalid request data' }, { status: 400 });
+      return errorResponse('Invalid request data', "API_ERROR", {}, 400);
     }
 
-    if (action === 'reject' && !rejectionReason?.trim()) {
-      return NextResponse.json({ error: 'Rejection reason is required' }, { status: 400 });
+    const rejectionReasonText = rejectionReason?.trim() || '';
+
+    if (action === 'reject' && !rejectionReasonText) {
+      return errorResponse('Rejection reason is required', "API_ERROR", {}, 400);
     }
 
     const { data: organization, error: orgError } = await supabase
@@ -135,18 +166,23 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (orgError || !organization) {
-      return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
+      return errorResponse('Organization not found', "API_ERROR", {}, 404);
     }
 
     // reviewed_by references public.users(id); admin may exist only in accounts after a reset.
+    const adminUserId = session?.user?.id;
+    if (!adminUserId) {
+      return errorResponse('Admin access required', "API_ERROR", {}, 403);
+    }
+
     const { data: reviewerProfile } = await supabase
       .from('users')
       .select('id')
-      .eq('id', session.user.id)
+      .eq('id', adminUserId)
       .maybeSingle();
     const reviewerId = reviewerProfile?.id ?? null;
 
-    const updateData: any = {};
+    const updateData: Record<string, string | null> = {};
     if (action === 'approve') {
       updateData.moderation_status = 'approved';
       updateData.reviewed_at = new Date().toISOString();
@@ -154,7 +190,7 @@ export async function PUT(request: NextRequest) {
       updateData.admin_comment = null;
     } else if (action === 'reject') {
       updateData.moderation_status = 'rejected';
-      updateData.admin_comment = rejectionReason.trim();
+      updateData.admin_comment = rejectionReasonText;
       updateData.reviewed_at = null;
       updateData.reviewed_by = null;
     }
@@ -167,7 +203,7 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (updateError || !updatedOrganization) {
-      return NextResponse.json({ error: updateError?.message || 'Failed to update organization' }, { status: 500 });
+      return errorResponse(updateError?.message || 'Failed to update organization', "API_ERROR", {}, 500);
     }
 
     // Send notification to organization
@@ -177,7 +213,7 @@ export async function PUT(request: NextRequest) {
     
     const notificationMessage = action === 'approve'
       ? `Təbriklər! "${updatedOrganization.organization_name}" təşkilatınız təsdiqləndi. İndi bütün təşkilat funksiyalarına çıxışınız var.`
-      : `Təşkilat qeydiyyatınız nəzərdən keçirildi. Səbəb: ${rejectionReason}`;
+      : `Təşkilat qeydiyyatınız nəzərdən keçirildi. Səbəb: ${rejectionReasonText}`;
 
     await supabase.from('notifications').insert({
       organization_id: updatedOrganization.account_id,
@@ -187,11 +223,11 @@ export async function PUT(request: NextRequest) {
       data: { 
         action,
         organizationName: updatedOrganization.organization_name,
-        ...(action === 'reject' && { rejectionReason })
+          ...(action === 'reject' && { rejectionReason: rejectionReasonText })
       },
     });
 
-    return NextResponse.json({ 
+    return successResponse({ 
       message: `Organization ${action}d successfully`,
       organization: {
         _id: updatedOrganization.account_id,
@@ -205,7 +241,7 @@ export async function PUT(request: NextRequest) {
 
   } catch (error) {
     console.error('PUT /api/admin/organizations error:', error);
-    return NextResponse.json({ error: 'Failed to update organization status' }, { status: 500 });
+    return errorResponse('Failed to update organization status', "API_ERROR", {}, 500);
   }
 }
 
@@ -214,45 +250,52 @@ export async function PATCH(request: NextRequest) {
   try {
     const session = await getServerSession();
     
-    if (!session || !(await isAdmin(session))) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    if (!isAdmin(session)) {
+      return errorResponse('Admin access required', "API_ERROR", {}, 403);
     }
 
     const supabase = createSupabaseAdminClient();
     
-    const { action, organizationIds, rejectionReason } = await request.json();
+    const { action, organizationIds, rejectionReason } = await request.json() as OrganizationBulkActionBody;
     
     if (!action || !organizationIds || !Array.isArray(organizationIds) || organizationIds.length === 0) {
-      return NextResponse.json({ error: 'Invalid request data' }, { status: 400 });
+      return errorResponse('Invalid request data', "API_ERROR", {}, 400);
     }
 
     if (!['approve', 'reject'].includes(action)) {
-      return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+      return errorResponse('Invalid action', "API_ERROR", {}, 400);
     }
 
-    if (action === 'reject' && !rejectionReason?.trim()) {
-      return NextResponse.json({ error: 'Rejection reason is required for bulk rejection' }, { status: 400 });
+    const rejectionReasonText = rejectionReason?.trim() || '';
+
+    if (action === 'reject' && !rejectionReasonText) {
+      return errorResponse('Rejection reason is required for bulk rejection', "API_ERROR", {}, 400);
+    }
+
+    const adminUserId = session?.user?.id;
+    if (!adminUserId) {
+      return errorResponse('Admin access required', "API_ERROR", {}, 403);
     }
 
     const { data: organizations = [] } = await supabase
       .from('organization_profiles')
       .select('account_id, organization_name')
       .in('account_id', organizationIds);
-    const organizationRows = organizations || [];
+    const organizationRows = (organizations || []) as OrganizationListRow[];
 
     if (organizationRows.length === 0) {
-      return NextResponse.json({ error: 'No valid organizations found' }, { status: 404 });
+      return errorResponse('No valid organizations found', "API_ERROR", {}, 404);
     }
 
-    const updateData: any = {};
+    const updateData: Record<string, string | null> = {};
     if (action === 'approve') {
       updateData.moderation_status = 'approved';
       updateData.reviewed_at = new Date().toISOString();
-      updateData.reviewed_by = session.user.id;
+      updateData.reviewed_by = adminUserId;
       updateData.admin_comment = null;
     } else if (action === 'reject') {
       updateData.moderation_status = 'rejected';
-      updateData.admin_comment = rejectionReason.trim();
+      updateData.admin_comment = rejectionReasonText;
       updateData.reviewed_at = null;
       updateData.reviewed_by = null;
     }
@@ -270,7 +313,7 @@ export async function PATCH(request: NextRequest) {
       
       const notificationMessage = action === 'approve'
         ? `Təbriklər! "${organization.organization_name}" təşkilatınız təsdiqləndi. İndi bütün təşkilat funksiyalarına çıxışınız var.`
-        : `Təşkilat qeydiyyatınız nəzərdən keçirildi. Səbəb: ${rejectionReason}`;
+        : `Təşkilat qeydiyyatınız nəzərdən keçirildi. Səbəb: ${rejectionReasonText}`;
 
       await supabase.from('notifications').insert({
         organization_id: organization.account_id,
@@ -280,18 +323,18 @@ export async function PATCH(request: NextRequest) {
         data: { 
           action,
           organizationName: organization.organization_name,
-          ...(action === 'reject' && { rejectionReason })
+          ...(action === 'reject' && { rejectionReason: rejectionReasonText })
         },
       });
     }
 
-    return NextResponse.json({ 
+    return successResponse({ 
       message: `${organizationRows.length} organization(s) ${action}d successfully`,
       processedCount: organizationRows.length
     });
 
   } catch (error) {
     console.error('PATCH /api/admin/organizations error:', error);
-    return NextResponse.json({ error: 'Failed to process bulk organization operation' }, { status: 500 });
+    return errorResponse('Failed to process bulk organization operation', "API_ERROR", {}, 500);
   }
 }

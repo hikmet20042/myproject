@@ -1,14 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { NotificationService } from '@/lib/services/notificationService'
-import { isAdminSession } from '@/lib/roles'
+import { isAdmin } from '@/lib/auth/permissions'
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 export const dynamic = 'force-dynamic'
-
-async function isAdmin(session: any) {
-  return isAdminSession(session)
-}
 
 // GET /api/admin/blogs/[id] - Get single blog by ID for admin preview
 export async function GET(
@@ -19,11 +16,8 @@ export async function GET(
     const supabase = createSupabaseAdminClient()
     
     const session = await getServerSession()
-    if (!session || !(await isAdmin(session))) {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      )
+    if (!session || !isAdmin(session)) {
+      return errorResponse('Admin access required', "API_ERROR", {}, 403)
     }
     
     const { data: blog, error } = await supabase
@@ -32,19 +26,13 @@ export async function GET(
       .eq('id', params.id)
       .single()
     if (error || !blog) {
-      return NextResponse.json(
-        { error: 'Story not found' },
-        { status: 404 }
-      )
+      return errorResponse('Story not found', "API_ERROR", {}, 404)
     }
     
-    return NextResponse.json({ blog })
+    return successResponse({ blog })
   } catch (error) {
     console.error('PUT /api/admin/blogs/[id] error:', error)
-    return NextResponse.json(
-      { error: 'Failed to update blog' },
-      { status: 500 }
-    )
+    return errorResponse('Failed to update blog', "API_ERROR", {}, 500)
   }
 }
 
@@ -57,11 +45,8 @@ export async function DELETE(
     const supabase = createSupabaseAdminClient()
     
     const session = await getServerSession()
-    if (!session || !(await isAdmin(session))) {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      )
+    if (!session || !isAdmin(session)) {
+      return errorResponse('Admin access required', "API_ERROR", {}, 403)
     }
     
     const { data: blog, error } = await supabase
@@ -72,21 +57,15 @@ export async function DELETE(
       .single()
     
     if (error || !blog) {
-      return NextResponse.json(
-        { error: 'Story not found' },
-        { status: 404 }
-      )
+      return errorResponse('Story not found', "API_ERROR", {}, 404)
     }
     
-    return NextResponse.json({ 
+    return successResponse({ 
       message: 'Story deleted successfully'
     })
   } catch (error) {
     console.error('DELETE /api/admin/blogs/[id] error:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete blog' },
-      { status: 500 }
-    )
+    return errorResponse('Failed to delete blog', "API_ERROR", {}, 500)
   }
 }
 
@@ -99,28 +78,19 @@ export async function PUT(
     const supabase = createSupabaseAdminClient()
     
     const session = await getServerSession()
-    if (!session || !(await isAdmin(session))) {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      )
+    if (!session || !isAdmin(session)) {
+      return errorResponse('Admin access required', "API_ERROR", {}, 403)
     }
     
     const body = await request.json()
     const { status, adminComment } = body
     
     if (!status) {
-      return NextResponse.json(
-        { error: 'Status is required' },
-        { status: 400 }
-      )
+      return errorResponse('Status is required', "API_ERROR", {}, 400)
     }
     
     if (!['approved', 'rejected', 'pending'].includes(status)) {
-      return NextResponse.json(
-        { error: 'Invalid status' },
-        { status: 400 }
-      )
+      return errorResponse('Invalid status', "API_ERROR", {}, 400)
     }
     
     const { data: blog, error } = await supabase
@@ -136,10 +106,7 @@ export async function PUT(
       .single()
     
     if (error || !blog) {
-      return NextResponse.json(
-        { error: 'Story not found' },
-        { status: 404 }
-      )
+      return errorResponse('Story not found', "API_ERROR", {}, 404)
     }
 
     // Send notification to blog author about the status change
@@ -157,16 +124,28 @@ export async function PUT(
         // Don't fail the whole request if notification fails
       }
     }
+
+    if (status === 'approved') {
+      try {
+        await NotificationService.notifyUsersAboutRelevantItem({
+          itemType: 'blog',
+          itemId: blog.id.toString(),
+          title: blog.title,
+          description: blog.abstract || '',
+          tags: Array.isArray(blog.tags) ? blog.tags : [],
+          actionUrl: `/blogs/${blog.id}`,
+        })
+      } catch (notifError) {
+        console.error('Failed to notify relevant users for blog:', notifError)
+      }
+    }
     
-    return NextResponse.json({ 
+    return successResponse({ 
       blog,
       message: `Story ${status} successfully`
     })
   } catch (error) {
     console.error('PUT /api/admin/blogs/[id] error:', error)
-    return NextResponse.json(
-      { error: 'Failed to update blog' },
-      { status: 500 }
-    )
+    return errorResponse('Failed to update blog', "API_ERROR", {}, 500)
   }
 }

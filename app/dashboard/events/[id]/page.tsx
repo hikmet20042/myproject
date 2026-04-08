@@ -1,13 +1,16 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Image from 'next/image'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Calendar, Clock, MapPin, Users, Link as LinkIcon, Tag, Edit, Trash2, CheckCircle, XCircle, AlertCircle, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
-import { LoadingState, ErrorState } from '@/components/shared'
+import { PageStateGuard } from '@/components/shared'
+import { useDeleteEvent, useEvent } from '@/lib/eventQueries'
+import { useGlobalFeedback } from '@/lib/useGlobalFeedback'
+import { AppContainer } from '@/components/layout'
 
 interface Event { _id: string
   title: string
@@ -26,11 +29,12 @@ interface Event { _id: string
   currentParticipants: number
   tags: string[]
   imageUrl?: string
-  isApproved: boolean
+  status: 'pending' | 'approved' | 'rejected'
   approvedAt?: string
   approvedBy?: { name: string }
   rejectedAt?: string
   rejectionReason?: string
+  adminComment?: string
   isPublished: boolean
   isFeatured: boolean
   createdAt: string
@@ -42,38 +46,30 @@ export default function EventDetail() {
   const localePath = useLocalizedPath()
   const router = useRouter()
   const params = useParams()
-  const [event, setEvent] = useState<Event | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const { showSuccess, showError } = useGlobalFeedback()
+  const eventId = String(params?.id || '')
+  const eventQuery = useEvent(eventId)
+  const event = (eventQuery.data || {}) as Event
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleting, setDeleting] = useState(false)
-
-  const loadEvent = useCallback(async () => { try { setLoading(true)
-      
-  const response = await fetch(`/api/events/${params?.id}`)
-      const data = await response.json()
-      
-      if (response.ok) { setEvent(data.event) } else { setError(data.error || 'Tədbiri yükləmək mümkün olmadı') } } catch (error) { console.error('Error loading event:', error)
-      setError('Tədbiri yükləmək mümkün olmadı') } finally { setLoading(false) } }, [params?.id])
-
-  useEffect(() => { if (params?.id) { loadEvent() } }, [loadEvent, params?.id])
+  const deleteEventMutation = useDeleteEvent()
 
   const handleDelete = async () => { try { setDeleting(true)
-      const response = await fetch(`/api/events/${params?.id}`, { method: 'DELETE' })
-      
-      if (response.ok) { router.push(localePath("/dashboard/events")) } else { const data = await response.json()
-        alert('Tədbiri silmək mümkün olmadı: ' + data.error) } } catch (error) { console.error('Error deleting event:', error)
-      alert('Tədbiri silmək mümkün olmadı') } finally { setDeleting(false) } }
+      await deleteEventMutation.mutateAsync(eventId)
+      showSuccess('Tədbir uğurla silindi.')
+      router.push(localePath("/dashboard/events"))
+    } catch (error: any) { console.error('Error deleting event:', error)
+      showError(error?.message || 'Tədbiri silmək mümkün olmadı') } finally { setDeleting(false) } }
 
   const getStatusBadge = () => { if (!event) return null
     
-    if (event.rejectedAt) { return (
+    if (event.status === 'rejected') { return (
         <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
           <XCircle className="w-4 h-4 mr-2" />
           {'Rədd Edilib'}
         </span>
       ) }
-    if (event.isApproved) { return (
+    if (event.status === 'approved') { return (
         <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
           <CheckCircle className="w-4 h-4 mr-2" />
           {'Təsdiqlənib və Yayımlanıb'}
@@ -94,22 +90,25 @@ export default function EventDetail() {
       minute: '2-digit' }
     try { return new Date(dateString).toLocaleDateString('az-AZ', opts) } catch (e) { return new Date(dateString).toLocaleString('az-AZ') } }
 
-  if (loading) { return <LoadingState text={'Tədbir yüklənir...'} /> }
-
-  if (error || !event) { return (
-      <ErrorState 
-        title={'Tədbir tapılmadı'}
-        message={error || 'Axtardığınız tədbiri tapmaq mümkün olmadı.'}
-        retryText={'Tədbirlərə qayıt'}
-        onRetry={() => router.push(localePath("/dashboard/events"))}
-      />
-    ) }
+  const moderationReason = event.rejectionReason || event.adminComment || null
   return (
+    <PageStateGuard
+      isLoading={eventQuery.isLoading}
+      isError={eventQuery.isError}
+      isEmpty={!eventQuery.isLoading && !eventQuery.isError && !eventQuery.data}
+      loadingText="Tədbir yüklənir..."
+      errorTitle="Tədbir tapılmadı"
+      errorMessage={eventQuery.error instanceof Error ? eventQuery.error.message : 'Axtardığınız tədbiri tapmaq mümkün olmadı.'}
+      retryText="Yenidən yoxla"
+      onRetry={() => { void eventQuery.refetch() }}
+      emptyTitle="Tədbir tapılmadı"
+      emptyMessage="Axtardığınız tədbiri tapmaq mümkün olmadı."
+    >
     <div className="relative min-h-screen overflow-hidden bg-background py-8">
       <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-35" />
       <div className="absolute left-1/2 top-16 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-200/30 blur-3xl" />
 
-      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <AppContainer className="relative z-10 max-w-4xl py-0">
         {/* Header */}
         <div className="mb-8 rounded-3xl border border-gray-200 bg-white/90 p-6 shadow-sm backdrop-blur-sm">
           <div className="flex justify-between items-start">
@@ -144,6 +143,7 @@ export default function EventDetail() {
                 icon={Trash2}
                 iconPosition="left"
                 size="sm"
+                disabled={deleting}
               >
                 {'Tədbiri sil'}
               </Button>
@@ -151,12 +151,24 @@ export default function EventDetail() {
           </div>
         </div>
 
+        {event.status === 'pending' && (
+          <div className="mb-8 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800">
+            {'Bu tədbir hazırda yoxlanışdadır. Redaktə etməyə davam edə bilərsiniz.'}
+          </div>
+        )}
+
+        {event.status === 'approved' && (
+          <div className="mb-8 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-yellow-800">
+            {'Bu tədbir təsdiqlənib. Redaktə etdikdən sonra yenidən moderasiyaya göndəriləcək.'}
+          </div>
+        )}
+
         {/* Rejection Notice */}
-        {event.rejectionReason && (
+        {event.status === 'rejected' && moderationReason && (
           <div className="mb-8 rounded-xl border border-red-200 bg-red-50 p-6">
             <h3 className="text-lg font-medium text-red-900 mb-2">{'Rədd edilmə səbəbi'}</h3>
             <p className="text-red-800">
-              <strong>{'Əvvəlki rədd səbəbi'}:</strong> {event.rejectionReason}
+              <strong>{'Əvvəlki rədd səbəbi'}:</strong> {moderationReason}
             </p>
             <p className="text-red-700 mt-2 text-sm">
               {'Yuxarıdakı səbəbi yoxla və yenidən göndərməzdən əvvəl dəyişiklik et.'}
@@ -329,6 +341,10 @@ export default function EventDetail() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Status məlumatı</h3>
               <div className="space-y-3 text-sm">
                 <div>
+                  <span className="font-medium text-gray-700">{'Moderasiya statusu:'}</span>
+                  <span className="ml-2 capitalize">{event.status}</span>
+                </div>
+                <div>
                   <span className="font-medium text-gray-700">{'Yaradılıb:'}</span>
                   <span className="ml-2">{new Date(event.createdAt).toLocaleDateString()}</span>
                 </div>
@@ -351,11 +367,23 @@ export default function EventDetail() {
                     <span className="ml-2">{new Date(event.rejectedAt).toLocaleDateString()}</span>
                   </div>
                 )}
+                {moderationReason && (
+                  <div>
+                    <span className="font-medium text-gray-700">{'Rədd səbəbi:'}</span>
+                    <p className="mt-1 text-gray-600">{moderationReason}</p>
+                  </div>
+                )}
+                {event.adminComment && (
+                  <div>
+                    <span className="font-medium text-gray-700">{'Admin şərhi:'}</span>
+                    <p className="mt-1 text-gray-600">{event.adminComment}</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </AppContainer>
 
       {/* Delete Confirmation Modal */}
       <Dialog.Root
@@ -390,4 +418,5 @@ export default function EventDetail() {
         </Dialog.Portal>
       </Dialog.Root>
     </div>
+    </PageStateGuard>
   ) }

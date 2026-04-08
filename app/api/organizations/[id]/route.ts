@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { ORGANIZATION_TYPE_VALUES } from '@/lib/organizationTypes'
+import { canAccessAdmin, isAdmin } from '@/lib/auth/permissions'
+import { normalizeOrganizationProfile, validateOrganizationUpdatePayload } from '@/lib/organizationProfile'
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,44 +19,72 @@ export async function GET(
       .from('organization_profiles')
       .select('*')
       .eq('account_id', id)
+      .eq('moderation_status', 'approved')
       .maybeSingle()
 
     if (profileError || !profile) {
-      return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
+      return errorResponse('Organization not found', "API_ERROR", {}, 404)
     }
 
-    const row: any = profile
+    const [followerCountResult, featuredEventResult, featuredVacancyResult] = await Promise.all([
+      supabase
+        .from('organization_followers')
+        .select('id', { count: 'exact', head: true })
+        .eq('organization_id', id),
+      supabase
+        .from('events')
+        .select('id, title, event_date, application_link, created_at')
+        .eq('created_by_organization', id)
+        .eq('status', 'approved')
+        .eq('is_published', true)
+        .eq('is_featured', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('vacancies')
+        .select('id, title, application_deadline, application_process, created_at')
+        .eq('created_by_organization', id)
+        .eq('status', 'approved')
+        .eq('is_published', true)
+        .eq('is_featured', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ])
 
-    return NextResponse.json({
-      organization: {
-        _id: row.account_id || row.id,
-        organizationName: row.organization_name,
-        organizationType: row.organization_type,
-        email: row.email,
-        profileImage: row.profile_image,
-        description: row.description,
-        website: row.website,
-        contactPhone: row.contact_phone,
-        address: row.address,
-        registrationNumber: row.registration_number,
-        focusAreas: row.focus_areas || [],
-        status: row.moderation_status || row.status,
-        approvedAt: row.reviewed_at || row.approved_at,
-        approvedBy: row.reviewed_by || row.approved_by,
-        adminComment: row.admin_comment,
-        contactPerson: row.contact_person,
-        socialMedia: row.social_links || row.social_media,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at
-      }
+    return successResponse({
+      organization: normalizeOrganizationProfile({
+        ...profile,
+        follower_count: followerCountResult.count || 0,
+      }),
+      featuredEvent: featuredEventResult.data
+        ? {
+            id: featuredEventResult.data.id,
+            title: featuredEventResult.data.title,
+            eventDate: featuredEventResult.data.event_date,
+            applicationLink: featuredEventResult.data.application_link,
+            createdAt: featuredEventResult.data.created_at,
+          }
+        : null,
+      featuredVacancy: featuredVacancyResult.data
+        ? {
+            id: featuredVacancyResult.data.id,
+            title: featuredVacancyResult.data.title,
+            applicationDeadline: featuredVacancyResult.data.application_deadline,
+            applicationProcess: featuredVacancyResult.data.application_process,
+            createdAt: featuredVacancyResult.data.created_at,
+          }
+        : null,
     })
   } catch (error) {
     console.error('Error fetching organization:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return errorResponse('Internal server error', "API_ERROR", {}, 500)
   }
 }
 
-// PUT - Update organization (for organization owners and admins)
+// PUT - Update organization by id (admin-only).
+// Organization self-edit must go through /api/organizations/me.
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -69,79 +99,54 @@ export async function PUT(
       .maybeSingle()
 
     if (fetchError || !organization) {
-      return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
+      return errorResponse('Organization not found', "API_ERROR", {}, 404)
     }
 
     // Check permissions - organization owner or admin
     const session = await getServerSession()
-    const isOrganizationOwner = session?.user?.accountType === 'organization' && session?.user?.organizationStatus === 'approved' && session.user.id === id
-    const isAdmin = session?.user?.role === 'admin'
-
-    if (!isOrganizationOwner && !isAdmin) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+    const admin = isAdmin(session)
+    if (!admin) {
+      return errorResponse('Use /api/organizations/me for organization self-edit. Admin access required for id-based updates.', "API_ERROR", {}, 403)
     }
 
     const body = await request.json()
-    const {
-      organizationName,
-      organizationType,
-      description,
-      website,
-      contactPhone,
-      address,
-      registrationNumber,
-      focusAreas,
-      contactPerson,
-      socialMedia,
-      status // Only admins can change status
-    } = body
-
-    // Validation
-    if (!organizationName || !description || !contactPerson?.name || !contactPerson?.email) {
-      return NextResponse.json({
-        error: 'Organization name, description, contact person name and email are required'
-      }, { status: 400 })
-    }
-
-    if (organizationType && !ORGANIZATION_TYPE_VALUES.includes(organizationType)) {
-      return NextResponse.json({
-        error: 'Invalid organization type'
-      }, { status: 400 })
+    const { status } = body
+    const validation = validateOrganizationUpdatePayload(body)
+    if (validation.error || !validation.data) {
+      return errorResponse(validation.error || 'Invalid payload', "API_ERROR", {}, 400)
     }
 
     // Check if another organization with same name exists (excluding current organization)
-    if (organizationName !== organization.organization_name) {
+    if (validation.data.organizationName !== organization.organization_name) {
       const { data: existingOrganization } = await supabase
         .from('organization_profiles')
         .select('account_id')
-        .ilike('organization_name', organizationName)
+        .ilike('organization_name', validation.data.organizationName)
         .neq('account_id', id)
         .maybeSingle()
 
       if (existingOrganization) {
-        return NextResponse.json({
-          error: 'An organization with this name already exists'
-        }, { status: 400 })
+        return errorResponse('An organization with this name already exists', "API_ERROR", {}, 400)
       }
     }
 
     // Prepare update data
     const profileUpdateData: any = {
-      organization_name: organizationName,
-      ...(organizationType ? { organization_type: organizationType } : {}),
-      description,
-      website,
-      contact_phone: contactPhone,
-      address,
-      registration_number: registrationNumber,
-      focus_areas: focusAreas || [],
-      contact_person: contactPerson,
-      social_links: socialMedia,
+      organization_name: validation.data.organizationName,
+      ...(validation.data.organizationType ? { organization_type: validation.data.organizationType } : {}),
+      description: validation.data.description,
+      website: validation.data.website,
+      contact_phone: validation.data.contactPhone,
+      address: validation.data.address,
+      registration_number: validation.data.registrationNumber,
+      contact_person: validation.data.contactPerson,
+      focus_areas: validation.data.focusAreas,
+      social_links: validation.data.socialMedia,
       updated_at: new Date().toISOString()
     }
 
     // Only admins can change status
-    if (isAdmin && status) {
+    if (admin && status) {
       profileUpdateData.moderation_status = status
       if (status === 'approved') {
         profileUpdateData.reviewed_by = session?.user?.id
@@ -154,6 +159,9 @@ export async function PUT(
       }
     }
 
+    // `is_verified` column is not present in current schema.
+    // Keep `isVerified` as derived frontend state from moderation status.
+
     const { data: updatedOrganization, error: updateError } = await supabase
       .from('organization_profiles')
       .update(profileUpdateData)
@@ -162,36 +170,16 @@ export async function PUT(
       .single()
 
     if (updateError || !updatedOrganization) {
-      return NextResponse.json({ error: updateError?.message || 'Update failed' }, { status: 500 })
+      return errorResponse(updateError?.message || 'Update failed', "API_ERROR", {}, 500)
     }
 
-    return NextResponse.json({
+    return successResponse({
       message: 'Organization updated successfully',
-      organization: {
-        _id: updatedOrganization.account_id,
-        organizationName: updatedOrganization.organization_name,
-        organizationType: updatedOrganization.organization_type,
-        email: updatedOrganization.email,
-        profileImage: updatedOrganization.profile_image,
-        description: updatedOrganization.description,
-        website: updatedOrganization.website,
-        contactPhone: updatedOrganization.contact_phone,
-        address: updatedOrganization.address,
-        registrationNumber: updatedOrganization.registration_number,
-        focusAreas: updatedOrganization.focus_areas || [],
-        status: updatedOrganization.moderation_status,
-        approvedAt: updatedOrganization.reviewed_at,
-        approvedBy: updatedOrganization.reviewed_by,
-        adminComment: updatedOrganization.admin_comment,
-        contactPerson: updatedOrganization.contact_person,
-        socialMedia: updatedOrganization.social_links,
-        createdAt: updatedOrganization.created_at,
-        updatedAt: updatedOrganization.updated_at
-      }
+      organization: normalizeOrganizationProfile(updatedOrganization)
     })
   } catch (error) {
     console.error('Error updating organization:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return errorResponse('Internal server error', "API_ERROR", {}, 500)
   }
 }
 
@@ -203,11 +191,11 @@ export async function DELETE(
   try {
     const session = await getServerSession()
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
     }
 
-    if (session.user.role !== 'admin') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    if (!canAccessAdmin(session)) {
+      return errorResponse('Admin access required', "API_ERROR", {}, 403)
     }
 
     const { id } = params
@@ -220,9 +208,9 @@ export async function DELETE(
 
     await supabase.auth.admin.deleteUser(id)
 
-    return NextResponse.json({ message: 'Organization deleted successfully' })
+    return successResponse({ message: 'Organization deleted successfully' })
   } catch (error) {
     console.error('Error deleting organization:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return errorResponse('Internal server error', "API_ERROR", {}, 500)
   }
 }

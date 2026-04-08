@@ -12,6 +12,10 @@ const excludedPaths = [
   '/auth/callback'
 ]
 
+const APPROVED_ORGANIZATION_ONLY_PREFIXES = [
+  '/dashboard',
+]
+
 function shouldExcludePath(pathname: string): boolean {
   return excludedPaths.some(path => pathname.startsWith(path))
 }
@@ -41,12 +45,17 @@ async function checkAuthorization(pathWithoutLanguage: string, pathname: string,
     return NextResponse.redirect(new URL(newPathname, req.url))
   }
 
-  // Protect admin, submit, edit, dashboard, and profile routes
-  if (pathWithoutLanguage.startsWith('/admin') || 
-      pathWithoutLanguage.startsWith('/submit') ||
-      pathWithoutLanguage.startsWith('/edit/blog') ||
-      pathWithoutLanguage.startsWith('/dashboard') ||
-      pathWithoutLanguage.startsWith('/profile')) {
+  const shouldInspectAuth =
+    pathWithoutLanguage.startsWith('/admin') ||
+    pathWithoutLanguage.startsWith('/submit') ||
+    pathWithoutLanguage.startsWith('/edit/blog') ||
+    pathWithoutLanguage.startsWith('/dashboard') ||
+    pathWithoutLanguage.startsWith('/profile') ||
+    pathWithoutLanguage.startsWith('/organization') ||
+    pathWithoutLanguage.startsWith('/onboarding') ||
+    !pathWithoutLanguage.startsWith('/auth')
+
+  if (shouldInspectAuth) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -76,12 +85,75 @@ async function checkAuthorization(pathWithoutLanguage: string, pathname: string,
       pathWithoutLanguage.startsWith('/edit/blog') ||
       pathWithoutLanguage.startsWith('/dashboard') ||
       pathWithoutLanguage.startsWith('/profile') ||
-      pathWithoutLanguage.startsWith('/admin'))
+      pathWithoutLanguage.startsWith('/organization') ||
+      pathWithoutLanguage.startsWith('/admin') ||
+      pathWithoutLanguage.startsWith('/onboarding'))
 
     if (requireAuth && !user) {
       const signInUrl = new URL('/auth/signin', req.url)
       signInUrl.searchParams.set('callbackUrl', pathname)
       return NextResponse.redirect(signInUrl)
+    }
+
+    if (user) {
+      const { data: account } = await supabase
+        .from('accounts')
+        .select('account_type')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      const accountType = account?.account_type ?? null
+      const isOnboardingRoute = pathWithoutLanguage.startsWith('/onboarding')
+
+      if (!accountType && !isOnboardingRoute) {
+        return NextResponse.redirect(new URL('/onboarding/role', req.url))
+      }
+
+      if (accountType === 'user' && isOnboardingRoute) {
+        return NextResponse.redirect(new URL('/', req.url))
+      }
+
+      if (accountType === 'organization') {
+        const { data: organizationProfile } = await supabase
+          .from('organization_profiles')
+          .select('moderation_status')
+          .eq('account_id', user.id)
+          .maybeSingle()
+
+        if (!organizationProfile && pathWithoutLanguage !== '/onboarding/organization') {
+          return NextResponse.redirect(new URL('/onboarding/organization', req.url))
+        }
+
+        if (isOnboardingRoute && organizationProfile) {
+          return NextResponse.redirect(new URL('/dashboard', req.url))
+        }
+      }
+
+      const shouldCheckOrganizationState =
+        APPROVED_ORGANIZATION_ONLY_PREFIXES.some(prefix => pathWithoutLanguage.startsWith(prefix)) ||
+        pathWithoutLanguage.startsWith('/organization')
+
+      if (shouldCheckOrganizationState) {
+        if (accountType === 'organization') {
+          const { data: organizationProfile } = await supabase
+            .from('organization_profiles')
+            .select('moderation_status')
+            .eq('account_id', user.id)
+            .maybeSingle()
+
+          const organizationStatus = organizationProfile?.moderation_status
+          const isPendingOrganization = organizationStatus === 'pending'
+          const isApprovedOnlyRoute = APPROVED_ORGANIZATION_ONLY_PREFIXES.some(prefix =>
+            pathWithoutLanguage.startsWith(prefix)
+          )
+
+          // Pending organizations can access organization pending/profile pages,
+          // but must not access approved-only routes such as dashboard.
+          if (isPendingOrganization && isApprovedOnlyRoute) {
+            return NextResponse.redirect(new URL('/organization/pending', req.url))
+          }
+        }
+      }
     }
 
   }

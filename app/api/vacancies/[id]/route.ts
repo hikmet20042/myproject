@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { NotificationService } from '@/lib/services/notificationService'
+import { isAdmin, isAdminOrOwner, isOwner } from '@/lib/auth/permissions'
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 const mapVacancy = (row: any) => ({
   _id: row.id,
@@ -66,10 +68,7 @@ export async function GET(
       .single()
     
     if (error || !vacancyRow) {
-      return NextResponse.json(
-        { error: 'Vacancy not found' },
-        { status: 404 }
-      )
+      return errorResponse('Vacancy not found', "API_ERROR", {}, 404)
     }
 
     const vacancy = mapVacancy(vacancyRow)
@@ -77,31 +76,18 @@ export async function GET(
     // Restrict unpublished or non-approved vacancies
     if (vacancy.status !== 'approved' || vacancy.isPublished === false) {
       const session = await getServerSession()
-      const createdById = typeof vacancy.createdBy === 'object' && vacancy.createdBy?._id
-        ? vacancy.createdBy._id.toString()
-        : vacancy.createdBy?.toString?.()
-      const createdByOrganizationId = typeof vacancy.createdByOrganization === 'object' && vacancy.createdByOrganization?._id
-        ? vacancy.createdByOrganization._id.toString()
-        : vacancy.createdByOrganization?.toString?.()
-      const isOwner = session?.user?.id && (session.user.id === createdById || session.user.id === createdByOrganizationId)
-
-      const isAdmin = session?.user?.role === 'admin'
-
-      if (!isAdmin && !isOwner) {
-        return NextResponse.json(
-          { error: 'Unauthorized' },
-          { status: 403 }
-        )
+      if (!isAdminOrOwner(session, {
+        created_by: vacancy.createdBy?._id ?? vacancy.createdBy,
+        created_by_organization: vacancy.createdByOrganization?._id ?? vacancy.createdByOrganization,
+      })) {
+        return errorResponse('Unauthorized', "API_ERROR", {}, 403)
       }
     }
     
-    return NextResponse.json({ vacancy })
+    return successResponse({ vacancy })
   } catch (error) {
     console.error('Error fetching vacancy:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch vacancy' },
-      { status: 500 }
-    )
+    return errorResponse('Failed to fetch vacancy', "API_ERROR", {}, 500)
   }
 }
 
@@ -114,10 +100,7 @@ export async function PUT(
     const session = await getServerSession()
     
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
+      return errorResponse('Authentication required', "API_ERROR", {}, 401)
     }
     
     const supabase = createSupabaseAdminClient()
@@ -128,22 +111,14 @@ export async function PUT(
       .eq('id', params.id)
       .single()
     if (vacancyError || !vacancyRow) {
-      return NextResponse.json(
-        { error: 'Vacancy not found' },
-        { status: 404 }
-      )
+      return errorResponse('Vacancy not found', "API_ERROR", {}, 404)
     }
 
-    const createdById = vacancyRow.created_by
-    const createdByOrganizationId = vacancyRow.created_by_organization
-    const isOwner = createdById === session.user.id || createdByOrganizationId === session.user.id
-    const isAdmin = session.user.role === 'admin'
+    const owner = isOwner(session, vacancyRow)
+    const admin = isAdmin(session)
 
-    if (!isOwner && !isAdmin) {
-      return NextResponse.json(
-        { error: 'Permission denied' },
-        { status: 403 }
-      )
+    if (!owner && !admin) {
+      return errorResponse('Permission denied', "API_ERROR", {}, 403)
     }
 
     const body = await request.json()
@@ -153,10 +128,7 @@ export async function PUT(
     
     for (const field of requiredFields) {
       if (!body[field]) {
-        return NextResponse.json(
-          { error: `${field} is required` },
-          { status: 400 }
-        )
+        return errorResponse(`${field} is required`, "API_ERROR", {}, 400)
       }
     }
     if (body.description !== undefined) {
@@ -164,19 +136,13 @@ export async function PUT(
         ? body.description.replace(/<[^>]*>/g, '').trim()
         : ''
       if (!descText || descText.length < 50) {
-        return NextResponse.json(
-          { error: 'Description must be at least 50 characters long' },
-          { status: 400 }
-        )
+        return errorResponse('Description must be at least 50 characters long', "API_ERROR", {}, 400)
       }
     }
     if (body.applicationInstructions !== undefined && typeof body.applicationInstructions === 'string') {
       const instr = body.applicationInstructions.trim()
       if (instr.length < 30) {
-        return NextResponse.json(
-          { error: 'Application instructions must be at least 30 characters long' },
-          { status: 400 }
-        )
+        return errorResponse('Application instructions must be at least 30 characters long', "API_ERROR", {}, 400)
       }
     }
     
@@ -184,10 +150,7 @@ export async function PUT(
     if (body.deadline) {
       const deadline = new Date(body.deadline)
       if (deadline <= new Date()) {
-        return NextResponse.json(
-          { error: 'Deadline must be in the future' },
-          { status: 400 }
-        )
+        return errorResponse('Deadline must be in the future', "API_ERROR", {}, 400)
       }
     }
     
@@ -248,7 +211,7 @@ export async function PUT(
     }
     
     // Reset approval status if content changed (except for admins)
-    if (!isAdmin && isOwner) {
+    if (!admin && owner) {
       updateData.status = 'pending'
       updateData.approved_at = null
       updateData.approved_by = null
@@ -267,24 +230,18 @@ export async function PUT(
       .single()
 
     if (updateError || !updatedRow) {
-      return NextResponse.json(
-        { error: 'Failed to update vacancy' },
-        { status: 500 }
-      )
+      return errorResponse('Failed to update vacancy', "API_ERROR", {}, 500)
     }
 
     const updatedVacancy = mapVacancy(updatedRow)
 
-    return NextResponse.json({
+    return successResponse({
       message: 'Vacancy updated successfully',
       vacancy: updatedVacancy
     })
   } catch (error) {
     console.error('Error updating vacancy:', error)
-    return NextResponse.json(
-      { error: 'Failed to update vacancy' },
-      { status: 500 }
-    )
+    return errorResponse('Failed to update vacancy', "API_ERROR", {}, 500)
   }
 }
 
@@ -297,24 +254,13 @@ export async function PATCH(
     const session = await getServerSession()
     
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
+      return errorResponse('Authentication required', "API_ERROR", {}, 401)
     }
     
     const supabase = createSupabaseAdminClient()
     
-    const { data: user } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', session.user.id)
-      .single()
-    if (user?.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Admin access required' },
-        { status: 403 }
-      )
+    if (!isAdmin(session)) {
+      return errorResponse('Admin access required', "API_ERROR", {}, 403)
     }
 
     const { data: vacancyRow, error: vacancyError } = await supabase
@@ -324,26 +270,17 @@ export async function PATCH(
       .single()
     
     if (vacancyError || !vacancyRow) {
-      return NextResponse.json(
-        { error: 'Vacancy not found' },
-        { status: 404 }
-      )
+      return errorResponse('Vacancy not found', "API_ERROR", {}, 404)
     }
     
     const { action, rejectionReason } = await request.json()
     
     if (!action || !['approve', 'reject'].includes(action)) {
-      return NextResponse.json(
-        { error: 'Invalid action. Must be "approve" or "reject"' },
-        { status: 400 }
-      )
+      return errorResponse('Invalid action. Must be "approve" or "reject"', "API_ERROR", {}, 400)
     }
     
     if (action === 'reject' && !rejectionReason?.trim()) {
-      return NextResponse.json(
-        { error: 'Rejection reason is required' },
-        { status: 400 }
-      )
+      return errorResponse('Rejection reason is required', "API_ERROR", {}, 400)
     }
     
     // Update vacancy status
@@ -373,10 +310,7 @@ export async function PATCH(
       .single()
 
     if (updateError || !updatedRow) {
-      return NextResponse.json(
-        { error: 'Failed to update vacancy status' },
-        { status: 500 }
-      )
+      return errorResponse('Failed to update vacancy status', "API_ERROR", {}, 500)
     }
     
     // Create notification for the organization
@@ -411,16 +345,13 @@ export async function PATCH(
 
     const updatedVacancy = mapVacancy(updatedRow)
     
-    return NextResponse.json({
+    return successResponse({
       message: `Vacancy ${action}d successfully`,
       vacancy: updatedVacancy
     })
   } catch (error) {
     console.error('Error updating vacancy status:', error)
-    return NextResponse.json(
-      { error: 'Failed to update vacancy status' },
-      { status: 500 }
-    )
+    return errorResponse('Failed to update vacancy status', "API_ERROR", {}, 500)
   }
 }
 
@@ -433,10 +364,7 @@ export async function DELETE(
     const session = await getServerSession()
     
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
+      return errorResponse('Authentication required', "API_ERROR", {}, 401)
     }
     
     const supabase = createSupabaseAdminClient()
@@ -447,27 +375,11 @@ export async function DELETE(
       .eq('id', params.id)
       .single()
     if (vacancyError || !vacancyRow) {
-      return NextResponse.json(
-        { error: 'Vacancy not found' },
-        { status: 404 }
-      )
+      return errorResponse('Vacancy not found', "API_ERROR", {}, 404)
     }
 
-    const { data: user } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', session.user.id)
-      .single()
-    const createdById = vacancyRow.created_by
-    const createdByOrganizationId = vacancyRow.created_by_organization
-    const isOwner = createdById === session.user.id || createdByOrganizationId === session.user.id
-    const isAdmin = user?.role === 'admin'
-
-    if (!isOwner && !isAdmin) {
-      return NextResponse.json(
-        { error: 'Permission denied' },
-        { status: 403 }
-      )
+    if (!isAdminOrOwner(session, vacancyRow)) {
+      return errorResponse('Permission denied', "API_ERROR", {}, 403)
     }
 
     const { error: deleteError } = await supabase
@@ -476,20 +388,14 @@ export async function DELETE(
       .eq('id', params.id)
 
     if (deleteError) {
-      return NextResponse.json(
-        { error: 'Failed to delete vacancy' },
-        { status: 500 }
-      )
+      return errorResponse('Failed to delete vacancy', "API_ERROR", {}, 500)
     }
     
-    return NextResponse.json({
+    return successResponse({
       message: 'Vacancy deleted successfully'
     })
   } catch (error) {
     console.error('Error deleting vacancy:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete vacancy' },
-      { status: 500 }
-    )
+    return errorResponse('Failed to delete vacancy', "API_ERROR", {}, 500)
   }
 }

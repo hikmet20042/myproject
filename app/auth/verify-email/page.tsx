@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle2, CircleX, Loader2, MailCheck, ArrowLeft } from 'lucide-react'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 
 function VerifyEmailContent() {
   const localePath = useLocalizedPath()
@@ -13,8 +14,14 @@ function VerifyEmailContent() {
   const searchParams = useSearchParams()
 
   useEffect(() => {
-    const token = searchParams?.get('token')
     const verified = searchParams?.get('verified')
+    const errorDescription = searchParams?.get('error_description')
+
+    if (errorDescription) {
+      setStatus('error')
+      setMessage(errorDescription)
+      return
+    }
 
     if (verified === '1') {
       setStatus('success')
@@ -22,23 +29,17 @@ function VerifyEmailContent() {
       return
     }
 
-    if (!token) {
-      setStatus('error')
-      setMessage('Etibarsız təsdiq keçidi')
-      return
-    }
-
     const verifyEmail = async () => {
       try {
-        const response = await fetch(`/api/auth/verify-email?token=${token}`)
-        const data = await response.json()
+        const supabase = createSupabaseBrowserClient()
+        const { data } = await supabase.auth.getUser()
 
-        if (response.ok) {
+        if (data?.user?.email_confirmed_at) {
           setStatus('success')
-          setMessage(data.message)
+          setMessage('E-poçtunuz təsdiqləndi. İndi daxil ola bilərsiniz.')
         } else {
           setStatus('error')
-          setMessage(data.error || 'Təsdiq uğursuz oldu')
+          setMessage('Etibarsız təsdiq keçidi')
         }
       } catch {
         setStatus('error')

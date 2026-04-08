@@ -47,7 +47,7 @@ export async function generateVacancyMetadata(id: string): Promise<Metadata> {
     }
 
     const city = vacancy.location?.city || 'Azerbaijan'
-    const deadline = new Date(vacancy.applicationDeadline).toLocaleDateString('en-US', {
+    const deadline = new Date(vacancy.applicationDeadline).toLocaleDateString('az-AZ', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'

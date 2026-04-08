@@ -7,6 +7,7 @@ import { Calendar, MapPin, Users, Link as LinkIcon, Clock, Tag, ArrowLeft, Check
 import { Button } from '@/components/ui/Button'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
 import { LoadingState, ErrorState } from '@/components/shared'
+import AdminListLayout from '@/components/admin/AdminListLayout'
 
 interface Event { _id: string
   title: string
@@ -72,7 +73,8 @@ interface Event { _id: string
 
     try { const response = await fetch(`/api/events/${params.id}`)
       if (response.ok) { const data = await response.json()
-        setEvent(data.event) } else { setError('Yükləmək alınmadı') } } catch (error) { setError('Yükləmə xətası') } finally { setLoading(false) } }, [params?.id])
+        const payload = data?.data || data
+        setEvent(payload.event) } else { setError('Yükləmək alınmadı') } } catch (error) { setError('Yükləmə xətası') } finally { setLoading(false) } }, [params?.id])
 
   useEffect(() => { fetchEvent() }, [fetchEvent])
 
@@ -113,14 +115,14 @@ interface Event { _id: string
   const formatDate = (dateString: string) => { if (!dateString) return 'Göstərilməyib'
     const date = new Date(dateString)
     if (isNaN(date.getTime())) return 'Etibarsız tarix'
-    return date.toLocaleDateString('en-US', { year: 'numeric',
+    return date.toLocaleDateString('az-AZ', { year: 'numeric',
       month: 'long',
       day: 'numeric' }) }
 
   const formatDateTime = (dateString: string) => { if (!dateString) return 'Göstərilməyib'
     const date = new Date(dateString)
     if (isNaN(date.getTime())) return 'Etibarsız tarix'
-    return date.toLocaleString('en-US', { year: 'numeric',
+    return date.toLocaleString('az-AZ', { year: 'numeric',
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
@@ -157,6 +159,7 @@ interface Event { _id: string
     ) }
 
   return (
+    <AdminListLayout title="Tədbir Önizləmə" description="Moderasiya üçün tədbir önizləməsi." className="space-y-0">
     <div className="relative min-h-screen overflow-hidden bg-background py-8">
       <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-35" />
       <div className="absolute left-1/2 top-16 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-200/30 blur-3xl" />
@@ -535,4 +538,5 @@ interface Event { _id: string
         </Dialog.Portal>
       </Dialog.Root>
     </div>
+    </AdminListLayout>
   ) }

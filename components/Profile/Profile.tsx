@@ -1,6 +1,7 @@
 import { Settings } from "lucide-react";
 import { Button } from '@/components/ui';
 import Image from 'next/image';
+import { useGlobalFeedback } from '@/lib/useGlobalFeedback';
 
 interface UserProfile { user: { id: string
     email: string
@@ -66,7 +67,9 @@ interface ProfileProps { loading: boolean
   setFormData: (formData: FormData | ((prev: FormData) => FormData)) => void
   handleSaveProfile: () => void }
 
-export default function Profile({ loading, setEditing, editing, formData, profile, setFormData, handleSaveProfile }: ProfileProps) { return (
+export default function Profile({ loading, setEditing, editing, formData, profile, setFormData, handleSaveProfile }: ProfileProps) {
+  const { showError } = useGlobalFeedback()
+  return (
     <div className="bg-white shadow-md rounded-2xl border-2 border-blue-100 overflow-hidden">
       <div className="relative px-6 py-6 bg-gradient-to-r from-blue-50 via-cyan-50 to-emerald-50 border-b-2 border-blue-100">
         {/* Subtle gradient overlay */}
@@ -144,13 +147,13 @@ export default function Profile({ loading, setEditing, editing, formData, profil
                         uploadFormData.append('description', 'İstifadəçi profil avatarı');
                         uploadFormData.append('context', 'profile'); // Use blob storage for privacy
 
-                        try { const response = await fetch('/api/upload', { method: 'POST',
+                        try { const response = await fetch('/api/profile/image', { method: 'POST',
                             body: uploadFormData, });
-                          const data = await response.json();
-                          if (data.url) { // Store the blob URL instead of file path
-                            setFormData(prev => ({ ...prev, avatar: data.url })); } else { console.error('Upload failed:', data.error);
-                            alert(`Yükləmə uğursuz oldu: ${data.error || 'Naməlum'}`) } } catch (error) { console.error('Upload failed:', error);
-                          alert('Yükləmə uğursuz oldu. Yenidən cəhd et.') } } }}
+                          const result = await response.json();
+                          if (response.ok && result?.data?.url) { // Store blob URL from profile image API
+                            setFormData(prev => ({ ...prev, avatar: result.data.url })); } else { console.error('Upload failed:', result?.error);
+                            showError(`Yükləmə uğursuz oldu: ${result?.error?.message || 'Naməlum'}`) } } catch (error) { console.error('Upload failed:', error);
+                          showError('Yükləmə uğursuz oldu. Yenidən cəhd et.') } } }}
                     className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
                   />
                   <p className="text-xs text-gray-500 mt-1">{'PNG, JPG, GIF. Maksimum 10MB. Şəkillər təhlükəsiz saxlanılır.'}</p>

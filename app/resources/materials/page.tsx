@@ -5,9 +5,12 @@ import Image from 'next/image';
 import { Button, ButtonLink } from '@/components/ui';
 import { ExternalLink, BookOpen, Sparkles, Search, FileText, Clock, Eye, ArrowRight } from 'lucide-react';
 import { useLocalizedPath } from '@/lib/useLocalizedPath';
-import { LoadingState, ErrorState, ResourceFilterContainer } from '@/components/shared';
+import { ResourceFilterContainer, EmptyState, ResourceCard } from '@/components/shared';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
+import { ApiError } from '@/lib/apiClient';
+import { getUserErrorMessage } from '@/lib/errorMessages';
+import { ListPageLayout } from '@/components/layout';
 
 interface Material { _id: string;
   title: string;
@@ -36,9 +39,26 @@ export default function Resources() {
   const fetchMaterials = async () => { try { setLoading(true);
       const response = await fetch('/api/materials?limit=100');
       const data = await response.json();
-      
-      if (response.ok) { setMaterials(data.materials || []); } else { setError(data.error || 'Materiallar yüklənmədi'); } } catch (error) { console.error('Materialları yükləmə xətası:', error);
-      setError('Materiallar yüklənmədi'); } finally { setLoading(false); } };
+
+      if (response.ok) {
+        setMaterials(data.items);
+      } else {
+        const apiError = new ApiError(
+          data?.error?.message || 'Materiallar yüklənmədi',
+          data?.error?.code,
+          data?.error?.details
+        );
+        if (apiError.code) {
+          console.error('Materials API error code:', apiError.code, apiError.details);
+        }
+        setError(getUserErrorMessage(apiError));
+      } } catch (error) {
+      if (error instanceof ApiError && error.code) {
+        console.error('Materials API error code:', error.code, error.details);
+      } else {
+        console.error('Materialları yükləmə xətası:', error);
+      }
+      setError(getUserErrorMessage(error)); } finally { setLoading(false); } };
 
   // Filter materials
   const filteredMaterials = materials.filter(material => { const matchesCategory = selectedCategory === 'all' || material.category === selectedCategory;
@@ -48,6 +68,7 @@ export default function Resources() {
       material.provider?.toLowerCase().includes(searchTerm.toLowerCase());
     
     return matchesCategory && matchesSearch; });
+  const hasActiveFilters = selectedCategory !== 'all' || searchTerm.trim() !== '';
 
   // Group materials by category
   const groupedMaterials = { toolkit: filteredMaterials.filter(m => m.category === 'toolkit'),
@@ -88,57 +109,33 @@ export default function Resources() {
       case 'emergency': return 'hover:border-orange-300';
       default: return 'hover:border-gray-300'; } };
 
-  if (loading) { return (
-      <LoadingState 
-        text={'Yüklənir'}
-      />
-    ); }
-
-  if (error) { return (
-      <ErrorState 
-        title={'Materiallar yüklənərkən xəta'}
-        message={error}
-        retryText={'Yenidən cəhd edin'}
-        onRetry={fetchMaterials}
-      />
-    ); }
-
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
-      <section className="relative overflow-hidden pt-28 pb-20 md:pt-36 md:pb-24">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-40" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[480px] w-[820px] rounded-full bg-primary/10 blur-3xl" />
-
-        <div className="section-padding relative z-10">
-          <div className="mx-auto max-w-5xl text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-medium text-gray-600 mb-8">
-              <Sparkles size={14} className="text-accent" />
-              {'Tədris Materialları'}
-            </div>
-
-            <h1 className="mx-auto max-w-4xl text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-gray-900 leading-tight">
-              {'Tədris Materialları'}
-            </h1>
-            <p className="mx-auto mt-6 max-w-3xl text-lg sm:text-xl text-gray-600 leading-relaxed">
-              {'Gender bərabərliyi və icma rifahına fokuslanan təlimatlar, kurslar, videolar və endirilə bilən bələdçilərə daxil olun.'}
-            </p>
-
-            <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <ButtonLink href={localePath('/submit')} variant="secondary" size="lg" hoverEffect="scale">
-                {'Bloq Paylaş'}
-              </ButtonLink>
-              <ButtonLink href={localePath('/resources')} variant="outline" size="lg" hoverEffect="scale">
-                {'Fürsətləri Kəşf Et'}
-              </ButtonLink>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-12 sm:py-16 lg:py-20">
-        <div className="section-padding">
-          <div className="max-w-6xl mx-auto space-y-10 sm:space-y-12">
-            <ResourceFilterContainer
+    <ListPageLayout
+      title="Tədris Materialları"
+      description="Gender bərabərliyi və icma rifahına fokuslanan təlimatlar, kurslar, videolar və endirilə bilən bələdçilərə daxil olun."
+      icon={Sparkles}
+      headerActions={
+        <>
+          <ButtonLink href={localePath('/submit')} variant="secondary" size="lg" hoverEffect="scale">
+            {'Bloq Paylaş'}
+          </ButtonLink>
+          <ButtonLink href={localePath('/resources')} variant="outline" size="lg" hoverEffect="scale">
+            {'Fürsətləri Kəşf Et'}
+          </ButtonLink>
+        </>
+      }
+      isLoading={loading}
+      isError={Boolean(error)}
+      isEmpty={!loading && !error && filteredMaterials.length === 0 && !hasActiveFilters}
+      loadingText="Yüklənir"
+      errorTitle="Materiallar yüklənərkən xəta"
+      errorMessage={error}
+      retryText="Yenidən cəhd edin"
+      onRetry={fetchMaterials}
+      emptyTitle="Material tapılmadı"
+      emptyMessage="Hazırda göstəriləcək material yoxdur."
+      filterSection={
+        <ResourceFilterContainer
               title={'Filtrlə və axtar'}
               subtitle={'Uyğun öyrənmə resursunu tap'}
               iconGradient="from-blue-600 to-emerald-600"
@@ -166,6 +163,10 @@ export default function Resources() {
                   />
                 </div> }
             />
+      }
+      contentContainerClassName="max-w-7xl mx-auto"
+      content={
+        <>
 
             {Object.entries(groupedMaterials).map(([category, categoryMaterials]) => { if (categoryMaterials.length === 0) return null;
 
@@ -185,15 +186,15 @@ export default function Resources() {
 
                   <div className={`grid grid-cols-1 ${categoryMaterials.length > 1 ? 'md:grid-cols-2' : ''} ${categoryMaterials.length > 2 ? 'lg:grid-cols-3' : ''} gap-6`}>
                     {categoryMaterials.map((material) => (
-                      <article
+                      <ResourceCard
                         key={material._id}
-                        className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-transparent to-emerald-500/0 opacity-0 group-hover:opacity-10 transition-opacity duration-500" />
-
-                        <div className="relative z-10">
-                          {material.imageUrl ? (
-                            <div className="w-14 h-14 rounded-xl overflow-hidden mb-4 shadow-lg group-hover:shadow-xl transition-shadow">
+                        type="material"
+                        title={material.title}
+                        description={material.description}
+                        hoverBorderColor={getBorderColor(category)}
+                        icon={
+                          material.imageUrl ? (
+                            <div className="w-14 h-14 rounded-xl overflow-hidden shadow-lg group-hover:shadow-xl transition-shadow">
                               <Image
                                 src={material.imageUrl}
                                 alt={material.provider || material.title}
@@ -203,100 +204,68 @@ export default function Resources() {
                               />
                             </div>
                           ) : (
-                            <div className={`w-14 h-14 bg-gradient-to-br ${getCategoryColor(category)} rounded-xl flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-all duration-300`}>
+                            <div className={`w-14 h-14 bg-gradient-to-br ${getCategoryColor(category)} rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300`}>
                               <span className="text-2xl">{getCategoryIcon(category)}</span>
                             </div>
-                          )}
-
-                          <div className="flex items-center gap-2 mb-3">
-                            <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded-lg">
-                              {material.type}
-                            </span>
+                          )
+                        }
+                        badges={[
+                          { label: material.type, variant: 'info' },
+                          ...(material.tags || []).slice(0, 3).map((tag) => ({ label: `#${tag}`, variant: 'secondary' as const })),
+                        ]}
+                        metadata={
+                          <>
                             {material.provider && (
                               <span className="text-xs text-gray-500 truncate">{material.provider}</span>
                             )}
-                          </div>
-
-                          <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-primary transition-colors">
-                            {material.title}
-                          </h3>
-
-                          <p className="text-sm text-gray-600 mb-4 leading-relaxed line-clamp-3">
-                            {material.description}
-                          </p>
-
-                          {material.tags && material.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mb-4">
-                              {material.tags.slice(0, 3).map((tag, idx) => (
-                                <span key={idx} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-lg">
-                                  #{tag}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-
-                          {(material.duration || material.views) && (
-                            <div className="flex items-center gap-4 text-sm text-gray-500 mb-4 pb-4 border-b border-gray-200">
-                              {material.duration && (
-                                <div className="flex items-center gap-1">
-                                  <Clock className="w-4 h-4" />
-                                  <span>{material.duration}</span>
-                                </div>
-                              )}
-                              {material.views && (
-                                <div className="flex items-center gap-1">
-                                  <Eye className="w-4 h-4" />
-                                  <span>{material.views}</span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          <div className="pt-4 border-t border-gray-200">
-                            <a href={material.url} target="_blank" rel="noopener noreferrer" className="w-full block">
-                              <Button
-                                variant="primary"
-                                icon={ExternalLink}
-                                className="w-full justify-center"
-                              >
-                                {'Resursa bax'}
-                              </Button>
-                            </a>
-                          </div>
-                        </div>
-                      </article>
+                            {(material.duration || material.views) && (
+                              <div className="flex items-center gap-4 text-sm text-gray-500">
+                                {material.duration && (
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="w-4 h-4" />
+                                    <span>{material.duration}</span>
+                                  </div>
+                                )}
+                                {material.views && (
+                                  <div className="flex items-center gap-1">
+                                    <Eye className="w-4 h-4" />
+                                    <span>{material.views}</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        }
+                        actions={
+                          <ButtonLink
+                            href={material.url}
+                            external
+                            variant="primary"
+                            icon={ExternalLink}
+                            className="w-full justify-center"
+                          >
+                            {'Resursa bax'}
+                          </ButtonLink>
+                        }
+                      />
                     ))}
                   </div>
                 </div>
               ); })}
 
-            {filteredMaterials.length === 0 && (
-              <div className="text-center py-16 rounded-2xl border border-gray-200 bg-white shadow-sm">
-                <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <BookOpen className="w-10 h-10 text-blue-600" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  {'Material tapılmadı'}
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  {'Axtarış və ya filtrləri dəyişməyi sına'}
-                </p>
-                <Button
-                  onClick={() => { setSearchTerm('');
-                    setSelectedCategory('all'); }}
-                  variant="primary"
-                >
-                  {'Filtrləri təmizlə'}
-                </Button>
-              </div>
+            {filteredMaterials.length === 0 && hasActiveFilters && (
+              <EmptyState
+                title="Material tapılmadı"
+                message="Axtarış və ya filtrləri dəyişməyi sına"
+                actionText="Filtrləri təmizlə"
+                onAction={() => { setSearchTerm('');
+                  setSelectedCategory('all'); }}
+              />
             )}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-16 md:py-20 bg-slate-50/60">
-        <div className="section-padding">
-          <div className="max-w-4xl mx-auto rounded-2xl border border-gray-200 bg-white p-8 md:p-12 text-center shadow-sm">
+        </>
+      }
+      bottomCta={
+          <div className="rounded-2xl border border-gray-200 bg-white p-8 md:p-12 text-center shadow-sm">
             <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
               <FileText className="w-7 h-7 text-primary" />
             </div>
@@ -328,7 +297,6 @@ export default function Resources() {
               </ButtonLink>
             </div>
           </div>
-        </div>
-      </section>
-    </div>
+      }
+    />
   ) }

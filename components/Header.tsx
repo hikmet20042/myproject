@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useSession, signOut } from '@/lib/auth/client'
-import { Menu, X, User, ChevronDown, ArrowRight } from 'lucide-react'
+import { canAccessAdmin, canAccessDashboard, isOrganization } from '@/lib/auth/permissions'
+import { Menu, X, User, ChevronDown, ArrowRight, Bookmark } from 'lucide-react'
 import { useNotificationContext } from './NotificationContext'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
 import NotificationBell from './NotificationBell'
@@ -17,7 +18,7 @@ export default function Header() {
   const localePath = useLocalizedPath();
   const { data: session, status } = useSession()
   const isAuthLoading = status === 'loading'
-  const isOrganizationUser = session?.user?.accountType === 'organization'
+  const isOrganizationUser = isOrganization(session)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
@@ -148,7 +149,17 @@ export default function Header() {
                         {'Mənim Profilim'}
                       </Link>
                     )}
-                    {session.user?.role === 'admin' && (
+                    {!isOrganizationUser && (
+                      <Link
+                        href={localePath('/profile/saved')}
+                        className="px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors duration-150 font-medium flex items-center gap-2"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <Bookmark className="w-4 h-4" />
+                        {'Saxlanılmışlar'}
+                      </Link>
+                    )}
+                    {canAccessAdmin(session) && (
                       <Link
                         href={localePath('/admin')}
                         className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors duration-150 font-medium"
@@ -157,7 +168,7 @@ export default function Header() {
                         {'İdarəetmə Paneli'}
                       </Link>
                     )}
-                    {session.user?.accountType === 'organization' && session.user?.organizationStatus === 'approved' && (
+                    {canAccessDashboard(session) && (
                       <Link
                         href={localePath('/dashboard/profile')}
                         className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors duration-150 font-medium"
@@ -294,7 +305,17 @@ export default function Header() {
                           )}
                         </Link>
                       )}
-                      {session.user?.role === 'admin' && (
+                      {!isOrganizationUser && (
+                        <Link
+                          href={localePath('/profile/saved')}
+                          className="-mx-3 flex items-center gap-2 rounded-lg px-4 py-3 text-base font-semibold leading-7 text-gray-900 hover:bg-slate-100 transition-colors"
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          <Bookmark className="w-5 h-5 text-gray-500" />
+                          {'Saxlanılmışlar'}
+                        </Link>
+                      )}
+                      {canAccessAdmin(session) && (
                         <Link
                           href={localePath('/admin')}
                           className="-mx-3 block rounded-lg px-4 py-3 text-base font-semibold leading-7 text-gray-900 hover:bg-slate-100 transition-colors"
@@ -303,7 +324,7 @@ export default function Header() {
                           {'İdarəetmə Paneli'}
                         </Link>
                       )}
-                      {session.user?.accountType === 'organization' && session.user?.organizationStatus === 'approved' && (
+                      {canAccessDashboard(session) && (
                         <Link
                           href={localePath('/dashboard/profile')}
                           className="-mx-3 block rounded-lg px-4 py-3 text-base font-semibold leading-7 text-gray-900 hover:bg-slate-100 transition-colors"

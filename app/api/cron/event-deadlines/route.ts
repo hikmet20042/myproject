@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { NotificationService } from '@/lib/services/notificationService'
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,12 +12,12 @@ export async function POST(request: NextRequest) {
     const cronSecret = process.env.CRON_SECRET
     
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
     }
     
     const result = await NotificationService.checkEventDeadlinesAndNotify()
     
-    return NextResponse.json({
+    return successResponse({
       status: 'completed',
       message: 'Event deadline notifications sent',
       usersChecked: result.usersChecked
@@ -24,10 +25,7 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     console.error('Cron job error:', error)
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+    return errorResponse('Internal server error', "API_ERROR", {}, 500)
   }
 }
 
@@ -36,7 +34,7 @@ export async function GET(request: NextRequest) {
   try {
     const result = await NotificationService.checkEventDeadlinesAndNotify()
     
-    return NextResponse.json({
+    return successResponse({
       status: 'completed',
       message: 'Event deadline notifications sent (manual trigger)',
       usersChecked: result.usersChecked
@@ -44,9 +42,6 @@ export async function GET(request: NextRequest) {
     
   } catch (error) {
     console.error('Manual trigger error:', error)
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+    return errorResponse('Internal server error', "API_ERROR", {}, 500)
   }
 }

@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { isApprovedOrganization } from '@/lib/auth/permissions'
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 // Force dynamic rendering due to session usage
 export const dynamic = 'force-dynamic'
@@ -10,7 +12,7 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession()
     
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
     }
 
     const supabase = createSupabaseAdminClient()
@@ -23,11 +25,11 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (userError || !user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return errorResponse('User not found', "API_ERROR", {}, 404)
     }
 
     let organizationSocialMedia = null
-    if (session.user.accountType === 'organization' && session.user.organizationStatus === 'approved') {
+    if (isApprovedOrganization(session)) {
       const { data: profile } = await supabase
         .from('organization_profiles')
         .select('social_links')
@@ -37,17 +39,14 @@ export async function GET(request: NextRequest) {
       organizationSocialMedia = profile?.social_links || {}
     }
 
-    return NextResponse.json({
+    return successResponse({
       socialMedia: user.social_media || {},
       organizationSocialMedia
     })
 
   } catch (error) {
     console.error('Error fetching social media:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch social media accounts' },
-      { status: 500 }
-    )
+    return errorResponse('Failed to fetch social media accounts', "API_ERROR", {}, 500)
   }
 }
 
@@ -56,7 +55,7 @@ export async function PUT(request: NextRequest) {
     const session = await getServerSession()
     
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
     }
 
     const supabase = createSupabaseAdminClient()
@@ -83,26 +82,20 @@ export async function PUT(request: NextRequest) {
         // Validate URLs
         for (const [platform, url] of Object.entries(socialMedia)) {
           if (url && !validateUrl(url as string)) {
-            return NextResponse.json(
-              { error: `Invalid URL for ${platform}` },
-              { status: 400 }
-            )
+            return errorResponse(`Invalid URL for ${platform}`, "API_ERROR", {}, 400)
           }
         }
         updateData.social_media = socialMedia
       }
     }
 
-    if (type === 'organization' && session.user.accountType === 'organization' && session.user.organizationStatus === 'approved') {
+    if (type === 'organization' && isApprovedOrganization(session)) {
       // Primary write to organization_profiles
       if (organizationSocialMedia) {
         // Validate URLs
         for (const [platform, url] of Object.entries(organizationSocialMedia)) {
           if (url && !validateUrl(url as string)) {
-            return NextResponse.json(
-              { error: `Invalid URL for ${platform}` },
-              { status: 400 }
-            )
+            return errorResponse(`Invalid URL for ${platform}`, "API_ERROR", {}, 400)
           }
         }
         
@@ -114,10 +107,10 @@ export async function PUT(request: NextRequest) {
           .single()
 
         if (organizationError || !organization) {
-          return NextResponse.json({ error: 'Organization not found' }, { status: 404 })
+          return errorResponse('Organization not found', "API_ERROR", {}, 404)
         }
 
-        return NextResponse.json({ 
+        return successResponse({ 
           message: 'Social media updated successfully',
           socialMedia: {},
           organizationSocialMedia: organization.social_links || {}
@@ -126,10 +119,7 @@ export async function PUT(request: NextRequest) {
     }
 
     if (Object.keys(updateData).length === 0) {
-      return NextResponse.json(
-        { error: 'No valid social media data provided' },
-        { status: 400 }
-      )
+      return errorResponse('No valid social media data provided', "API_ERROR", {}, 400)
     }
 
     // Update the user
@@ -141,10 +131,10 @@ export async function PUT(request: NextRequest) {
       .single()
 
     if (updatedUserError || !updatedUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return errorResponse('User not found', "API_ERROR", {}, 404)
     }
 
-    return NextResponse.json({
+    return successResponse({
       message: 'Social media accounts updated successfully',
       socialMedia: updatedUser.social_media || {},
       organizationSocialMedia: null
@@ -152,9 +142,6 @@ export async function PUT(request: NextRequest) {
 
   } catch (error) {
     console.error('Error updating social media:', error)
-    return NextResponse.json(
-      { error: 'Failed to update social media accounts' },
-      { status: 500 }
-    )
+    return errorResponse('Failed to update social media accounts', "API_ERROR", {}, 500)
   }
 }

@@ -1,8 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getServerSession } from '@/lib/auth/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import { isAdminSession } from '@/lib/roles';
+import { isAdmin } from '@/lib/auth/permissions';
 import { cache, invalidateUserCache } from '@/lib/cache';
+import { NotificationService } from '@/lib/services/notificationService';
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 export const dynamic = 'force-dynamic';
 
@@ -10,8 +12,8 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
-    if (!session || !isAdminSession(session)) {
-      return NextResponse.json({ error: 'Admin giriş icazəsi tələb olunur' }, { status: 403 });
+    if (!session || !isAdmin(session)) {
+      return errorResponse('Admin giriş icazəsi tələb olunur', "API_ERROR", {}, 403);
     }
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -71,10 +73,10 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('GET /api/admin/blogs error:', error);
-      return NextResponse.json({ error: 'Bloqları yükləmək alınmadı' }, { status: 500 });
+      return errorResponse('Bloqları yükləmək alınmadı', "API_ERROR", {}, 500);
     }
     
-    return NextResponse.json({ 
+    return successResponse({ 
       total: total || 0, 
       page, 
       limit, 
@@ -91,7 +93,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('GET /api/admin/blogs error:', error);
-    return NextResponse.json({ error: 'Bloqları yükləmək alınmadı' }, { status: 500 });
+    return errorResponse('Bloqları yükləmək alınmadı', "API_ERROR", {}, 500);
   }
 }
 
@@ -99,16 +101,16 @@ export async function PUT(request: NextRequest) {
   try {
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
-    if (!session || !isAdminSession(session)) {
-      return NextResponse.json({ error: 'Admin giriş icazəsi tələb olunur' }, { status: 403 });
+    if (!session || !isAdmin(session)) {
+      return errorResponse('Admin giriş icazəsi tələb olunur', "API_ERROR", {}, 403);
     }
     const body = await request.json();
     const { id, status, adminComment } = body;
     if (!id || !status) {
-      return NextResponse.json({ error: 'Tələb olunan sahələr çatışmır' }, { status: 400 });
+      return errorResponse('Tələb olunan sahələr çatışmır', "API_ERROR", {}, 400);
     }
     if (!['approved', 'rejected'].includes(status)) {
-      return NextResponse.json({ error: 'Yanlış status' }, { status: 400 });
+      return errorResponse('Yanlış status', "API_ERROR", {}, 400);
     }
     const { data: blog, error: blogError } = await supabase
       .from('blogs')
@@ -116,7 +118,7 @@ export async function PUT(request: NextRequest) {
       .eq('id', id)
       .single();
     if (blogError || !blog) {
-      return NextResponse.json({ error: 'Bloq tapılmadı' }, { status: 404 });
+      return errorResponse('Bloq tapılmadı', "API_ERROR", {}, 404);
     }
     await supabase
       .from('blogs')
@@ -131,20 +133,22 @@ export async function PUT(request: NextRequest) {
 
     // Send notification to author
     if (blog.author_id) {
-      await supabase.from('notifications').insert({
-        user_id: blog.author_id,
-        type: 'blog',
-        title: `Bloqunuz ${status === 'approved' ? 'təsdiqləndi' : 'rədd edildi'}`,
-        message: status === 'approved'
-          ? `Təbriklər! "${blog.title}" adlı bloqunuz təsdiqlənərək yayımlandı.`
-          : `"${blog.title}" adlı bloqunuz rədd edildi.${adminComment ? ' Səbəb: ' + adminComment : ''}`,
-        data: { blogId: blog.id, status },
-      });
+      try {
+        await NotificationService.notifyBlogStatus(
+          blog.author_id.toString(),
+          blog.id.toString(),
+          blog.title,
+          status,
+          adminComment
+        );
+      } catch (notificationError) {
+        console.error('Failed to send blog status notification:', notificationError);
+      }
     }
-    return NextResponse.json({ message: `Bloq uğurla ${status === 'approved' ? 'təsdiqləndi' : 'rədd edildi'}` });
+    return successResponse({ message: `Bloq uğurla ${status === 'approved' ? 'təsdiqləndi' : 'rədd edildi'}` });
   } catch (error) {
     console.error('PUT /api/admin/blogs error:', error);
-    return NextResponse.json({ error: 'Daxili server xətası' }, { status: 500 });
+    return errorResponse('Daxili server xətası', "API_ERROR", {}, 500);
   }
 }
 
@@ -152,15 +156,15 @@ export async function PATCH(request: NextRequest) {
   try {
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
-    if (!session || !isAdminSession(session)) {
-      return NextResponse.json({ error: 'Admin giriş icazəsi tələb olunur' }, { status: 403 });
+    if (!session || !isAdmin(session)) {
+      return errorResponse('Admin giriş icazəsi tələb olunur', "API_ERROR", {}, 403);
     }
 
     const body = await request.json();
     const { action, storyIds, status, adminComment } = body;
 
     if (!action || !storyIds || !Array.isArray(storyIds)) {
-      return NextResponse.json({ error: 'Tələb olunan sahələr çatışmır' }, { status: 400 });
+      return errorResponse('Tələb olunan sahələr çatışmır', "API_ERROR", {}, 400);
     }
 
     let updateData: any = {};
@@ -179,19 +183,19 @@ export async function PATCH(request: NextRequest) {
           .from('blogs')
           .delete()
           .in('id', storyIds);
-        return NextResponse.json({ 
+        return successResponse({ 
           success: true, 
           message: `${storyIds.length} bloq uğurla silindi`,
           deletedCount: storyIds.length
         });
       case 'bulk_status_change':
         if (!status || !['pending', 'approved', 'rejected'].includes(status)) {
-          return NextResponse.json({ error: 'Yanlış status' }, { status: 400 });
+          return errorResponse('Yanlış status', "API_ERROR", {}, 400);
         }
         updateData = { status, admin_comment: adminComment || '' };
         break;
       default:
-        return NextResponse.json({ error: 'Yanlış əməliyyat' }, { status: 400 });
+        return errorResponse('Yanlış əməliyyat', "API_ERROR", {}, 400);
     }
 
     // Update blogs and collect results
@@ -207,14 +211,18 @@ export async function PATCH(request: NextRequest) {
       const blog = updatedBlogMap.get(storyId);
       if (blog) {
         results.push({ id: storyId, success: true, blog });
-        if (updateData.status && blog.author_id) {
-          await supabase.from('notifications').insert({
-            user_id: blog.author_id,
-            type: 'blog_status',
-            title: `Bloq ${updateData.status === 'approved' ? 'təsdiqləndi' : updateData.status === 'rejected' ? 'rədd edildi' : 'gözləmədədir'}`,
-            message: `"${blog.title}" adlı bloqunuz ${updateData.status === 'approved' ? 'təsdiqləndi' : updateData.status === 'rejected' ? 'rədd edildi' : 'gözləməyə alındı'}.${updateData.admin_comment ? ` Admin şərhi: ${updateData.admin_comment}` : ''}`,
-            is_read: false
-          });
+        if ((updateData.status === 'approved' || updateData.status === 'rejected') && blog.author_id) {
+          try {
+            await NotificationService.notifyBlogStatus(
+              blog.author_id.toString(),
+              blog.id.toString(),
+              blog.title,
+              updateData.status,
+              updateData.admin_comment || undefined
+            );
+          } catch (notificationError) {
+            console.error('Failed to send bulk blog status notification:', notificationError);
+          }
         }
       } else {
         results.push({ id: storyId, success: false, error: 'Bloq tapılmadı' });
@@ -224,7 +232,7 @@ export async function PATCH(request: NextRequest) {
     const successCount = results.filter(r => r.success).length;
     const failureCount = results.filter(r => !r.success).length;
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       message: `Toplu əməliyyat tamamlandı. ${successCount} uğurlu, ${failureCount} uğursuz.`,
       results,
@@ -234,6 +242,6 @@ export async function PATCH(request: NextRequest) {
 
   } catch (error) {
     console.error('PATCH /api/admin/blogs error:', error);
-    return NextResponse.json({ error: 'Toplu əməliyyatı icra etmək alınmadı' }, { status: 500 });
+    return errorResponse('Toplu əməliyyatı icra etmək alınmadı', "API_ERROR", {}, 500);
   }
 }

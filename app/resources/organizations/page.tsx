@@ -1,14 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button, ButtonLink } from '@/components/ui';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Search, Users, MapPin, ExternalLink, Mail, Sparkles, ArrowRight } from 'lucide-react';
 import { useLocalizedPath } from '@/lib/useLocalizedPath';
-import { LoadingState, ErrorState, ResourceFilterContainer, ActiveFilterBadges } from '@/components/shared';
+import { ResourceFilterContainer, ActiveFilterBadges, ResourceCard, EmptyState } from '@/components/shared';
 import { ORGANIZATION_TYPE_LABELS, ORGANIZATION_TYPE_VALUES } from '@/lib/organizationTypes';
+import { fetchOrganizations } from '@/lib/organizationQueries';
+import { logError } from '@/lib/logger';
+import { ListPageLayout } from '@/components/layout';
 
 interface Organization { _id: string
   organizationName: string
@@ -38,7 +40,6 @@ interface Organization { _id: string
 }
 
 export default function OrganizationsPage() { const localePath = useLocalizedPath();
-  const router = useRouter()
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLocation, setSelectedLocation] = useState('all');
@@ -46,13 +47,14 @@ export default function OrganizationsPage() { const localePath = useLocalizedPat
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [retryKey, setRetryKey] = useState(0)
 
   const getFocusAreaLabel = (value: string) => { if (!value) { return value; }
     return value; };
 
   // Fetch organizations from API
   useEffect(() => {
-    const fetchOrganizations = async () => {
+    const loadOrganizations = async () => {
       try {
         setLoading(true)
         // Request a larger page size to show more organizations on the directory
@@ -60,23 +62,22 @@ export default function OrganizationsPage() { const localePath = useLocalizedPat
         if (selectedOrganizationType !== 'all') {
           query.set('organizationType', selectedOrganizationType)
         }
-        const response = await fetch(`/api/organizations?${query.toString()}`)
-        if (!response.ok) {
-          throw new Error('Təşkilatlar yüklənmədi')
-        }
-        const data = await response.json()
-        setOrganizations(data.organizations || [])
+        const { items } = await fetchOrganizations({
+          limit: 100,
+          organizationType: selectedOrganizationType !== 'all' ? selectedOrganizationType : undefined,
+        })
+        setOrganizations(items)
       } catch (err) {
-        console.error('Təşkilatları yükləmə xətası:', err)
-        setError('Təşkilatlar yüklənmədi. Yenidən cəhd et.')
+        logError('Organizations API error', err)
+        setError('Məlumatları yükləyərkən problem baş verdi')
       } finally {
         setLoading(false)
       }
     }
 
-    fetchOrganizations()
+    loadOrganizations()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedOrganizationType])
+  }, [selectedOrganizationType, retryKey])
 
   const categories = [
     { value: 'all', label: 'Bütün Kateqoriyalar' },
@@ -121,57 +122,33 @@ export default function OrganizationsPage() { const localePath = useLocalizedPat
   const hasActiveFilters =
     searchTerm.trim() !== '' || selectedCategory !== 'all' || selectedLocation !== 'all' || selectedOrganizationType !== 'all';
 
-  if (loading) { return (
-      <LoadingState 
-        text={'Yüklənir'}
-      />
-    ) }
-
-  if (error) { return (
-      <ErrorState 
-        title={'Təşkilatlar yüklənmədi. Yenidən cəhd et.'}
-        message={error}
-        retryText={'Yenidən cəhd edin'}
-        onRetry={() => router.refresh()}
-      />
-    ) }
-
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
-      <section className="relative overflow-hidden pt-28 pb-20 md:pt-36 md:pb-24">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-40" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[480px] w-[820px] rounded-full bg-primary/10 blur-3xl" />
-
-        <div className="section-padding relative z-10">
-          <div className="mx-auto max-w-5xl text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-medium text-gray-600 mb-8">
-              <Sparkles size={14} className="text-accent" />
-              {'Təşkilat Kataloqu'}
-            </div>
-
-            <h1 className="mx-auto max-w-4xl text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-gray-900 leading-tight">
-              {'Təşkilat Kataloqu'}
-            </h1>
-            <p className="mx-auto mt-6 max-w-3xl text-lg sm:text-xl text-gray-600 leading-relaxed">
-              {'Gender bərabərliyi proqramları və sağ qalanlara dəstək xidmətləri göstərən təşkilatları kəşf et.'}
-            </p>
-
-            <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <ButtonLink href={localePath('/submit')} variant="secondary" size="lg" hoverEffect="scale">
-                {'Bloq Paylaş'}
-              </ButtonLink>
-              <ButtonLink href={localePath('/resources')} variant="outline" size="lg" hoverEffect="scale">
-                {'Fürsətləri Kəşf Et'}
-              </ButtonLink>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-8">
-        <div className="section-padding">
-          <div className="max-w-6xl mx-auto">
-            <ResourceFilterContainer
+    <ListPageLayout
+      title="Təşkilat Kataloqu"
+      description="Gender bərabərliyi proqramları və sağ qalanlara dəstək xidmətləri göstərən təşkilatları kəşf et."
+      icon={Sparkles}
+      headerActions={
+        <>
+          <ButtonLink href={localePath('/submit')} variant="secondary" size="lg" hoverEffect="scale">
+            {'Bloq Paylaş'}
+          </ButtonLink>
+          <ButtonLink href={localePath('/resources')} variant="outline" size="lg" hoverEffect="scale">
+            {'Fürsətləri Kəşf Et'}
+          </ButtonLink>
+        </>
+      }
+      isLoading={loading}
+      isError={Boolean(error)}
+      errorTitle="Təşkilatlar yüklənmədi. Yenidən cəhd et."
+      errorMessage={error || undefined}
+      onRetry={() => setRetryKey((prev) => prev + 1)}
+      isEmpty={!loading && !error && filteredOrganizations.length === 0 && !hasActiveFilters}
+      emptyTitle="Təşkilat tapılmadı"
+      emptyMessage="Hazırda göstəriləcək təşkilat yoxdur."
+      filterContainerClassName="max-w-6xl mx-auto"
+      contentContainerClassName="max-w-6xl mx-auto"
+      filterSection={
+        <ResourceFilterContainer
               title={'Filtrlə və Axtar'}
               subtitle={'Ehtiyaclarına uyğun təşkilatları tapmaq üçün axtarışı dəqiqləşdir.'}
               iconGradient="from-blue-600 to-emerald-600"
@@ -249,151 +226,131 @@ export default function OrganizationsPage() { const localePath = useLocalizedPat
                   />
                 ) : undefined }
             />
-          </div>
-        </div>
-      </section>
-
-      <section className="py-12 sm:py-16">
-        <div className="section-padding">
-          <div className="max-w-6xl mx-auto">
-            <div className="mb-6 flex items-center justify-between px-4 sm:px-0">
-              <p className="text-gray-600 font-medium">
-                {`${organizations.length} təşkilatdan ${filteredOrganizations.length} göstərilir`}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {filteredOrganizations.map((organization) => (
-                <article key={organization._id} className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-lg transition-all duration-300">
-                  <div className="flex items-start justify-between mb-4">
+      }
+      content={
+        <>
+          {filteredOrganizations.length === 0 ? (
+            <EmptyState
+              title="Təşkilat tapılmadı"
+              message="Daha çox təşkilat tapmaq üçün axtarış və ya filtrləri dəyişməyi sına."
+              actionText="Filtrləri Təmizlə"
+              onAction={hasActiveFilters ? () => { setSearchTerm('');
+                setSelectedCategory('all');
+                setSelectedLocation('all');
+                setSelectedOrganizationType('all'); } : undefined}
+            />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredOrganizations.map((organization, idx) => (
+                <ResourceCard
+                  key={organization._id}
+                  type="organization"
+                  title={organization.organizationName}
+                  description={organization.description}
+                  wrapperClassName="animate-fade-in"
+                  style={{ animationDelay: `${idx * 0.05}s` }}
+                  icon={
                     <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
                       <span className="text-xl font-black text-primary">
                         {organization.organizationName.charAt(0).toUpperCase()}
                       </span>
                     </div>
-                    {organization.status === 'approved' && (
-                      <span className="text-xs px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full font-semibold whitespace-nowrap">
-                        {'Təsdiqlənmiş'}
-                      </span>
-                    )}
-                  </div>
-
-                  <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">
-                    {organization.organizationName}
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-3 leading-relaxed">
-                    {organization.description}
-                  </p>
-
-                  <div className="flex items-center gap-2 flex-wrap mb-4">
-                    {organization.focusAreas && organization.focusAreas.length > 0 && (
-                      <span className="text-xs px-2.5 py-1 bg-blue-100 text-blue-700 rounded-lg font-semibold">
-                        {getFocusAreaLabel(organization.focusAreas[0]) || organization.focusAreas[0]}
-                      </span>
-                    )}
-                    {organization.organizationType && (
-                      <span className="text-xs px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-lg font-semibold">
-                        {ORGANIZATION_TYPE_LABELS[
-                          organization.organizationType as keyof typeof ORGANIZATION_TYPE_LABELS
-                        ] || organization.organizationType}
-                      </span>
-                    )}
-                    {organization.address && (
-                      <span className="text-xs px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg font-medium flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        {organization.address.split(',')[0]}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col gap-2 mb-4 text-sm">
-                    {organization.website && (
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <ExternalLink className="w-4 h-4 text-primary flex-shrink-0" />
-                        <a
-                          href={organization.website.startsWith('http') ? organization.website : `https://${organization.website}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary hover:underline font-medium truncate text-xs"
-                        >
-                          {organization.website}
-                        </a>
+                  }
+                  topRight={organization.status === 'approved' ? (
+                    <span className="text-xs px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full font-semibold whitespace-nowrap">
+                      {'Təsdiqlənmiş'}
+                    </span>
+                  ) : undefined}
+                  badges={[
+                    ...(organization.focusAreas && organization.focusAreas.length > 0
+                      ? [{ label: getFocusAreaLabel(organization.focusAreas[0]) || organization.focusAreas[0], variant: 'info' as const }]
+                      : []),
+                    ...(organization.organizationType
+                      ? [{
+                          label:
+                            ORGANIZATION_TYPE_LABELS[
+                              organization.organizationType as keyof typeof ORGANIZATION_TYPE_LABELS
+                            ] || organization.organizationType,
+                          variant: 'success' as const,
+                        }]
+                      : []),
+                    ...(organization.address
+                      ? [{ label: organization.address.split(',')[0], variant: 'secondary' as const }]
+                      : []),
+                  ]}
+                  metadata={
+                    <>
+                      {organization.website && (
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <ExternalLink className="w-4 h-4 text-primary flex-shrink-0" />
+                          <a
+                            href={organization.website.startsWith('http') ? organization.website : `https://${organization.website}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline font-medium truncate text-xs"
+                          >
+                            {organization.website}
+                          </a>
+                        </div>
+                      )}
+                      {organization.contactPerson?.email && (
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Mail className="w-4 h-4 text-primary flex-shrink-0" />
+                          <a href={`mailto:${organization.contactPerson.email}`} className="text-primary hover:underline font-medium truncate text-xs">
+                            {organization.contactPerson.email}
+                          </a>
+                        </div>
+                      )}
+                      {organization.contactPhone && (
+                        <div className="flex items-center gap-2 text-gray-500">
+                          <Users className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                          <span className="text-xs">{organization.contactPhone}</span>
+                        </div>
+                      )}
+                    </>
+                  }
+                  actions={
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap gap-2">
+                        {organization.contactPerson?.email && (
+                          <ButtonLink
+                            href={`mailto:${organization.contactPerson.email}`}
+                            variant="outline"
+                            size="sm"
+                            className="text-center justify-center"
+                            hoverEffect="scale"
+                          >
+                            {'Təşkilat ilə əlaqə'}
+                          </ButtonLink>
+                        )}
                       </div>
-                    )}
-                    {organization.contactPerson?.email && (
-                      <div className="flex items-center gap-2 text-gray-600">
-                        <Mail className="w-4 h-4 text-primary flex-shrink-0" />
-                        <a href={`mailto:${organization.contactPerson.email}`} className="text-primary hover:underline font-medium truncate text-xs">
-                          {organization.contactPerson.email}
-                        </a>
-                      </div>
-                    )}
-                    {organization.contactPhone && (
-                      <div className="flex items-center gap-2 text-gray-500">
-                        <Users className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                        <span className="text-xs">{organization.contactPhone}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="pt-4 border-t border-gray-200">
-                    <div className="flex gap-2">
+                      <div className="flex gap-2">
                       <ButtonLink
                         href={localePath(`/resources/organizations/${organization._id}`)}
-                        variant="outline"
+                        variant="secondary"
                         size="sm"
                         hoverEffect="scale"
-                        className="flex-1 text-center justify-center"
+                        className="flex-1"
                       >
                         {'Profili Gör'}
                       </ButtonLink>
-                      {organization.contactPerson?.email && (
-                        <ButtonLink
-                          href={`mailto:${organization.contactPerson.email}`}
-                          variant="primary"
-                          size="sm"
-                          className="flex-1 text-center justify-center"
-                          hoverEffect="scale"
-                        >
-                          {'Təşkilat ilə əlaqə'}
-                        </ButtonLink>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                </article>
+                  }
+                />
               ))}
             </div>
+          )}
 
-            {filteredOrganizations.length === 0 && (
-              <div className="text-center py-12 sm:py-16 rounded-2xl border border-gray-200 bg-white mt-6 shadow-sm">
-                <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Search className="w-10 h-10 text-primary" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  {'Təşkilat tapılmadı'}
-                </h3>
-                <p className="text-gray-600 mb-6 max-w-md mx-auto px-4">
-                  {'Daha çox təşkilat tapmaq üçün axtarış və ya filtrləri dəyişməyi sına.'}
-                </p>
-                {hasActiveFilters && (
-                  <Button
-                    onClick={() => { setSearchTerm('');
-                      setSelectedCategory('all');
-                      setSelectedLocation('all'); }}
-                    variant="primary"
-                  >
-                    {'Filtrləri Təmizlə'}
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-16 md:py-20 bg-slate-50/60">
-        <div className="section-padding">
-          <div className="max-w-4xl mx-auto rounded-2xl border border-gray-200 bg-white p-8 md:p-12 text-center shadow-sm">
+          {filteredOrganizations.length > 0 && (
+            <div className="text-center mt-8 text-gray-600 font-medium">
+              {`${organizations.length} təşkilatdan ${filteredOrganizations.length} göstərilir`}
+            </div>
+          )}
+        </>
+      }
+      bottomCta={
+          <div className="rounded-2xl border border-gray-200 bg-white p-8 md:p-12 text-center shadow-sm">
             <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
               <Users className="w-7 h-7 text-primary" />
             </div>
@@ -413,8 +370,7 @@ export default function OrganizationsPage() { const localePath = useLocalizedPat
               <ArrowRight className="w-5 h-5 ml-2" />
             </ButtonLink>
           </div>
-        </div>
-      </section>
-    </div>
+      }
+    />
   );
 }

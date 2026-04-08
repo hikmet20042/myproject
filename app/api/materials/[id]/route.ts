@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/auth/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 // GET: Fetch single material by ID
 export async function GET(
@@ -17,10 +17,7 @@ export async function GET(
       .single();
 
     if (error || !material) {
-      return NextResponse.json(
-        { error: 'Material not found' },
-        { status: 404 }
-      );
+      return errorResponse('Material not found', "API_ERROR", {}, 404);
     }
 
     // Increment view count
@@ -29,13 +26,10 @@ export async function GET(
       .update({ views: (material.views || 0) + 1 })
       .eq('id', params.id);
 
-    return NextResponse.json({ material });
+    return successResponse({ material });
   } catch (error: any) {
     console.error('Error fetching material:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch material', details: error.message },
-      { status: 500 }
-    );
+    return errorResponse('Failed to fetch material', "API_ERROR", {}, 500);
   }
 }
 
@@ -48,10 +42,7 @@ export async function PUT(
     const session = await getServerSession();
 
     if (!session || session.user?.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Unauthorized. Admin access required.' },
-        { status: 403 }
-      );
+      return errorResponse('Unauthorized. Admin access required.', "API_ERROR", {}, 403);
     }
 
     const supabase = createSupabaseAdminClient();
@@ -80,22 +71,16 @@ export async function PUT(
       .single();
 
     if (error || !material) {
-      return NextResponse.json(
-        { error: 'Material not found' },
-        { status: 404 }
-      );
+      return errorResponse('Material not found', "API_ERROR", {}, 404);
     }
 
-    return NextResponse.json({
+    return successResponse({
       message: 'Material updated successfully',
       material
     });
   } catch (error: any) {
     console.error('Error updating material:', error);
-    return NextResponse.json(
-      { error: 'Failed to update material', details: error.message },
-      { status: 500 }
-    );
+    return errorResponse('Failed to update material', "API_ERROR", {}, 500);
   }
 }
 
@@ -108,10 +93,7 @@ export async function DELETE(
     const session = await getServerSession();
 
     if (!session || session.user?.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Unauthorized. Admin access required.' },
-        { status: 403 }
-      );
+      return errorResponse('Unauthorized. Admin access required.', "API_ERROR", {}, 403);
     }
 
     const supabase = createSupabaseAdminClient();
@@ -124,20 +106,14 @@ export async function DELETE(
       .single();
 
     if (error || !material) {
-      return NextResponse.json(
-        { error: 'Material not found' },
-        { status: 404 }
-      );
+      return errorResponse('Material not found', "API_ERROR", {}, 404);
     }
 
-    return NextResponse.json({
+    return successResponse({
       message: 'Material deleted successfully'
     });
   } catch (error: any) {
     console.error('Error deleting material:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete material', details: error.message },
-      { status: 500 }
-    );
+    return errorResponse('Failed to delete material', "API_ERROR", {}, 500);
   }
 }

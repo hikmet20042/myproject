@@ -1,18 +1,19 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowLeft, Calendar, MapPin, Users, Clock, ExternalLink, Tag, Sparkles, TrendingUp } from 'lucide-react'
+import { Calendar, MapPin, Users, Clock, ExternalLink, Tag, Sparkles, TrendingUp } from 'lucide-react'
 import { Button, ButtonLink } from '@/components/ui'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
-import { Breadcrumb } from '@/components/ui'
 import SaveButton from '@/components/SaveButton'
 import ViewTracker from '@/components/ViewTracker'
 import { LoadingState, ErrorState } from '@/components/shared'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { eventQueryKeys, fetchEventById } from '@/lib/eventQueries'
+import { DetailPageLayout } from '@/components/layout'
 
 interface Event { _id: string
   title: string
@@ -44,19 +45,14 @@ interface Event { _id: string
 export default function EventDetailPage() { const localePath = useLocalizedPath()
 
   const params = useParams()
-  const router = useRouter()
-  const [event, setEvent] = useState<Event | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  useEffect(() => { if (params?.id) { fetchEvent(params.id as string) } }, [params?.id])
-
-  const fetchEvent = async (id: string) => { try { const response = await fetch(`/api/events/${id}`)
-      if (!response.ok) { throw new Error('Tədbir tapılmadı') }
-      const data = await response.json()
-      setEvent({ ...data.event,
-        views: data.event.views || 0 }) } catch (error) { console.error('Tədbir yükləmə xətası:', error)
-      setError('Tədbir detalları yüklənmədi') } finally { setLoading(false) } }
+  const eventId = String(params?.id || '')
+  const eventQuery = useQuery({
+    queryKey: eventQueryKeys.detail(eventId),
+    queryFn: () => fetchEventById(eventId),
+    enabled: !!eventId,
+    retry: false
+  })
+  const event = eventQuery.data as Event | undefined
 
   const formatDate = (dateString: string) => { if (!dateString) return 'Tarix müəyyən deyil'
     const date = new Date(dateString)
@@ -134,19 +130,24 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
 
   const isDeadlinePassed = (deadline: string) => { if (!deadline) return false
     return new Date(deadline) < new Date() }
+  const hasActiveApplicationLink = !!event?.applicationLink && !isDeadlinePassed(event?.applicationDeadline || '')
+  const organizerProfileHref = event?.createdBy?._id ? localePath(`/resources/organizations/${event.createdBy._id}`) : ''
+  const organizerEmail =
+    ((event as any)?.createdBy?.email as string | undefined) ||
+    ((event as any)?.createdByOrganization?.email as string | undefined)
 
-  if (loading) { return (
+  if (eventQuery.isLoading) { return (
       <LoadingState
         text={'Tədbir təfərrüatları yüklənir...'}
       />
     ) }
 
-  if (error || !event) { return (
+  if (eventQuery.isError || !event) { return (
       <ErrorState
         title={'Tədbir tapılmadı'}
-        message={error || 'Axtardığın tədbir mövcud deyil.'}
-        onRetry={() => router.back()}
-        retryText={'Geri qayıt'}
+        message={eventQuery.error instanceof Error ? eventQuery.error.message : 'Axtardığın tədbir mövcud deyil.'}
+        onRetry={() => eventQuery.refetch()}
+        retryText={'Yenidən cəhd et'}
         gradientFrom="from-red-50"
         gradientVia="via-orange-50"
         gradientTo="to-yellow-50"
@@ -154,35 +155,34 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
     ) }
 
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
-      <section className="relative overflow-hidden pt-28 pb-14 md:pt-36 md:pb-20">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-40" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[480px] w-[820px] rounded-full bg-primary/10 blur-3xl" />
-
-        <div className="section-padding relative z-10">
-          <div className="mx-auto max-w-6xl">
-            <div className="mb-6">
-              <Breadcrumb
-                items={[
-                  { label: 'Ana Səhifə', href: localePath('/') },
-                  { label: 'Tədbirlər', href: localePath('/resources/events') },
-                  { label: event.title, href: '#', current: true }
-                ]}
-              />
-            </div>
-
-            <div className="mb-6">
-              <Button
-                variant="outline"
-                onClick={() => router.back()}
-                className="inline-flex items-center gap-2 border-gray-200 bg-white text-gray-700 hover:border-blue-200 hover:bg-blue-50 hover:text-primary"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                {'Tədbirlərə qayıt'}
-              </Button>
-            </div>
-
-            <Card className="mb-8 overflow-hidden border border-gray-200 bg-white shadow-sm">
+    <DetailPageLayout
+      backHref={localePath('/resources/events')}
+      backLabel={'Tədbirlərə qayıt'}
+      breadcrumbItems={[
+        { label: 'Ana Səhifə', href: localePath('/') },
+        { label: 'Tədbirlər', href: localePath('/resources/events') },
+        { label: event.title, current: true },
+      ]}
+      title={event.title}
+      metadata={
+        <div className="flex flex-wrap items-center gap-3 text-sm text-gray-700 sm:text-base">
+          <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5">
+            <Tag className="h-4 w-4 text-primary" />
+            <span className="font-medium">{getCategoryLabel(event.category)}</span>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5">
+            <Users className="h-4 w-4 text-primary" />
+            <span className="font-medium">{event.organizationName || event.createdBy?.name || 'Naməlum'}</span>
+          </div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5">
+            <Calendar className="h-4 w-4 text-accent" />
+            <span className="font-medium">{formatDate(event.eventDate)}</span>
+          </div>
+        </div>
+      }
+      mainContent={
+        <>
+          <Card className="overflow-hidden border border-gray-200 bg-white shadow-sm">
           {event.imageUrl && (
             <div className="relative h-80 sm:h-96 lg:h-[28rem] overflow-hidden group">
               <Image
@@ -284,14 +284,6 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
             </CardContent>
           )}
             </Card>
-          </div>
-        </div>
-      </section>
-
-      <section className="section-padding pb-16 md:pb-20">
-        <div className="mx-auto max-w-6xl grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-12">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
             {/* About Section */}
             <Card className="border border-gray-200 shadow-sm">
               <CardContent className="p-8">
@@ -330,140 +322,154 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
                 )}
               </CardContent>
             </Card>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-8">
-            {/* {'Tədbir Məlumatları'} */}
-            <Card className="border border-gray-200 shadow-sm">
+        </>
+      }
+      actionSection={
+        <Card className="border border-gray-200 shadow-sm">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                    <Calendar className="w-6 h-6 text-primary" />
+                    <ExternalLink className="w-6 h-6 text-primary" />
                   </div>
-                  <h3 className="text-xl font-black text-gray-900">{'Tədbir Məlumatları'}</h3>
+                  <h3 className="text-xl font-black text-gray-900">Növbəti Addım</h3>
                 </div>
-                <div className="space-y-5">
-                  {/* View Count */}
-                  <div className="flex items-start gap-4 rounded-xl border border-blue-100 bg-blue-50 p-4">
-                    <ViewTracker
-                      itemId={event._id}
-                      itemType="event"
-                      initialViews={event.views || 0}
-                      showCount={true}
+                <div className="space-y-3">
+                  {hasActiveApplicationLink ? (
+                    <ButtonLink
+                      href={event.applicationLink!}
+                      variant="secondary"
+                      size="lg"
+                      icon={ExternalLink}
+                      iconPosition="left"
+                      hoverEffect="scale"
                       className="w-full"
-                    />
-                  </div>
-
-                  {/* {'Tarix və Saat'} */}
-                  <div className="flex items-start gap-4 rounded-xl border border-gray-200 bg-slate-50 p-4">
-                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-100">
-                      <Calendar className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-gray-900 text-base">{formatDate(event.eventDate)}</p>
-                      <p className="text-sm text-gray-600 font-medium">{formatTime(event.eventDate)}</p>
-                      {event.endDate && (
-                        <p className="text-sm text-gray-600 mt-1">{'tarixinədək'}: {formatDate(event.endDate)} saat {formatTime(event.endDate)}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* {'Yer'} */}
-                  <div className="flex items-start gap-4 rounded-xl border border-gray-200 bg-slate-50 p-4">
-                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-100">
-                      <MapPin className="h-5 w-5 text-emerald-600" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-gray-900 capitalize text-base">{getLocationTypeLabel(event.location.type)}</p>
-                      {event.location.type === 'physical' && event.location.address && (
-                        <p className="text-sm text-gray-600 font-medium">
-                          {event.location.address}
-                          {event.location.city && `, ${event.location.city}`}
-                          {event.location.country && `, ${event.location.country}`}
-                        </p>
-                      )}
-                      {(event.location.type === 'online' || event.location.type === 'hybrid') && event.location.onlineLink && (
-                        <a
-                          href={event.location.onlineLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:text-blue-700 underline font-semibold mt-1 inline-block"
+                      external
+                    >
+                      Müraciət et
+                    </ButtonLink>
+                  ) : (
+                    <>
+                      <p className="text-sm text-gray-600">
+                        Birbaşa müraciət linki hazırda mövcud deyil. Tədbiri saxlayın və təşkilatçını izləyin.
+                      </p>
+                      <SaveButton
+                        itemId={event._id}
+                        itemType="event"
+                        itemTitle={event.title}
+                        size="lg"
+                        showText={true}
+                        className="w-full justify-center"
+                      />
+                      {organizerProfileHref && (
+                        <ButtonLink
+                          href={organizerProfileHref}
+                          variant="outline"
+                          size="lg"
+                          className="w-full"
+                          hoverEffect="scale"
                         >
-                          {'Onlayn Qoşul'} →
-                        </a>
+                          Təşkilat profilinə bax
+                        </ButtonLink>
                       )}
-                    </div>
-                  </div>
-
-                  {/* Participants */}
-                  {event.maxParticipants && (
-                    <div className="flex items-start gap-4 rounded-xl border border-gray-200 bg-slate-50 p-4">
-                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-100">
-                        <Users className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-gray-900 text-base">{'İştirakçılar'}</p>
-                        <p className="text-sm text-gray-600 font-medium">
-                          {event.currentParticipants} / {event.maxParticipants} {'qeydiyyatdan keçib'}
-                        </p>
-                      </div>
-                    </div>
+                      {organizerEmail && (
+                        <ButtonLink
+                          href={`mailto:${organizerEmail}?subject=${encodeURIComponent(`Tədbir haqqında sual: ${event.title}`)}`}
+                          variant="outline"
+                          size="lg"
+                          className="w-full"
+                          hoverEffect="scale"
+                        >
+                          Təşkilatçı ilə əlaqə
+                        </ButtonLink>
+                      )}
+                    </>
                   )}
-
-                  {/* {'Müraciət üçün son tarix'} */}
-                  {event.applicationDeadline && (
-                    <div className="flex items-start gap-4 rounded-xl border border-gray-200 bg-slate-50 p-4">
-                      <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${ isDeadlinePassed(event.applicationDeadline)
-                          ? 'bg-red-100'
-                          : 'bg-blue-100' }`}>
-                        <Clock className={`h-5 w-5 ${ isDeadlinePassed(event.applicationDeadline)
-                            ? 'text-red-600'
-                            : 'text-blue-600' }`} />
-                      </div>
-                      <div>
-                        <p className="font-bold text-gray-900 text-base">{'Müraciət üçün son tarix'}</p>
-                        <p className={`text-sm font-semibold ${ isDeadlinePassed(event.applicationDeadline) 
-                            ? 'text-red-600' 
-                            : 'text-gray-600' }`}>
-                          {formatDateTime(event.applicationDeadline)}
-                          {isDeadlinePassed(event.applicationDeadline) && ` (${'Son tarix keçib'})`}
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                  <p className="text-xs text-gray-500">
+                    {event.currentParticipants > 0
+                      ? `${event.currentParticipants} nəfər artıq bu tədbirə maraq göstərib.`
+                      : `${event.views || 0} nəfər bu tədbirə baxıb.`}
+                  </p>
                 </div>
               </CardContent>
             </Card>
-
-            {/* Application Link */}
-            {event.applicationLink && !isDeadlinePassed(event.applicationDeadline || '') && (
-              <Card className="border border-gray-200 shadow-sm">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                      <ExternalLink className="w-6 h-6 text-primary" />
-                    </div>
-                    <h3 className="text-xl font-black text-gray-900">{'Müraciət Et'}</h3>
+      }
+      sidebar={
+        <>
+          <Card className="border border-gray-200 shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                  <Calendar className="w-6 h-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-black text-gray-900">{'Tədbir Məlumatları'}</h3>
+              </div>
+              <div className="space-y-5">
+                <div className="flex items-start gap-4 rounded-xl border border-blue-100 bg-blue-50 p-4">
+                  <ViewTracker itemId={event._id} itemType="event" initialViews={event.views || 0} showCount={true} className="w-full" />
+                </div>
+                <div className="flex items-start gap-4 rounded-xl border border-gray-200 bg-slate-50 p-4">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-100">
+                    <Calendar className="h-5 w-5 text-blue-600" />
                   </div>
-                  <ButtonLink
-                    href={event.applicationLink}
-                    variant="secondary"
-                    size="lg"
-                    icon={ExternalLink}
-                    iconPosition="left"
-                    hoverEffect="scale"
-                    className="w-full"
-                    external
-                  >
-                    {'Müraciət Et'}
-                  </ButtonLink>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* {'Təşkilatçı'} Info */}
-            <Card className="border border-gray-200 shadow-sm">
+                  <div>
+                    <p className="font-bold text-gray-900 text-base">{formatDate(event.eventDate)}</p>
+                    <p className="text-sm text-gray-600 font-medium">{formatTime(event.eventDate)}</p>
+                    {event.endDate && (
+                      <p className="text-sm text-gray-600 mt-1">{'tarixinədək'}: {formatDate(event.endDate)} saat {formatTime(event.endDate)}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-start gap-4 rounded-xl border border-gray-200 bg-slate-50 p-4">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-100">
+                    <MapPin className="h-5 w-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900 capitalize text-base">{getLocationTypeLabel(event.location.type)}</p>
+                    {event.location.type === 'physical' && event.location.address && (
+                      <p className="text-sm text-gray-600 font-medium">
+                        {event.location.address}
+                        {event.location.city && `, ${event.location.city}`}
+                        {event.location.country && `, ${event.location.country}`}
+                      </p>
+                    )}
+                    {(event.location.type === 'online' || event.location.type === 'hybrid') && event.location.onlineLink && (
+                      <a href={event.location.onlineLink} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:text-blue-700 underline font-semibold mt-1 inline-block">
+                        {'Onlayn Qoşul'} →
+                      </a>
+                    )}
+                  </div>
+                </div>
+                {event.maxParticipants && (
+                  <div className="flex items-start gap-4 rounded-xl border border-gray-200 bg-slate-50 p-4">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-100">
+                      <Users className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900 text-base">{'İştirakçılar'}</p>
+                      <p className="text-sm text-gray-600 font-medium">
+                        {event.currentParticipants} / {event.maxParticipants} {'qeydiyyatdan keçib'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {event.applicationDeadline && (
+                  <div className="flex items-start gap-4 rounded-xl border border-gray-200 bg-slate-50 p-4">
+                    <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${isDeadlinePassed(event.applicationDeadline) ? 'bg-red-100' : 'bg-blue-100'}`}>
+                      <Clock className={`h-5 w-5 ${isDeadlinePassed(event.applicationDeadline) ? 'text-red-600' : 'text-blue-600'}`} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900 text-base">{'Müraciət üçün son tarix'}</p>
+                      <p className={`text-sm font-semibold ${isDeadlinePassed(event.applicationDeadline) ? 'text-red-600' : 'text-gray-600'}`}>
+                        {formatDateTime(event.applicationDeadline)}
+                        {isDeadlinePassed(event.applicationDeadline) && ` (${'Son tarix keçib'})`}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border border-gray-200 shadow-sm">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10">
@@ -492,8 +498,7 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </div>
-      </section>
-    </div>
+        </>
+      }
+    />
   ) }

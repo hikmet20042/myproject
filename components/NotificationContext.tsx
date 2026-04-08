@@ -55,11 +55,40 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
     type: raw.type,
     title: raw.title,
     message: raw.message,
-    actionUrl: raw.action_url || raw.actionUrl,
+    actionUrl:
+      raw.action_url ||
+      raw.actionUrl ||
+      (raw.related_item_id && raw.related_item_type
+        ? raw.related_item_type === 'event'
+          ? `/resources/events/${raw.related_item_id}`
+          : raw.related_item_type === 'vacancy'
+            ? `/resources/vacancies/${raw.related_item_id}`
+            : `/blogs/${raw.related_item_id}`
+        : undefined),
     data: raw.data || {},
     isRead: Boolean(raw.is_read ?? raw.isRead),
     createdAt: raw.created_at || raw.createdAt,
   })
+
+  const normalizeNotificationsPayload = (responseJson: any) => {
+    const payload = responseJson?.data || {}
+    const items = Array.isArray(payload.items)
+      ? payload.items
+      : Array.isArray(payload.notifications)
+        ? payload.notifications
+        : []
+    const metaFromPayload = payload.meta && typeof payload.meta === "object" ? payload.meta : {}
+    const meta =
+      typeof metaFromPayload.unreadCount === "number"
+        ? metaFromPayload
+        : {
+            ...metaFromPayload,
+            unreadCount:
+              typeof payload.unreadCount === "number" ? payload.unreadCount : undefined,
+          }
+
+    return { items, meta }
+  }
 
   const refreshNotifications = useCallback(async (options?: { force?: boolean }) => {
     if (!session?.user?.id) {
@@ -80,10 +109,14 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
         throw new Error('Failed to load notifications')
       }
 
-      const data = await response.json()
-      const list = Array.isArray(data.notifications) ? data.notifications.map(mapNotification) : []
+      const responseJson = await response.json()
+      const normalized = normalizeNotificationsPayload(responseJson)
+      const list = normalized.items.map(mapNotification)
       setNotifications(list)
-      setUnreadCount(data.unreadCount ?? list.filter((n: NotificationItem) => !n.isRead).length)
+      setUnreadCount(
+        normalized.meta?.unreadCount ??
+          list.filter((n: NotificationItem) => !n.isRead).length
+      )
       lastLoadedAtRef.current = Date.now()
     } catch (err) {
       setError('Failed to load notifications')
@@ -102,22 +135,32 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
   }, [refreshNotifications])
 
   const toggleNotificationRead = useCallback(async (notificationId: string, isRead: boolean) => {
-    const response = await fetch('/api/notifications', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ notificationId, isRead }),
-    })
-
-    if (!response.ok) {
-      throw new Error('Failed to update notification')
+    if (isRead) {
+      const response = await fetch('/api/notifications/read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationId }),
+      })
+      if (!response.ok) {
+        throw new Error('Failed to update notification')
+      }
+    } else {
+      const response = await fetch('/api/notifications', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationId, isRead }),
+      })
+      if (!response.ok) {
+        throw new Error('Failed to update notification')
+      }
     }
 
     await refreshNotifications({ force: true })
   }, [refreshNotifications])
 
   const markAllAsRead = useCallback(async () => {
-    const response = await fetch('/api/notifications', {
-      method: 'PUT',
+    const response = await fetch('/api/notifications/read', {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ markAllAsRead: true }),
     })

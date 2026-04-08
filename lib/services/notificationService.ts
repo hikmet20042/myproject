@@ -10,6 +10,8 @@ interface CreateNotificationParams {
   message: string
   actionUrl?: string
   data?: Record<string, any>
+  relatedItemId?: string
+  relatedItemType?: 'event' | 'vacancy' | 'blog'
 }
 
 /**
@@ -36,6 +38,8 @@ export class NotificationService {
           message: params.message,
           action_url: params.actionUrl,
           data: params.data || {},
+          related_item_id: params.relatedItemId || null,
+          related_item_type: params.relatedItemType || null,
           is_read: false
         })
         .select('*')
@@ -98,12 +102,12 @@ export class NotificationService {
   ) {
     const isApproved = status === 'approved'
     const title = isApproved
-      ? '✅ Your Story Was Approved!'
-      : '⚠️ Your Story Needs Revision'
+      ? 'Blog approved'
+      : 'Blog rejected'
     
     const message = isApproved
-      ? `Congratulations! Your story "${blogTitle}" has been approved and is now visible to the community.`
-      : `Your story "${blogTitle}" was not approved. ${adminComment ? `Reason: ${adminComment}` : 'Please review and resubmit.'}`
+      ? `"${blogTitle}" has been approved and is now visible.`
+      : `"${blogTitle}" was rejected.${adminComment ? ` Reason: ${adminComment}` : ''}`
     
     return this.createNotification({
       userId,
@@ -113,6 +117,7 @@ export class NotificationService {
       actionUrl: `/blogs/${blogId}`,
       data: {
         blogId,
+        title: blogTitle,
         blogTitle,
         status,
         adminComment
@@ -200,9 +205,9 @@ export class NotificationService {
     try {
       const supabase = createSupabaseAdminClient()
       const { data: admins } = await supabase
-        .from('users')
+        .from('accounts')
         .select('id')
-        .eq('role', 'admin')
+        .eq('is_admin', true)
       
       if (!admins || admins.length === 0) return
 
@@ -285,16 +290,22 @@ export class NotificationService {
       const sevenDaysFromNow = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
       const supabase = createSupabaseAdminClient()
 
-      const { data: users } = await supabase
-        .from('users')
-        .select('id, saved_events')
+      const { data: saveRows } = await supabase
+        .from('content_saves')
+        .select('user_id, content_id')
+        .eq('content_type', 'event')
 
-      const usersWithSavedEvents = (users || []).filter(user =>
-        Array.isArray(user.saved_events) && user.saved_events.length > 0
-      )
+      const savesByUser = new Map<string, string[]>()
+      for (const row of saveRows || []) {
+        const userId = row.user_id as string | undefined
+        const eventId = row.content_id as string | undefined
+        if (!userId || !eventId) continue
+        const list = savesByUser.get(userId) || []
+        list.push(eventId)
+        savesByUser.set(userId, list)
+      }
 
-      for (const user of usersWithSavedEvents) {
-        const savedEvents = user.saved_events as string[]
+      for (const [userId, savedEvents] of Array.from(savesByUser.entries())) {
         const { data: upcomingEvents } = await supabase
           .from('events')
           .select('id, title, application_deadline')
@@ -311,7 +322,7 @@ export class NotificationService {
         const { data: recentNotifications } = await supabase
           .from('notifications')
           .select('data')
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
           .eq('type', 'event_deadline')
           .gte('created_at', since)
 
@@ -332,7 +343,7 @@ export class NotificationService {
             : 0
 
           await this.createNotification({
-            userId: user.id,
+            userId: userId,
             type: 'event_deadline',
             title: 'Event deadline approaching',
             message: `The application deadline for "${event.title}" is in ${daysUntilDeadline} day${daysUntilDeadline > 1 ? 's' : ''}`,
@@ -349,11 +360,177 @@ export class NotificationService {
 
       return {
         success: true,
-        usersChecked: usersWithSavedEvents.length
+        usersChecked: savesByUser.size
       };
     } catch (error) {
       console.error('Error checking event deadlines:', error);
       throw error;
+    }
+  }
+
+  static async notifyOrganizationFollowersAboutNewContent(params: {
+    organizationId: string
+    organizationName: string
+    contentType: 'event' | 'vacancy'
+    contentId: string
+    contentTitle: string
+  }) {
+    try {
+      const supabase = createSupabaseAdminClient()
+      const { data: followers } = await supabase
+        .from('organization_followers')
+        .select('user_id')
+        .eq('organization_id', params.organizationId)
+
+      const followerIds = (followers || [])
+        .map((row) => row.user_id)
+        .filter(Boolean)
+
+      if (followerIds.length === 0) {
+        return
+      }
+
+      const type = params.contentType === 'event' ? 'organization_new_event' : 'organization_new_vacancy'
+      const title = params.contentType === 'event' ? 'New Event from Followed Organization' : 'New Vacancy from Followed Organization'
+      const message = `${params.organizationName} posted: "${params.contentTitle}"`
+      const actionUrl = `/organizations/${params.organizationId}`
+
+      const insertPayload = followerIds.map((userId) => ({
+        user_id: userId,
+        type,
+        title,
+        message,
+        action_url: actionUrl,
+        data: {
+          organizationId: params.organizationId,
+          organizationName: params.organizationName,
+          contentType: params.contentType,
+          contentId: params.contentId,
+          contentTitle: params.contentTitle,
+        },
+        is_read: false,
+      }))
+
+      const { data: createdNotifications } = await supabase
+        .from('notifications')
+        .insert(insertPayload)
+        .select('*')
+
+      const rows = createdNotifications || []
+      for (const notification of rows) {
+        emitNotificationToUser(notification.user_id, {
+          id: notification.id,
+          type: notification.type,
+          title: notification.title,
+          message: notification.message,
+          actionUrl: notification.action_url,
+          data: notification.data,
+          isRead: notification.is_read,
+          createdAt: notification.created_at,
+        })
+        await sendSSENotification(notification.user_id, {
+          id: notification.id,
+          type: notification.type,
+          title: notification.title,
+          message: notification.message,
+          actionUrl: notification.action_url,
+          data: notification.data,
+          isRead: notification.is_read,
+          createdAt: notification.created_at,
+        })
+      }
+    } catch (error) {
+      console.error('Error notifying organization followers:', error)
+    }
+  }
+
+  static async notifyUsersAboutRelevantItem(params: {
+    itemType: 'event' | 'vacancy' | 'blog'
+    itemId: string
+    title: string
+    description?: string
+    tags?: string[]
+    actionUrl: string
+  }) {
+    try {
+      const supabase = createSupabaseAdminClient()
+      const haystack = `${params.title} ${params.description || ''} ${(params.tags || []).join(' ')}`.toLowerCase()
+
+      const { data: profiles, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('user_id, interests')
+
+      if (profileError || !profiles?.length) return
+
+      const interestedUserIds = profiles
+        .filter((profile: any) => {
+          const interests = Array.isArray(profile.interests) ? profile.interests.map((i: string) => i.toLowerCase()) : []
+          if (interests.length === 0) return false
+          return interests.some((interest: string) => haystack.includes(interest))
+        })
+        .map((profile: any) => profile.user_id)
+        .filter(Boolean)
+
+      if (interestedUserIds.length === 0) return
+
+      const { data: existingRows } = await supabase
+        .from('notifications')
+        .select('user_id')
+        .eq('type', 'NEW_RELEVANT_ITEM')
+        .eq('related_item_id', params.itemId)
+        .eq('related_item_type', params.itemType)
+        .in('user_id', interestedUserIds)
+
+      const existingUserSet = new Set((existingRows || []).map((row: any) => row.user_id))
+      const targetUserIds = interestedUserIds.filter((id: string) => !existingUserSet.has(id))
+      if (targetUserIds.length === 0) return
+
+      const payload = targetUserIds.map((userId: string) => ({
+        user_id: userId,
+        type: 'NEW_RELEVANT_ITEM',
+        title: 'Sənin maraqlarına uyğun yeni imkan var',
+        message: params.title,
+        action_url: params.actionUrl,
+        data: {
+          itemId: params.itemId,
+          itemType: params.itemType,
+          title: params.title,
+        },
+        related_item_id: params.itemId,
+        related_item_type: params.itemType,
+        is_read: false,
+      }))
+
+      const { data: createdNotifications } = await supabase
+        .from('notifications')
+        .insert(payload)
+        .select('*')
+
+      const rows = createdNotifications || []
+      for (const row of rows) {
+        emitNotificationToUser(row.user_id, {
+          id: row.id,
+          type: row.type,
+          title: row.title,
+          message: row.message,
+          actionUrl: row.action_url,
+          data: row.data,
+          isRead: row.is_read,
+          createdAt: row.created_at,
+        })
+        await sendSSENotification(row.user_id, {
+          id: row.id,
+          type: row.type,
+          title: row.title,
+          message: row.message,
+          actionUrl: row.action_url,
+          data: row.data,
+          isRead: row.is_read,
+          createdAt: row.created_at,
+        })
+      }
+    } catch (error) {
+      console.error('Error notifying relevant users:', error)
     }
   }
 
@@ -364,12 +541,17 @@ export class NotificationService {
     return this.createNotification({
       userId: blogAuthorId,
       type: 'blog_like',
-      title: 'Someone liked your blog',
+      title: 'Blog liked',
       message: `${likedByName} liked your blog "${blogTitle}"`,
       actionUrl: `/blogs/${blogId}`,
       data: {
         blogId,
+        title: blogTitle,
         blogTitle,
+        actor: {
+          id: likedBy,
+          name: likedByName
+        },
         likedBy,
         likedByName
       }
@@ -383,12 +565,17 @@ export class NotificationService {
     return this.createNotification({
       userId: blogAuthorId,
       type: 'blog_dislike',
-      title: 'Someone disliked your blog',
+      title: 'Blog disliked',
       message: `${dislikedByName} disliked your blog "${blogTitle}"`,
       actionUrl: `/blogs/${blogId}`,
       data: {
         blogId,
+        title: blogTitle,
         blogTitle,
+        actor: {
+          id: dislikedBy,
+          name: dislikedByName
+        },
         dislikedBy,
         dislikedByName
       }

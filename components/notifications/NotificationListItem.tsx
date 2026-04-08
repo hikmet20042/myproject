@@ -31,6 +31,9 @@ function formatRelativeTime(dateString: string) {
 function getNotificationTypeLabel(type: string) {
   const typeKey = type.toUpperCase().replace("-", "_");
   const typeLabels: Record<string, string> = {
+    NEW_RELEVANT_ITEM: "Yeni uyğun imkan",
+    SAVED_ITEM_UPDATE: "Saxlanılan imkan yeniliyi",
+    SYSTEM: "Sistem bildirişi",
     BLOG_LIKE: "Bloq Bəyənməsi",
     BLOG_DISLIKE: "Bloq Bəyənməməsi",
     COMMENT_ADDED: "Yeni Şərh",
@@ -56,6 +59,12 @@ function getNotificationTypeColor(type: string) {
       return "text-blue-700";
     case "event_deadline":
       return "text-amber-700";
+    case "NEW_RELEVANT_ITEM":
+    case "new_relevant_item":
+      return "text-emerald-700";
+    case "SYSTEM":
+    case "system":
+      return "text-slate-700";
     default:
       return "text-slate-500";
   }

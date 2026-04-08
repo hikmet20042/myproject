@@ -321,7 +321,7 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
                 <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-100">
                   <Bell className="h-8 w-8 text-blue-300" />
                 </div>
-                <p className="text-sm font-semibold text-slate-700">{'No notifications yet'}</p>
+                <p className="text-sm font-semibold text-slate-700">{'Hələ bildiriş yoxdur'}</p>
                 <p className="text-xs text-slate-400 mt-1">{'Yeni bildirişlər burada görünəcək'}</p>
               </div>
             ) : (

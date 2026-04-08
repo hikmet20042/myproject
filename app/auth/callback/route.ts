@@ -17,6 +17,12 @@ export async function GET(request: NextRequest) {
 
     const { data } = await supabase.auth.getUser()
     if (data?.user) {
+      const provider = data.user.app_metadata?.provider
+
+      if (provider !== 'google') {
+        return NextResponse.redirect(new URL(next, url.origin))
+      }
+
       const adminSupabase = createSupabaseAdminClient()
 
       const { data: existingAccount } = await adminSupabase
@@ -44,11 +50,6 @@ export async function GET(request: NextRequest) {
 
       const accountType = account?.account_type as 'user' | 'organization' | undefined
       const role = account?.is_admin ? 'admin' : 'user'
-
-      if (accountType === 'organization') {
-        await supabase.auth.signOut()
-        return NextResponse.redirect(new URL('/auth/signin?message=Organization%20accounts%20cannot%20use%20Google%20sign-in', url.origin))
-      }
 
       await adminSupabase
         .from('users')

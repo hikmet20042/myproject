@@ -25,13 +25,13 @@ export default function TabNavigation({ handleTabChange, loadingTab, activeTab, 
         <button
           onClick={() => handleTabChange('profile')}
           disabled={loadingTab !== null}
-          className={`flex-1 min-w-[120px] group relative py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-300 ${activeTab === 'profile'
-              ? 'bg-blue-50 text-blue-700'
+            className={`flex-1 min-w-[120px] group relative py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-300 ${activeTab === 'profile'
+              ? 'brand-active-state'
               : 'text-gray-600 hover:bg-slate-50 hover:text-gray-900' } ${loadingTab !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           <div className="flex items-center justify-center gap-2">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${activeTab === 'profile'
-                ? 'bg-blue-600 text-white shadow-md'
+                ? 'brand-gradient text-white shadow-md'
                 : 'bg-white border border-blue-100 text-gray-500 group-hover:border-blue-200 group-hover:text-blue-600' }`}>
               <User className="w-4 h-4" />
             </div>
@@ -46,13 +46,13 @@ export default function TabNavigation({ handleTabChange, loadingTab, activeTab, 
           <button
             onClick={() => handleTabChange('blogs')}
             disabled={loadingTab !== null}
-            className={`flex-1 min-w-[120px] group relative py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-300 ${activeTab === 'blogs'
-                ? 'bg-emerald-50 text-emerald-700'
+              className={`flex-1 min-w-[120px] group relative py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-300 ${activeTab === 'blogs'
+                ? 'brand-active-state'
                 : 'text-gray-600 hover:bg-slate-50 hover:text-gray-900' } ${loadingTab !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <div className="flex items-center justify-center gap-2">
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${activeTab === 'blogs'
-                  ? 'bg-emerald-600 text-white shadow-md'
+                  ? 'brand-gradient text-white shadow-md'
                   : 'bg-white border border-blue-100 text-gray-500 group-hover:border-emerald-200 group-hover:text-emerald-600' }`}>
                 <FileText className="w-4 h-4" />
               </div>
@@ -68,12 +68,12 @@ export default function TabNavigation({ handleTabChange, loadingTab, activeTab, 
           onClick={() => handleTabChange('notifications')}
           disabled={loadingTab !== null}
           className={`flex-1 min-w-[120px] group relative py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-300 ${activeTab === 'notifications'
-              ? 'bg-cyan-50 text-cyan-700'
+              ? 'brand-active-state'
               : 'text-gray-600 hover:bg-slate-50 hover:text-gray-900' } ${loadingTab !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           <div className="flex items-center justify-center gap-2">
             <div className={`relative w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${activeTab === 'notifications'
-                ? 'bg-cyan-600 text-white shadow-md'
+                ? 'brand-gradient text-white shadow-md'
                 : 'bg-white border border-blue-100 text-gray-500 group-hover:border-cyan-200 group-hover:text-cyan-600' }`}>
               <Bell className="w-4 h-4" />
               {notifications.filter(n => !n.isRead).length > 0 && (
@@ -93,12 +93,12 @@ export default function TabNavigation({ handleTabChange, loadingTab, activeTab, 
           onClick={() => handleTabChange('settings')}
           disabled={loadingTab !== null}
           className={`flex-1 min-w-[120px] group relative py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-300 ${activeTab === 'settings'
-              ? 'bg-teal-50 text-teal-700'
+              ? 'brand-active-state'
               : 'text-gray-600 hover:bg-slate-50 hover:text-gray-900' } ${loadingTab !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           <div className="flex items-center justify-center gap-2">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${activeTab === 'settings'
-                ? 'bg-teal-600 text-white shadow-md'
+                ? 'brand-gradient text-white shadow-md'
                 : 'bg-white border border-blue-100 text-gray-500 group-hover:border-teal-200 group-hover:text-teal-600' }`}>
               <Settings className="w-4 h-4" />
             </div>

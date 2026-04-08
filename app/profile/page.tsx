@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, Suspense, useRef } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "@/lib/auth/client";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -30,6 +31,12 @@ import { LoadingState, ErrorState, StatusBadge } from "@/components/shared";
 import { useLocalizedPath } from "@/lib/useLocalizedPath";
 import { Alert } from "@/components/feedback";
 import { useNotificationContext } from "@/components/NotificationContext";
+import { isAdmin, isApprovedOrganization, isOrganization } from "@/lib/auth/permissions";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { blogQueryKeys, deleteBlog as deleteBlogRequest, fetchUserBlogs } from "@/lib/blogQueries";
+import { ApiError } from "@/lib/apiClient";
+import { getUserErrorMessage } from "@/lib/errorMessages";
+import { useGlobalFeedback } from "@/lib/useGlobalFeedback";
 
 interface NotificationItem {
   id?: string;
@@ -83,6 +90,14 @@ interface UserProfile {
 
 function ProfilePageContent() {
   const localePath = useLocalizedPath();
+  const { showSuccess, showError } = useGlobalFeedback();
+  const logApiError = (label: string, error: unknown) => {
+    if (error instanceof ApiError && error.code) {
+      console.error(`${label} code:`, error.code, error.details);
+      return;
+    }
+    console.error(label, error);
+  };
 
   // Notification modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -125,14 +140,44 @@ function ProfilePageContent() {
   const [loading, setLoading] = useState(true);
   const [profileLoadError, setProfileLoadError] = useState("");
   const [statsLoadError, setStatsLoadError] = useState("");
-  const [blogsLoadError, setBlogsLoadError] = useState("");
 
   // Tab switching state - track which tab is being loaded
   const [loadingTab, setLoadingTab] = useState<string | null>(null);
 
   // State for tab content
-  const [blogs, setBlogs] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const queryClient = useQueryClient();
+
+  const normalizeNotificationsPayload = useCallback((responseJson: any) => {
+    const payload = responseJson?.data || {};
+    const items = Array.isArray(payload.items)
+      ? payload.items
+      : Array.isArray(payload.notifications)
+        ? payload.notifications
+        : [];
+    const metaFromPayload =
+      payload.meta && typeof payload.meta === "object" ? payload.meta : {};
+    const meta =
+      typeof metaFromPayload.unreadCount === "number"
+        ? metaFromPayload
+        : {
+            ...metaFromPayload,
+            unreadCount:
+              typeof payload.unreadCount === "number"
+                ? payload.unreadCount
+                : undefined,
+          };
+
+    return { items, meta };
+  }, []);
+
+  const userBlogsQuery = useQuery({
+    queryKey: blogQueryKeys.user,
+    queryFn: fetchUserBlogs,
+    enabled: status === "authenticated" && activeTab === "blogs",
+  });
+
+  const blogs = userBlogsQuery.data?.items || [];
 
   // Load functions
   const loadProfileStats = useCallback(async () => {
@@ -140,9 +185,13 @@ function ProfilePageContent() {
       setStatsLoadError("");
       const response = await fetch("/api/users/profile/stats");
       if (response.ok) {
-        const data = await response.json();
-        setProfileStats(data.stats);
-        setAchievements(data.stats.achievements || []);
+        const responseJson = await response.json();
+        const stats = responseJson?.data?.stats;
+        if (!stats) {
+          throw new Error("Stats payload is empty");
+        }
+        setProfileStats(stats);
+        setAchievements(stats.achievements || []);
       } else {
         // Fallback to calculated stats
 
@@ -152,41 +201,26 @@ function ProfilePageContent() {
           lastActive: new Date().toISOString(),
           writingStreak: Math.floor(Math.random() * 30) + 1,
         });
-        setStatsLoadError("Something went wrong. Please try again.");
+        setStatsLoadError(getUserErrorMessage(null));
       }
     } catch (error) {
-      console.error("Error loading profile stats:", error);
-      setStatsLoadError("Something went wrong. Please try again.");
+      logApiError("Error loading profile stats:", error);
+      setStatsLoadError(getUserErrorMessage(error));
     }
   }, [blogs.length, profile?.user?.createdAt]);
-
-  const loadUserBlogs = useCallback(async () => {
-    try {
-      setBlogsLoadError("");
-      const response = await fetch("/api/blogs/user");
-      if (response.ok) {
-        const data = await response.json();
-        setBlogs(data.results || []);
-      } else {
-        setBlogsLoadError("Something went wrong. Please try again.");
-      }
-    } catch (error) {
-      console.error("Error loading user blogs:", error);
-      setBlogsLoadError("Something went wrong. Please try again.");
-    }
-  }, []);
 
   const loadNotifications = useCallback(async () => {
     try {
       const response = await fetch("/api/notifications");
       if (response.ok) {
-        const data = await response.json();
-        setNotifications(data.notifications || []);
+        const responseJson = await response.json();
+        const normalized = normalizeNotificationsPayload(responseJson);
+        setNotifications(normalized.items);
       }
     } catch (error) {
       console.error("Error loading notifications:", error);
     }
-  }, []);
+  }, [normalizeNotificationsPayload]);
 
   const toggleNotificationRead = useCallback(async (notificationId: string, isRead: boolean) => {
     try {
@@ -225,11 +259,6 @@ function ProfilePageContent() {
   const loadTabData = useCallback(
     async (tab: string) => {
       switch (tab) {
-        case "blogs":
-          if (blogs.length === 0) {
-            await loadUserBlogs();
-          }
-          break;
         case "notifications":
           await loadNotifications();
           break;
@@ -237,7 +266,7 @@ function ProfilePageContent() {
           break;
       }
     },
-    [blogs.length, loadUserBlogs, loadNotifications],
+    [loadNotifications],
   );
 
   // Handle tab change - just update URL, let effect handle loading
@@ -256,7 +285,6 @@ function ProfilePageContent() {
     id: string;
     title: string;
   } | null>(null);
-  const [deleting, setDeleting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     bio: "",
@@ -299,7 +327,7 @@ function ProfilePageContent() {
     // Load data if not already loaded based on our ref tracking
     if (status === "authenticated") {
       const shouldLoad =
-        newTab === "blogs" &&
+        newTab === "notifications" &&
         !loadedTabsRef.current.has(newTab);
 
       if (shouldLoad && !loadingTab) {
@@ -313,23 +341,21 @@ function ProfilePageContent() {
     }
   }, [getActiveTabFromUrl, activeTab, status, loadTabData, loadingTab]); // Removed data lengths from dependencies
 
-  const deleteBlog = async (id: string) => {
-    setDeleting(true);
-    try {
-      const response = await fetch(`/api/blogs?id=${id}`, { method: "DELETE" });
-      if (response.ok) {
-        setBlogs(blogs.filter((blog) => blog._id !== id));
-        setDeleteConfirm(null);
-      } else {
-        const data = await response.json();
-        alert(data.error || "Bloq silinmədi");
-      }
-    } catch (error) {
-      console.error("Error deleting blog:", error);
-      alert("Bloq silinmədi");
-    } finally {
-      setDeleting(false);
-    }
+  const deleteBlogMutation = useMutation({
+    mutationFn: (id: string) => deleteBlogRequest(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: blogQueryKeys.user });
+      queryClient.invalidateQueries({ queryKey: blogQueryKeys.all });
+      setDeleteConfirm(null);
+    },
+    onError: (error: any) => {
+      logApiError("Delete blog error:", error);
+      showError(getUserErrorMessage(error));
+    },
+  });
+
+  const deleteBlog = (id: string) => {
+    deleteBlogMutation.mutate(id);
   };
 
   // Handle notification parameter from URL (when coming from header dropdown)
@@ -355,41 +381,45 @@ function ProfilePageContent() {
       setProfileLoadError("");
       const response = await fetch("/api/users/profile");
       if (response.ok) {
-        const data = await response.json();
-        setProfile(data);
+        const responseJson = await response.json();
+        const payload = responseJson?.data;
+        if (!payload?.user) {
+          throw new Error("Profile payload is empty");
+        }
+        setProfile(payload);
         setFormData({
-          name: data.user.name || "",
-          bio: data.profile?.bio || "",
-          location: data.profile?.location || "",
-          website: data.profile?.website || "",
-          phone: data.profile?.phone || "",
-          dateOfBirth: data.profile?.dateOfBirth || "",
-          gender: data.profile?.gender || "",
-          occupation: data.profile?.occupation || "",
-          organization: data.profile?.organization || "",
-          interests: data.profile?.interests || "",
-          avatar: data.profile?.avatarUrl || data.profile?.avatar || "",
+          name: payload.user.name || "",
+          bio: payload.profile?.bio || "",
+          location: payload.profile?.location || "",
+          website: payload.profile?.website || "",
+          phone: payload.profile?.phone || "",
+          dateOfBirth: payload.profile?.dateOfBirth || "",
+          gender: payload.profile?.gender || "",
+          occupation: payload.profile?.occupation || "",
+          organization: payload.profile?.organization || "",
+          interests: payload.profile?.interests || "",
+          avatar: payload.profile?.avatarUrl || payload.profile?.avatar || "",
           socialMedia: {
-            facebook: data.profile?.socialMedia?.facebook || "",
-            twitter: data.profile?.socialMedia?.twitter || "",
-            instagram: data.profile?.socialMedia?.instagram || "",
-            linkedin: data.profile?.socialMedia?.linkedin || "",
-            youtube: data.profile?.socialMedia?.youtube || "",
-            website: data.profile?.socialMedia?.website || "",
+            facebook: payload.profile?.socialMedia?.facebook || "",
+            twitter: payload.profile?.socialMedia?.twitter || "",
+            instagram: payload.profile?.socialMedia?.instagram || "",
+            linkedin: payload.profile?.socialMedia?.linkedin || "",
+            youtube: payload.profile?.socialMedia?.youtube || "",
+            website: payload.profile?.socialMedia?.website || "",
           },
-          socialLinks: data.profile?.socialLinks || "",
+          socialLinks: payload.profile?.socialLinks || "",
           // Organization-specific fields
-          registrationNumber: data.profile?.registrationNumber || "",
-          focusAreas: data.profile?.focusAreas || [],
-          status: data.profile?.status || "",
-          contactPerson: data.profile?.contactPerson || "",
+          registrationNumber: payload.profile?.registrationNumber || "",
+          focusAreas: payload.profile?.focusAreas || [],
+          status: payload.profile?.status || "",
+          contactPerson: payload.profile?.contactPerson || "",
         });
       } else {
-        setProfileLoadError("Failed to load data. Please try again.");
+        setProfileLoadError(getUserErrorMessage(null));
       }
     } catch (error) {
-      console.error("Error loading profile:", error);
-      setProfileLoadError("Failed to load data. Please try again.");
+      logApiError("Error loading profile:", error);
+      setProfileLoadError(getUserErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -432,16 +462,17 @@ function ProfilePageContent() {
         setEditing(false);
         await loadProfile();
         // Show success message
-        alert("Profil uğurla yeniləndi!");
+        showSuccess("Profil uğurla yeniləndi!");
       } else {
         console.error("Save failed:", result);
-        alert(
-          `${"Profil yadda saxlanmadı"}: ${result.error || "Naməlum xəta"}`,
-        );
+        if (result?.error?.code) {
+          console.error("Save profile API error code:", result.error.code, result.error.details);
+        }
+        showError(`${"Profil yadda saxlanmadı"}: ${getUserErrorMessage(result?.error)}`);
       }
     } catch (error) {
-      console.error("Error saving profile:", error);
-      alert("Profil yadda saxlanmadı");
+      logApiError("Error saving profile:", error);
+      showError(getUserErrorMessage(error));
     }
   };
 
@@ -490,22 +521,35 @@ function ProfilePageContent() {
     setResendSuccess("");
     setResendError("");
     try {
-      const res = await fetch("/api/auth/verify-request", { method: "POST" });
-      const data = await res.json();
-      if (res.ok) {
-        setResendSuccess("Təsdiq e-poçtu göndərildi! Gələnlər qutunu yoxla.");
-      } else {
-        setResendError(data.error || "Təsdiq e-poçtu göndərilmədi");
+      const targetEmail = profile?.user?.email || session?.user?.email;
+      if (!targetEmail) {
+        setResendError("E-poçt ünvanı tapılmadı");
+        return;
       }
+      const supabase = createSupabaseBrowserClient();
+      const appUrl = window.location.origin;
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: targetEmail,
+        options: {
+          emailRedirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent("/auth/verify-email?verified=1")}`,
+        },
+      });
+      if (error) {
+        setResendError(getUserErrorMessage(error));
+        return;
+      }
+      setResendSuccess("Təsdiq e-poçtu göndərildi! Gələnlər qutunu yoxla.");
     } catch (e) {
-      setResendError("Təsdiq e-poçtu göndərilmədi");
+      logApiError("Resend verification error:", e);
+      setResendError(getUserErrorMessage(e));
     } finally {
       setResendLoading(false);
     }
   };
 
   // Block submit if not verified
-  const isUnverified = profile && !profile.user.emailVerified;
+  const isUnverified = Boolean(profile?.user) && !profile?.user?.emailVerified;
 
   // Only one main return at the end of the component
   return (
@@ -521,7 +565,7 @@ function ProfilePageContent() {
               <div className="relative h-24 w-24 sm:h-32 sm:w-32 rounded-full bg-primary flex items-center justify-center text-white text-3xl sm:text-5xl font-black shadow-md ring-4 ring-white">
                 {profile.user.name?.charAt(0).toUpperCase() || "U"}
               </div>
-              {profile.user.role === "admin" && (
+              {isAdmin(session) && (
                 <div className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-amber-100 border border-amber-300 flex items-center justify-center shadow-sm ring-4 ring-white">
                   <Shield className="w-5 h-5 text-amber-700" />
                 </div>
@@ -553,13 +597,13 @@ function ProfilePageContent() {
                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
                   {"Aktiv"}
                 </span>
-                {profile.user.role === "admin" && (
+                {isAdmin(session) && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-blue-100 text-blue-800">
                     <Shield className="w-4 h-4" />
                     {"Admin"}
                   </span>
                 )}
-                {session?.user?.accountType === 'organization' && session?.user?.organizationStatus === 'approved' && (
+                {isApprovedOrganization(session) && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-blue-100 text-blue-800">
                     <Award className="w-4 h-4" />
                     {"Təşkilat Hesabı"}
@@ -581,11 +625,6 @@ function ProfilePageContent() {
         {statsLoadError && (
           <div className="mb-4">
             <Alert variant="error">{statsLoadError}</Alert>
-          </div>
-        )}
-        {activeTab === "blogs" && blogsLoadError && (
-          <div className="mb-4">
-            <Alert variant="error">{blogsLoadError}</Alert>
           </div>
         )}
         <div className="pb-6 sm:pb-12">
@@ -647,7 +686,7 @@ function ProfilePageContent() {
             activeTab={activeTab}
             notifications={notifications}
             userRole={profile?.user?.role}
-            isOrganization={session?.user?.accountType === 'organization' && session?.user?.organizationStatus === 'approved'}
+            isOrganization={isApprovedOrganization(session)}
           />
 
           {/* Profile Tab */}
@@ -664,10 +703,13 @@ function ProfilePageContent() {
           )}
 
           {/* Blogs Tab */}
-          {activeTab === "blogs" && session?.user?.accountType === 'organization' && session?.user?.organizationStatus !== 'approved' && (
+          {activeTab === "blogs" && isOrganization(session) && !isApprovedOrganization(session) && (
             <Blogs
-              loadingTab={loadingTab}
+              loadingTab={loadingTab || (userBlogsQuery.isLoading ? "blogs" : null)}
               blogs={blogs}
+              isLoading={userBlogsQuery.isLoading}
+              isError={userBlogsQuery.isError}
+              onRetry={() => userBlogsQuery.refetch()}
               getStatusIcon={getStatusIcon}
               getStatusColor={getStatusColor}
               setDeleteConfirm={setDeleteConfirm}
@@ -756,11 +798,11 @@ function ProfilePageContent() {
                       </Dialog.Close>
                       <Button
                         onClick={() => deleteBlog(deleteConfirm.id)}
-                        disabled={deleting}
+                        disabled={deleteBlogMutation.isPending}
                         variant="danger"
                         className="w-full sm:w-auto order-1 sm:order-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-400 disabled:to-gray-500"
                       >
-                        {deleting ? (
+                        {deleteBlogMutation.isPending ? (
                           <>
                             <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
                             {"Silinir..."}

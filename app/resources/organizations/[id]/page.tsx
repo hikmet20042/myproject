@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
@@ -11,9 +12,12 @@ import { ArrowLeft, MapPin, Globe, Mail, Phone, ExternalLink, CheckCircle } from
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
 import { LoadingState, ErrorState } from '@/components/shared';
 import { ORGANIZATION_TYPE_LABELS } from '@/lib/organizationTypes'
+import { fetchOrganizationById } from '@/lib/organizationQueries'
+import { logError } from '@/lib/logger'
 
 interface Organization { _id: string
   organizationName: string
+  profileImage?: string
   organizationType?: string
   description: string
   website?: string
@@ -46,12 +50,17 @@ export default function OrganizationDetailPage() { const localePath = useLocaliz
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => { const fetchOrganization = async () => { try { const response = await fetch(`/api/organizations/${params?.id}`)
-      if (!response.ok) { throw new Error('Təşkilat tapılmadı') }
-        const data = await response.json()
-      setOrganization(data.organization) } catch (err) { setError('Təşkilat məlumatları yüklənmədi') } finally { setLoading(false) } }
+  useEffect(() => { const loadOrganization = async () => { try {
+      const id = typeof params?.id === 'string' ? params.id : ''
+      if (!id) { throw new Error('Təşkilat tapılmadı') }
+      const result = await fetchOrganizationById(id)
+      setOrganization(result.organization)
+    } catch (err) {
+      logError('Organization detail API error', err)
+      setError('Məlumatları yükləyərkən problem baş verdi')
+    } finally { setLoading(false) } }
 
-    if (params?.id) { fetchOrganization() } }, [params?.id])
+    if (params?.id) { loadOrganization() } }, [params?.id])
 
   if (loading) { return (
       <LoadingState 
@@ -102,11 +111,22 @@ export default function OrganizationDetailPage() { const localePath = useLocaliz
             {/* Organization Header Info */}
             <div className="flex flex-col lg:flex-row lg:items-start gap-8">
               <div className="flex-shrink-0">
-                <div className="w-20 h-20 bg-primary rounded-xl flex items-center justify-center shadow-md ring-4 ring-white">
-                  <span className="text-2xl font-bold text-white">
-                    {organization.organizationName.charAt(0).toUpperCase()}
-                  </span>
-                </div>
+                {organization.profileImage ? (
+                  <div className="relative w-20 h-20 rounded-xl overflow-hidden shadow-md ring-4 ring-white bg-white">
+                    <Image
+                      src={organization.profileImage}
+                      alt={organization.organizationName}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-20 h-20 bg-primary rounded-xl flex items-center justify-center shadow-md ring-4 ring-white">
+                    <span className="text-2xl font-bold text-white">
+                      {organization.organizationName.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
               </div>
               
               <div className="flex-1">

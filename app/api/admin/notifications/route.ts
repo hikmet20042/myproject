@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { canAccessAdmin } from '@/lib/auth/permissions'
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,8 +10,8 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession()
-    if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session?.user || !canAccessAdmin(session)) {
+      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
     }
 
     const supabase = createSupabaseAdminClient()
@@ -44,7 +46,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Admin notifications fetch error:', error)
-      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+      return errorResponse('Internal server error', "API_ERROR", {}, 500)
     }
     const safeTotal = total ?? 0
     const totalPages = Math.ceil(safeTotal / limit)
@@ -65,7 +67,7 @@ export async function GET(request: NextRequest) {
       today: todayResult.count || 0
     }
 
-    return NextResponse.json({
+    return successResponse({
       notifications,
       pagination: {
         page,
@@ -77,7 +79,7 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Admin notifications fetch error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return errorResponse('Internal server error', "API_ERROR", {}, 500)
   }
 }
 
@@ -85,8 +87,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession()
-    if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session?.user || !canAccessAdmin(session)) {
+      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
     }
 
     const supabase = createSupabaseAdminClient()
@@ -94,7 +96,7 @@ export async function POST(request: NextRequest) {
     const { type, title, message, targetUsers, data } = body
 
     if (!type || !title || !message) {
-      return NextResponse.json({ error: 'Type, title, and message are required' }, { status: 400 })
+      return errorResponse('Type, title and message are required', "API_ERROR", {}, 400)
     }
 
     let userIds: string[] = []
@@ -109,7 +111,7 @@ export async function POST(request: NextRequest) {
       // Send to specific users
       userIds = targetUsers
     } else {
-      return NextResponse.json({ error: 'Invalid target users' }, { status: 400 })
+      return errorResponse('Invalid target users', "API_ERROR", {}, 400)
     }
 
     // Create notifications for all target users
@@ -126,16 +128,16 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error('Admin notification send error:', insertError)
-      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+      return errorResponse('Internal server error', "API_ERROR", {}, 500)
     }
 
-    return NextResponse.json({
+    return successResponse({
       message: `Notification sent to ${notifications.length} users`,
       count: notifications.length
     })
   } catch (error) {
     console.error('Admin notification send error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return errorResponse('Internal server error', "API_ERROR", {}, 500)
   }
 }
 
@@ -143,8 +145,8 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession()
-    if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session?.user || !canAccessAdmin(session)) {
+      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
     }
 
     const supabase = createSupabaseAdminClient()
@@ -162,7 +164,7 @@ export async function DELETE(request: NextRequest) {
       const { data: deletedRows } = await deleteQuery
         .select('id')
         .throwOnError()
-      return NextResponse.json({
+      return successResponse({
         message: `Deleted ${deletedRows?.length || 0} notifications`
       })
     } else if (notificationId) {
@@ -174,15 +176,15 @@ export async function DELETE(request: NextRequest) {
         .select('id')
         .single()
       if (error || !deleted) {
-        return NextResponse.json({ error: 'Notification not found' }, { status: 404 })
+        return errorResponse('Notification not found', "API_ERROR", {}, 404)
       }
-      return NextResponse.json({ message: 'Notification deleted successfully' })
+      return successResponse({ message: 'Notification deleted successfully' })
     } else {
-      return NextResponse.json({ error: 'Notification ID or deleteAll parameter required' }, { status: 400 })
+      return errorResponse('Notification ID or deleteAll parameter required', "API_ERROR", {}, 400)
     }
   } catch (error) {
     console.error('Admin notification delete error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return errorResponse('Internal server error', "API_ERROR", {}, 500)
   }
 }
 
@@ -190,8 +192,8 @@ export async function DELETE(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession()
-    if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session?.user || !canAccessAdmin(session)) {
+      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
     }
 
     const supabase = createSupabaseAdminClient()
@@ -211,13 +213,13 @@ export async function PUT(request: NextRequest) {
       const { data: updatedRows } = await updateQuery
         .select('id')
         .throwOnError()
-      return NextResponse.json({
+      return successResponse({
         message: `Marked ${updatedRows?.length || 0} notifications as read`
       })
     } else if (editAnnouncement && notificationId) {
       // Edit announcement content
       if (!title || !message) {
-        return NextResponse.json({ error: 'Title and message are required' }, { status: 400 })
+        return errorResponse('Title and message are required', "API_ERROR", {}, 400)
       }
 
       const { data: updated, error } = await supabase
@@ -232,10 +234,10 @@ export async function PUT(request: NextRequest) {
         .single()
       
       if (error || !updated) {
-        return NextResponse.json({ error: 'Announcement not found' }, { status: 404 })
+        return errorResponse('Announcement not found', "API_ERROR", {}, 404)
       }
       
-      return NextResponse.json({
+      return successResponse({
         message: 'Announcement updated successfully',
         notification: updated
       })
@@ -249,18 +251,18 @@ export async function PUT(request: NextRequest) {
         .single()
       
       if (error || !updated) {
-        return NextResponse.json({ error: 'Notification not found' }, { status: 404 })
+        return errorResponse('Notification not found', "API_ERROR", {}, 404)
       }
       
-      return NextResponse.json({
+      return successResponse({
         message: `Notification marked as ${isRead ? 'read' : 'unread'}`,
         notification: updated
       })
     } else {
-      return NextResponse.json({ error: 'Invalid request parameters' }, { status: 400 })
+      return errorResponse('Invalid request parameters', "API_ERROR", {}, 400)
     }
   } catch (error) {
     console.error('Admin notification update error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return errorResponse('Internal server error', "API_ERROR", {}, 500)
   }
 }

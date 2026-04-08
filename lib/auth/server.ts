@@ -6,7 +6,7 @@ export type AppSessionUser = {
   name?: string | null
   role: 'user' | 'admin'
   emailVerified?: boolean
-  accountType: 'user' | 'organization'
+  accountType: 'user' | 'organization' | null
   organizationStatus: 'pending' | 'approved' | 'rejected' | null
   isActive?: boolean
 }
@@ -30,7 +30,8 @@ export async function getServerSession() {
     .eq('id', user.id)
     .maybeSingle()
 
-  const accountType = account?.account_type as 'user' | 'organization' | undefined
+  // Canonical admin source of truth: public.accounts.is_admin.
+  const accountType = (account?.account_type ?? null) as 'user' | 'organization' | null
   const role: 'admin' | 'user' = account?.is_admin ? 'admin' : 'user'
 
   if (accountType === 'organization') {
@@ -99,7 +100,7 @@ export async function getServerSession() {
       name: profile?.name ?? user.user_metadata?.name ?? null,
       role,
       emailVerified: !!user.email_confirmed_at,
-      accountType: accountType === 'organization' ? 'organization' : 'user',
+      accountType,
       organizationStatus: null,
       isActive: account?.is_active ?? true,
     },

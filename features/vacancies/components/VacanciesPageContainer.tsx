@@ -12,6 +12,7 @@ import { Alert } from "@/components/feedback";
 import VacanciesList from "@/features/vacancies/components/VacanciesList";
 import VacancyDeleteDialog from "@/features/vacancies/components/VacancyDeleteDialog";
 import type { VacancyItem } from "@/features/vacancies/components/types";
+import { useDashboardData } from "@/components/dashboard/DashboardDataProvider";
 import {
   renderSectionByState,
   resolveSectionState,
@@ -25,11 +26,18 @@ import {
   compensationOptions,
 } from "@/features/vacancies/components/types";
 
+const VACANCIES_STALE_MS = 30_000;
+
 export default function VacanciesPageContainer() {
   const localePath = useLocalizedPath();
-  const [vacancies, setVacancies] = useState<VacancyItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const {
+    vacancies,
+    vacanciesLoading,
+    vacanciesError,
+    ensureFreshVacancies,
+    refreshVacancies,
+    removeVacancyById,
+  } = useDashboardData();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -41,29 +49,8 @@ export default function VacanciesPageContainer() {
   const [feedbackVariant, setFeedbackVariant] = useState<"success" | "error">("success");
 
   useEffect(() => {
-    void fetchVacancies();
-  }, []);
-
-  const fetchVacancies = async () => {
-    try {
-      setLoading(true);
-      setFetchError(null);
-      const response = await fetch(`/api/vacancies?author=me`);
-
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        setFetchError(payload.error || "Vakansiyaları yükləmək mümkün olmadı.");
-        return;
-      }
-
-      const data = await response.json();
-      setVacancies(data.vacancies || data || []);
-    } catch {
-      setFetchError("Vakansiyaları yükləmək mümkün olmadı.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    void ensureFreshVacancies(VACANCIES_STALE_MS);
+  }, [ensureFreshVacancies]);
 
   const handleDeleteRequest = (vacancy: VacancyItem) => {
     setFeedbackMessage(null);
@@ -81,7 +68,7 @@ export default function VacanciesPageContainer() {
       });
 
       if (response.ok) {
-        setVacancies((prev) => prev.filter((v) => v._id !== vacancyToDelete._id));
+        removeVacancyById(vacancyToDelete._id);
         setFeedbackVariant("success");
         setFeedbackMessage("Vacancy deleted successfully.");
         setDeleteModalOpen(false);
@@ -119,7 +106,7 @@ export default function VacanciesPageContainer() {
 
   const sectionState = resolveSectionState({
     dataState:
-      loading && vacancies.length === 0
+      vacanciesLoading && vacancies.length === 0
         ? "loading"
         : filteredVacancies.length === 0
           ? searchTerm.trim().length > 0 ||
@@ -129,8 +116,8 @@ export default function VacanciesPageContainer() {
             ? "filtered-empty"
             : "empty"
           : "success",
-    errorState: fetchError ? "present" : "none",
-    isRefreshing: loading && vacancies.length > 0,
+    errorState: vacanciesError ? "present" : "none",
+    isRefreshing: vacanciesLoading && vacancies.length > 0,
   });
   const showRefreshingNotice = useRefreshVisibility(sectionState === "loading-refresh");
 
@@ -140,9 +127,9 @@ export default function VacanciesPageContainer() {
         <SectionErrorInline
           framed
           title="Vakansiyaları yükləmək mümkün olmadı"
-          message={fetchError || "Vakansiyaları yükləmək mümkün olmadı."}
+          message={vacanciesError || "Vakansiyaları yükləmək mümkün olmadı."}
           onRetry={() => {
-            void fetchVacancies();
+            void refreshVacancies();
           }}
         />
       ),
@@ -204,9 +191,9 @@ export default function VacanciesPageContainer() {
       {sectionState === "error-nonblocking" && (
         <SectionErrorInline
           title="Vakansiyalar yenilənmədi"
-          message={fetchError || "Vakansiyaları yeniləmək mümkün olmadı."}
+          message={vacanciesError || "Vakansiyaları yeniləmək mümkün olmadı."}
           onRetry={() => {
-            void fetchVacancies();
+            void refreshVacancies();
           }}
         />
       )}

@@ -1,6 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { canAccessAdmin, canCreateVacancy, isAdmin, isApprovedOrganization } from '@/lib/auth/permissions'
+import { NotificationService } from '@/lib/services/notificationService'
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 const mapVacancy = (row: any) => ({
   _id: row.id,
@@ -28,7 +31,7 @@ const mapVacancy = (row: any) => ({
     ? { _id: row.created_by.id, name: row.created_by.name, email: row.created_by.email }
     : row.created_by,
   createdByOrganization: row.created_by_organization
-    ? { _id: row.created_by_organization.id, organizationName: row.created_by_organization.organization_name, email: row.created_by_organization.email }
+    ? { _id: row.created_by_organization.id, id: row.created_by_organization.id, organizationName: row.created_by_organization.organization_name, email: row.created_by_organization.email }
     : row.created_by_organization,
   status: row.status,
   approvedAt: row.approved_at,
@@ -64,6 +67,7 @@ export async function GET(request: NextRequest) {
     const location = searchParams.get('location')
     const search = searchParams.get('search')
     const createdBy = searchParams.get('createdBy') // For organization's own vacancies
+    const organizationId = searchParams.get('organizationId')
     const author = searchParams.get('author') // Handle 'author=me' parameter
     const adminView = searchParams.get('adminView') === 'true'
     const status = searchParams.get('status') || (adminView ? 'all' : 'approved')
@@ -77,7 +81,7 @@ export async function GET(request: NextRequest) {
     if (author === 'me') {
       const session = await getServerSession()
       if (!session?.user?.id) {
-        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+        return errorResponse('Authentication required', "API_ERROR", {}, 401)
       }
       actualCreatedBy = session.user.id
     }
@@ -88,16 +92,8 @@ export async function GET(request: NextRequest) {
     // Admin view requires admin session
     if (adminView) {
       const session = await getServerSession()
-      if (!session?.user?.id) {
-        return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
-      }
-      const { data: adminUser } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', session.user.id)
-        .single()
-      if (!adminUser || adminUser.role !== 'admin') {
-        return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+      if (!session?.user?.id || !canAccessAdmin(session)) {
+        return errorResponse('Admin access required', "API_ERROR", {}, 403)
       }
     }
 
@@ -196,6 +192,10 @@ export async function GET(request: NextRequest) {
       query = query.or(`created_by.eq.${actualCreatedBy},created_by_organization.eq.${actualCreatedBy}`)
     }
 
+    if (organizationId) {
+      query = query.eq('created_by_organization', organizationId)
+    }
+
     if (location && location !== 'all') {
       const locationFilter = `location->>city.ilike.%${location}%,location->>country.ilike.%${location}%,location->>address.ilike.%${location}%`
       query = query.or(locationFilter)
@@ -210,10 +210,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Error fetching vacancies:', error)
-      return NextResponse.json(
-        { error: 'Failed to fetch vacancies' },
-        { status: 500 }
-      )
+      return errorResponse('Failed to fetch vacancies', "API_ERROR", {}, 500)
     }
 
     const vacancies = (vacancyRows || []).map(mapVacancy)
@@ -253,14 +250,11 @@ export async function GET(request: NextRequest) {
       response.stats = stats
     }
     
-    return NextResponse.json(response)
+    return successResponse(response)
     
   } catch (error) {
     console.error('Error fetching vacancies:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch vacancies' },
-      { status: 500 }
-    )
+    return errorResponse('Failed to fetch vacancies', "API_ERROR", {}, 500)
   }
 }
 
@@ -270,26 +264,21 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession()
     
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
+      return errorResponse('Authentication required', "API_ERROR", {}, 401)
     }
     
     const supabase = createSupabaseAdminClient()
+    const organizationProfile = isApprovedOrganization(session)
+      ? await supabase
+          .from('organization_profiles')
+          .select('organization_name')
+          .eq('account_id', session.user.id)
+          .single()
+      : { data: null, error: null }
     
     // Allow admin or approved organization only
-    if (
-      session.user.role !== 'admin' &&
-      !(
-        session.user.accountType === 'organization' &&
-        session.user.organizationStatus === 'approved'
-      )
-    ) {
-      return NextResponse.json(
-        { error: 'Only approved organizations can create vacancies' },
-        { status: 403 }
-      )
+    if (!canCreateVacancy(session)) {
+      return errorResponse('Only approved organizations can create vacancies', "API_ERROR", {}, 403)
     }
     
     const body = await request.json()
@@ -301,10 +290,7 @@ export async function POST(request: NextRequest) {
     
     for (const field of requiredFields) {
       if (!body[field]) {
-        return NextResponse.json(
-          { error: `${field} is required` },
-          { status: 400 }
-        )
+        return errorResponse(`${field} is required`, "API_ERROR", {}, 400)
       }
     }
 
@@ -312,45 +298,30 @@ export async function POST(request: NextRequest) {
       ? body.description.replace(/<[^>]*>/g, '').trim()
       : ''
     if (!descText || descText.length < 50) {
-      return NextResponse.json(
-        { error: 'Description must be at least 50 characters long' },
-        { status: 400 }
-      )
+      return errorResponse('Description must be at least 50 characters long', "API_ERROR", {}, 400)
     }
 
     if (typeof body.applicationInstructions === 'string') {
       const instr = body.applicationInstructions.trim()
       if (instr.length < 30) {
-        return NextResponse.json(
-          { error: 'Application instructions must be at least 30 characters long' },
-          { status: 400 }
-        )
+        return errorResponse('Application instructions must be at least 30 characters long', "API_ERROR", {}, 400)
       }
     }
 
     // Validate application method
     if (body.applicationMethod === 'link' && !body.applicationLink) {
-      return NextResponse.json(
-        { error: 'Application link is required when using link method' },
-        { status: 400 }
-      )
+      return errorResponse('Application link is required when using link method', "API_ERROR", {}, 400)
     }
 
     if (body.applicationMethod === 'email' && !body.applicationEmail) {
-      return NextResponse.json(
-        { error: 'Application email is required when using email method' },
-        { status: 400 }
-      )
+      return errorResponse('Application email is required when using email method', "API_ERROR", {}, 400)
     }
     
     // Validate deadline if provided
     if (body.deadline) {
       const deadline = new Date(body.deadline)
       if (deadline <= new Date()) {
-        return NextResponse.json(
-          { error: 'Deadline must be in the future' },
-          { status: 400 }
-        )
+        return errorResponse('Deadline must be in the future', "API_ERROR", {}, 400)
       }
     }
     
@@ -468,10 +439,10 @@ export async function POST(request: NextRequest) {
       requirements: body.requirements || [],
       qualifications: body.qualifications || [],
       tags: body.tags || [],
-      created_by: session.user.accountType === 'organization' && session.user.organizationStatus === 'approved' ? null : session.user.id,
-      created_by_organization: session.user.accountType === 'organization' && session.user.organizationStatus === 'approved' ? session.user.id : null,
-      status: session.user.role === 'admin' ? 'approved' : 'pending',
-      is_published: session.user.role === 'admin',
+      created_by: isApprovedOrganization(session) ? null : session.user.id,
+      created_by_organization: isApprovedOrganization(session) ? session.user.id : null,
+      status: isAdmin(session) ? 'approved' : 'pending',
+      is_published: isAdmin(session),
       is_featured: false,
       is_urgent: false
     }
@@ -492,24 +463,39 @@ export async function POST(request: NextRequest) {
 
     if (error || !vacancyRow) {
       console.error('Error creating vacancy:', error)
-      return NextResponse.json(
-        { error: 'Failed to create vacancy' },
-        { status: 500 }
-      )
+      return errorResponse('Failed to create vacancy', "API_ERROR", {}, 500)
     }
 
     const populatedVacancy = mapVacancy(vacancyRow)
+
+    if (isApprovedOrganization(session) && organizationProfile?.data?.organization_name) {
+      await NotificationService.notifyOrganizationFollowersAboutNewContent({
+        organizationId: session.user.id,
+        organizationName: organizationProfile.data.organization_name,
+        contentType: 'vacancy',
+        contentId: populatedVacancy.id,
+        contentTitle: populatedVacancy.title,
+      })
+    }
+
+    if (vacancyRow.status === 'approved' && vacancyRow.is_published) {
+      await NotificationService.notifyUsersAboutRelevantItem({
+        itemType: 'vacancy',
+        itemId: populatedVacancy.id,
+        title: populatedVacancy.title,
+        description: populatedVacancy.description,
+        tags: Array.isArray(populatedVacancy.tags) ? populatedVacancy.tags : [],
+        actionUrl: `/resources/vacancies/${populatedVacancy.id}`,
+      })
+    }
     
-    return NextResponse.json({
+    return successResponse({
       message: 'Vacancy created successfully',
       vacancy: populatedVacancy
-    }, { status: 201 })
+    }, {}, 201)
     
   } catch (error) {
     console.error('Error creating vacancy:', error)
-    return NextResponse.json(
-      { error: 'Failed to create vacancy' },
-      { status: 500 }
-    )
+    return errorResponse('Failed to create vacancy', "API_ERROR", {}, 500)
   }
 }

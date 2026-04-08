@@ -10,6 +10,8 @@ import { ArrowLeft, CheckCircle, XCircle, Clock, Eye, User, Calendar, FileText, 
 import { Button } from '@/components/ui/Button'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
 import { LoadingState, ErrorState } from '@/components/shared'
+import { useGlobalFeedback } from '@/lib/useGlobalFeedback'
+import AdminListLayout from '@/components/admin/AdminListLayout'
 
 const BlocknoteReadOnly = dynamic(() => import('@/components/BlocknoteReadOnly'), { ssr: false })
 
@@ -33,6 +35,7 @@ type Blog = { _id: string
 
 export default function AdminStoryPreview({ params }: { params: { id: string } }) {
   const router = useRouter()
+  const { showError, showSuccess } = useGlobalFeedback()
   const [blog, setBlog] = useState<Blog | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -48,7 +51,7 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
       if (!response.ok) { throw new Error('Bloqu yükləmək mümkün olmadı') }
       
       const data = await response.json()
-      setBlog(data.blog) } catch (error) { console.error('Error loading blog:', error)
+      setBlog(data?.data?.blog || null) } catch (error) { console.error('Error loading blog:', error)
       setError('Bloqu yükləmək mümkün olmadı') } finally { setLoading(false) } }, [params.id])
 
   useEffect(() => { loadStory() }, [loadStory])
@@ -92,7 +95,7 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
 
   const handleSubmitAction = async () => { if (!blog || !actionType) return
     
-    if (actionType === 'reject' && !adminComment.trim()) { alert('Rədd səbəbini qeyd edin')
+    if (actionType === 'reject' && !adminComment.trim()) { showError('Rədd səbəbini qeyd edin')
       return }
     
     setIsProcessing(true)
@@ -109,16 +112,16 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
       const data = await response.json()
       console.log('Response data:', data)
       
-      if (response.ok) { setBlog(data.blog)
+      if (response.ok) { setBlog(data?.data?.blog || null)
         setShowModal(false)
         setActionType(null)
         setAdminComment('')
-        alert(actionType === 'approve' 
+        showSuccess(actionType === 'approve' 
           ? 'Bloq uğurla təsdiqləndi!'
           : 'Bloq uğurla rədd edildi!'
         ) } else { console.error('API Error:', data)
-        alert('Bloqu yeniləmək alınmadı') } } catch (error) { console.error('Error updating blog:', error)
-      alert('Bloqu yeniləyərkən xəta baş verdi') } finally { setIsProcessing(false) } }
+        showError('Bloqu yeniləmək alınmadı') } } catch (error) { console.error('Error updating blog:', error)
+      showError('Bloqu yeniləyərkən xəta baş verdi') } finally { setIsProcessing(false) } }
 
   const publishedDate = blog.publishedAt || blog.submittedAt || blog.createdAt
   
@@ -131,6 +134,7 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
   const authorId = authorObject?._id || null
 
   return (
+    <AdminListLayout title="Bloq Önizləmə" description="Moderasiya üçün bloq önizləməsi." className="space-y-0">
     <div className="relative min-h-screen overflow-hidden bg-background">
       <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-35" />
       <div className="absolute left-1/2 top-16 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-200/30 blur-3xl" />
@@ -204,7 +208,7 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
               </div>
               <div className="flex items-center">
                 <Calendar className="w-4 h-4 mr-1" />
-                {new Date(publishedDate).toLocaleDateString('en-US', { year: 'numeric', 
+                {new Date(publishedDate).toLocaleDateString('az-AZ', { year: 'numeric', 
                   month: 'long', 
                   day: 'numeric' })}
               </div>
@@ -331,4 +335,5 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
         </Dialog.Portal>
       </Dialog.Root>
     </div>
+    </AdminListLayout>
   ) }

@@ -1,16 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getServerSession } from '@/lib/auth/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { canAccessAdmin } from '@/lib/auth/permissions';
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 export async function PATCH(request: NextRequest) {
   try {
     const session = await getServerSession();
     
-    if (!session || session.user.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Unauthorized - Admin access required' },
-        { status: 401 }
-      );
+    if (!session || !canAccessAdmin(session)) {
+      return errorResponse('Unauthorized - Admin access required', "API_ERROR", {}, 401);
     }
 
     const supabase = createSupabaseAdminClient();
@@ -18,19 +17,13 @@ export async function PATCH(request: NextRequest) {
     const { updates } = await request.json();
 
     if (!Array.isArray(updates) || updates.length === 0) {
-      return NextResponse.json(
-        { error: 'Updates array is required' },
-        { status: 400 }
-      );
+      return errorResponse('Updates array is required', "API_ERROR", {}, 400);
     }
 
     // Validate updates structure
     for (const update of updates) {
       if (!update.id || typeof update.order !== 'number') {
-        return NextResponse.json(
-          { error: 'Each update must have id and order' },
-          { status: 400 }
-        );
+        return errorResponse('Each update must have id and order', "API_ERROR", {}, 400);
       }
     }
 
@@ -43,7 +36,7 @@ export async function PATCH(request: NextRequest) {
       .filter(result => !result.error)
       .map(result => result.data);
 
-    return NextResponse.json({
+    return successResponse({
       success: true,
       count: materials.length,
       materials
@@ -51,9 +44,6 @@ export async function PATCH(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Error updating material order:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to update material order' },
-      { status: 500 }
-    );
+    return errorResponse(error.message || 'Failed to update material order', "API_ERROR", {}, 500);
   }
 }

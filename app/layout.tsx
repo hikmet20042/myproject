@@ -6,7 +6,12 @@ import AuthProvider from '@/components/AuthProvider'
 import { NotificationProvider } from '@/components/NotificationContext'
 import { SocketProvider } from '@/components/SocketProvider'
 import { SSENotificationProvider } from '@/components/SSENotificationProvider'
+import QueryProvider from '@/components/QueryProvider'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
+import GlobalFeedback from '@/components/admin/GlobalFeedback'
+import EventsRealtimeSync from '@/components/events/EventsRealtimeSync'
+import { GlobalFeedbackProvider } from '@/lib/useGlobalFeedback'
+import { ErrorBoundary } from '@/components/shared'
 import { generateSEOMetadata, generateOrganizationSchema, generateWebSiteSchema, generateLocalBusinessSchema, azerbaijanKeywords } from '@/lib/seo'
 import Script from 'next/script'
 import { Suspense } from 'react'
@@ -39,7 +44,7 @@ export const metadata: Metadata = {
     alternateLocales: ['az_AZ'],
   }),
   icons: {
-    icon: '/icon.png',
+    icon: '/apple-icon.png',
     apple: '/apple-icon.png',
   },
   manifest: '/manifest.json',
@@ -106,19 +111,27 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <GoogleAnalytics />
         </Suspense>
-        <AuthProvider>
-          <SocketProvider>
-            <SSENotificationProvider>
-              <NotificationProvider>
-                <Header />
-                <main className="min-h-screen">
-                  {children}
-                </main>
-                <Footer />
-              </NotificationProvider>
-            </SSENotificationProvider>
-          </SocketProvider>
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <SocketProvider>
+              <SSENotificationProvider>
+                <NotificationProvider>
+                  <GlobalFeedbackProvider>
+                    <ErrorBoundary>
+                      <EventsRealtimeSync />
+                      <GlobalFeedback />
+                      <Header />
+                      <main className="min-h-screen">
+                        {children}
+                      </main>
+                      <Footer />
+                    </ErrorBoundary>
+                  </GlobalFeedbackProvider>
+                </NotificationProvider>
+              </SSENotificationProvider>
+            </SocketProvider>
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   )

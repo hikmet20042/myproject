@@ -1,11 +1,14 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useMemo } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSession } from '@/lib/auth/client'
 import { ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
 import { ButtonLink } from '@/components/ui'
+import { blogQueryKeys, dislikeBlog, fetchBlogReactions, likeBlog } from '@/lib/blogQueries'
+import { useGlobalFeedback } from '@/lib/useGlobalFeedback'
 
 interface BlogReactionsProps { blogId: string
   initialLikes?: number
@@ -17,57 +20,117 @@ export default function BlogReactions({ blogId,
   initialDislikes = 0,
   className = '' }: BlogReactionsProps) { const { data: session, status } = useSession()
   const localePath = useLocalizedPath()
-  const [likes, setLikes] = useState(initialLikes)
-  const [dislikes, setDislikes] = useState(initialDislikes)
-  const [hasLiked, setHasLiked] = useState(false)
-  const [hasDisliked, setHasDisliked] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const { showError } = useGlobalFeedback()
+  const queryClient = useQueryClient()
 
-  // Fetch current user's reaction status
-  const dataFetchedRef = useRef(false)
+  const defaultReactionState = useMemo(() => ({
+    likes: initialLikes,
+    dislikes: initialDislikes,
+    hasLiked: false,
+    hasDisliked: false
+  }), [initialLikes, initialDislikes])
 
-  useEffect(() => { if (!session?.user?.id) return
-    if (dataFetchedRef.current) return
-    dataFetchedRef.current = true
+  const reactionsQuery = useQuery({
+    queryKey: blogQueryKeys.reactions(blogId),
+    queryFn: () => fetchBlogReactions(blogId),
+    enabled: !!session?.user?.id,
+    initialData: defaultReactionState
+  })
 
-    const fetchReactionStatus = async () => { try { const [likeRes, dislikeRes] = await Promise.all([
-          fetch(`/api/blogs/${blogId}/like`),
-          fetch(`/api/blogs/${blogId}/dislike`)
-        ])
+  const likeMutation = useMutation({
+    mutationFn: () => likeBlog(blogId),
+    onMutate: async () => {
+      const queryKey = blogQueryKeys.reactions(blogId)
+      await queryClient.cancelQueries({ queryKey })
+      const previous = queryClient.getQueryData<typeof defaultReactionState>(queryKey) || defaultReactionState
+      const next = previous.hasLiked
+        ? {
+            ...previous,
+            likes: Math.max(0, previous.likes - 1),
+            hasLiked: false
+          }
+        : {
+            ...previous,
+            likes: previous.likes + 1,
+            dislikes: previous.hasDisliked ? Math.max(0, previous.dislikes - 1) : previous.dislikes,
+            hasLiked: true,
+            hasDisliked: false
+          }
+      queryClient.setQueryData(queryKey, next)
+      return { previous }
+    },
+    onError: (_error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(blogQueryKeys.reactions(blogId), context.previous)
+      }
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(blogQueryKeys.reactions(blogId), {
+        likes: data.likes || 0,
+        dislikes: data.dislikes || 0,
+        hasLiked: !!data.hasLiked,
+        hasDisliked: !!data.hasDisliked
+      })
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: blogQueryKeys.reactions(blogId) })
+      queryClient.invalidateQueries({ queryKey: blogQueryKeys.detail(blogId) })
+      queryClient.invalidateQueries({ queryKey: blogQueryKeys.all })
+    }
+  })
 
-        if (likeRes.ok) { const likeData = await likeRes.json()
-          setHasLiked(likeData.hasLiked)
-          setLikes(likeData.likes) }
+  const dislikeMutation = useMutation({
+    mutationFn: () => dislikeBlog(blogId),
+    onMutate: async () => {
+      const queryKey = blogQueryKeys.reactions(blogId)
+      await queryClient.cancelQueries({ queryKey })
+      const previous = queryClient.getQueryData<typeof defaultReactionState>(queryKey) || defaultReactionState
+      const next = previous.hasDisliked
+        ? {
+            ...previous,
+            dislikes: Math.max(0, previous.dislikes - 1),
+            hasDisliked: false
+          }
+        : {
+            ...previous,
+            dislikes: previous.dislikes + 1,
+            likes: previous.hasLiked ? Math.max(0, previous.likes - 1) : previous.likes,
+            hasDisliked: true,
+            hasLiked: false
+          }
+      queryClient.setQueryData(queryKey, next)
+      return { previous }
+    },
+    onError: (_error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(blogQueryKeys.reactions(blogId), context.previous)
+      }
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(blogQueryKeys.reactions(blogId), {
+        likes: data.likes || 0,
+        dislikes: data.dislikes || 0,
+        hasLiked: !!data.hasLiked,
+        hasDisliked: !!data.hasDisliked
+      })
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: blogQueryKeys.reactions(blogId) })
+      queryClient.invalidateQueries({ queryKey: blogQueryKeys.detail(blogId) })
+      queryClient.invalidateQueries({ queryKey: blogQueryKeys.all })
+    }
+  })
 
-        if (dislikeRes.ok) { const dislikeData = await dislikeRes.json()
-          setHasDisliked(dislikeData.hasDisliked)
-          setDislikes(dislikeData.dislikes) } } catch (error) { console.error('Error fetching reaction status:', error) } }
+  const reactionState = reactionsQuery.data || defaultReactionState
+  const isLoading = likeMutation.isPending || dislikeMutation.isPending
 
-    fetchReactionStatus() }, [blogId, session])
-
-  const handleLike = async () => { if (!session?.user?.id) { alert('Bəyənmək üçün daxil olun')
+  const handleLike = () => { if (!session?.user?.id) { showError('Bəyənmək üçün daxil olun')
       return }
+    likeMutation.mutate() }
 
-    setIsLoading(true)
-    try { const response = await fetch(`/api/blogs/${blogId}/like`, { method: 'POST' })
-
-      if (response.ok) { const data = await response.json()
-        setLikes(data.likes)
-        setDislikes(data.dislikes)
-        setHasLiked(data.hasLiked)
-        setHasDisliked(data.hasDisliked) } } catch (error) { console.error('Error liking blog:', error) } finally { setIsLoading(false) } }
-
-  const handleDislike = async () => { if (!session?.user?.id) { alert('Bəyənməmək üçün daxil olun')
+  const handleDislike = () => { if (!session?.user?.id) { showError('Bəyənməmək üçün daxil olun')
       return }
-
-    setIsLoading(true)
-    try { const response = await fetch(`/api/blogs/${blogId}/dislike`, { method: 'POST' })
-
-      if (response.ok) { const data = await response.json()
-        setLikes(data.likes)
-        setDislikes(data.dislikes)
-        setHasLiked(data.hasLiked)
-        setHasDisliked(data.hasDisliked) } } catch (error) { console.error('Error disliking blog:', error) } finally { setIsLoading(false) } }
+    dislikeMutation.mutate() }
 
   if (status === 'loading') { return (
       <div className={`flex items-center gap-3 ${className}`}>
@@ -90,12 +153,12 @@ export default function BlogReactions({ blogId,
         <div className="flex items-center gap-4 px-4 py-2 bg-white border-2 border-blue-100 rounded-xl">
           <div className="flex items-center gap-2 text-gray-400">
             <ThumbsUp className="w-5 h-5" />
-            <span className="text-sm font-semibold">{likes}</span>
+            <span className="text-sm font-semibold">{reactionState.likes}</span>
           </div>
           <div className="w-px h-6 bg-slate-300"></div>
           <div className="flex items-center gap-2 text-gray-400">
             <ThumbsDown className="w-5 h-5" />
-            <span className="text-sm font-semibold">{dislikes}</span>
+            <span className="text-sm font-semibold">{reactionState.dislikes}</span>
           </div>
         </div>
         <ButtonLink
@@ -116,7 +179,7 @@ export default function BlogReactions({ blogId,
       <button
         onClick={handleLike}
         disabled={isLoading}
-        className={`group relative flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 ${hasLiked
+        className={`group relative flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 ${reactionState.hasLiked
           ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20 scale-[1.02]'
           : 'bg-white border-2 border-blue-100 text-gray-700 hover:border-blue-500 hover:text-blue-600 hover:shadow-md hover:-translate-y-0.5' } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
@@ -124,13 +187,13 @@ export default function BlogReactions({ blogId,
           <Loader2 className="w-5 h-5 animate-spin" />
         ) : (
           <ThumbsUp
-            className={`w-5 h-5 transition-transform duration-200 ${hasLiked ? 'fill-current' : 'group-hover:scale-110' }`}
+            className={`w-5 h-5 transition-transform duration-200 ${reactionState.hasLiked ? 'fill-current' : 'group-hover:scale-110' }`}
           />
         )}
         <span className="text-sm font-bold min-w-[20px] text-center">
-          {likes}
+          {reactionState.likes}
         </span>
-        {hasLiked && !isLoading && (
+        {reactionState.hasLiked && !isLoading && (
           <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-bounce"></div>
         )}
       </button>
@@ -139,7 +202,7 @@ export default function BlogReactions({ blogId,
       <button
         onClick={handleDislike}
         disabled={isLoading}
-        className={`group relative flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 ${hasDisliked
+        className={`group relative flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 ${reactionState.hasDisliked
           ? 'bg-rose-600 text-white shadow-md shadow-rose-500/20 scale-[1.02]'
           : 'bg-white border-2 border-blue-100 text-gray-700 hover:border-red-500 hover:text-red-600 hover:shadow-md hover:-translate-y-0.5' } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
@@ -147,13 +210,13 @@ export default function BlogReactions({ blogId,
           <Loader2 className="w-5 h-5 animate-spin" />
         ) : (
           <ThumbsDown
-            className={`w-5 h-5 transition-transform duration-200 ${hasDisliked ? 'fill-current' : 'group-hover:scale-110' }`}
+            className={`w-5 h-5 transition-transform duration-200 ${reactionState.hasDisliked ? 'fill-current' : 'group-hover:scale-110' }`}
           />
         )}
         <span className="text-sm font-bold min-w-[20px] text-center">
-          {dislikes}
+          {reactionState.dislikes}
         </span>
-        {hasDisliked && !isLoading && (
+        {reactionState.hasDisliked && !isLoading && (
           <div className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full border-2 border-white animate-bounce"></div>
         )}
       </button>

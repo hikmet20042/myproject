@@ -1,314 +1,340 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getServerSession } from '@/lib/auth/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import cloudinaryService from '@/lib/services/cloudinaryService';
+import { isApprovedOrganization } from '@/lib/auth/permissions';
+import { successResponse, errorResponse } from '@/lib/apiResponse';
+import sharp from 'sharp';
 
 export const dynamic = 'force-dynamic';
 
-// POST /api/profile/image - Upload or update profile image
+const IMAGE_ID_REGEX = /\/api\/images\/([0-9a-f-]{36})$/i;
+const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']);
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_IMAGE_WIDTH = 1024;
+const MAX_IMAGE_HEIGHT = 1024;
+
+const extractBlobIdFromUrl = (url?: string | null): string | null => {
+  if (!url) return null;
+  const match = url.match(IMAGE_ID_REGEX);
+  return match?.[1] || null;
+};
+
+const extractBlobIdFromProfileImage = (value: any): string | null => {
+  if (!value) return null;
+  if (typeof value === 'string') return extractBlobIdFromUrl(value);
+  if (typeof value === 'object') {
+    if (typeof value.blobId === 'string') return value.blobId;
+    if (typeof value.url === 'string') return extractBlobIdFromUrl(value.url);
+  }
+  return null;
+};
+
+const normalizeOrganizationImage = (value: any): { url: string | null; blobId: string | null } => {
+  if (!value) return { url: null, blobId: null };
+  if (typeof value === 'string') {
+    return { url: value, blobId: extractBlobIdFromUrl(value) };
+  }
+  if (typeof value === 'object') {
+    const url = typeof value.url === 'string' ? value.url : null;
+    const blobId = typeof value.blobId === 'string' ? value.blobId : extractBlobIdFromUrl(url);
+    return { url, blobId };
+  }
+  return { url: null, blobId: null };
+};
+
+const validateImage = (file: File): string | null => {
+  if (!ALLOWED_MIME_TYPES.has(file.type.toLowerCase())) {
+    return 'Unsupported image format. Please use JPG, PNG, WEBP, or GIF.';
+  }
+  if (file.size > MAX_FILE_SIZE_BYTES) {
+    return 'Image size must be 5MB or less.';
+  }
+  return null;
+};
+
+const optimizeProfileImage = async (buffer: Buffer, mimeType: string) => {
+  try {
+    // GIF is kept as-is to avoid breaking animation frames.
+    if (mimeType.toLowerCase() === 'image/gif') {
+      return {
+        buffer,
+        mimeType: 'image/gif',
+      };
+    }
+
+    let pipeline = sharp(buffer, { failOn: 'none' }).rotate();
+    const metadata = await pipeline.metadata();
+    const width = metadata.width || 0;
+    const height = metadata.height || 0;
+
+    if (width > MAX_IMAGE_WIDTH || height > MAX_IMAGE_HEIGHT) {
+      pipeline = pipeline.resize(MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT, {
+        fit: 'inside',
+        withoutEnlargement: true,
+      });
+    }
+
+    // Convert to webp to reduce DB footprint while preserving quality.
+    const optimized = await pipeline.webp({ quality: 82, effort: 5 }).toBuffer();
+    return {
+      buffer: optimized,
+      mimeType: 'image/webp',
+    };
+  } catch (error) {
+    console.error('Image optimization failed, using original upload:', error);
+    return {
+      buffer,
+      mimeType,
+    };
+  }
+};
+
+// POST /api/profile/image
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession();
-
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      return errorResponse('Authentication required', 'API_ERROR', {}, 401);
     }
 
     const supabase = createSupabaseAdminClient();
-
-    // Check if Cloudinary is configured
-    if (!cloudinaryService.isConfigured()) {
-      return NextResponse.json(
-        { error: 'Image upload service is not configured' },
-        { status: 503 }
-      );
-    }
-
     const formData = await request.formData();
     const file = formData.get('file') as unknown as File | null;
 
     if (!file) {
-      return NextResponse.json(
-        { error: 'No file provided' },
-        { status: 400 }
-      );
+      return errorResponse('No file provided', 'API_ERROR', {}, 400);
     }
 
-    // Validate file
-    const validation = cloudinaryService.validateImageFile(file, 5); // 5MB limit for profile images
-    if (!validation.valid) {
-      return NextResponse.json({ error: validation.error }, { status: 400 });
+    const validationError = validateImage(file);
+    if (validationError) {
+      return errorResponse(validationError, 'API_ERROR', {}, 400);
     }
 
     const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    const originalBuffer = Buffer.from(bytes);
+    const optimizedImage = await optimizeProfileImage(originalBuffer, file.type);
+    const buffer = optimizedImage.buffer;
+    const isOrganization = isApprovedOrganization(session);
 
-    // Determine if user is organization or regular user
-    const isOrganization = session.user.accountType === 'organization' && session.user.organizationStatus === 'approved';
-    let userDoc: any;
+    const { data: insertedBlob, error: insertError } = await supabase
+      .from('image_blobs')
+      .insert({
+        filename: file.name,
+        original_name: file.name,
+        mimetype: optimizedImage.mimeType,
+        content_type: optimizedImage.mimeType,
+        size: buffer.length,
+        data: buffer,
+        uploaded_by: session.user.id,
+        uploaded_at: new Date().toISOString(),
+        tags: ['profile'],
+        metadata: {
+          context: 'profile',
+          storage: 'supabase_db',
+          optimization: {
+            originalSize: file.size,
+            optimizedSize: buffer.length,
+            reducedBytes: Math.max(0, file.size - buffer.length),
+          },
+        },
+      })
+      .select('id')
+      .single();
+
+    if (insertError || !insertedBlob?.id) {
+      return errorResponse('Failed to upload profile image', 'API_ERROR', {}, 500);
+    }
+
+    const imageUrl = `/api/images/${insertedBlob.id}`;
+    let oldBlobId: string | null = null;
 
     if (isOrganization) {
-      const { data: profile } = await supabase
+      const { data: orgProfile } = await supabase
         .from('organization_profiles')
-        .select('account_id, profile_image')
+        .select('profile_image')
         .eq('account_id', session.user.id)
         .maybeSingle();
 
-      userDoc = profile;
-    } else {
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('id, avatar, avatar_metadata')
-        .eq('user_id', session.user.id)
-        .single();
-      userDoc = profile;
-    }
+      oldBlobId = extractBlobIdFromProfileImage(orgProfile?.profile_image);
 
-    if (!userDoc) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    // Delete old profile image from Cloudinary if exists
-    const existingPublicId = isOrganization
-      ? userDoc?.profile_image?.publicId
-      : userDoc?.avatar_metadata?.publicId;
-
-    if (existingPublicId) {
-      try {
-        await cloudinaryService.deleteImage(existingPublicId);
-      } catch (deleteError) {
-        console.error('Error deleting old profile image:', deleteError);
-        // Continue anyway, as we want to upload the new image
-      }
-    }
-
-    // Upload new profile image to Cloudinary
-    const uploadResult = await cloudinaryService.uploadProfileImage(
-      buffer,
-      session.user.id
-    );
-
-    if (!uploadResult.success || !uploadResult.secureUrl || !uploadResult.publicId) {
-      return NextResponse.json(
-        { error: uploadResult.error || 'Failed to upload profile image' },
-        { status: 500 }
-      );
-    }
-
-    // Update user profile with new image
-    if (isOrganization) {
       await supabase
         .from('organization_profiles')
         .update({
           profile_image: {
-            url: uploadResult.secureUrl,
-            publicId: uploadResult.publicId
+            url: imageUrl,
+            blobId: insertedBlob.id,
           },
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('account_id', session.user.id);
     } else {
-      const { data: existingProfile } = await supabase
+      const { data: userProfile } = await supabase
         .from('user_profiles')
-        .select('id')
+        .select('id, avatar, avatar_blob_id')
         .eq('user_id', session.user.id)
-        .single();
+        .maybeSingle();
 
-      if (existingProfile?.id) {
+      oldBlobId =
+        (typeof userProfile?.avatar_blob_id === 'string' && userProfile.avatar_blob_id) ||
+        extractBlobIdFromUrl(userProfile?.avatar) ||
+        null;
+
+      if (userProfile?.id) {
         await supabase
           .from('user_profiles')
           .update({
-            avatar: uploadResult.secureUrl,
-            avatar_blob_id: null,
-            avatar_metadata: { publicId: uploadResult.publicId },
-            updated_at: new Date().toISOString()
+            avatar: imageUrl,
+            avatar_blob_id: insertedBlob.id,
+            avatar_metadata: { blobId: insertedBlob.id, storage: 'supabase_db' },
+            updated_at: new Date().toISOString(),
           })
-          .eq('id', existingProfile.id);
+          .eq('id', userProfile.id);
       } else {
         await supabase
           .from('user_profiles')
           .insert({
             user_id: session.user.id,
-            avatar: uploadResult.secureUrl,
-            avatar_blob_id: null,
-            avatar_metadata: { publicId: uploadResult.publicId }
+            avatar: imageUrl,
+            avatar_blob_id: insertedBlob.id,
+            avatar_metadata: { blobId: insertedBlob.id, storage: 'supabase_db' },
           });
       }
     }
 
-    return NextResponse.json({
+    if (oldBlobId && oldBlobId !== insertedBlob.id) {
+      await supabase.from('image_blobs').delete().eq('id', oldBlobId);
+    }
+
+    return successResponse({
       success: true,
       message: 'Profile image updated successfully',
       profileImage: {
-        url: uploadResult.secureUrl,
-        publicId: uploadResult.publicId,
+        url: imageUrl,
+        blobId: insertedBlob.id,
       },
-      url: uploadResult.secureUrl,
-      thumbnailUrl: cloudinaryService.getThumbnailUrl(uploadResult.publicId, 200),
+      url: imageUrl,
+      thumbnailUrl: imageUrl,
     });
   } catch (error) {
     console.error('Error uploading profile image:', error);
-    return NextResponse.json(
-      { error: 'Failed to upload profile image' },
-      { status: 500 }
-    );
+    return errorResponse('Failed to upload profile image', 'API_ERROR', {}, 500);
   }
 }
 
-// DELETE /api/profile/image - Delete profile image
+// DELETE /api/profile/image
 export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession();
-
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      return errorResponse('Authentication required', 'API_ERROR', {}, 401);
     }
 
     const supabase = createSupabaseAdminClient();
-
-    // Determine if user is organization or regular user
-    const isOrganization = session.user.accountType === 'organization' && session.user.organizationStatus === 'approved';
-    let userDoc: any;
+    const isOrganization = isApprovedOrganization(session);
+    let oldBlobId: string | null = null;
 
     if (isOrganization) {
-      const { data: profile } = await supabase
+      const { data: orgProfile } = await supabase
         .from('organization_profiles')
-        .select('account_id, profile_image')
+        .select('profile_image')
         .eq('account_id', session.user.id)
         .maybeSingle();
-      userDoc = profile;
-    } else {
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('id, avatar_metadata')
-        .eq('user_id', session.user.id)
-        .single();
-      userDoc = profile;
-    }
 
-    if (!userDoc) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
+      oldBlobId = extractBlobIdFromProfileImage(orgProfile?.profile_image);
 
-    // Delete profile image from Cloudinary if exists
-    const existingPublicId = isOrganization
-      ? userDoc?.profile_image?.publicId
-      : userDoc?.avatar_metadata?.publicId;
-
-    if (existingPublicId) {
-      try {
-        await cloudinaryService.deleteImage(existingPublicId);
-      } catch (deleteError) {
-        console.error('Error deleting profile image:', deleteError);
-        // Continue anyway to clear the database reference
-      }
-    }
-
-    // Clear profile image from database
-    if (isOrganization) {
       await supabase
         .from('organization_profiles')
         .update({ profile_image: null, updated_at: new Date().toISOString() })
         .eq('account_id', session.user.id);
     } else {
+      const { data: userProfile } = await supabase
+        .from('user_profiles')
+        .select('avatar, avatar_blob_id')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+
+      oldBlobId =
+        (typeof userProfile?.avatar_blob_id === 'string' && userProfile.avatar_blob_id) ||
+        extractBlobIdFromUrl(userProfile?.avatar) ||
+        null;
+
       await supabase
         .from('user_profiles')
-        .update({ avatar: null, avatar_metadata: null, updated_at: new Date().toISOString() })
+        .update({ avatar: null, avatar_blob_id: null, avatar_metadata: null, updated_at: new Date().toISOString() })
         .eq('user_id', session.user.id);
     }
 
-    return NextResponse.json({
+    if (oldBlobId) {
+      await supabase.from('image_blobs').delete().eq('id', oldBlobId);
+    }
+
+    return successResponse({
       success: true,
       message: 'Profile image deleted successfully',
     });
   } catch (error) {
     console.error('Error deleting profile image:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete profile image' },
-      { status: 500 }
-    );
+    return errorResponse('Failed to delete profile image', 'API_ERROR', {}, 500);
   }
 }
 
-// GET /api/profile/image - Get current profile image URL
+// GET /api/profile/image
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession();
-
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      return errorResponse('Authentication required', 'API_ERROR', {}, 401);
     }
 
     const supabase = createSupabaseAdminClient();
-
-    // Determine if user is organization or regular user
-    const isOrganization = session.user.accountType === 'organization' && session.user.organizationStatus === 'approved';
-    let userDoc: any;
+    const isOrganization = isApprovedOrganization(session);
 
     if (isOrganization) {
-      const { data: profile } = await supabase
+      const { data: orgProfile } = await supabase
         .from('organization_profiles')
         .select('profile_image')
         .eq('account_id', session.user.id)
         .maybeSingle();
-      userDoc = profile;
-    } else {
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('avatar, avatar_metadata')
-        .eq('user_id', session.user.id)
-        .single();
-      userDoc = profile;
-    }
 
-    if (!userDoc) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
+      if (!orgProfile) {
+        return errorResponse('User not found', 'API_ERROR', {}, 404);
+      }
 
-    // Return profile image info
-    const profileImage = isOrganization ? userDoc?.profile_image : {
-      url: userDoc?.avatar,
-      publicId: userDoc?.avatar_metadata?.publicId
-    };
+      const normalized = normalizeOrganizationImage(orgProfile.profile_image);
+      if (!normalized.url) {
+        return successResponse({ hasImage: false, url: null });
+      }
 
-    if (!profileImage?.url) {
-      return NextResponse.json({
-        hasImage: false,
-        url: null,
+      return successResponse({
+        hasImage: true,
+        url: normalized.url,
+        blobId: normalized.blobId,
+        thumbnailUrl: normalized.url,
       });
     }
 
-    return NextResponse.json({
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('avatar, avatar_blob_id')
+      .eq('user_id', session.user.id)
+      .maybeSingle();
+
+    if (!userProfile) {
+      return errorResponse('User not found', 'API_ERROR', {}, 404);
+    }
+
+    if (!userProfile.avatar) {
+      return successResponse({ hasImage: false, url: null });
+    }
+
+    return successResponse({
       hasImage: true,
-      url: profileImage.url,
-      publicId: profileImage.publicId,
-      thumbnailUrl: profileImage.publicId 
-        ? cloudinaryService.getThumbnailUrl(profileImage.publicId, 200)
-        : profileImage.url,
+      url: userProfile.avatar,
+      blobId: userProfile.avatar_blob_id || extractBlobIdFromUrl(userProfile.avatar),
+      thumbnailUrl: userProfile.avatar,
     });
   } catch (error) {
     console.error('Error fetching profile image:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch profile image' },
-      { status: 500 }
-    );
+    return errorResponse('Failed to fetch profile image', 'API_ERROR', {}, 500);
   }
 }

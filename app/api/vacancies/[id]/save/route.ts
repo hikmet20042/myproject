@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,7 +14,7 @@ export async function POST(
     
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return errorResponse('Authentication required', "API_ERROR", {}, 401);
     }
     
     const vacancyId = params.id;
@@ -26,46 +27,40 @@ export async function POST(
       .eq('id', vacancyId)
       .single();
     if (vacancyError || !vacancy) {
-      return NextResponse.json({ error: 'Vacancy not found' }, { status: 404 });
+      return errorResponse('Vacancy not found', "API_ERROR", {}, 404);
     }
     
-    // Find the user
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('id, saved_vacancies')
-      .eq('id', userId)
-      .single();
-    if (userError || !user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-    
-    // Check if user already saved this vacancy
-    const savedVacancies = Array.isArray(user.saved_vacancies) ? user.saved_vacancies : [];
-    const hasSaved = savedVacancies.some((id: any) => id.toString() === vacancyId);
+    const { data: existingSave } = await supabase
+      .from('content_saves')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('content_type', 'vacancy')
+      .eq('content_id', vacancyId)
+      .maybeSingle();
     
     let action: 'saved' | 'unsaved';
     
-    if (hasSaved) {
-      // Unsave the vacancy
-      const updated = savedVacancies.filter((id: any) => id.toString() !== vacancyId);
-      await supabase.from('users').update({ saved_vacancies: updated }).eq('id', userId);
+    if (existingSave?.id) {
+      await supabase.from('content_saves').delete().eq('id', existingSave.id);
       action = 'unsaved';
     } else {
-      // Save the vacancy
-      const updated = [...savedVacancies, vacancyId];
-      await supabase.from('users').update({ saved_vacancies: updated }).eq('id', userId);
+      await supabase.from('content_saves').insert({
+        user_id: userId,
+        content_type: 'vacancy',
+        content_id: vacancyId,
+      });
       action = 'saved';
     }
     
-    return NextResponse.json({
+    return successResponse({
       success: true,
       action,
-      hasSaved: !hasSaved
+      hasSaved: action === 'saved'
     });
     
   } catch (error) {
     console.error('Save/unsave vacancy error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errorResponse('Internal server error', "API_ERROR", {}, 500);
   }
 }
 
@@ -79,31 +74,32 @@ export async function GET(
     
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return NextResponse.json({ hasSaved: false, canSave: false });
+      return successResponse({ hasSaved: false, canSave: false });
     }
     
     const vacancyId = params.id;
     const userId = session.user.id;
     
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('saved_vacancies')
-      .eq('id', userId)
-      .single();
-    if (userError || !user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    const { data: saveRow, error: saveError } = await supabase
+      .from('content_saves')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('content_type', 'vacancy')
+      .eq('content_id', vacancyId)
+      .maybeSingle();
+    if (saveError) {
+      return errorResponse('Failed to fetch save state', "API_ERROR", {}, 500);
     }
     
-    const savedVacancies = Array.isArray(user.saved_vacancies) ? user.saved_vacancies : [];
-    const hasSaved = savedVacancies.some((id: any) => id.toString() === vacancyId) || false;
+    const hasSaved = Boolean(saveRow?.id);
     
-    return NextResponse.json({
+    return successResponse({
       hasSaved,
       canSave: true
     });
     
   } catch (error) {
     console.error('Get save status error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errorResponse('Internal server error', "API_ERROR", {}, 500);
   }
 }

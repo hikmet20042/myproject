@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { siteSettingsDefaults } from '@/lib/supabase/siteSettingsDefaults'
+import { canAccessAdmin } from '@/lib/auth/permissions'
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,8 +11,8 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession()
-    if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session?.user || !canAccessAdmin(session)) {
+      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
     }
     const supabase = createSupabaseAdminClient()
 
@@ -36,15 +38,15 @@ export async function GET(request: NextRequest) {
         .single()
 
       if (error || !inserted) {
-        return NextResponse.json({ error: error?.message || 'Failed to create settings' }, { status: 500 })
+        return errorResponse(error?.message || 'Failed to create settings', "API_ERROR", {}, 500)
       }
       settingsRow = inserted
     }
 
-    return NextResponse.json({ settings: settingsRow.data })
+    return successResponse({ settings: settingsRow.data })
   } catch (error) {
     console.error('Get settings error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return errorResponse('Internal server error', "API_ERROR", {}, 500)
   }
 }
 
@@ -52,14 +54,14 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession()
-    if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session?.user || !canAccessAdmin(session)) {
+      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
     }
     const body = await request.json()
     const { settings: newSettings, section } = body
 
     if (!newSettings) {
-      return NextResponse.json({ error: 'Settings data required' }, { status: 400 })
+      return errorResponse('Settings data required', "API_ERROR", {}, 400)
     }
 
     const supabase = createSupabaseAdminClient()
@@ -85,7 +87,7 @@ export async function PUT(request: NextRequest) {
         .single()
 
       if (error || !inserted) {
-        return NextResponse.json({ error: error?.message || 'Failed to create settings' }, { status: 500 })
+        return errorResponse(error?.message || 'Failed to create settings', "API_ERROR", {}, 500)
       }
       settingsRow = inserted
     }
@@ -106,7 +108,7 @@ export async function PUT(request: NextRequest) {
           changes.push(section)
         }
       } else {
-        return NextResponse.json({ error: `Invalid section: ${section}` }, { status: 400 })
+        return errorResponse(`Invalid section: ${section}`, "API_ERROR", {}, 400)
       }
     } else {
       // Update all provided settings
@@ -142,10 +144,10 @@ export async function PUT(request: NextRequest) {
       .single()
 
     if (updateError || !updatedRow) {
-      return NextResponse.json({ error: updateError?.message || 'Failed to update settings' }, { status: 500 })
+      return errorResponse(updateError?.message || 'Failed to update settings', "API_ERROR", {}, 500)
     }
 
-    return NextResponse.json({ 
+    return successResponse({ 
       settings: updatedRow.data,
       message: section 
         ? `${section} settings updated successfully` 
@@ -154,7 +156,7 @@ export async function PUT(request: NextRequest) {
     })
   } catch (error) {
     console.error('Update settings error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return errorResponse('Internal server error', "API_ERROR", {}, 500)
   }
 }
 
@@ -162,8 +164,8 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const session = await getServerSession()
-    if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session?.user || !canAccessAdmin(session)) {
+      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
     }
     const { searchParams } = new URL(request.url)
     const section = searchParams.get('section')
@@ -177,7 +179,7 @@ export async function DELETE(request: NextRequest) {
       .maybeSingle()
 
     if (!settingsRow) {
-      return NextResponse.json({ error: 'Settings not found' }, { status: 404 })
+      return errorResponse('Settings not found', "API_ERROR", {}, 404)
     }
 
     const settings = settingsRow.data || {}
@@ -195,7 +197,7 @@ export async function DELETE(request: NextRequest) {
           changes.push(section)
         }
       } else {
-        return NextResponse.json({ error: `Invalid section: ${section}` }, { status: 400 })
+        return errorResponse(`Invalid section: ${section}`, "API_ERROR", {}, 400)
       }
     } else {
       // Reset all settings to defaults
@@ -230,10 +232,10 @@ export async function DELETE(request: NextRequest) {
       .single()
 
     if (updateError || !updatedRow) {
-      return NextResponse.json({ error: updateError?.message || 'Failed to reset settings' }, { status: 500 })
+      return errorResponse(updateError?.message || 'Failed to reset settings', "API_ERROR", {}, 500)
     }
 
-    return NextResponse.json({ 
+    return successResponse({ 
       settings: updatedRow.data,
       message: section 
         ? `${section} settings reset to defaults` 
@@ -242,7 +244,7 @@ export async function DELETE(request: NextRequest) {
     })
   } catch (error) {
     console.error('Reset settings error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return errorResponse('Internal server error', "API_ERROR", {}, 500)
   }
 }
 
@@ -250,16 +252,16 @@ export async function DELETE(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const session = await getServerSession()
-    if (!session?.user || session.user.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!session?.user || !canAccessAdmin(session)) {
+      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
     }
 
-    return NextResponse.json({ 
+    return successResponse({ 
       history: [],
       message: 'Settings history not available'
     })
   } catch (error) {
     console.error('Get settings history error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return errorResponse('Internal server error', "API_ERROR", {}, 500)
   }
 }

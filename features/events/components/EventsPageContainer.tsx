@@ -12,7 +12,8 @@ import { Alert } from "@/components/feedback";
 import EventsList from "@/features/events/components/EventsList";
 import EventDeleteDialog from "@/features/events/components/EventDeleteDialog";
 import type { EventItem } from "@/features/events/components/types";
-import { useDashboardData } from "@/features/dashboard/context/DashboardDataProvider";
+import { useDeleteEvent, useEvents } from "@/lib/eventQueries";
+import { useGlobalFeedback } from "@/lib/useGlobalFeedback";
 import {
   renderSectionByState,
   resolveSectionState,
@@ -26,16 +27,31 @@ import {
 } from "@/features/events/components/types";
 
 export default function EventsPageContainer() {
-  const EVENTS_STALE_MS = 2 * 60 * 1000;
   const localePath = useLocalizedPath();
-  const {
-    events,
-    eventsLoading,
-    eventsError,
-    ensureFreshEvents,
-    refreshEvents,
-    removeEventById,
-  } = useDashboardData();
+  const { showSuccess, showError } = useGlobalFeedback();
+  const eventsQuery = useEvents();
+  const events = (eventsQuery.data || []) as EventItem[];
+  const eventsLoading = eventsQuery.isLoading || eventsQuery.isFetching;
+  const eventsError = eventsQuery.error instanceof Error ? eventsQuery.error.message : null;
+  const deleteMutation = useDeleteEvent();
+  useEffect(() => {
+    if (deleteMutation.isSuccess) {
+      showSuccess("Tədbir uğurla silindi.");
+      setDeleteModalOpen(false);
+      setEventToDelete(null);
+      deleteMutation.reset();
+    }
+  }, [deleteMutation, deleteMutation.isSuccess, showSuccess]);
+
+  useEffect(() => {
+    if (deleteMutation.isError) {
+      const message = deleteMutation.error instanceof Error
+        ? deleteMutation.error.message
+        : "Tədbiri silmək mümkün olmadı. Zəhmət olmasa yenidən cəhd edin.";
+      showError(message);
+      deleteMutation.reset();
+    }
+  }, [deleteMutation, deleteMutation.error, deleteMutation.isError, showError]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -43,15 +59,7 @@ export default function EventsPageContainer() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<EventItem | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
-  const [feedbackVariant, setFeedbackVariant] = useState<"success" | "error">("success");
-
-  useEffect(() => {
-    void ensureFreshEvents(EVENTS_STALE_MS);
-  }, [ensureFreshEvents]);
-
   const handleDeleteRequest = (event: EventItem) => {
-    setFeedbackMessage(null);
     setEventToDelete(event);
     setDeleteModalOpen(true);
   };
@@ -61,32 +69,20 @@ export default function EventsPageContainer() {
 
     try {
       setDeleting(true);
-      const response = await fetch(`/api/events/${eventToDelete._id}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        removeEventById(eventToDelete._id);
-        setFeedbackVariant("success");
-        setFeedbackMessage("Event deleted successfully.");
-        setDeleteModalOpen(false);
-        setEventToDelete(null);
-      } else {
-        setFeedbackVariant("error");
-        setFeedbackMessage("Could not delete the event. Please try again.");
-      }
+      await deleteMutation.mutateAsync(eventToDelete._id);
     } catch {
-      setFeedbackVariant("error");
-      setFeedbackMessage("Something went wrong while deleting the event.");
+      showError("Tədbiri silmək zamanı xəta baş verdi.");
     } finally {
       setDeleting(false);
     }
   };
 
   const filteredEvents = events.filter((event) => {
+    const title = typeof event.title === "string" ? event.title : "";
+    const description = typeof event.description === "string" ? event.description : "";
     const matchesSearch =
-      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.description.toLowerCase().includes(searchTerm.toLowerCase());
+      title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      description.toLowerCase().includes(searchTerm.toLowerCase());
 
     let matchesStatus = true;
     if (statusFilter === "approved") {
@@ -127,7 +123,7 @@ export default function EventsPageContainer() {
           title="Tədbirləri yükləmək mümkün olmadı"
           message={eventsError || "Tədbirləri yükləmək mümkün olmadı."}
           onRetry={() => {
-            void refreshEvents();
+            void eventsQuery.refetch();
           }}
         />
       ),
@@ -176,22 +172,12 @@ export default function EventsPageContainer() {
         </Link>
       </header>
 
-      {feedbackMessage && (
-        <Alert
-          variant={feedbackVariant}
-          dismissible
-          onDismiss={() => setFeedbackMessage(null)}
-        >
-          {feedbackMessage}
-        </Alert>
-      )}
-
       {sectionState === "error-nonblocking" && (
         <SectionErrorInline
           title="Tədbirlər yenilənmədi"
           message={eventsError || "Tədbirləri yeniləmək mümkün olmadı."}
           onRetry={() => {
-            void refreshEvents();
+            void eventsQuery.refetch();
           }}
         />
       )}

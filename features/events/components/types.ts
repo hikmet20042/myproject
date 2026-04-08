@@ -21,6 +21,9 @@ export interface EventItem {
   tags: string[];
   status: "pending" | "approved" | "rejected";
   adminComment?: string;
+  rejectionReason?: string;
+  approvedAt?: string;
+  rejectedAt?: string;
   isPublished: boolean;
   createdAt: string;
   updatedAt: string;

@@ -45,7 +45,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     disabled,
     ...props
   }, ref) => {
-    const baseClasses = 'inline-flex items-center justify-center font-semibold transition-all duration-200 focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed';
+    const baseClasses = 'inline-flex items-center justify-center whitespace-nowrap font-semibold transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none';
     
     const gradientAliases = {
       blue: 'border border-blue-600 bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-200',
@@ -58,10 +58,10 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     };
     
     const variants = {
-      primary: 'border border-blue-600 bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-200',
-      secondary: 'border border-blue-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50 focus:ring-blue-100',
+      primary: 'brand-primary-btn border border-transparent text-white focus-visible:ring-blue-200',
+      secondary: 'border border-slate-300 bg-white text-slate-800 shadow-sm hover:bg-slate-50 focus-visible:ring-slate-200',
       outline: 'border border-blue-300 bg-white text-blue-700 hover:border-blue-600 hover:bg-blue-600 hover:text-white focus:ring-blue-200',
-      ghost: 'border border-transparent bg-transparent text-gray-600 hover:bg-blue-50 hover:text-blue-700 focus:ring-blue-100',
+      ghost: 'border border-transparent bg-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-slate-200',
       danger: 'border border-transparent bg-rose-600 text-white hover:bg-rose-700 focus:ring-rose-200',
       add: 'border border-dashed border-blue-300 bg-blue-50/40 text-blue-700 hover:border-blue-400 hover:bg-blue-50 focus:ring-blue-200',
       'gradient-blue': gradientAliases.blue,
@@ -74,32 +74,32 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     };
     
     const sizes = {
-      xs: 'px-3 py-1.5 text-xs',
-      sm: 'px-4 py-2 text-sm',
-      md: 'px-6 py-3 text-base',
-      lg: 'px-8 py-4 text-lg',
-      xl: 'px-12 py-5 text-xl'
+      xs: 'h-8 px-3 text-xs',
+      sm: 'h-9 px-3.5 text-sm',
+      md: 'h-10 px-4 text-sm',
+      lg: 'h-11 px-5 text-base',
+      xl: 'h-12 px-6 text-base'
     };
     
     const roundedClasses = {
-      sm: 'rounded-sm',
-      md: 'rounded-md',
-      lg: 'rounded-lg',
+      sm: 'rounded-md',
+      md: 'rounded-lg',
+      lg: 'rounded-xl',
       xl: 'rounded-xl',
       full: 'rounded-full',
     };
     
     const shadowClasses = {
       none: '',
-      sm: 'shadow-sm hover:shadow',
-      md: 'shadow-md hover:shadow-lg',
-      lg: 'shadow-lg hover:shadow-xl',
-      xl: 'shadow-xl hover:shadow-xl',
+      sm: 'shadow-sm',
+      md: 'shadow',
+      lg: 'shadow-md',
+      xl: 'shadow-xl',
     };
     
     const hoverEffects = {
-      scale: 'hover:scale-[1.02] active:scale-[0.98]',
-      lift: 'hover:-translate-y-1',
+      scale: 'hover:scale-[1.01] active:scale-[0.98]',
+      lift: 'hover:-translate-y-0.5 active:translate-y-0',
       glow: 'hover:shadow-xl',
       none: '',
     };

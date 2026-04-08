@@ -7,6 +7,7 @@ import { ArrowLeft, CheckCircle, XCircle, AlertCircle, MapPin, Briefcase, Calend
 import { Button } from '@/components/ui/Button'
 import { LoadingState, ErrorState } from '@/components/shared'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import AdminListLayout from '@/components/admin/AdminListLayout'
 
 interface Vacancy { _id: string
   title: string
@@ -111,6 +112,7 @@ export default function AdminVacancyPreview() {
     vacancy.organizationName || vacancy.createdByOrganization?.organizationName || vacancy.createdBy?.name || 'Naməlum'
 
   return (
+    <AdminListLayout title="Vakansiya Önizləmə" description="Moderasiya üçün vakansiya önizləməsi." className="space-y-0">
     <div className="relative min-h-screen overflow-hidden bg-background py-8">
       <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-35" />
       <div className="absolute left-1/2 top-16 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-200/30 blur-3xl" />
@@ -257,5 +259,6 @@ export default function AdminVacancyPreview() {
         </Dialog.Portal>
       </Dialog.Root>
     </div>
+    </AdminListLayout>
   )
 }

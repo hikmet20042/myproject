@@ -1,14 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Input } from "@/components/ui/Input";
 import { TextArea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/feedback";
+import { useGlobalFeedback } from "@/lib/useGlobalFeedback";
 import {
+  FOCUS_AREA_LABELS_AZ,
+  FOCUS_AREA_VALUES,
   ORGANIZATION_TYPE_LABELS,
   ORGANIZATION_TYPE_VALUES,
 } from "@/lib/organizationTypes";
+import { updateMyOrganization } from "@/lib/organizationQueries";
+import { logError } from "@/lib/logger";
 
 interface ProfileFormProps {
   organizationProfile: any;
@@ -38,27 +44,20 @@ export default function ProfileForm({
       youtube: "",
       website: "",
     },
+    profileImage: organizationProfile?.profileImage || "",
   });
+  const { showError, showSuccess } = useGlobalFeedback();
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [saveFeedback, setSaveFeedback] = useState<{
     variant: "success" | "error";
     message: string;
   } | null>(null);
 
-  const focusAreaOptions = [
-    { key: "humanRights", label: "İnsan Hüquqları" },
-    { key: "womenRights", label: "Qadın Hüquqları" },
-    { key: "childrenRights", label: "Uşaq Hüquqları" },
-    { key: "education", label: "Təhsil" },
-    { key: "healthcare", label: "Səhiyyə" },
-    { key: "environment", label: "Ətraf Mühit" },
-    { key: "povertyAlleviation", label: "Yoxsulluğun Azaldılması" },
-    { key: "legalAid", label: "Hüquqi Yardım" },
-    { key: "communityDevelopment", label: "İcma İnkişafı" },
-    { key: "youthDevelopment", label: "Gənclər İnkişafı" },
-    { key: "elderlyCare", label: "Qocalar Qayğısı" },
-    { key: "disabilityRights", label: "Əlillik Hüquqları" },
-  ];
+  const focusAreaOptions = FOCUS_AREA_VALUES.map((value) => ({
+    key: value,
+    label: FOCUS_AREA_LABELS_AZ[value],
+  }));
 
   const handleFocusAreaChange = (area: string, checked: boolean) => {
     if (checked) {
@@ -78,38 +77,59 @@ export default function ProfileForm({
     try {
       setSaving(true);
       setSaveFeedback(null);
-      const response = await fetch("/api/profile/organization", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        const updatedProfile = await response.json();
+      try {
+        const updatedProfile = await updateMyOrganization(formData);
         setSaveFeedback({
           variant: "success",
-          message: "Profile updated successfully.",
+          message: "Profil uğurla yeniləndi.",
         });
-        onSave(updatedProfile.organizationProfile);
-      } else {
+        onSave(updatedProfile.organization);
+      } catch (error: any) {
+        logError("Organization profile update API error", error);
         setSaveFeedback({
           variant: "error",
-          message: "Could not update your profile. Please try again.",
+          message: error?.message || "Məlumatları yükləyərkən problem baş verdi",
         });
       }
     } catch (error) {
       console.error("Error updating profile:", error);
       setSaveFeedback({
         variant: "error",
-        message: "Something went wrong while updating your profile.",
+        message: "Profil yenilənərkən gözlənilməz problem baş verdi.",
       });
     } finally {
       setSaving(false);
     }
   };
 
+  const handleProfileImageUpload = async (file: File) => {
+    const uploadData = new FormData();
+    uploadData.append("file", file);
+    try {
+      setUploadingImage(true);
+      const response = await fetch("/api/profile/image", {
+        method: "POST",
+        body: uploadData,
+      });
+      const result = await response.json();
+      if (!response.ok || !result?.data?.url) {
+        showError(result?.error?.message || "Şəkil yüklənmədi");
+        return;
+      }
+
+      const imageUrl = result.data.url as string;
+      setFormData((prev) => ({ ...prev, profileImage: imageUrl }));
+      showSuccess("Profil şəkli yeniləndi.");
+    } catch (error) {
+      logError("Profile image upload error", error);
+      showError("Şəkil yüklənmədi. Zəhmət olmasa yenidən cəhd edin.");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       {saveFeedback && (
         <Alert
           variant={saveFeedback.variant}
@@ -120,11 +140,52 @@ export default function ProfileForm({
         </Alert>
       )}
 
-      <section className="space-y-5 rounded-xl border border-slate-200 bg-slate-50/60 p-4 md:p-5">
+      <section className="space-y-6 rounded-2xl border border-slate-200 bg-slate-50/60 p-6 md:p-8">
         <div>
-          <h3 className="text-base font-semibold text-slate-900">Basic Info</h3>
+          <h3 className="ui-h3 text-slate-900">Profil şəkli</h3>
           <p className="mt-1 text-sm text-slate-600">
-            Core details that identify your organization.
+            Təşkilatınızı tanıdan profil şəklini yükləyin.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="relative h-20 w-20 overflow-hidden rounded-full border border-slate-200 bg-white">
+            {formData.profileImage ? (
+              <Image
+                src={formData.profileImage}
+                alt="Təşkilat profil şəkli"
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-xl font-bold text-slate-500">
+                {(formData.organizationName || "T").charAt(0).toUpperCase()}
+              </div>
+            )}
+          </div>
+          <div className="space-y-2">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void handleProfileImageUpload(file);
+              }}
+              className="block w-full text-sm text-gray-600 file:mr-4 file:rounded-full file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
+              disabled={uploadingImage}
+            />
+            <p className="text-xs text-slate-500">
+              PNG, JPG və WEBP formatları dəstəklənir.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-6 rounded-2xl border border-slate-200 bg-slate-50/60 p-6 md:p-8">
+        <div>
+          <h3 className="ui-h3 text-slate-900">Əsas məlumatlar</h3>
+          <p className="mt-1 text-sm text-slate-600">
+            Təşkilatını tanıdan ən vacib məlumatları daxil et.
           </p>
         </div>
 
@@ -190,8 +251,8 @@ export default function ProfileForm({
                 >
                   <input
                     type="checkbox"
-                    checked={formData.focusAreas.includes(area.label)}
-                    onChange={(e) => handleFocusAreaChange(area.label, e.target.checked)}
+                    checked={formData.focusAreas.includes(area.key)}
+                    onChange={(e) => handleFocusAreaChange(area.key, e.target.checked)}
                     className="mr-2 h-4 w-4 rounded border-blue-200 text-blue-600 focus:ring-blue-500"
                   />
                   <span>{area.label}</span>
@@ -202,11 +263,11 @@ export default function ProfileForm({
         </div>
       </section>
 
-      <section className="space-y-5 rounded-xl border border-slate-200 bg-slate-50/60 p-4 md:p-5">
+      <section className="space-y-6 rounded-2xl border border-slate-200 bg-slate-50/60 p-6 md:p-8">
         <div>
-          <h3 className="text-base font-semibold text-slate-900">Contact</h3>
+          <h3 className="ui-h3 text-slate-900">Əlaqə</h3>
           <p className="mt-1 text-sm text-slate-600">
-            Information people use to reach your organization.
+            İnsanların səninlə rahat əlaqə qurması üçün məlumatları əlavə et.
           </p>
         </div>
 
@@ -267,11 +328,11 @@ export default function ProfileForm({
         </div>
       </section>
 
-      <section className="space-y-5 rounded-xl border border-slate-200 bg-slate-50/60 p-4 md:p-5">
+      <section className="space-y-6 rounded-2xl border border-slate-200 bg-slate-50/60 p-6 md:p-8">
         <div>
-          <h3 className="text-base font-semibold text-slate-900">Social Links</h3>
+          <h3 className="ui-h3 text-slate-900">Sosial keçidlər</h3>
           <p className="mt-1 text-sm text-slate-600">
-            Add official channels so people can follow your work.
+            Rəsmi səhifələri əlavə et ki, insanlar işini izləyə bilsin.
           </p>
         </div>
 
@@ -364,16 +425,18 @@ export default function ProfileForm({
         </div>
       </section>
 
-      <div className="flex justify-end gap-3 border-t border-slate-200 pt-2">
+      <div className="sticky bottom-4 z-10 flex justify-end gap-3 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur">
         <Button onClick={onCancel} variant="outline" disabled={saving}>
           {"Ləğv et"}
         </Button>
         <Button
           onClick={handleSave}
-          disabled={saving || !formData.organizationName || !formData.description}
+          disabled={saving || uploadingImage || !formData.organizationName || !formData.description}
           variant="primary"
+          size="lg"
+          className="min-w-[220px]"
         >
-          {saving ? "Saxlanılır..." : "Dəyişiklikləri Saxla"}
+          {saving ? "Saxlanılır..." : uploadingImage ? "Şəkil yüklənir..." : "Dəyişiklikləri Saxla"}
         </Button>
       </div>
     </div>

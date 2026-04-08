@@ -7,19 +7,29 @@
 import { Loader2 } from 'lucide-react'
 
 interface LoadingStateProps {
+  title?: string
   text?: string
+  fullPage?: boolean
+  className?: string
 }
 
 export default function LoadingState({
+  title = 'Yüklənir',
+  fullPage = true,
+  className = '',
   text = 'Yüklənir...'
 }: LoadingStateProps) {
+  const containerClassName = fullPage
+    ? 'min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center p-4'
+    : 'w-full flex items-center justify-center p-4'
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center p-4">
+    <div className={`${containerClassName} ${className}`}>
       <div className="w-full max-w-md rounded-2xl border border-blue-100 bg-white p-8 text-center shadow-sm">
         <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-600">
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
-        <h2 className="text-xl font-bold text-gray-900">{'Yüklənir'}</h2>
+        <h2 className="text-xl font-bold text-gray-900">{title}</h2>
         <p className="mt-2 text-sm text-gray-600">{text}</p>
       </div>
     </div>

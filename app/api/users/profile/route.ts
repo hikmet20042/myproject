@@ -1,8 +1,46 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { isAdmin, isApprovedOrganization } from '@/lib/auth/permissions'
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 export const dynamic = 'force-dynamic'
+
+async function ensureUserRow(
+  supabase: any,
+  session: Awaited<ReturnType<typeof getServerSession>>
+) {
+  if (!session?.user?.id) return null
+
+  const { data: existingUser } = await supabase
+    .from('users')
+    .select('id, email, name, role, created_at')
+    .eq('id', session.user.id)
+    .maybeSingle()
+
+  if (existingUser) return existingUser
+
+  const { data: createdUser, error: createError } = await supabase
+    .from('users')
+    .upsert(
+      {
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.name || session.user.email || 'User',
+        role: session.user.role || 'user',
+      },
+      { onConflict: 'id' }
+    )
+    .select('id, email, name, role, created_at')
+    .single()
+
+  if (createError) {
+    console.error('Profile GET - Failed to auto-create user row:', createError)
+    return null
+  }
+
+  return createdUser
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,32 +50,25 @@ export async function GET(request: NextRequest) {
     
     if (!session?.user?.id) {
       console.log('Profile GET - No session or user ID');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', "API_ERROR", {}, 401);
     }
 
     console.log('Profile GET - Session user ID:', session.user.id, 'Type:', typeof session.user.id);
-    console.log('Profile GET - Session user role:', session.user.role);
-    console.log('Profile GET - Is Organization:', session.user.accountType === 'organization' && session.user.organizationStatus === 'approved');
+    console.log('Profile GET - Session is admin:', isAdmin(session));
+    console.log('Profile GET - Is Organization:', isApprovedOrganization(session));
 
     // Check if user is organization - if so, redirect to organization-specific profile endpoint
-    if (session.user.accountType === 'organization' && session.user.organizationStatus === 'approved') {
-      return NextResponse.json({ 
-        error: 'Organization profiles should use /api/organization/profile endpoint',
-        redirect: '/api/organization/profile'
-      }, { status: 400 });
+    if (isApprovedOrganization(session)) {
+      return errorResponse('Organization profiles should use /api/organizations/me endpoint', "API_ERROR", {}, 400);
     }
 
     // Handle regular users
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('id, email, name, role, created_at')
-      .eq('id', session.user.id)
-      .single();
+    const user = await ensureUserRow(supabase, session)
     console.log('Profile GET - User query result:', user ? 'Found' : 'Not found');
     
-    if (userError || !user) {
+    if (!user) {
       console.log('Profile GET - User not found. Searched for ID:', session.user.id);
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return errorResponse('User not found', "API_ERROR", {}, 404);
     }
 
     // Use the user's _id for profile lookup
@@ -47,7 +78,7 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .single();
 
-    return NextResponse.json({
+    return successResponse({
       user: {
         id: user.id,
         email: user.email,
@@ -62,7 +93,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Profile fetch error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errorResponse('Internal server error', "API_ERROR", {}, 500);
   }
 }
 
@@ -71,17 +102,14 @@ export async function PUT(request: NextRequest) {
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', "API_ERROR", {}, 401);
     }
 
     const body = await request.json();
 
     // Reject organization profile updates - they should use organization-specific endpoints
-    if (session.user.accountType === 'organization' && session.user.organizationStatus === 'approved') {
-      return NextResponse.json({ 
-        error: 'Organization profiles should use /api/organization/profile endpoint',
-        redirect: '/api/organization/profile'
-      }, { status: 400 });
+    if (isApprovedOrganization(session)) {
+      return errorResponse('Organization profiles should use /api/organizations/me endpoint', "API_ERROR", {}, 400);
     }
 
     // Handle regular user profile updates
@@ -158,12 +186,12 @@ export async function PUT(request: NextRequest) {
       updatedProfile = data || null;
     }
 
-    return NextResponse.json({
+    return successResponse({
       message: 'Profile updated successfully',
       profile: updatedProfile
     });
   } catch (error) {
     console.error('Profile update error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errorResponse('Internal server error', "API_ERROR", {}, 500);
   }
 }

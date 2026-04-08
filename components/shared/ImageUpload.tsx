@@ -49,11 +49,13 @@ export default function ImageUpload({ value,
         body: formData })
 
       if (!response.ok) { const error = await response.json()
-        throw new Error(error.error || 'Yükləmə alınmadı') }
+        throw new Error(error?.error?.message || error?.error || 'Yükləmə alınmadı') }
 
-      const data = await response.json()
-      onChange(data.url)
-      setPreview(data.url) } catch (err: any) { console.error('Upload error:', err)
+      const result = await response.json()
+      const uploadedUrl = result?.data?.url || result?.url
+      if (!uploadedUrl) throw new Error('Yükləmə alınmadı')
+      onChange(uploadedUrl)
+      setPreview(uploadedUrl) } catch (err: any) { console.error('Upload error:', err)
       setError(err.message || 'Şəkili yükləmək alınmadı')
       setPreview(null) } finally { setUploading(false) } }
 

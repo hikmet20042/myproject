@@ -1,533 +1,315 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from '@/lib/auth/server';
-import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import cloudinaryService from '@/lib/services/cloudinaryService'
+import { NextRequest } from "next/server";
+import { getServerSession } from "@/lib/auth/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import cloudinaryService from "@/lib/services/cloudinaryService";
+import { canAccessAdmin, canCreateEvent, isApprovedOrganization } from "@/lib/auth/permissions";
+import { NotificationService } from "@/lib/services/notificationService";
+import {
+  applyEventLifecycleRules,
+  errorResponse,
+  getEventsByOwner,
+  mapEventInputToDbPayload,
+  mapEventToResponse,
+  successResponse,
+  validateEventInput,
+} from "@/app/api/events/helpers";
 
-const mapEvent = (row: any) => ({
-  _id: row.id,
-  id: row.id,
-  title: row.title,
-  description: row.description,
-  category: row.category,
-  eventType: row.event_type,
-  eventDate: row.event_date,
-  endDate: row.end_date,
-  duration: row.duration,
-  schedule: row.schedule,
-  prerequisites: row.prerequisites || [],
-  learningOutcomes: row.learning_outcomes || [],
-  certification: row.certification,
-  cost: row.cost,
-  targetAudience: row.target_audience || [],
-  syllabus: row.syllabus,
-  location: row.location,
-  applicationLink: row.application_link,
-  applicationDeadline: row.application_deadline,
-  maxParticipants: row.max_participants,
-  currentParticipants: row.current_participants,
-  tags: row.tags || [],
-  imageUrl: row.image_url,
-  images: row.images,
-  createdBy: row.created_by
-    ? { _id: row.created_by.id, name: row.created_by.name, email: row.created_by.email }
-    : row.created_by,
-  createdByOrganization: row.created_by_organization
-    ? { _id: row.created_by_organization.id, organizationName: row.created_by_organization.organization_name, email: row.created_by_organization.email }
-    : row.created_by_organization,
-  organizationName: row.organization_name,
-  status: row.status,
-  approvedAt: row.approved_at,
-  approvedBy: row.approved_by
-    ? { _id: row.approved_by.id, name: row.approved_by.name }
-    : row.approved_by,
-  rejectedAt: row.rejected_at,
-  rejectionReason: row.rejection_reason,
-  adminComment: row.admin_comment,
-  isPublished: row.is_published,
-  isFeatured: row.is_featured,
-  views: row.views,
-  uniqueViews: row.unique_views,
-  viewedBy: row.viewed_by || [],
-  engagementScore: row.engagement_score,
-  createdAt: row.created_at,
-  updatedAt: row.updated_at
-});
-
-// GET /api/events - Get events with filtering
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createSupabaseAdminClient()
-    
-    const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
-    const category = searchParams.get('category')
-    const eventType = searchParams.get('eventType') // 'event', 'training', 'workshop', etc.
-    const trainingType = searchParams.get('trainingType') // For backward compatibility
-    const location = searchParams.get('location')
-    const month = searchParams.get('month')
-    const search = searchParams.get('search')
-    const status = searchParams.get('status') // 'approved', 'pending', 'all'
-    const createdBy = searchParams.get('createdBy') // For organization's own events
-    const author = searchParams.get('author') // Handle 'author=me' parameter
-    const adminView = searchParams.get('adminView') === 'true'
-    const sortBy = searchParams.get('sortBy') || 'eventDate'
-    const sortOrder = searchParams.get('sortOrder') === 'desc' ? -1 : 1
-    
-    const skip = (page - 1) * limit
-    
-    // Handle author=me parameter
-    let actualCreatedBy = createdBy
-    if (author === 'me') {
-      const session = await getServerSession()
-      if (!session?.user?.id) {
-        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    const supabase = createSupabaseAdminClient();
+    const { searchParams } = new URL(request.url);
+    const pageParam = parseInt(searchParams.get("page") || "1", 10);
+    const limitParam = parseInt(searchParams.get("limit") || "20", 10);
+    const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
+    const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 50) : 20;
+    const category = searchParams.get("category");
+    const eventType = searchParams.get("eventType");
+    const trainingType = searchParams.get("trainingType");
+    const location = searchParams.get("location");
+    const month = searchParams.get("month");
+    const search = searchParams.get("search");
+    const status = searchParams.get("status");
+    const createdBy = searchParams.get("createdBy");
+    const organizationId = searchParams.get("organizationId");
+    const author = searchParams.get("author");
+    const adminView = searchParams.get("adminView") === "true";
+    const sortBy = searchParams.get("sortBy") || "eventDate";
+    const sortOrder = searchParams.get("sortOrder") === "desc" ? -1 : 1;
+    const skip = (page - 1) * limit;
+
+    let session = null;
+    let actualCreatedBy = createdBy;
+
+    if (author === "me") {
+      session = await getServerSession();
+      const ownerResult = getEventsByOwner(session);
+      if (ownerResult.error) {
+        return ownerResult.error;
       }
-      actualCreatedBy = session.user.id
+      actualCreatedBy = ownerResult.ownerId;
     }
-    
-    // Build filter query
-    const filter: any = {}
-    
-    // Admin view requires admin session
+
     if (adminView) {
-      const session = await getServerSession()
-      if (!session?.user?.id) {
-        return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
-      }
-      const { data: adminUser } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', session.user.id)
-        .single()
-      if (!adminUser || adminUser.role !== 'admin') {
-        return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+      session = session || (await getServerSession());
+      if (!session?.user?.id || !canAccessAdmin(session)) {
+        return errorResponse("Admin access required", 403);
       }
     }
 
-    // Admin view shows all events, regular view shows only approved
-    if (!adminView) {
-      if (status !== 'all' && !createdBy) {
-        filter.status = 'approved'
-        filter.isPublished = true
-      }
-    } else {
-      // Admin view with status filtering
-      if (status === 'approved') {
-        filter.status = 'approved'
-      } else if (status === 'pending') {
-        filter.status = 'pending'
-      } else if (status === 'rejected') {
-        filter.status = 'rejected'
-      }
-    }
-    
-    // If viewing own events, filter by creator (User or Organization)
-    if (actualCreatedBy) {
-      if (status === 'approved') {
-        filter.status = 'approved'
-      } else if (status === 'pending') {
-        filter.status = 'pending'
-      } else if (status === 'rejected') {
-        filter.status = 'rejected'
-      }
-    }
-
-    if (category && category !== 'all') {
-      filter.category = category
-    }
-
-    // Event type filtering
-    if (eventType && eventType !== 'all') {
-      filter.eventType = eventType
-    }
-
-    // Backward compatibility for trainingType parameter
-    if (trainingType && trainingType !== 'all') {
-      filter.eventType = 'training'
-      if (trainingType === 'online') {
-        filter['location.type'] = { $in: ['online', 'hybrid'] }
-      } else if (trainingType === 'in-person') {
-        filter['location.type'] = { $in: ['physical', 'hybrid'] }
-      }
-    }
-
-    if (location && location !== 'all') {
-      if (location === 'online') {
-        filter['location.type'] = { $in: ['online', 'hybrid'] }
-      } else if (location === 'physical') {
-        filter['location.type'] = { $in: ['physical', 'hybrid'] }
-      } else {
-        filter['location.city'] = new RegExp(location, 'i')
-      }
-    }
-
-    if (month && month !== 'all') {
-      const year = new Date().getFullYear()
-      const monthNum = parseInt(month)
-      const startDate = new Date(year, monthNum - 1, 1)
-      const endDate = new Date(year, monthNum, 0, 23, 59, 59)
-      filter.eventDate = { $gte: startDate, $lte: endDate }
-    }
-
-    // Combine creator and search so they don't overwrite each other
-    const creatorOr = actualCreatedBy
-      ? [{ createdBy: actualCreatedBy }, { createdByOrganization: actualCreatedBy }]
-      : null
-    const searchOr = search
-      ? [
-          { title: new RegExp(search, 'i') },
-          { description: new RegExp(search, 'i') },
-          { tags: { $in: [new RegExp(search, 'i')] } }
-        ]
-      : null
-    const andParts: any[] = []
-    if (creatorOr) andParts.push({ $or: creatorOr })
-    if (searchOr) andParts.push({ $or: searchOr })
-    if (andParts.length > 0) {
-      filter.$and = andParts
-    }
-    
     const sortFieldMap: Record<string, string> = {
-      eventDate: 'event_date',
-      createdAt: 'created_at',
-      updatedAt: 'updated_at'
-    }
-    const orderField = sortFieldMap[sortBy] || 'event_date'
-    const ascending = sortOrder === -1 ? false : true
+      eventDate: "event_date",
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    };
+    const orderField = sortFieldMap[sortBy] || "event_date";
+    const ascending = sortOrder !== -1;
 
     let query = supabase
-      .from('events')
-      .select('*, created_by (id, name, email), created_by_organization (id, organization_name, email), approved_by (id, name)', { count: 'exact' })
+      .from("events")
+      .select("*, created_by (id, name, email), created_by_organization (id, organization_name, email), approved_by (id, name)", {
+        count: "exact",
+      })
       .order(orderField, { ascending })
-      .range(skip, skip + limit - 1)
+      .range(skip, skip + limit - 1);
 
-    if (filter.status) {
-      query = query.eq('status', filter.status)
+    if (adminView) {
+      if (status === "approved" || status === "pending" || status === "rejected") {
+        query = query.eq("status", status);
+      }
+    } else if (actualCreatedBy) {
+      if (status === "approved" || status === "pending" || status === "rejected") {
+        query = query.eq("status", status);
+      }
+    } else {
+      query = query.eq("status", "approved").eq("is_published", true);
     }
 
-    if (!adminView) {
-      if (status !== 'all' && !createdBy) {
-        query = query.eq('is_published', true)
+    if (category && category !== "all") {
+      query = query.eq("category", category);
+    }
+
+    if (eventType && eventType !== "all") {
+      query = query.eq("event_type", eventType);
+    }
+
+    if (trainingType && trainingType !== "all") {
+      if (trainingType === "online") {
+        query = query.or("location->>type.eq.online,location->>type.eq.hybrid");
+      } else if (trainingType === "in-person") {
+        query = query.or("location->>type.eq.physical,location->>type.eq.hybrid");
       }
     }
 
-    if (category && category !== 'all') {
-      query = query.eq('category', category)
-    }
-
-    if (eventType && eventType !== 'all') {
-      query = query.eq('event_type', eventType)
-    }
-
-    if (trainingType && trainingType !== 'all') {
-      if (trainingType === 'online') {
-        query = query.or('location->>type.eq.online,location->>type.eq.hybrid')
-      } else if (trainingType === 'in-person') {
-        query = query.or('location->>type.eq.physical,location->>type.eq.hybrid')
-      }
-    }
-
-    if (location && location !== 'all') {
-      if (location === 'online') {
-        query = query.or('location->>type.eq.online,location->>type.eq.hybrid')
-      } else if (location === 'physical') {
-        query = query.or('location->>type.eq.physical,location->>type.eq.hybrid')
+    if (location && location !== "all") {
+      if (location === "online") {
+        query = query.or("location->>type.eq.online,location->>type.eq.hybrid");
+      } else if (location === "physical") {
+        query = query.or("location->>type.eq.physical,location->>type.eq.hybrid");
       } else {
-        query = query.or(`location->>city.ilike.%${location}%`)
+        query = query.or(`location->>city.ilike.%${location}%`);
       }
     }
 
-    if (month && month !== 'all') {
-      const year = new Date().getFullYear()
-      const monthNum = parseInt(month)
-      const startDate = new Date(year, monthNum - 1, 1)
-      const endDate = new Date(year, monthNum, 0, 23, 59, 59)
-      query = query.gte('event_date', startDate.toISOString()).lte('event_date', endDate.toISOString())
+    if (month && month !== "all") {
+      const year = new Date().getFullYear();
+      const monthNum = parseInt(month);
+      const startDate = new Date(year, monthNum - 1, 1);
+      const endDate = new Date(year, monthNum, 0, 23, 59, 59);
+      query = query.gte("event_date", startDate.toISOString()).lte("event_date", endDate.toISOString());
     }
 
     if (search) {
-      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`)
+      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
     }
 
     if (actualCreatedBy) {
-      query = query.or(`created_by.eq.${actualCreatedBy},created_by_organization.eq.${actualCreatedBy}`)
+      query = query.or(`created_by.eq.${actualCreatedBy},created_by_organization.eq.${actualCreatedBy}`);
     }
 
-    const { data: eventRows, error, count } = await query
+    if (organizationId) {
+      query = query.eq("created_by_organization", organizationId);
+    }
+
+    const { data: eventRows, error, count } = await query;
 
     if (error) {
-      console.error('Error fetching events:', error)
-      return NextResponse.json(
-        { error: 'Failed to fetch events' },
-        { status: 500 }
-      )
+      return errorResponse("Failed to fetch events", 500);
     }
 
-    const events = (eventRows || []).map(mapEvent)
-    const total = count || 0
-    
-    // Calculate stats for admin view
-    let stats = null
-    if (adminView) {
-      const [pendingResult, approvedResult, rejectedResult, totalResult] = await Promise.all([
-        supabase.from('events').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('events').select('id', { count: 'exact', head: true }).eq('status', 'approved'),
-        supabase.from('events').select('id', { count: 'exact', head: true }).eq('status', 'rejected'),
-        supabase.from('events').select('id', { count: 'exact', head: true })
-      ])
-      
-      stats = {
-        pending: pendingResult.count || 0,
-        approved: approvedResult.count || 0,
-        rejected: rejectedResult.count || 0,
-        total: totalResult.count || 0
-      }
-    }
-    
-    const response: any = {
+    const events = (eventRows || []).map(mapEventToResponse);
+    const total = count || 0;
+    const payload: Record<string, any> = {
       events,
       pagination: {
         page,
         limit,
         total,
-        pages: Math.ceil(total / limit)
-      }
+        pages: Math.ceil(total / limit),
+      },
+    };
+
+    if (adminView) {
+      const [pendingResult, approvedResult, rejectedResult, totalResult] = await Promise.all([
+        supabase.from("events").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("events").select("id", { count: "exact", head: true }).eq("status", "approved"),
+        supabase.from("events").select("id", { count: "exact", head: true }).eq("status", "rejected"),
+        supabase.from("events").select("id", { count: "exact", head: true }),
+      ]);
+
+      payload.stats = {
+        pending: pendingResult.count || 0,
+        approved: approvedResult.count || 0,
+        rejected: rejectedResult.count || 0,
+        total: totalResult.count || 0,
+      };
     }
-    
-    if (stats) {
-      response.stats = stats
-    }
-    
-    return NextResponse.json(response)
+
+    return successResponse(payload);
   } catch (error) {
-    console.error('Error fetching events:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch events' },
-      { status: 500 }
-    )
+    return errorResponse("Failed to fetch events", 500);
   }
 }
 
-// POST /api/events - Create new event (organization only)
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession()
-    
+    const session = await getServerSession();
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
+      return errorResponse("Authentication required", 401);
     }
-    
-    const supabase = createSupabaseAdminClient()
-    
-    // Only approved organizations can create events
-    if (
-      session.user.accountType !== 'organization' ||
-      session.user.organizationStatus !== 'approved'
-    ) {
-      return NextResponse.json(
-        { error: 'Only approved organizations can create events' },
-        { status: 403 }
-      )
+
+    if (!canCreateEvent(session)) {
+      return errorResponse("Only approved organizations can create events", 403);
     }
-    
-    // Parse form data if contains files, otherwise JSON
-    const contentType = request.headers.get('content-type') || '';
-    let body;
+
+    const supabase = createSupabaseAdminClient();
+    const contentType = request.headers.get("content-type") || "";
+    let body: Record<string, any> = {};
     let imageFiles: File[] = [];
-    
-    if (contentType.includes('multipart/form-data')) {
+
+    if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
-      
-      // Extract event data
-      const eventDataStr = formData.get('eventData') as string;
+      const eventDataStr = formData.get("eventData") as string;
       body = eventDataStr ? JSON.parse(eventDataStr) : {};
-      
-      // Extract image files
-      const files = formData.getAll('images');
+      const files = formData.getAll("images");
       imageFiles = files.filter((file): file is File => file instanceof File);
     } else {
       body = await request.json();
     }
-    
-    // Validate required fields
-    const requiredFields = ['title', 'description', 'category', 'eventDate', 'location', 'eventType']
-    for (const field of requiredFields) {
-      if (!body[field]) {
-        return NextResponse.json(
-          { error: `${field} is required` },
-          { status: 400 }
-        )
-      }
+
+    const validation = validateEventInput(body);
+    if (!validation.valid) {
+      return errorResponse(validation.error || "Invalid event data", 400);
     }
-    const descText = typeof body.description === 'string'
-      ? body.description.replace(/<[^>]*>/g, '').trim()
-      : ''
-    if (!descText || descText.length < 50) {
-      return NextResponse.json(
-        { error: 'Description must be at least 50 characters long' },
-        { status: 400 }
-      )
+
+    const organization = isApprovedOrganization(session)
+      ? await supabase
+          .from("organization_profiles")
+          .select("organization_name")
+          .eq("account_id", session.user.id)
+          .single()
+      : { data: null, error: null };
+
+    if (isApprovedOrganization(session) && (organization.error || !organization.data)) {
+      return errorResponse("Organization profile not found", 404);
     }
-    
-    // Validate eventType
-    const validEventTypes = ['event', 'training', 'workshop', 'conference', 'seminar']
-    if (!validEventTypes.includes(body.eventType)) {
-      return NextResponse.json(
-        { error: 'Invalid event type' },
-        { status: 400 }
-      )
+
+    const insertPayload = mapEventInputToDbPayload(body);
+    const lifecycleResult = applyEventLifecycleRules(null, "create", { role: "system" });
+    if (!lifecycleResult.ok) {
+      return errorResponse(lifecycleResult.error || "Failed to initialize lifecycle", 400);
     }
-    
-    // Additional validation for training events
-    if (body.eventType === 'training') {
-      if (body.duration && (!body.duration.value || !body.duration.unit)) {
-        return NextResponse.json(
-          { error: 'Duration must include both value and unit for training events' },
-          { status: 400 }
-        )
-      }
-      
-      if (body.cost && !body.cost.hasOwnProperty('isFree')) {
-        return NextResponse.json(
-          { error: 'Cost information must specify if training is free' },
-          { status: 400 }
-        )
-      }
-    }
-    
-    // Validate location structure
-    if (!body.location.type || !['online', 'physical', 'hybrid'].includes(body.location.type)) {
-      return NextResponse.json(
-        { error: 'Valid location type is required' },
-        { status: 400 }
-      )
-    }
-    
-    // Fetch organization profile for organization name
-    const { data: organization, error: orgError } = await supabase
-      .from('organization_profiles')
-      .select('organization_name')
-      .eq('account_id', session.user.id)
-      .single()
-    if (orgError || !organization) {
-      return NextResponse.json(
-        { error: 'Organization profile not found' },
-        { status: 404 }
-      )
-    }
-    
-    // Create event first to get ID (organization creates: use createdByOrganization, not createdBy)
+
     const { data: eventRow, error: insertError } = await supabase
-      .from('events')
+      .from("events")
       .insert({
-        title: body.title,
-        description: body.description,
-        category: body.category,
-        event_type: body.eventType || 'event',
-        event_date: body.eventDate,
-        end_date: body.endDate || null,
-        duration: body.duration || null,
-        schedule: body.schedule || null,
-        prerequisites: body.prerequisites || [],
-        learning_outcomes: body.learningOutcomes || [],
-        certification: body.certification || null,
-        cost: body.cost || null,
-        target_audience: body.targetAudience || [],
-        syllabus: body.syllabus || null,
-        location: body.location,
-        application_link: body.applicationLink || null,
-        application_deadline: body.applicationDeadline || null,
-        max_participants: body.maxParticipants || null,
-        tags: body.tags || [],
-        created_by: null,
-        created_by_organization: session.user.id,
-        organization_name: organization.organization_name || 'Unknown Organization',
-        status: 'pending',
-        is_published: false,
+        ...insertPayload,
+        created_by: isApprovedOrganization(session) ? null : session.user.id,
+        created_by_organization: isApprovedOrganization(session) ? session.user.id : null,
+        organization_name: isApprovedOrganization(session) ? organization.data?.organization_name || "Unknown Organization" : null,
+        ...lifecycleResult.updateData,
         current_participants: 0,
-        images: []
+        images: [],
       })
-      .select('*')
-      .single()
+      .select("*")
+      .single();
 
     if (insertError || !eventRow) {
-      console.error('Error creating event:', insertError)
-      return NextResponse.json(
-        { error: 'Failed to create event' },
-        { status: 500 }
-      )
+      return errorResponse("Failed to create event", 500);
     }
-    
-    // Upload images to Cloudinary if provided
+
     if (imageFiles.length > 0) {
       const uploadedImages = [];
-      
+
       for (let i = 0; i < imageFiles.length; i++) {
         const file = imageFiles[i];
-        
-        // Validate file
-        const validation = cloudinaryService.validateImageFile(file, 10);
-        if (!validation.valid) {
-          console.warn(`Skipping invalid image: ${validation.error}`);
+        const validationResult = cloudinaryService.validateImageFile(file, 10);
+        if (!validationResult.valid) {
           continue;
         }
-        
+
         try {
           const bytes = await file.arrayBuffer();
           const buffer = Buffer.from(bytes);
-          
-          // Upload to Cloudinary
-          const uploadResult = await cloudinaryService.uploadEventImage(
-            buffer,
-            eventRow.id,
-            i
-          );
-          
+          const uploadResult = await cloudinaryService.uploadEventImage(buffer, eventRow.id, i);
           if (uploadResult.success && uploadResult.secureUrl && uploadResult.publicId) {
             uploadedImages.push({
               url: uploadResult.secureUrl,
               publicId: uploadResult.publicId,
-              alt: body.title || 'Event image',
-              isPrimary: i === 0 // First image is primary
+              alt: body.title || "Event image",
+              isPrimary: i === 0,
             });
           }
-        } catch (uploadError) {
-          console.error(`Error uploading image ${i}:`, uploadError);
-        }
+        } catch (uploadError) {}
       }
-      
-      // Update event with images
+
       if (uploadedImages.length > 0) {
         await supabase
-          .from('events')
+          .from("events")
           .update({
             images: uploadedImages,
             image_url: uploadedImages[0].url,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
-          .eq('id', eventRow.id)
+          .eq("id", eventRow.id);
       }
     }
 
-    const { data: updatedEventRow } = await supabase
-      .from('events')
-      .select('*, created_by (id, name, email), created_by_organization (id, organization_name, email), approved_by (id, name)')
-      .eq('id', eventRow.id)
-      .single()
-    
-    return NextResponse.json(
-      { message: 'Event created successfully. Awaiting admin approval.', event: mapEvent(updatedEventRow || eventRow) },
-      { status: 201 }
-    )
+    const { data: updatedEventRow, error: fetchError } = await supabase
+      .from("events")
+      .select("*, created_by (id, name, email), created_by_organization (id, organization_name, email), approved_by (id, name)")
+      .eq("id", eventRow.id)
+      .single();
+
+    if (fetchError) {
+      return errorResponse("Failed to create event", 500);
+    }
+
+    if (isApprovedOrganization(session) && organization?.data?.organization_name) {
+      await NotificationService.notifyOrganizationFollowersAboutNewContent({
+        organizationId: session.user.id,
+        organizationName: organization.data.organization_name,
+        contentType: "event",
+        contentId: updatedEventRow.id,
+        contentTitle: updatedEventRow.title,
+      });
+    }
+
+    if (updatedEventRow.status === 'approved' && updatedEventRow.is_published) {
+      await NotificationService.notifyUsersAboutRelevantItem({
+        itemType: 'event',
+        itemId: updatedEventRow.id,
+        title: updatedEventRow.title,
+        description: updatedEventRow.description,
+        tags: Array.isArray(updatedEventRow.tags) ? updatedEventRow.tags : [],
+        actionUrl: `/resources/events/${updatedEventRow.id}`,
+      })
+    }
+
+    return successResponse(
+      { event: mapEventToResponse(updatedEventRow || eventRow) },
+      { message: "Event created successfully. Awaiting admin approval.", status: 201 }
+    );
   } catch (error) {
-    console.error('Error creating event:', error)
-    return NextResponse.json(
-      { error: 'Failed to create event' },
-      { status: 500 }
-    )
+    return errorResponse("Failed to create event", 500);
   }
 }

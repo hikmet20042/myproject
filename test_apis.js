@@ -150,8 +150,8 @@ async function runTests() {
   logInfo('Testing notification endpoints (will fail without authentication)...');
   
   await testEndpoint('GET', '/api/notifications');
-  await testEndpoint('PATCH', '/api/notifications/test-id', {
-    body: { isRead: true }
+  await testEndpoint('PUT', '/api/notifications', {
+    body: { notificationId: 'test-id', isRead: true }
   });
 
   // Test 7: Cron Job API

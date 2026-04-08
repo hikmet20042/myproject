@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,12 +40,12 @@ export async function POST(
       .eq('id', vacancyId)
       .single();
     if (error || !vacancy) {
-      return NextResponse.json({ error: 'Vacancy not found' }, { status: 404 });
+      return errorResponse('Vacancy not found', "API_ERROR", {}, 404);
     }
 
     // Only track views for approved vacancies
     if (vacancy.status !== 'approved') {
-      return NextResponse.json({
+      return successResponse({
         success: false,
         message: 'Views only tracked for approved content',
         views: vacancy.views || 0,
@@ -106,7 +107,7 @@ export async function POST(
       }
     }
     
-    return NextResponse.json({
+    return successResponse({
       success: true,
       views: vacancy.views || 0,
       uniqueViews: vacancy.unique_views || 0,
@@ -119,7 +120,7 @@ export async function POST(
     
   } catch (error) {
     console.error('View tracking error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errorResponse('Internal server error', "API_ERROR", {}, 500);
   }
 }
 
@@ -139,10 +140,10 @@ export async function GET(
       .single();
     
     if (error || !vacancy) {
-      return NextResponse.json({ error: 'Vacancy not found' }, { status: 404 });
+      return errorResponse('Vacancy not found', "API_ERROR", {}, 404);
     }
     
-    return NextResponse.json({
+    return successResponse({
       views: vacancy.views || 0,
       uniqueViews: vacancy.unique_views || 0,
       likes: 0,
@@ -152,6 +153,6 @@ export async function GET(
     
   } catch (error) {
     console.error('Get view count error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errorResponse('Internal server error', "API_ERROR", {}, 500);
   }
 }

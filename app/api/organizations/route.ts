@@ -1,7 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { isOrganizationType } from '@/lib/organizationTypes'
+import { canAccessAdmin } from '@/lib/auth/permissions'
+import { normalizeOrganizationProfile } from '@/lib/organizationProfile'
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 // Force dynamic rendering due to request.url usage
 export const dynamic = 'force-dynamic'
@@ -30,20 +33,20 @@ export async function GET(request: NextRequest) {
     if (myOrganizations) {
       // This endpoint is not used for independent organizations
       // Organizations should use their own dashboard API
-      return NextResponse.json({ error: 'Use organization-specific endpoints for organization data' }, { status: 400 })
+      return errorResponse('Use organization-specific endpoints for organization data', "API_ERROR", {}, 400)
     } else {
       // For public access, only show approved organizations
     }
     
     // Filter by status if provided (for admin or own organizations)
-    const effectiveStatus = status && ['pending', 'approved', 'rejected'].includes(status) && (session?.user?.role === 'admin' || myOrganizations)
+    const effectiveStatus = status && ['pending', 'approved', 'rejected'].includes(status) && (canAccessAdmin(session) || myOrganizations)
       ? status
       : 'approved'
     
     // Category filter
     let query = supabase
       .from('organization_profiles')
-      .select('account_id, organization_name, organization_type, description, focus_areas, address, website, contact_phone, contact_person, social_links, registration_number, moderation_status, created_at, updated_at, reviewed_by, reviewed_at', { count: 'exact' })
+      .select('account_id, organization_name, profile_image, organization_type, description, focus_areas, address, website, contact_phone, contact_person, social_links, registration_number, moderation_status, created_at, updated_at, reviewed_by, reviewed_at', { count: 'exact' })
       .eq('moderation_status', effectiveStatus)
     
     // Location filter
@@ -86,42 +89,29 @@ export async function GET(request: NextRequest) {
     const organizationRows = organizations || []
     
     // Transform data for frontend
-    const transformedOrganizations = organizationRows.map((organization: any) => ({
-      // Keep field names consistent with frontend expectations
-      _id: organization.account_id || organization.id,
-      organizationName: organization.organization_name,
-      organizationType: organization.organization_type,
-      description: organization.description,
-      focusAreas: organization.focus_areas || [],
-      address: organization.address || 'Not specified',
-      website: organization.website || '',
-      contactPhone: organization.contact_phone || '',
-      contactPerson: organization.contact_person,
-      socialMedia: organization.social_links || {},
-      registrationNumber: organization.registration_number,
-      status: organization.moderation_status,
-      createdAt: organization.created_at,
-      updatedAt: organization.updated_at,
-      approvedBy: organization.reviewed_by,
-      approvedAt: organization.reviewed_at
-    }))
-    
-    return NextResponse.json({
-      organizations: transformedOrganizations,
-      pagination: {
+    const transformedOrganizations = organizationRows.map((organization: any) => {
+      const normalized = normalizeOrganizationProfile(organization)
+      return {
+        ...normalized,
+        _id: normalized.id,
+      }
+    })
+
+    return successResponse(
+      {
+        items: transformedOrganizations,
+      },
+      {
         page,
         limit,
         total: count || 0,
-        pages: Math.ceil((count || 0) / limit)
+        pages: Math.ceil((count || 0) / limit),
       }
-    })
+    )
     
   } catch (error) {
     console.error('Error fetching organizations:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch organizations' },
-      { status: 500 }
-    )
+    return errorResponse('Failed to fetch organizations', "API_ERROR", {}, 500)
   }
 }
 
@@ -130,11 +120,9 @@ export async function POST(request: NextRequest) {
   try {
     // This endpoint is no longer used for creating organizations
     // Organizations are now created through the registration process
-    return NextResponse.json({
-      error: 'Organization creation is handled through the registration process. Please use /api/auth/register with type=organization'
-    }, { status: 400 })
+    return errorResponse('Organization creation is handled through the registration process. Please use /api/auth/register with type=organization', "API_ERROR", {}, 400)
   } catch (error) {
     console.error('Error in deprecated organization creation endpoint:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return errorResponse('Internal server error', "API_ERROR", {}, 500)
   }
 }

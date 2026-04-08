@@ -7,3 +7,5 @@ export type { FormSectionProps } from './FormSection';
 
 export { DynamicList } from './DynamicList';
 export type { DynamicListProps } from './DynamicList';
+
+export { default as FormLayout } from './FormLayout';

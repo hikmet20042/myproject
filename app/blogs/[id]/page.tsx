@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
 import dynamic from "next/dynamic";
 const BlocknoteReadOnly = dynamic(
@@ -17,16 +17,17 @@ import {
   AnimatedBackground,
 } from "@/components/shared";
 import {
-  ArrowLeft,
   Calendar,
   User,
   Eye,
   Heart,
   BookOpen,
-  Sparkles,
 } from "lucide-react";
 import { useLocalizedPath } from "@/lib/useLocalizedPath";
 import ViewTracker from "@/components/ViewTracker";
+import { blogQueryKeys, fetchBlogById } from "@/lib/blogQueries";
+import { DetailPageLayout } from "@/components/layout";
+import SaveButton from "@/components/SaveButton";
 
 // Custom CSS styles for professional BlocknoteReadOnly editor
 const blogStyles = `
@@ -263,7 +264,6 @@ type Blog = {
 export default function BlogDetailPage({ params }: { params: { id: string } }) {
   // localized pattern for author display, supports templates like "by {{author}}" (en)
   // and "{{author}} tərəfindən" (az)
-    const router = useRouter();
   const byPattern = "{{author}} tərəfindən";
   const byParts = (byPattern || "").split("{{author}}");
   const byPre = byParts[0] || "";
@@ -272,125 +272,88 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
     return params.id;
   }, [params.id]);
 
-  const [blog, setBlog] = useState<Blog | null>(null);
   const localePath = useLocalizedPath();
-  const [loading, setLoading] = useState(true);
   const [contentReady, setContentReady] = useState(false);
 
-  useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      try {
-        setLoading(true);
-        setContentReady(false);
-        // 1) Try localStorage (user-submitted)
-        const local = localStorage.getItem("submittedBlogs");
-        if (local) {
-          try {
-            const list: Blog[] = JSON.parse(local);
-            const found = list.find((s) => String(s.id) == String(targetId));
-            if (found) {
-              if (!mounted) return;
-              setBlog(found);
-              // Give time for content to render
-              setTimeout(() => {
-                if (mounted) setContentReady(true);
-              }, 300);
-              return;
-            }
-          } catch {}
-        }
-        // 2) Try sample data
-        // Try to fetch from API first
-        const apiRes = await fetch(`/api/blogs?id=${targetId}`);
-        if (apiRes.ok) {
-          const apiData = await apiRes.json();
-          if (apiData.blog) {
-            if (!mounted) return;
-            setBlog({
-              id: apiData.blog._id,
-              _id: apiData.blog._id,
-              title: apiData.blog.title,
-              authorName: apiData.blog.authorName,
-              author: apiData.blog.author?.toString(),
-              isAnonymous: apiData.blog.isAnonymous,
-              submittedAt: apiData.blog.createdAt,
-              date: apiData.blog.createdAt,
-              status: apiData.blog.status,
-              abstract: apiData.blog.abstract || "",
-              content: apiData.blog.content,
-              contentBlocksJson: apiData.blog.content,
-              likes: apiData.blog.likes || 0,
-              dislikes: apiData.blog.dislikes || 0,
-              views: apiData.blog.views || 0,
-            });
-
-            // Give time for content to render
-            setTimeout(() => {
-              if (mounted) setContentReady(true);
-            }, 300);
-
-            return;
-          }
-        }
-        if (mounted) setBlog(null);
-      } finally {
-        if (mounted) setLoading(false);
+  const blogQuery = useQuery({
+    queryKey: blogQueryKeys.detail(targetId),
+    queryFn: async () => {
+      const local = localStorage.getItem("submittedBlogs");
+      if (local) {
+        try {
+          const list: Blog[] = JSON.parse(local);
+          const found = list.find((s) => String(s.id) === String(targetId));
+          if (found) return found;
+        } catch {}
       }
-    };
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, [targetId]);
+      const apiBlog = await fetchBlogById(targetId);
+      const apiBlogId = apiBlog.id || apiBlog._id;
+      return {
+        id: apiBlogId,
+        _id: apiBlogId,
+        title: apiBlog.title,
+        authorName: apiBlog.authorName || apiBlog.author_name,
+        author: apiBlog.author?.toString?.() || apiBlog.author_id?.toString?.(),
+        isAnonymous: apiBlog.isAnonymous ?? apiBlog.is_anonymous,
+        submittedAt: apiBlog.createdAt || apiBlog.created_at,
+        date: apiBlog.createdAt || apiBlog.created_at,
+        status: apiBlog.status,
+        abstract: apiBlog.abstract || "",
+        content: apiBlog.content,
+        contentHtml: apiBlog.contentHtml || apiBlog.content_html || "",
+        contentBlocksJson: apiBlog.content,
+        likes: apiBlog.likes || 0,
+        dislikes: apiBlog.dislikes || 0,
+        views: apiBlog.views || 0
+      } as Blog;
+    },
+    retry: false
+  });
 
-  if (loading) {
+  const blog = blogQuery.data || null;
+
+  useEffect(() => {
+    setContentReady(false);
+    if (!blog) return;
+    const timer = setTimeout(() => setContentReady(true), 300);
+    return () => clearTimeout(timer);
+  }, [blog?._id, blog?.title]);
+
+  if (blogQuery.isLoading) {
     return <LoadingState text={"Bloq yüklənir…"} />;
   }
 
-  if (!blog) {
+  if (!blog || blogQuery.isError) {
     return (
       <ErrorState
         title={"Bloq tapılmadı"}
         message={"Axtardığın bloq artıq mövcud deyil və ya silinib."}
-        onRetry={() => router.replace(localePath("/blogs"))}
-        retryText={"Bloqlara Qayıt"}
+        onRetry={() => blogQuery.refetch()}
+        retryText={"Yenidən cəhd et"}
       />
     );
   }
 
   const publishedDate = blog.submittedAt || blog.date;
   const safeHtml = blog.contentHtml ? DOMPurify.sanitize(blog.contentHtml) : "";
+  const breadcrumbItems = [
+    { label: "Ana Səhifə", href: localePath("/") },
+    { label: "Bloqlar", href: localePath("/blogs") },
+    { label: blog.title, current: true },
+  ];
 
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: blogStyles }} />
 
-      <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
-        <section className="relative overflow-hidden pt-28 pb-14 md:pt-36 md:pb-20">
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-40" />
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[480px] w-[820px] rounded-full bg-primary/10 blur-3xl" />
-
-          <div className="section-padding relative z-10">
-            <div className="mx-auto max-w-5xl">
-              <Link
-                href={localePath("/blogs")}
-                className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:border-blue-200 hover:text-primary"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                <span>{"Bloqlara Qayıt"}</span>
-              </Link>
-
-              <div className="mt-7 inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-medium text-gray-600">
-                <Sparkles size={14} className="text-accent" />
-                {"İcma Bloqları"}
-              </div>
-
-              <h1 className="mt-6 max-w-4xl text-3xl font-black leading-tight tracking-tight text-gray-900 sm:text-4xl md:text-5xl">
-                {blog.title}
-              </h1>
-
-              <div className="mt-6 flex flex-wrap items-center gap-3 text-sm text-gray-700 sm:text-base">
+      <DetailPageLayout
+        backHref={localePath("/blogs")}
+        backLabel={"Bloqlara Qayıt"}
+        breadcrumbItems={breadcrumbItems}
+        title={blog.title}
+        metadata={
+          <>
+            <div className="flex flex-wrap items-center gap-3 text-sm text-gray-700 sm:text-base">
                 {blog.authorName && (
                   <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5">
                     <User className="h-4 w-4 text-primary" />
@@ -419,7 +382,7 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
                   <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5">
                     <Calendar className="h-4 w-4 text-accent" />
                     <time className="font-medium">
-                      {new Date(publishedDate).toLocaleDateString("en-US", {
+                      {new Date(publishedDate).toLocaleDateString("az-AZ", {
                         year: "numeric",
                         month: "long",
                         day: "numeric",
@@ -436,25 +399,22 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
                     </span>
                   </div>
                 )}
-              </div>
-
-              {blog._id &&
+            </div>
+            {blog._id &&
                 blog.status === "approved" &&
                 isValidObjectId(blog._id) && (
-                  <div className="mt-5 inline-flex rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-sm text-blue-700">
-                    <ViewTracker
-                      itemId={blog._id}
-                      itemType="blog"
-                      initialViews={blog.views || 0}
-                    />
-                  </div>
-                )}
-            </div>
-          </div>
-        </section>
-
-        <article className="section-padding py-10 sm:py-14">
-          <div className="mx-auto max-w-4xl space-y-8">
+              <div className="mt-5 inline-flex rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-sm text-blue-700">
+                <ViewTracker
+                  itemId={blog._id}
+                  itemType="blog"
+                  initialViews={blog.views || 0}
+                />
+              </div>
+            )}
+          </>
+        }
+        mainContent={
+          <>
             <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
               <div className="p-6 sm:p-10">
                 <div className="blog-content prose prose-lg max-w-none text-base sm:text-lg">
@@ -508,7 +468,9 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
                   </div>
                 )}
             </div>
-
+          </>
+        }
+        actionSection={
             <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
@@ -522,6 +484,7 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
                   </p>
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row">
+                  <SaveButton itemId={blog._id || blog.id} itemType="blog" itemTitle={blog.title} size="md" />
                   <Link href={localePath("/blogs")}>
                     <Button variant="outline" className="w-full sm:w-auto">
                       {"Bloqlara Qayıt"}
@@ -535,9 +498,8 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
                 </div>
               </div>
             </div>
-          </div>
-        </article>
-      </div>
+        }
+      />
     </>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { type CSSProperties, type ReactNode } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/Button';
 import { ArrowRight } from 'lucide-react';
 
 interface ResourceCardProps {
+  /** Resource domain type for semantic grouping */
+  type: 'event' | 'vacancy' | 'blog' | 'organization' | 'material';
   /** Title of the resource */
   title: string;
   /** Description or subtitle */
@@ -24,6 +26,10 @@ interface ResourceCardProps {
   }>;
   /** Footer content (metadata like date, location, etc.) */
   footer?: ReactNode;
+  /** Metadata slot (date, location, author, organization, etc.) */
+  metadata?: ReactNode;
+  /** Action slot (save/apply/detail buttons, etc.) */
+  actions?: ReactNode;
   /** Optional image URL */
   imageUrl?: string;
   /** Custom hover border color */
@@ -38,6 +44,12 @@ interface ResourceCardProps {
   onClick?: () => void;
   /** Additional className */
   className?: string;
+  /** Additional className for card wrapper */
+  wrapperClassName?: string;
+  /** Optional inline style for wrapper */
+  style?: CSSProperties;
+  /** Optional top-right slot for badges/icons */
+  topRight?: ReactNode;
 }
 
 /**
@@ -45,11 +57,14 @@ interface ResourceCardProps {
  * Used across vacancies, events, organizations, and materials pages
  */
 export function ResourceCard({
+  type,
   title,
   description,
   href,
   badges,
   footer,
+  metadata,
+  actions,
   imageUrl,
   hoverBorderColor = 'hover:border-blue-300',
   hoverGradient = 'group-hover:from-blue-50 group-hover:to-emerald-50',
@@ -57,13 +72,22 @@ export function ResourceCard({
   actionText,
   onClick,
   className = '',
+  wrapperClassName = '',
+  style,
+  topRight,
 }: ResourceCardProps) {
   const localePath = useLocalizedPath()
   const content = (
       <Card
+        data-resource-type={type}
         className={`h-full border-2 border-gray-200 ${hoverBorderColor} hover:shadow-lg transition-all duration-300 hover:scale-[1.02] ${className}`}
       >
-        <CardContent className={`p-6 h-full flex flex-col bg-gradient-to-br from-white to-gray-50 ${hoverGradient} transition-all duration-300`}>
+        <CardContent className={`relative p-6 h-full flex flex-col bg-gradient-to-br from-white to-gray-50 ${hoverGradient} transition-all duration-300`}>
+          {topRight && (
+            <div className="absolute right-6 top-6 z-20">
+              {topRight}
+            </div>
+          )}
           {/* Image */}
           {imageUrl && (
             <div className="mb-4 rounded-lg overflow-hidden">
@@ -111,6 +135,12 @@ export function ResourceCard({
             </p>
           )}
 
+          {metadata && (
+            <div className="space-y-2 mb-4 flex-1">
+              {metadata}
+            </div>
+          )}
+
           {/* Footer */}
           {footer && (
             <div className="mt-auto pt-4 border-t border-gray-200">
@@ -118,8 +148,14 @@ export function ResourceCard({
             </div>
           )}
 
+          {actions && (
+            <div className="pt-4 border-t border-gray-200 mt-auto">
+              {actions}
+            </div>
+          )}
+
           {/* Action Button */}
-          {actionText && (
+          {actionText && !actions && (
             <div className="mt-4">
               <Button
                 variant="outline"
@@ -136,7 +172,7 @@ export function ResourceCard({
 
   if (href) {
     return (
-      <Link href={href.startsWith('/') ? localePath(href) : href} className="group block">
+      <Link href={href.startsWith('/') ? localePath(href) : href} className={`group block ${wrapperClassName}`} style={style}>
         {content}
       </Link>
     );
@@ -144,11 +180,11 @@ export function ResourceCard({
 
   if (onClick) {
     return (
-      <div onClick={onClick} role="button" tabIndex={0} className="group block cursor-pointer" onKeyDown={(e) => e.key === 'Enter' && onClick()}>
+      <div onClick={onClick} role="button" tabIndex={0} className={`group block cursor-pointer ${wrapperClassName}`} style={style} onKeyDown={(e) => e.key === 'Enter' && onClick()}>
         {content}
       </div>
     );
   }
 
-  return <div className="group block">{content}</div>;
+  return <div className={`group block ${wrapperClassName}`} style={style}>{content}</div>;
 }

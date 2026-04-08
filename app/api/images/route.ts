@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest) {
 
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', "API_ERROR", {}, 401);
     }
 
     const { searchParams } = new URL(request.url);
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Images list query error:', error);
-      return NextResponse.json({ error: 'Failed to retrieve images' }, { status: 500 });
+      return errorResponse('Failed to retrieve images', "API_ERROR", {}, 500);
     }
 
     const total = count || 0;
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest) {
       url: `/api/images/${image.id}`
     }));
 
-    return NextResponse.json({
+    return successResponse({
       images: formattedImages,
       pagination: {
         page,
@@ -72,7 +73,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Images list error:', error);
-    return NextResponse.json({ error: 'Failed to retrieve images' }, { status: 500 });
+    return errorResponse('Failed to retrieve images', "API_ERROR", {}, 500);
   }
 }
 
@@ -83,14 +84,14 @@ export async function DELETE(request: NextRequest) {
 
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', "API_ERROR", {}, 401);
     }
 
     const { searchParams } = new URL(request.url);
     const imageId = searchParams.get('id');
 
     if (!imageId) {
-      return NextResponse.json({ error: 'Invalid image ID' }, { status: 400 });
+      return errorResponse('Invalid image ID', "API_ERROR", {}, 400);
     }
 
     // Find and delete the image (only if owned by user)
@@ -103,10 +104,10 @@ export async function DELETE(request: NextRequest) {
       .single();
 
     if (error || !deletedImage) {
-      return NextResponse.json({ error: 'Image not found or not authorized' }, { status: 404 });
+      return errorResponse('Image not found or not authorized', "API_ERROR", {}, 404);
     }
 
-    return NextResponse.json({ 
+    return successResponse({ 
       message: 'Image deleted successfully',
       deletedImage: {
         id: deletedImage.id,
@@ -117,6 +118,6 @@ export async function DELETE(request: NextRequest) {
 
   } catch (error) {
     console.error('Image deletion error:', error);
-    return NextResponse.json({ error: 'Failed to delete image' }, { status: 500 });
+    return errorResponse('Failed to delete image', "API_ERROR", {}, 500);
   }
 }

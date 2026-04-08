@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
 import { getServerSession } from '@/lib/auth/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -11,10 +11,7 @@ export async function GET(request: Request) {
     const session = await getServerSession();
 
     if (!session || session.user?.role !== 'admin') {
-      return NextResponse.json(
-        { error: 'Unauthorized. Admin access required.' },
-        { status: 403 }
-      );
+      return errorResponse('Unauthorized. Admin access required.', "API_ERROR", {}, 403);
     }
 
     const supabase = createSupabaseAdminClient();
@@ -44,10 +41,7 @@ export async function GET(request: Request) {
     const { data: materials, error, count: total } = await query;
 
     if (error) {
-      return NextResponse.json(
-        { error: 'Failed to fetch materials', details: error.message },
-        { status: 500 }
-      );
+      return errorResponse('Failed to fetch materials', "API_ERROR", {}, 500);
     }
 
     const [publishedResult, featuredResult] = await Promise.all([
@@ -59,7 +53,7 @@ export async function GET(request: Request) {
     const totalCount = total || 0
     const unpublished = Math.max(totalCount - published, 0)
 
-    return NextResponse.json({
+    return successResponse({
       materials,
       page,
       totalPages: Math.ceil(totalCount / limit),
@@ -79,9 +73,6 @@ export async function GET(request: Request) {
     });
   } catch (error: any) {
     console.error('Error fetching materials:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch materials', details: error.message },
-      { status: 500 }
-    );
+    return errorResponse('Failed to fetch materials', "API_ERROR", {}, 500);
   }
 }

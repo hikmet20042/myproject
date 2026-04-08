@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Mail, ArrowLeft } from 'lucide-react'
 import { Input, Button } from '@/components/ui'
 import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -20,19 +21,16 @@ export default function ForgotPasswordPage() {
     setMessage('')
 
     try {
-      const response = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
+      const supabase = createSupabaseBrowserClient()
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
       })
 
-      const data = await response.json()
-
-      if (response.ok) {
-        setMessage(data.message)
-        setEmail('')
+      if (resetError) {
+        setError(resetError.message || 'Nəsə səhv oldu')
       } else {
-        setError(data.error || 'Nəsə səhv oldu')
+        setMessage('If an account with that email exists, a password reset link has been sent.')
+        setEmail('')
       }
     } catch {
       setError('Şəbəkə xətası. Zəhmət olmasa yenidən cəhd edin.')

@@ -1,6 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { randomUUID } from 'crypto'
+import { getBlogStats } from '@/lib/blogStats'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,152 +12,134 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createSupabaseAdminClient();
-    
-    const blogId = params.id;
-    const session = await getServerSession();
-    const viewerId = session?.user?.id;
-    
-    // Get client IP for unique view tracking
-    const forwarded = request.headers.get('x-forwarded-for');
-    const ip = forwarded ? forwarded.split(',')[0] : (request.headers.get('x-real-ip') || 'unknown');
-    
-    // Get user agent for analytics
-    const userAgent = request.headers.get('user-agent') || 'unknown';
-    
-    // Parse request body for client-side tracking info
-    let body;
+    const supabase = createSupabaseAdminClient()
+    const blogId = params.id
+    const session = await getServerSession()
+    const viewerId = session?.user?.id
+
+    let body: any = {}
     try {
-      body = await request.json();
+      body = await request.json()
     } catch {
-      body = {};
+      body = {}
     }
-    
-    const { isFirstView = true } = body;
-    
-    // Find the blog
+
+    const { sessionId: bodySessionId, session_id: bodySessionIdAlt } = body
+
     const { data: blog, error } = await supabase
       .from('blogs')
-      .select('id, status, views, unique_views, viewed_by, likes, dislikes, engagement_score, author_id')
+      .select('id, status')
       .eq('id', blogId)
-      .single();
+      .single()
     if (error || !blog) {
-      return NextResponse.json({ error: 'Blog not found' }, { status: 404 });
+      return errorResponse('Blog not found', 'BLOG_NOT_FOUND', {}, 404)
     }
 
-    // Only track views for approved blogs
+    const cookieSessionId = request.cookies.get('blog_view_session_id')?.value
+    const sessionIdRaw =
+      bodySessionId ||
+      bodySessionIdAlt ||
+      cookieSessionId ||
+      (viewerId ? `user_${viewerId}` : `tmp_${randomUUID()}`)
+    const sessionId = String(sessionIdRaw || '').trim().slice(0, 255)
+
+    if (!sessionId) {
+      return errorResponse('Session id is required', 'INVALID_SESSION', {}, 400)
+    }
+
     if (blog.status !== 'approved') {
-      return NextResponse.json({
-        success: false,
+      const stats = await getBlogStats(supabase, blogId, viewerId)
+      return successResponse({
         message: 'Views only tracked for approved content',
-        views: blog.views || 0,
-        uniqueViews: blog.unique_views || 0,
+        views: stats.views,
+        uniqueViews: stats.uniqueViews,
+        likes: stats.likes,
+        dislikes: stats.dislikes,
+        engagementScore: stats.engagementScore,
+        isUniqueView: false,
         viewIncremented: false
-      });
+      })
     }
 
-    // Check if this is a unique view
-    let isUniqueView = false;
-    let viewIncremented = false;
-    
-    if (viewerId) {
-      // For logged-in users, check if they haven't viewed this blog before
-      const viewedBy = Array.isArray(blog.viewed_by) ? blog.viewed_by : [];
-      const alreadyViewed = viewedBy.some((id: any) => id.toString() === viewerId.toString());
-      
-      if (!alreadyViewed) {
-        isUniqueView = true;
-        viewedBy.push(viewerId);
-        blog.viewed_by = viewedBy;
-        blog.unique_views = (blog.unique_views || 0) + 1;
-      }
-      
-      // Always increment total views for authenticated users
-      blog.views = (blog.views || 0) + 1;
-      viewIncremented = true;
-      
-    } else {
-      // For anonymous users, rely on client-side tracking (session storage)
-      if (isFirstView) {
-        isUniqueView = true;
-        blog.unique_views = (blog.unique_views || 0) + 1;
-        blog.views = (blog.views || 0) + 1;
-        viewIncremented = true;
-      }
+    const dedupeSince = new Date(Date.now() - 30 * 60 * 1000).toISOString()
+    const { data: existingEvent, error: existingEventError } = await supabase
+      .from('blog_views')
+      .select('id')
+      .eq('blog_id', blogId)
+      .eq('session_id', sessionId)
+      .gte('created_at', dedupeSince)
+      .limit(1)
+      .maybeSingle()
+
+    if (existingEventError) {
+      return errorResponse('Failed to track view', 'INTERNAL_SERVER_ERROR', {}, 500)
     }
-    
-    // Calculate engagement score (views * 1 + likes * 3 - dislikes * 2)
+
+    const viewIncremented = !existingEvent?.id
     if (viewIncremented) {
-      const engagementScore = (blog.views * 1) +
-                             ((blog.likes || 0) * 3) -
-                             ((blog.dislikes || 0) * 2);
-      const engagementScoreValue = Math.max(0, engagementScore);
-      
-      await supabase
-        .from('blogs')
-        .update({
-          views: blog.views,
-          unique_views: blog.unique_views,
-          viewed_by: blog.viewed_by || [],
-          engagement_score: engagementScoreValue,
-          updated_at: new Date().toISOString()
+      const { error: insertError } = await supabase
+        .from('blog_views')
+        .insert({
+          blog_id: blogId,
+          session_id: sessionId,
+          user_id: viewerId || null
         })
-        .eq('id', blogId);
+      if (insertError) {
+        return errorResponse('Failed to track view', 'INTERNAL_SERVER_ERROR', {}, 500)
+      }
+      console.info('[blog_views] inserted', { blogId, sessionId, userId: viewerId || null })
+    } else {
+      console.info('[blog_views] dedupe hit', { blogId, sessionId })
     }
-    
-    // Return updated stats
-    return NextResponse.json({
-      success: true,
-      views: blog.views || 0,
-      uniqueViews: blog.unique_views || 0,
-      likes: blog.likes || 0,
-      dislikes: blog.dislikes || 0,
-      engagementScore: blog.engagement_score || 0,
-      isUniqueView,
+
+    const stats = await getBlogStats(supabase, blogId, viewerId)
+
+    return successResponse({
+      views: stats.views,
+      uniqueViews: stats.uniqueViews,
+      likes: stats.likes,
+      dislikes: stats.dislikes,
+      engagementScore: stats.engagementScore,
+      isUniqueView: viewIncremented,
       viewIncremented
-    });
-    
+    })
   } catch (error) {
-    console.error('View tracking error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('View tracking error:', error)
+    return errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500)
   }
 }
 
-// Get view statistics for a blog
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createSupabaseAdminClient();
-    
-    const blogId = params.id;
-    
+    const supabase = createSupabaseAdminClient()
+    const blogId = params.id
+
     const { data: blog, error } = await supabase
       .from('blogs')
-      .select('views, unique_views, likes, engagement_score')
+      .select('id')
       .eq('id', blogId)
-      .single();
+      .single()
     if (error || !blog) {
-      return NextResponse.json({ error: 'Blog not found' }, { status: 404 });
+      return errorResponse('Blog not found', 'BLOG_NOT_FOUND', {}, 404)
     }
-    
-    // Get view analytics for the last 30 days
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    const viewAnalytics: any[] = [];
-    
-    return NextResponse.json({
-      views: blog.views || 0,
-      uniqueViews: blog.unique_views || 0,
-      likes: blog.likes || 0,
-      engagementScore: blog.engagement_score || 0,
+
+    const viewAnalytics: any[] = []
+    const session = await getServerSession()
+    const stats = await getBlogStats(supabase, blogId, session?.user?.id)
+
+    return successResponse({
+      views: stats.views,
+      uniqueViews: stats.uniqueViews,
+      likes: stats.likes,
+      dislikes: stats.dislikes,
+      engagementScore: stats.engagementScore,
       dailyAnalytics: viewAnalytics
-    });
-    
+    })
   } catch (error) {
-    console.error('View analytics error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('View analytics error:', error)
+    return errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500)
   }
 }

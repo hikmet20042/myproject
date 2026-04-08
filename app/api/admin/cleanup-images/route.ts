@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getServerSession } from '@/lib/auth/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { canAccessAdmin } from '@/lib/auth/permissions';
+import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 export const dynamic = 'force-dynamic';
 
@@ -11,11 +13,11 @@ export async function POST(request: NextRequest) {
     // Check if user is admin
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', "API_ERROR", {}, 401);
     }
 
-    if (session.user.role !== 'admin') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    if (!canAccessAdmin(session)) {
+      return errorResponse('Admin access required', "API_ERROR", {}, 403);
     }
 
     const body = await request.json();
@@ -23,10 +25,7 @@ export async function POST(request: NextRequest) {
 
     // Validate daysOld parameter
     if (typeof daysOld !== 'number' || daysOld < 1 || daysOld > 365) {
-      return NextResponse.json(
-        { error: 'daysOld must be a number between 1 and 365' },
-        { status: 400 }
-      );
+      return errorResponse('daysOld must be a number between 1 and 365', "API_ERROR", {}, 400);
     }
 
     const cutoffDate = new Date();
@@ -40,13 +39,10 @@ export async function POST(request: NextRequest) {
 
     if (deleteError) {
       console.error('Cleanup delete error:', deleteError);
-      return NextResponse.json(
-        { error: 'Cleanup failed', details: deleteError.message },
-        { status: 500 }
-      );
+      return errorResponse('Cleanup failed', "API_ERROR", {}, 500);
     }
 
-    return NextResponse.json({
+    return successResponse({
       message: 'Cleanup completed',
       deletedCount,
       criteria: `Images older than ${daysOld} days with 0 usage count`
@@ -54,10 +50,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Cleanup API error:', error);
-    return NextResponse.json(
-      { error: 'Cleanup failed', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    return errorResponse('Cleanup failed', "API_ERROR", {}, 500);
   }
 }
 
@@ -68,11 +61,11 @@ export async function GET(request: NextRequest) {
     // Check if user is admin
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', "API_ERROR", {}, 401);
     }
 
-    if (session.user.role !== 'admin') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    if (!canAccessAdmin(session)) {
+      return errorResponse('Admin access required', "API_ERROR", {}, 403);
     }
 
     const { searchParams } = new URL(request.url);
@@ -94,10 +87,7 @@ export async function GET(request: NextRequest) {
 
     if (unusedResult.error || totalResult.error) {
       console.error('Cleanup status query error:', unusedResult.error || totalResult.error);
-      return NextResponse.json(
-        { error: 'Failed to get cleanup status' },
-        { status: 500 }
-      );
+      return errorResponse('Failed to get cleanup status', "API_ERROR", {}, 500);
     }
 
     const unusedCount = unusedResult.count || 0;
@@ -105,7 +95,7 @@ export async function GET(request: NextRequest) {
     const unusedSizeTotal = (unusedResult.data || []).reduce((sum, row) => sum + (row.size || 0), 0);
     const totalSizeTotal = (totalResult.data || []).reduce((sum, row) => sum + (row.size || 0), 0);
 
-    return NextResponse.json({
+    return successResponse({
       cleanup: {
         daysOld,
         unusedCount,
@@ -120,9 +110,6 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Cleanup status API error:', error);
-    return NextResponse.json(
-      { error: 'Failed to get cleanup status' },
-      { status: 500 }
-    );
+    return errorResponse('Failed to get cleanup status', "API_ERROR", {}, 500);
   }
 }

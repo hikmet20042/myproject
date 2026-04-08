@@ -1,8 +1,10 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSession } from '@/lib/auth/client'
 import { Eye } from 'lucide-react'
+import { eventQueryKeys, fetchEventViews, trackView } from '@/lib/eventQueries'
 
 interface ViewTrackerProps { itemId: string
   itemType: 'event' | 'vacancy' | 'blog'
@@ -15,26 +17,54 @@ export default function ViewTracker({ itemId,
   initialViews = 0,
   showCount = true,
   className = '' }: ViewTrackerProps) { const { data: session } = useSession()
+  const queryClient = useQueryClient()
   const [views, setViews] = useState(initialViews)
   const [hasTracked, setHasTracked] = useState(false)
   const hasTrackedRef = useRef(false)
+  const isEvent = itemType === 'event'
+
+  const eventViewsQuery = useQuery({
+    queryKey: eventQueryKeys.view(itemId),
+    queryFn: () => fetchEventViews(itemId),
+    enabled: isEvent,
+    initialData: { views: initialViews }
+  })
+
+  const trackEventMutation = useMutation({
+    mutationFn: (isFirstView: boolean) => trackView(itemId, { isFirstView }),
+    onSuccess: (data) => {
+      queryClient.setQueryData(eventQueryKeys.view(itemId), {
+        views: data.views || 0
+      })
+      queryClient.setQueryData(eventQueryKeys.detail(itemId), (previous: any) =>
+        previous ? { ...previous, views: data.views || 0 } : previous
+      )
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: eventQueryKeys.view(itemId) })
+      queryClient.invalidateQueries({ queryKey: eventQueryKeys.detail(itemId) })
+    }
+  })
 
   useEffect(() => { if (hasTracked || hasTrackedRef.current) return
-    hasTrackedRef.current = true // Mark as tracking immediately
+    hasTrackedRef.current = true
 
-    // We use a local flag or ref to ensure we only trigger this once
-    // but relies on the effect dependency array effectively
-
-    const trackView = async () => { try { // Check session storage for guests to prevent duplicate views
+    const trackView = async () => { try {
         const viewedKey = `viewed_${itemType}_${itemId}`
 
         let isFirstView = true
-        if (!session?.user?.id) { // Guest user - check session storage
+        if (!session?.user?.id) {
           if (sessionStorage.getItem(viewedKey)) { isFirstView = false } }
 
-        const endpoint = itemType === 'event'
-          ? `/api/events/${itemId}/view`
-          : itemType === 'vacancy'
+        if (isEvent) {
+          const data = await trackEventMutation.mutateAsync(isFirstView)
+          setViews(data.views || 0)
+          setHasTracked(true)
+          if (!session?.user?.id && data.viewIncremented) { sessionStorage.setItem(viewedKey, 'true') }
+          return
+        }
+
+        const endpoint = itemType === 'vacancy'
             ? `/api/vacancies/${itemId}/view`
             : `/api/blogs/${itemId}/view`
 
@@ -46,20 +76,16 @@ export default function ViewTracker({ itemId,
           setViews(data.views)
           setHasTracked(true)
 
-          // For guests, save to session storage if view was incremented
           if (!session?.user?.id && data.viewIncremented) { sessionStorage.setItem(viewedKey, 'true') } } } catch (error) { console.error('Error tracking view:', error) } }
 
-    // Track view after a small delay to ensure page is loaded
     const timer = setTimeout(() => { trackView() }, 1000)
 
-    return () => clearTimeout(timer) }, [itemId, itemType, session, hasTracked])
+    return () => clearTimeout(timer) }, [itemId, itemType, session, hasTracked, isEvent, trackEventMutation])
 
-  // Fetch current view count only if not provided or 0
   useEffect(() => { if (initialViews > 0) return
+    if (isEvent) return
 
-    const fetchViews = async () => { try { const endpoint = itemType === 'event'
-          ? `/api/events/${itemId}/view`
-          : itemType === 'vacancy'
+    const fetchViews = async () => { try { const endpoint = itemType === 'vacancy'
             ? `/api/vacancies/${itemId}/view`
             : `/api/blogs/${itemId}/view`
 
@@ -67,12 +93,13 @@ export default function ViewTracker({ itemId,
         if (response.ok) { const data = await response.json()
           setViews(data.views) } } catch (error) { console.error('Error fetching views:', error) } }
 
-    fetchViews() }, [itemId, itemType, initialViews])
+    fetchViews() }, [itemId, itemType, initialViews, isEvent])
 
   if (!showCount) return null
 
+  const currentViews = isEvent ? (eventViewsQuery.data?.views ?? views) : views
   const locale = 'az-AZ'
-  const formattedViews = views.toLocaleString(locale)
+  const formattedViews = currentViews.toLocaleString(locale)
   const viewLabel = `${formattedViews} baxış`
 
   return (

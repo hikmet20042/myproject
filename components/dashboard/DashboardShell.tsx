@@ -32,7 +32,7 @@ export default function DashboardShell({ children }: DashboardShellProps) {
         <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-3 shadow-sm lg:sticky lg:top-6">
           <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
             <h1 className="text-sm font-semibold text-slate-900">Organization Dashboard</h1>
-            <p className="mt-1 text-xs text-slate-500">Start with your profile, then manage events and vacancies.</p>
+            <p className="mt-1 text-xs text-slate-500">Profilinizi tamamlayın, sonra tədbir və vakansiyaları idarə edin.</p>
           </div>
 
           <nav className="space-y-1">

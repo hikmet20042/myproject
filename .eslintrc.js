@@ -25,6 +25,19 @@ module.exports = {
   },
   overrides: [
     {
+      files: ['app/api/**/route.ts'],
+      excludedFiles: ['app/api/rss/route.ts', 'app/api/images/**/route.ts', 'app/api/notifications/stream/route.ts'],
+      rules: {
+        'no-restricted-syntax': [
+          'error',
+          {
+            selector: "CallExpression[callee.object.name='NextResponse'][callee.property.name='json']",
+            message: 'Use successResponse/errorResponse from lib/apiResponse instead of NextResponse.json in JSON API routes.',
+          },
+        ],
+      },
+    },
+    {
       files: ['app/**/*.tsx', 'components/**/*.tsx', 'features/**/*.tsx', 'pages/**/*.tsx'],
       excludedFiles: ['**/layout.tsx'],
       rules: {

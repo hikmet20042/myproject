@@ -1,6 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { NotificationService } from '@/lib/services/notificationService'
+import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { getBlogStats } from '@/lib/blogStats'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,7 +16,7 @@ export async function POST(
     
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401);
     }
     
     const blogId = params.id;
@@ -22,90 +25,84 @@ export async function POST(
     // Find the blog
     const { data: blog, error } = await supabase
       .from('blogs')
-      .select('id, title, author_id, likes, dislikes, liked_by, disliked_by, views')
+      .select('id, title, author_id')
       .eq('id', blogId)
       .single();
     if (error || !blog) {
-      return NextResponse.json({ error: 'Blog not found' }, { status: 404 });
+      return errorResponse('Blog not found', 'BLOG_NOT_FOUND', {}, 404);
     }
-    
-    // Check if user already liked this blog
-    const likedBy = Array.isArray(blog.liked_by) ? blog.liked_by : [];
-    const dislikedBy = Array.isArray(blog.disliked_by) ? blog.disliked_by : [];
-    const hasLiked = likedBy.includes(userId);
-    // Check if user has disliked this blog
-    const hasDisliked = dislikedBy.includes(userId);
-    
+
+    const { data: existingReaction, error: existingReactionError } = await supabase
+      .from('blog_reactions')
+      .select('reaction_type')
+      .eq('blog_id', blogId)
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (existingReactionError) {
+      return errorResponse('Failed to process reaction', 'INTERNAL_SERVER_ERROR', {}, 500)
+    }
+
+    const currentReaction = existingReaction?.reaction_type as 'like' | 'dislike' | undefined
     let action: 'liked' | 'unliked';
-    
-    // If user disliked it, remove the dislike first
-    if (hasDisliked) {
-      blog.disliked_by = dislikedBy.filter((id: any) => id.toString() !== userId);
-      blog.dislikes = Math.max(0, (blog.dislikes || 0) - 1);
-    }
-    
-    if (hasLiked) {
-      // Unlike the blog
-      blog.liked_by = likedBy.filter((id: any) => id.toString() !== userId);
-      blog.likes = Math.max(0, (blog.likes || 0) - 1);
+
+    if (currentReaction === 'like') {
+      const { error: deleteError } = await supabase
+        .from('blog_reactions')
+        .delete()
+        .eq('blog_id', blogId)
+        .eq('user_id', userId)
+      if (deleteError) {
+        return errorResponse('Failed to remove reaction', 'INTERNAL_SERVER_ERROR', {}, 500)
+      }
       action = 'unliked';
     } else {
-      // Like the blog
-      likedBy.push(userId);
-      blog.liked_by = likedBy;
-      blog.likes = (blog.likes || 0) + 1;
+      const { error: upsertError } = await supabase
+        .from('blog_reactions')
+        .upsert(
+          {
+            blog_id: blogId,
+            user_id: userId,
+            reaction_type: 'like'
+          },
+          { onConflict: 'user_id,blog_id' }
+        )
+      if (upsertError) {
+        return errorResponse('Failed to update reaction', 'INTERNAL_SERVER_ERROR', {}, 500)
+      }
       action = 'liked';
       
       // Create notification for blog author (if not liking own blog)
       if (blog.author_id && blog.author_id.toString() !== userId) {
-        const { error: notificationError } = await supabase.from('notifications').insert({
-          user_id: blog.author_id,
-          type: 'blog_like',
-          title: 'New Like',
-          message: `${session.user.name || 'Someone'} liked your blog "${blog.title}"`,
-          action_url: `/blogs/${blogId}`,
-          data: {
+        try {
+          await NotificationService.notifyBlogLike(
             blogId,
-            blogTitle: blog.title,
-            likedBy: userId
-          }
-        });
-
-        if (notificationError) {
+            blog.title || '',
+            blog.author_id.toString(),
+            userId,
+            session.user.name || 'Someone'
+          )
+        } catch (notificationError) {
           console.error('Failed to create like notification:', notificationError);
         }
       }
     }
-    
-    // Recalculate engagement score (views * 1 + likes * 3 - dislikes * 1)
-    const engagementScore = (blog.views * 1) + (blog.likes * 3) - (blog.dislikes || 0);
 
-    await supabase
-      .from('blogs')
-      .update({
-        likes: blog.likes,
-        dislikes: blog.dislikes || 0,
-        liked_by: blog.liked_by || [],
-        disliked_by: blog.disliked_by || [],
-        engagement_score: engagementScore,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', blogId);
+    const stats = await getBlogStats(supabase, blogId, userId)
     
     // Return updated stats
-    return NextResponse.json({
-      success: true,
+    return successResponse({
       action,
-      likes: blog.likes,
-      dislikes: blog.dislikes || 0,
-      hasLiked: !hasLiked,
-      hasDisliked: false,
-      engagementScore
+      likes: stats.likes,
+      dislikes: stats.dislikes || 0,
+      hasLiked: stats.userReaction === 'like',
+      hasDisliked: stats.userReaction === 'dislike',
+      engagementScore: stats.engagementScore
     });
     
   } catch (error) {
     console.error('Like/unlike error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500);
   }
 }
 
@@ -122,24 +119,23 @@ export async function GET(
     
     const { data: blog, error } = await supabase
       .from('blogs')
-      .select('likes, liked_by')
+      .select('id')
       .eq('id', blogId)
       .single();
     if (error || !blog) {
-      return NextResponse.json({ error: 'Blog not found' }, { status: 404 });
+      return errorResponse('Blog not found', 'BLOG_NOT_FOUND', {}, 404);
     }
+    const stats = await getBlogStats(supabase, blogId, session?.user?.id)
+    const hasLiked = stats.userReaction === 'like'
     
-    const likedBy = Array.isArray(blog.liked_by) ? blog.liked_by : [];
-    const hasLiked = session?.user?.id ? likedBy.includes(session.user.id) : false;
-    
-    return NextResponse.json({
-      likes: blog.likes || 0,
+    return successResponse({
+      likes: stats.likes,
       hasLiked,
       canLike: !!session?.user?.id
     });
     
   } catch (error) {
     console.error('Get like status error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500);
   }
 }
