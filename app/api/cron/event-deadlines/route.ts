@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { NotificationService } from '@/lib/services/notificationService'
+import { NotificationService } from '@/features/notifications/services/notificationService'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 export const dynamic = 'force-dynamic'

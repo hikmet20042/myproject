@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/auth/client'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { LoadingState, UnauthorizedState } from '@/components/shared'
 import BlogStep1Form from '@/features/blogs/components/BlogStep1Form'
 

@@ -6,9 +6,9 @@ import EventForm, {
   type EventFormInitialData,
   type EventFormSubmitPayload,
 } from '@/features/events/components/EventForm'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useEvent, useUpdateEvent } from '@/lib/eventQueries'
-import { useGlobalFeedback } from '@/lib/useGlobalFeedback'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 
 export default function EditEventPage() {
   const router = useRouter()

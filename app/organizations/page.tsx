@@ -6,7 +6,7 @@ import { Search, Building2 } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { ButtonLink } from "@/components/ui/ButtonLink";
-import { useLocalizedPath } from "@/lib/useLocalizedPath";
+import { useLocalizedPath } from "@/hooks/useLocalizedPath";
 import { fetchOrganizations } from "@/lib/organizationQueries";
 import { EmptyState, ResourceCard } from "@/components/shared";
 import { logError } from "@/lib/logger";

@@ -5,10 +5,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSession } from '@/lib/auth/client'
 import { ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react'
 import Link from 'next/link'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { ButtonLink } from '@/components/ui'
 import { blogQueryKeys, dislikeBlog, fetchBlogReactions, likeBlog } from '@/lib/blogQueries'
-import { useGlobalFeedback } from '@/lib/useGlobalFeedback'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 
 interface BlogReactionsProps { blogId: string
   initialLikes?: number

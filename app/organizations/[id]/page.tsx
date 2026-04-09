@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Building2, Globe, Briefcase, CalendarDays, BadgeCheck, Users, Heart } from "lucide-react";
 import { ButtonLink } from "@/components/ui/ButtonLink";
-import { useLocalizedPath } from "@/lib/useLocalizedPath";
+import { useLocalizedPath } from "@/hooks/useLocalizedPath";
 import { trackOrganizationFollow } from "@/lib/analytics";
 import { fetchOrganizationById } from "@/lib/organizationQueries";
 import { PageStateGuard } from "@/components/shared";

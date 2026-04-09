@@ -13,13 +13,14 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { PageStateGuard } from "@/components/shared";
-import { useLocalizedPath } from "@/lib/useLocalizedPath";
-import { useGlobalFeedback } from "@/lib/useGlobalFeedback";
+import AdminActionModal from "@/components/admin/AdminActionModal";
+import { useLocalizedPath } from "@/hooks/useLocalizedPath";
+import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import AdminListLayout from "@/components/admin/AdminListLayout";
 
 export default function VacanciesAdminPage() {
   const localePath = useLocalizedPath();
-  const { showError } = useGlobalFeedback();
+  const { showError, showSuccess } = useGlobalFeedback();
   const [vacancies, setVacancies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -43,6 +44,10 @@ export default function VacanciesAdminPage() {
     "approve" | "reject" | null
   >(null);
   const [vacancyRejectionReason, setVacancyRejectionReason] = useState("");
+  const [deleteConfirmVacancy, setDeleteConfirmVacancy] = useState<any | null>(
+    null,
+  );
+  const [deletingVacancy, setDeletingVacancy] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -165,13 +170,7 @@ export default function VacanciesAdminPage() {
   };
 
   const handleDeleteVacancy = async (vacancyId: string) => {
-    if (
-      !confirm(
-        "Bu vakansiyanı həmişəlik silmək istədiyinə əminsən? Bu əməliyyat geri qaytarılmır.",
-      )
-    )
-      return;
-
+    setDeletingVacancy(true);
     try {
       const response = await fetch(`/api/vacancies/${vacancyId}`, {
         method: "DELETE",
@@ -179,12 +178,16 @@ export default function VacanciesAdminPage() {
 
       if (response.ok) {
         await loadVacancies();
+        setDeleteConfirmVacancy(null);
+        showSuccess("Vakansiya uğurla silindi.");
       } else {
         showError("Vakansiyanı silmək alınmadı");
       }
     } catch (error) {
       console.error("Error deleting vacancy:", error);
       showError("Vakansiyanı silmək alınmadı");
+    } finally {
+      setDeletingVacancy(false);
     }
   };
 
@@ -420,7 +423,7 @@ export default function VacanciesAdminPage() {
                         </Button>
                         {status !== "pending" && (
                           <Button
-                            onClick={() => handleDeleteVacancy(vacancy._id)}
+                            onClick={() => setDeleteConfirmVacancy(vacancy)}
                             variant="danger"
                             size="sm"
                             className="inline-flex items-center text-xs"
@@ -596,6 +599,29 @@ export default function VacanciesAdminPage() {
           </Dialog.Portal>
         </Dialog.Root>
       )}
+
+      <AdminActionModal
+        isOpen={Boolean(deleteConfirmVacancy)}
+        onClose={() => setDeleteConfirmVacancy(null)}
+        title="Vakansiyanı sil"
+        description={
+          deleteConfirmVacancy
+            ? `\"${deleteConfirmVacancy.title}\" vakansiyasını həmişəlik silmək istədiyinizə əminsiniz? Bu əməliyyat geri qaytarılmır.`
+            : "Bu əməliyyat geri qaytarılmır."
+        }
+        actions={[
+          {
+            label: "Sil",
+            variant: "danger",
+            loading: deletingVacancy,
+            disabled: deletingVacancy || !deleteConfirmVacancy,
+            onClick: async () => {
+              if (!deleteConfirmVacancy?._id) return;
+              await handleDeleteVacancy(deleteConfirmVacancy._id);
+            },
+          },
+        ]}
+      />
     </AdminListLayout>
     </PageStateGuard>
   );

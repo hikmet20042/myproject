@@ -10,15 +10,15 @@ import AdminListLayout from "@/components/admin/AdminListLayout";
 import AdminFilters from "@/components/admin/AdminFilters";
 import AdminTable, { AdminTableColumn } from "@/components/admin/AdminTable";
 import AdminActionModal from "@/components/admin/AdminActionModal";
-import { useAdminList } from "@/lib/useAdminList";
+import { useAdminList } from "@/features/admin/hooks/useAdminList";
 import {
   adminConfig,
   AdminAction,
   BlogAdminItem,
 } from "@/lib/admin-config";
-import { useAdminActionExecutor } from "@/lib/useAdminActionExecutor";
+import { useAdminActionExecutor } from "@/features/admin/hooks/useAdminActionExecutor";
 import { useAdminRole } from "@/components/admin/AdminRoleProvider";
-import { useGlobalFeedback } from "@/lib/useGlobalFeedback";
+import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 
 const BlocknoteReadOnly = dynamic(
   () => import("@/components/BlocknoteReadOnly"),
@@ -623,6 +623,38 @@ export default function BlogsAdminPage() {
             </div>
           </div>
         </AdminActionModal>
+      )}
+
+      {modalState?.modalType === "confirmAction" && (
+        <AdminActionModal
+          isOpen={modalState.modalType === "confirmAction"}
+          onClose={() => setModalState(null)}
+          title={modalState.actionLabel}
+          description={
+            modalState.confirmMessage ||
+            "Bu əməliyyatı davam etdirmək istədiyinizə əminsiniz?"
+          }
+          actions={[
+            {
+              label: modalState.actionLabel,
+              variant: "danger",
+              loading: isActionLoading(modalState.actionKey, modalState.item),
+              disabled: isActionLoading(modalState.actionKey, modalState.item),
+              onClick: async () => {
+                const actionKey = modalState.actionKey;
+                const itemId = modalState.item._id;
+                await executeAction("blogs", actionKey, modalState.item, {
+                  bypassConfirm: true,
+                  optimistic:
+                    actionKey === blogActions.delete.key
+                      ? buildOptimisticContext(actionKey, [itemId])
+                      : undefined,
+                });
+                setModalState(null);
+              },
+            },
+          ]}
+        />
       )}
 
       <AdminActionModal

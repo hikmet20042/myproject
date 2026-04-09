@@ -6,10 +6,10 @@ import Image from 'next/image'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Calendar, Clock, MapPin, Users, Link as LinkIcon, Tag, Edit, Trash2, CheckCircle, XCircle, AlertCircle, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { PageStateGuard } from '@/components/shared'
 import { useDeleteEvent, useEvent } from '@/lib/eventQueries'
-import { useGlobalFeedback } from '@/lib/useGlobalFeedback'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { AppContainer } from '@/components/layout'
 
 interface Event { _id: string

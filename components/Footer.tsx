@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import Logo from '@/components/Logo'
 
 export default function Footer() {

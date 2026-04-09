@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useGlobalFeedback } from "@/lib/useGlobalFeedback";
+import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 
 const AUTO_DISMISS_MS = 4000;
 

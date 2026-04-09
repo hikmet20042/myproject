@@ -8,10 +8,11 @@ import {
   Lock,
 } from "lucide-react";
 import { signInWithOAuth, signInWithPassword } from "@/lib/auth/client";
+import { normalizeInternalCallbackUrl } from "@/lib/auth/redirect";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Input, Button } from "@/components/ui";
-import { useLocalizedPath } from "@/lib/useLocalizedPath";
+import { useLocalizedPath } from "@/hooks/useLocalizedPath";
 import Logo from "@/components/Logo";
 
 function SignInContent() {
@@ -23,6 +24,7 @@ function SignInContent() {
   const [showPassword, setShowPassword] = useState(false);
   const searchParams = useSearchParams();
   const callbackUrl = searchParams?.get("callbackUrl") || "/";
+  const safeCallbackUrl = normalizeInternalCallbackUrl(callbackUrl) || "/";
   const urlError = searchParams?.get("error");
   const urlMessage = searchParams?.get("message");
 
@@ -71,7 +73,7 @@ function SignInContent() {
       setGoogleLoading(true);
       await signInWithOAuth(
         "google",
-        `${window.location.origin}/auth/callback?next=${encodeURIComponent(callbackUrl)}`,
+        `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeCallbackUrl)}`,
       );
     } catch (error: any) {
       // Catch Google OAuth errors

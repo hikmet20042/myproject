@@ -6,7 +6,7 @@ import { useSession, signOut } from '@/lib/auth/client'
 import { canAccessAdmin, canAccessDashboard, isOrganization } from '@/lib/auth/permissions'
 import { Menu, X, User, ChevronDown, ArrowRight, Bookmark } from 'lucide-react'
 import { useNotificationContext } from './NotificationContext'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import NotificationBell from './NotificationBell'
 import Logo from '@/components/Logo'
 

@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Calendar, MapPin, Users, Link as LinkIcon, Clock, Tag, ArrowLeft, CheckCircle, XCircle, AlertCircle, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { LoadingState, ErrorState } from '@/components/shared'
 import AdminListLayout from '@/components/admin/AdminListLayout'
 

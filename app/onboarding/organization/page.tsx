@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/auth/client'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { FormLayout } from '@/components/forms'
 import { Button, Input, Select, TextArea } from '@/components/ui'
 import { LoadingState } from '@/components/shared'
-import { useGlobalFeedback } from '@/lib/useGlobalFeedback'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { ORGANIZATION_TYPE_LABELS, ORGANIZATION_TYPE_VALUES } from '@/lib/organizationTypes'
 
 export default function OnboardingOrganizationPage() {

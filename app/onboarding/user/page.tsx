@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/auth/client'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { FormLayout } from '@/components/forms'
 import { Button } from '@/components/ui'
 import { LoadingState } from '@/components/shared'
-import { useGlobalFeedback } from '@/lib/useGlobalFeedback'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 
 const INTEREST_OPTIONS = ['IT', 'Təhsil', 'Könüllülük', 'Sosial fəaliyyət', 'Digər']
 

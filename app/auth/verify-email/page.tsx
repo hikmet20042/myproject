@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle2, CircleX, Loader2, MailCheck, ArrowLeft } from 'lucide-react'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 
 function VerifyEmailContent() {

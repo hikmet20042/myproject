@@ -20,7 +20,8 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { TextArea } from "@/components/ui/Textarea";
 import { ImageUpload, PageStateGuard } from "@/components/shared";
-import { useGlobalFeedback } from "@/lib/useGlobalFeedback";
+import AdminActionModal from "@/components/admin/AdminActionModal";
+import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import AdminListLayout from "@/components/admin/AdminListLayout";
 
 type Material = {
@@ -57,6 +58,7 @@ export default function MaterialsAdminPage() {
   const [loading, setLoading] = useState(true);
   const [tabLoading, setTabLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [deletingMaterial, setDeletingMaterial] = useState(false);
   const [materialStats, setMaterialStats] = useState({
     total: 0,
     published: 0,
@@ -71,6 +73,9 @@ export default function MaterialsAdminPage() {
     null,
   );
   const [showMaterialFormModal, setShowMaterialFormModal] = useState(false);
+  const [deleteConfirmMaterial, setDeleteConfirmMaterial] = useState<Material | null>(
+    null,
+  );
   const [materialFormData, setMaterialFormData] = useState<Partial<Material>>({
     title: "",
     description: "",
@@ -223,13 +228,7 @@ export default function MaterialsAdminPage() {
   };
 
   const handleDeleteMaterial = async (materialId: string) => {
-    if (
-      !confirm(
-        "Bu materialı silmək istədiyinə əminsən? Bu əməliyyat geri qaytarılmır.",
-      )
-    )
-      return;
-
+    setDeletingMaterial(true);
     try {
       const response = await fetch(`/api/materials/${materialId}`, {
         method: "DELETE",
@@ -238,12 +237,15 @@ export default function MaterialsAdminPage() {
       if (response.ok) {
         await loadMaterials();
         showSuccess("Material uğurla silindi");
+        setDeleteConfirmMaterial(null);
       } else {
         showError("Materialı silmək alınmadı");
       }
     } catch (error) {
       console.error("Error deleting material:", error);
       showError("Materialı silmək alınmadı");
+    } finally {
+      setDeletingMaterial(false);
     }
   };
 
@@ -606,7 +608,7 @@ export default function MaterialsAdminPage() {
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDeleteMaterial(material._id)}
+                            onClick={() => setDeleteConfirmMaterial(material)}
                             className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-all"
                             title="Materialı sil"
                           >
@@ -916,24 +918,43 @@ export default function MaterialsAdminPage() {
                   onClick={handleSaveMaterial}
                   variant="primary"
                   disabled={isProcessing}
+                  loading={isProcessing}
                 >
-                  {isProcessing ? (
-                    <>
-                      <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white inline-block mr-2"></span>
-                      {"Yadda saxlanılır..."}
-                    </>
-                  ) : (
+                  {!isProcessing && (
                     <>
                       <Save className="w-4 h-4 mr-2 inline" />
-                      {selectedMaterial ? "Materialı yenilə" : "Material yarat"}
                     </>
                   )}
+                  {isProcessing ? "Yadda saxlanılır..." : selectedMaterial ? "Materialı yenilə" : "Material yarat"}
                 </Button>
               </div>
             </Dialog.Content>
           </Dialog.Portal>
         </Dialog.Root>
       )}
+
+      <AdminActionModal
+        isOpen={Boolean(deleteConfirmMaterial)}
+        onClose={() => setDeleteConfirmMaterial(null)}
+        title="Materialı sil"
+        description={
+          deleteConfirmMaterial
+            ? `\"${deleteConfirmMaterial.title}\" materialını silmək istədiyinizə əminsiniz? Bu əməliyyat geri qaytarılmır.`
+            : "Bu əməliyyat geri qaytarılmır."
+        }
+        actions={[
+          {
+            label: "Sil",
+            variant: "danger",
+            loading: deletingMaterial,
+            disabled: deletingMaterial || !deleteConfirmMaterial,
+            onClick: async () => {
+              if (!deleteConfirmMaterial?._id) return;
+              await handleDeleteMaterial(deleteConfirmMaterial._id);
+            },
+          },
+        ]}
+      />
     </AdminListLayout>
     </PageStateGuard>
   );

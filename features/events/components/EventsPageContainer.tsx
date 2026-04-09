@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Calendar, Plus, Search } from "lucide-react";
-import { useLocalizedPath } from "@/lib/useLocalizedPath";
+import { useLocalizedPath } from "@/hooks/useLocalizedPath";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -13,7 +13,7 @@ import EventsList from "@/features/events/components/EventsList";
 import EventDeleteDialog from "@/features/events/components/EventDeleteDialog";
 import type { EventItem } from "@/features/events/components/types";
 import { useDeleteEvent, useEvents } from "@/lib/eventQueries";
-import { useGlobalFeedback } from "@/lib/useGlobalFeedback";
+import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import {
   renderSectionByState,
   resolveSectionState,

@@ -3,7 +3,7 @@ import { getServerSession } from "@/lib/auth/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import cloudinaryService from "@/lib/services/cloudinaryService";
 import { canAccessAdmin, canCreateEvent, isApprovedOrganization } from "@/lib/auth/permissions";
-import { NotificationService } from "@/lib/services/notificationService";
+import { NotificationService } from "@/features/notifications/services/notificationService";
 import {
   applyEventLifecycleRules,
   errorResponse,

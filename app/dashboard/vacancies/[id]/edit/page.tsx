@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { ErrorState } from '@/components/shared'
 import { SectionLoading } from '@/features/ui-state'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useSession } from '@/lib/auth/client'
 import { useDashboardData } from '@/components/dashboard/DashboardDataProvider'
-import { useGlobalFeedback } from '@/lib/useGlobalFeedback'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import VacancyForm, {
   type VacancyFormInitialData,
   type VacancyFormSubmitPayload,

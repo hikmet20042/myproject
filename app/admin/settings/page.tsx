@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { PageStateGuard } from "@/components/shared";
+import AdminActionModal from "@/components/admin/AdminActionModal";
 import { History, RotateCcw, Save, Settings } from "lucide-react";
-import { useGlobalFeedback } from "@/lib/useGlobalFeedback";
+import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import AdminListLayout from "@/components/admin/AdminListLayout";
 
 type SiteSettings = {
@@ -101,7 +102,11 @@ export default function SettingsAdminPage() {
     useState("siteInfo");
   const [settingsChanged, setSettingsChanged] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [resettingSettings, setResettingSettings] = useState(false);
   const [settingsHistory, setSettingsHistory] = useState<any[]>([]);
+  const [resetConfirmSection, setResetConfirmSection] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     setSettingsLoading(true);
@@ -149,12 +154,7 @@ export default function SettingsAdminPage() {
   };
 
   const resetSettings = async (section?: string) => {
-    const confirmMessage = section
-      ? `{{section}} parametrlərini varsayılanlara sıfırlamaq istədiyinizə əminsiniz?`
-      : "Bütün parametrləri varsayılanlara sıfırlamaq istədiyinizə əminsiniz?";
-
-    if (!confirm(confirmMessage)) return;
-
+    setResettingSettings(true);
     try {
       const endpoint = section
         ? `/api/admin/settings?section=${encodeURIComponent(section)}`
@@ -173,6 +173,8 @@ export default function SettingsAdminPage() {
     } catch (error) {
       console.error("Error resetting settings:", error);
       showError("Parametrləri sıfırlamaq alınmadı");
+    } finally {
+      setResettingSettings(false);
     }
   };
 
@@ -237,7 +239,7 @@ export default function SettingsAdminPage() {
                 {"Tarixçə"}
               </Button>
               <Button
-                onClick={() => resetSettings()}
+                onClick={() => setResetConfirmSection("")}
                 variant="danger"
                 size="md"
                 className="inline-flex items-center"
@@ -248,13 +250,12 @@ export default function SettingsAdminPage() {
               <Button
                 onClick={saveSettings}
                 disabled={!settingsChanged || savingSettings}
+                loading={savingSettings}
                 variant="primary"
                 size="md"
                 className="inline-flex items-center"
               >
-                {savingSettings ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                ) : (
+                {!savingSettings && (
                   <Save className="w-4 h-4 mr-2" />
                 )}
                 {savingSettings ? "Yadda saxlanılır..." : "Parametrləri Yadda Saxla"}
@@ -668,6 +669,28 @@ export default function SettingsAdminPage() {
         )}
       </div>
     </AdminListLayout>
+    <AdminActionModal
+      isOpen={resetConfirmSection !== null}
+      onClose={() => setResetConfirmSection(null)}
+      title="Parametrləri sıfırla"
+      description={
+        resetConfirmSection
+          ? `${resetConfirmSection} bölməsini varsayılanlara sıfırlamaq istədiyinizə əminsiniz?`
+          : "Bütün parametrləri varsayılanlara sıfırlamaq istədiyinizə əminsiniz?"
+      }
+      actions={[
+        {
+          label: "Sıfırla",
+          variant: "danger",
+          loading: resettingSettings,
+          disabled: resettingSettings,
+          onClick: async () => {
+            await resetSettings(resetConfirmSection || undefined);
+            setResetConfirmSection(null);
+          },
+        },
+      ]}
+    />
     </PageStateGuard>
   );
 }

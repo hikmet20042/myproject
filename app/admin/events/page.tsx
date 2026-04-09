@@ -14,8 +14,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { LoadingState } from "@/components/shared";
-import { useLocalizedPath } from "@/lib/useLocalizedPath";
-import { useGlobalFeedback } from "@/lib/useGlobalFeedback";
+import AdminActionModal from "@/components/admin/AdminActionModal";
+import { useLocalizedPath } from "@/hooks/useLocalizedPath";
+import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import AdminListLayout from "@/components/admin/AdminListLayout";
 
 type AdminEventsPayload = {
@@ -39,6 +40,7 @@ export default function EventsAdminPage() {
     null,
   );
   const [eventRejectionReason, setEventRejectionReason] = useState("");
+  const [deleteConfirmEvent, setDeleteConfirmEvent] = useState<any | null>(null);
 
   const queryFilters = useMemo(
     () => ({
@@ -227,16 +229,10 @@ export default function EventsAdminPage() {
   };
 
   const handleDeleteEvent = async (eventId: string) => {
-    if (
-      !confirm(
-        "Bu tədbiri həmişəlik silmək istədiyinə əminsən? Bu əməliyyat geri qaytarılmır.",
-      )
-    )
-      return;
-
     try {
       await deleteMutation.mutateAsync(eventId);
       showSuccess("Tədbir uğurla silindi.");
+      setDeleteConfirmEvent(null);
     } catch (error) {
       showError(error instanceof Error ? error.message : "Tədbiri silmək alınmadı");
     }
@@ -484,7 +480,7 @@ export default function EventsAdminPage() {
                         </Button>
                         {status !== "pending" && (
                           <Button
-                            onClick={() => handleDeleteEvent(event._id)}
+                            onClick={() => setDeleteConfirmEvent(event)}
                             variant="danger"
                             size="sm"
                             className="inline-flex items-center text-xs"
@@ -658,6 +654,29 @@ export default function EventsAdminPage() {
           </Dialog.Portal>
         </Dialog.Root>
       )}
+
+      <AdminActionModal
+        isOpen={Boolean(deleteConfirmEvent)}
+        onClose={() => setDeleteConfirmEvent(null)}
+        title="Tədbiri sil"
+        description={
+          deleteConfirmEvent
+            ? `\"${deleteConfirmEvent.title}\" tədbirini həmişəlik silmək istədiyinizə əminsiniz? Bu əməliyyat geri qaytarılmır.`
+            : "Bu əməliyyat geri qaytarılmır."
+        }
+        actions={[
+          {
+            label: "Sil",
+            variant: "danger",
+            loading: deleteMutation.isPending,
+            disabled: deleteMutation.isPending || !deleteConfirmEvent,
+            onClick: async () => {
+              if (!deleteConfirmEvent?._id) return;
+              await handleDeleteEvent(deleteConfirmEvent._id);
+            },
+          },
+        ]}
+      />
     </AdminListLayout>
   );
 }

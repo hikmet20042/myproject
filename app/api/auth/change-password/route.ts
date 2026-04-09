@@ -1,17 +1,34 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { checkRateLimit, getRequestIp } from '@/lib/security/rateLimit'
+
+const CHANGE_PASSWORD_LIMIT = 10
+const CHANGE_PASSWORD_WINDOW_MS = 15 * 60 * 1000
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getRequestIp(request.headers)
+    const ipRateLimit = checkRateLimit(`auth:change-password:ip:${ip}`, CHANGE_PASSWORD_LIMIT, CHANGE_PASSWORD_WINDOW_MS)
+    if (!ipRateLimit.allowed) {
+      return errorResponse('Too many requests. Please try again later.', "RATE_LIMITED", {}, 429)
+    }
+
     const supabase = createSupabaseServerClient()
-    const adminSupabase = createSupabaseAdminClient()
     const { data: authData } = await supabase.auth.getUser()
 
     if (!authData?.user?.id || !authData.user.email) {
       return errorResponse('Authentication required', "API_ERROR", {}, 401)
+    }
+
+    const userRateLimit = checkRateLimit(
+      `auth:change-password:user:${authData.user.id}`,
+      CHANGE_PASSWORD_LIMIT,
+      CHANGE_PASSWORD_WINDOW_MS,
+    )
+    if (!userRateLimit.allowed) {
+      return errorResponse('Too many requests. Please try again later.', "RATE_LIMITED", {}, 429)
     }
 
     const { currentPassword, newPassword } = await request.json()
@@ -22,6 +39,10 @@ export async function POST(request: NextRequest) {
 
     if (newPassword.length < 6) {
       return errorResponse('New password must be at least 6 characters long', "API_ERROR", {}, 400)
+    }
+
+    if (newPassword === currentPassword) {
+      return errorResponse('New password must be different from current password', "API_ERROR", {}, 400)
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -44,10 +65,7 @@ export async function POST(request: NextRequest) {
       return errorResponse('Current password is incorrect', "API_ERROR", {}, 400)
     }
 
-    const { error: updateError } = await adminSupabase.auth.admin.updateUserById(
-      authData.user.id,
-      { password: newPassword }
-    )
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword })
 
     if (updateError) {
       return errorResponse(updateError.message, "API_ERROR", {}, 500)

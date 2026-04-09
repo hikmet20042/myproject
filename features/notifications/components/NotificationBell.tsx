@@ -7,8 +7,8 @@ import { Bell, Loader2 } from 'lucide-react'
 import { useSession } from '@/lib/auth/client'
 import { type NotificationItem, useNotificationContext } from './NotificationContext'
 import { useSSENotifications } from './SSENotificationProvider'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
-import NotificationListItem from '@/components/notifications/NotificationListItem'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import NotificationListItem from '@/features/notifications/components/NotificationListItem'
 
 interface NotificationBellProps {
   className?: string

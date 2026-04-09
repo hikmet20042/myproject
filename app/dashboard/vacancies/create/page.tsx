@@ -2,9 +2,9 @@
 
 import { useRouter } from 'next/navigation'
 import VacancyForm, { type VacancyFormSubmitPayload } from '@/features/vacancies/components/VacancyForm'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useDashboardData } from '@/components/dashboard/DashboardDataProvider'
-import { useGlobalFeedback } from '@/lib/useGlobalFeedback'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 
 export default function CreateVacancyPage() {
   const router = useRouter()

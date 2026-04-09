@@ -10,18 +10,20 @@ import {
   AdminItemFor,
   AdminApiParams,
 } from "@/lib/admin-config";
-import { useGlobalFeedback } from "@/lib/useGlobalFeedback";
+import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 
 export type AdminActionModalPayload<T> = {
   modalType?: string;
   actionKey: string;
   actionLabel: string;
   item: T;
+  confirmMessage?: string;
 };
 
 export type AdminActionContext = {
   body?: Record<string, unknown>;
   params?: AdminApiParams;
+  bypassConfirm?: boolean;
   onSuccess?: () => void | Promise<void>;
   optimistic?: {
     apply?: () => void;
@@ -84,7 +86,7 @@ export const useAdminActionExecutor = <T,>(
   options?: UseAdminActionExecutorOptions,
 ) => {
   const router = useRouter();
-  const { success, error: showError } = useGlobalFeedback();
+  const { success, error: showError, info } = useGlobalFeedback();
   const [loadingMap, setLoadingMap] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [lastFailedAction, setLastFailedAction] = useState<LastFailedAction<T> | null>(
@@ -165,6 +167,7 @@ export const useAdminActionExecutor = <T,>(
           showError(message);
           return;
         }
+        info("Səhifəyə yönləndirilir...");
         router.push(href);
         return;
       }
@@ -185,7 +188,14 @@ export const useAdminActionExecutor = <T,>(
         return;
       }
 
-      if (action.confirmMessage && !window.confirm(action.confirmMessage)) {
+      if (action.confirmMessage && !context?.bypassConfirm) {
+        setModalState({
+          modalType: "confirmAction",
+          actionKey,
+          actionLabel: action.label,
+          item: primaryItem,
+          confirmMessage: action.confirmMessage,
+        });
         return;
       }
 

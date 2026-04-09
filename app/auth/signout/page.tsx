@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { signOut } from '@/lib/auth/client'
 import Link from 'next/link'
 import { LogOut, ArrowLeft } from 'lucide-react'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 
 export default function SignOut() {
   const localePath = useLocalizedPath()

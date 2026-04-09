@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { canAccessAdmin, canCreateVacancy, isAdmin, isApprovedOrganization } from '@/lib/auth/permissions'
-import { NotificationService } from '@/lib/services/notificationService'
+import { NotificationService } from '@/features/notifications/services/notificationService'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 const mapVacancy = (row: any) => ({

@@ -3,9 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Mail, ArrowLeft } from 'lucide-react'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { Input, Button } from '@/components/ui'
-import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 
 export default function VerifyRequest() {
   const localePath = useLocalizedPath()
@@ -21,22 +20,21 @@ export default function VerifyRequest() {
     setMessage('')
 
     try {
-      const supabase = createSupabaseBrowserClient()
-      const appUrl = window.location.origin
-      const { error: resendError } = await supabase.auth.resend({
-        type: 'signup',
-        email: email.trim(),
-        options: {
-          emailRedirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent('/auth/verify-email?verified=1')}`,
+      const response = await fetch('/api/auth/verify-request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ email: email.trim() }),
       })
+      const payload = await response.json()
 
-      if (resendError) {
-        setError(resendError.message || 'Təsdiq e-poçtu göndərilmədi')
+      if (!response.ok) {
+        setError(payload?.error?.message || 'Təsdiq e-poçtu göndərilmədi')
         return
       }
 
-      setMessage('Təsdiq e-poçtu göndərildi. Gələnlər qutunu yoxla.')
+      setMessage(payload?.data?.message || 'Təsdiq e-poçtu göndərildi. Gələnlər qutunu yoxla.')
       setEmail('')
     } catch {
       setError('Təsdiq e-poçtu göndərilmədi')

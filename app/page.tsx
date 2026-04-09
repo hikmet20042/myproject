@@ -15,7 +15,7 @@ import { Briefcase,
   MessageSquare,
   Target,
   Award } from 'lucide-react'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useSession } from '@/lib/auth/client'
 import { blogQueryKeys, fetchBlogs } from '@/lib/blogQueries'
 import { fetchOrganizations } from '@/lib/organizationQueries'

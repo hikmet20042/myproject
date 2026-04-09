@@ -5,7 +5,7 @@ import { Button, ButtonLink } from '@/components/ui';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Search, Users, MapPin, ExternalLink, Mail, Sparkles, ArrowRight } from 'lucide-react';
-import { useLocalizedPath } from '@/lib/useLocalizedPath';
+import { useLocalizedPath } from '@/hooks/useLocalizedPath';
 import { ResourceFilterContainer, ActiveFilterBadges, ResourceCard, EmptyState } from '@/components/shared';
 import { ORGANIZATION_TYPE_LABELS, ORGANIZATION_TYPE_VALUES } from '@/lib/organizationTypes';
 import { fetchOrganizations } from '@/lib/organizationQueries';

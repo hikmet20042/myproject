@@ -10,7 +10,7 @@ const BlocknoteReadOnly = dynamic(
 );
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import BlogReactions from "@/components/BlogReactions";
+import BlogReactions from "@/features/blogs/components/BlogReactions";
 import {
   LoadingState,
   ErrorState,
@@ -23,7 +23,7 @@ import {
   Heart,
   BookOpen,
 } from "lucide-react";
-import { useLocalizedPath } from "@/lib/useLocalizedPath";
+import { useLocalizedPath } from "@/hooks/useLocalizedPath";
 import ViewTracker from "@/components/ViewTracker";
 import { blogQueryKeys, fetchBlogById } from "@/lib/blogQueries";
 import { DetailPageLayout } from "@/components/layout";

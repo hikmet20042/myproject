@@ -38,6 +38,18 @@ export function useSession() {
   return useContext(AuthSessionContext)
 }
 
+function getReadableOAuthErrorMessage(message?: string) {
+  if (!message) {
+    return 'Google sign-in failed'
+  }
+
+  if (/unsupported provider/i.test(message)) {
+    return 'Google sign-in is not enabled in authentication settings'
+  }
+
+  return message
+}
+
 export async function signInWithPassword(email: string, password: string) {
   const supabase = createSupabaseBrowserClient()
   return supabase.auth.signInWithPassword({ email, password })
@@ -45,10 +57,16 @@ export async function signInWithPassword(email: string, password: string) {
 
 export async function signInWithOAuth(provider: 'google', redirectTo?: string) {
   const supabase = createSupabaseBrowserClient()
-  return supabase.auth.signInWithOAuth({
+  const result = await supabase.auth.signInWithOAuth({
     provider,
     options: redirectTo ? { redirectTo } : undefined,
   })
+
+  if (result.error) {
+    throw new Error(getReadableOAuthErrorMessage(result.error.message))
+  }
+
+  return result
 }
 
 export async function signOut() {

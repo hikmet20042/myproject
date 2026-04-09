@@ -3,7 +3,7 @@ import { getServerSession } from '@/lib/auth/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { isAdmin } from '@/lib/auth/permissions';
 import { cache, invalidateUserCache } from '@/lib/cache';
-import { NotificationService } from '@/lib/services/notificationService';
+import { NotificationService } from '@/features/notifications/services/notificationService';
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 export const dynamic = 'force-dynamic';

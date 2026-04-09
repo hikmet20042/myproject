@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Button, ButtonLink } from '@/components/ui';
-import { ExternalLink, BookOpen, Sparkles, Search, FileText, Clock, Eye, ArrowRight } from 'lucide-react';
-import { useLocalizedPath } from '@/lib/useLocalizedPath';
+import { ButtonLink } from '@/components/ui';
+import { ExternalLink, Sparkles, Search, FileText, Clock, Eye, ArrowRight } from 'lucide-react';
+import { useLocalizedPath } from '@/hooks/useLocalizedPath';
 import { ResourceFilterContainer, EmptyState, ResourceCard } from '@/components/shared';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -26,6 +26,35 @@ interface Material { _id: string;
   featured?: boolean;
   views?: number; }
 
+const normalizeMaterial = (raw: any): Material => ({
+  _id: raw?._id || raw?.id || '',
+  title: raw?.title || '',
+  description: raw?.description || '',
+  category: (raw?.category || 'other') as Material['category'],
+  type: raw?.type || '',
+  url: raw?.url || '',
+  imageUrl: raw?.imageUrl || raw?.image_url || undefined,
+  provider: raw?.provider || undefined,
+  duration: raw?.duration || undefined,
+  language: Array.isArray(raw?.language) ? raw.language : undefined,
+  tags: Array.isArray(raw?.tags) ? raw.tags : [],
+  featured: Boolean(raw?.featured),
+  views: typeof raw?.views === 'number' ? raw.views : 0,
+});
+
+const extractMaterials = (payload: any): Material[] => {
+  const candidates = [
+    payload?.items,
+    payload?.materials,
+    payload?.data?.items,
+    payload?.data?.materials,
+  ];
+
+  const list = candidates.find(Array.isArray);
+  if (!Array.isArray(list)) return [];
+  return list.map(normalizeMaterial);
+};
+
 export default function Resources() {
   const localePath = useLocalizedPath();
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -41,7 +70,7 @@ export default function Resources() {
       const data = await response.json();
 
       if (response.ok) {
-        setMaterials(data.items);
+        setMaterials(extractMaterials(data));
       } else {
         const apiError = new ApiError(
           data?.error?.message || 'Materiallar yüklənmədi',

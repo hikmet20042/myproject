@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { Check, CheckCheck, Loader2, Trash2 } from "lucide-react";
-import { type NotificationItem } from "@/components/NotificationContext";
+import { type NotificationItem } from "@/features/notifications/context/NotificationContext";
 
 interface NotificationListItemProps {
   notification: NotificationItem;

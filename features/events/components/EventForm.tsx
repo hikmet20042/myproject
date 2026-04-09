@@ -10,8 +10,8 @@ import {
   eventBasicInfoSchema,
   type EventBasicInfoData,
 } from '@/features/forms/schema/event.schema'
-import { useGlobalFeedback } from '@/lib/useGlobalFeedback'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 
 const eventCategories = [
   'workshop',

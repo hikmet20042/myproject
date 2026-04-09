@@ -14,8 +14,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { LoadingState } from "@/components/shared";
+import AdminActionModal from "@/components/admin/AdminActionModal";
 import { ORGANIZATION_TYPE_LABELS } from "@/lib/organizationTypes";
-import { useGlobalFeedback } from "@/lib/useGlobalFeedback";
+import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import AdminListLayout from "@/components/admin/AdminListLayout";
 
 type Organization = {
@@ -77,6 +78,10 @@ export default function OrganizationsAdminPage() {
     "approve" | "reject" | null
   >(null);
   const [adminComment, setAdminComment] = useState("");
+  const [deleteConfirmOrganization, setDeleteConfirmOrganization] = useState<
+    Organization | null
+  >(null);
+  const [deletingOrganization, setDeletingOrganization] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -185,13 +190,7 @@ export default function OrganizationsAdminPage() {
   };
 
   const handleDeleteOrganization = async (organizationId: string) => {
-    if (
-      !confirm(
-        "Bu təşkilat qeydiyyatını həmişəlik silmək istədiyinə əminsən? Bu əməliyyat geri qaytarılmır.",
-      )
-    )
-      return;
-
+    setDeletingOrganization(true);
     try {
       const response = await fetch(
         `/api/admin/organizations/${organizationId}`,
@@ -200,6 +199,7 @@ export default function OrganizationsAdminPage() {
 
       if (response.ok) {
         await loadOrganizations();
+        setDeleteConfirmOrganization(null);
         showSuccess("Təşkilat uğurla silindi");
       } else {
         showError("Təşkilatı silmək alınmadı");
@@ -207,6 +207,8 @@ export default function OrganizationsAdminPage() {
     } catch (error) {
       console.error("Error deleting organization:", error);
       showError("Təşkilatı silmək alınmadı");
+    } finally {
+      setDeletingOrganization(false);
     }
   };
 
@@ -426,9 +428,7 @@ export default function OrganizationsAdminPage() {
                         )}
                         {status !== "pending" && (
                           <Button
-                            onClick={() =>
-                              handleDeleteOrganization(organization._id)
-                            }
+                            onClick={() => setDeleteConfirmOrganization(organization)}
                             variant="danger"
                             size="sm"
                             className="inline-flex items-center whitespace-nowrap"
@@ -1026,6 +1026,29 @@ export default function OrganizationsAdminPage() {
           </Dialog.Portal>
         </Dialog.Root>
       )}
+
+      <AdminActionModal
+        isOpen={Boolean(deleteConfirmOrganization)}
+        onClose={() => setDeleteConfirmOrganization(null)}
+        title="Təşkilatı sil"
+        description={
+          deleteConfirmOrganization
+            ? `\"${deleteConfirmOrganization.organizationName}\" qeydiyyatını həmişəlik silmək istədiyinizə əminsiniz? Bu əməliyyat geri qaytarılmır.`
+            : "Bu əməliyyat geri qaytarılmır."
+        }
+        actions={[
+          {
+            label: "Sil",
+            variant: "danger",
+            loading: deletingOrganization,
+            disabled: deletingOrganization || !deleteConfirmOrganization,
+            onClick: async () => {
+              if (!deleteConfirmOrganization?._id) return;
+              await handleDeleteOrganization(deleteConfirmOrganization._id);
+            },
+          },
+        ]}
+      />
     </AdminListLayout>
   );
 }

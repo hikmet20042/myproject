@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/Input";
 import { TextArea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/feedback";
-import { useGlobalFeedback } from "@/lib/useGlobalFeedback";
+import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import {
   FOCUS_AREA_LABELS_AZ,
   FOCUS_AREA_VALUES,

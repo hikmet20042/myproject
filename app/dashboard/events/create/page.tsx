@@ -4,9 +4,9 @@ import { Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import EventForm, { type EventFormSubmitPayload } from '@/features/events/components/EventForm'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useCreateEvent } from '@/lib/eventQueries'
-import { useGlobalFeedback } from '@/lib/useGlobalFeedback'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 
 type EventTypeValue = 'event' | 'training' | 'workshop' | 'seminar'
 

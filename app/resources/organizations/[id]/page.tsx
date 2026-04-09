@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Breadcrumb, ContactCard, SocialLink } from '@/components/ui'
 import { ArrowLeft, MapPin, Globe, Mail, Phone, ExternalLink, CheckCircle } from 'lucide-react'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { LoadingState, ErrorState } from '@/components/shared';
 import { ORGANIZATION_TYPE_LABELS } from '@/lib/organizationTypes'
 import { fetchOrganizationById } from '@/lib/organizationQueries'

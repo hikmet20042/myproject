@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Bookmark, Calendar, Briefcase, BookOpen } from 'lucide-react'
 import { ListPageLayout } from '@/components/layout'
 import { ResourceCard } from '@/components/shared'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 
 type SavedItem = {
   id: string

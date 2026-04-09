@@ -1,7 +1,7 @@
 'use client'
 
 import { ButtonLink } from '@/components/ui'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { Shield,
   AlertTriangle,
   Lightbulb,

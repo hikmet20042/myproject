@@ -6,7 +6,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { ArrowLeft, CheckCircle, XCircle, AlertCircle, MapPin, Briefcase, Calendar, Building } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { LoadingState, ErrorState } from '@/components/shared'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import AdminListLayout from '@/components/admin/AdminListLayout'
 
 interface Vacancy { _id: string

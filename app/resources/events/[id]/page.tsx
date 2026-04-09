@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/Badge'
 import SaveButton from '@/components/SaveButton'
 import ViewTracker from '@/components/ViewTracker'
 import { LoadingState, ErrorState } from '@/components/shared'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { eventQueryKeys, fetchEventById } from '@/lib/eventQueries'
 import { DetailPageLayout } from '@/components/layout'
 

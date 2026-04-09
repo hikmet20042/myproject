@@ -8,7 +8,7 @@ import { Button, ButtonLink } from '@/components/ui';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import SaveButton from '@/components/SaveButton';
-import { useLocalizedPath } from '@/lib/useLocalizedPath';
+import { useLocalizedPath } from '@/hooks/useLocalizedPath';
 import { EmptyState, ResourceFilterContainer, ActiveFilterBadges, ResourceCard } from '@/components/shared';
 import { ListPageLayout } from '@/components/layout';
 import { eventQueryKeys, fetchEvents } from '@/lib/eventQueries';

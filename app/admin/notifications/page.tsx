@@ -14,7 +14,8 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { PageStateGuard } from "@/components/shared";
-import { useGlobalFeedback } from "@/lib/useGlobalFeedback";
+import AdminActionModal from "@/components/admin/AdminActionModal";
+import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import AdminListLayout from "@/components/admin/AdminListLayout";
 
 type Notification = {
@@ -60,6 +61,10 @@ export default function NotificationsAdminPage() {
   const [editingAnnouncementId, setEditingAnnouncementId] = useState<
     string | null
   >(null);
+  const [deleteConfirmNotification, setDeleteConfirmNotification] = useState<
+    Notification | null
+  >(null);
+  const [deletingNotification, setDeletingNotification] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -173,8 +178,7 @@ export default function NotificationsAdminPage() {
   };
 
   const deleteNotification = async (notificationId: string) => {
-    if (!confirm("Bu bildirişi silmək istədiyinizə əminsiniz?")) return;
-
+    setDeletingNotification(true);
     try {
       const response = await fetch(
         `/api/admin/notifications?id=${notificationId}`,
@@ -182,13 +186,17 @@ export default function NotificationsAdminPage() {
       );
 
       if (response.ok) {
-        loadNotifications();
+        await loadNotifications();
+        setDeleteConfirmNotification(null);
+        showSuccess("Bildiriş silindi.");
       } else {
         showError("Silmə alınmadı");
       }
     } catch (error) {
       console.error("Error deleting notification:", error);
       showError("Silmə alınmadı");
+    } finally {
+      setDeletingNotification(false);
     }
   };
 
@@ -508,7 +516,7 @@ export default function NotificationsAdminPage() {
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button
-                          onClick={() => deleteNotification(notification._id)}
+                          onClick={() => setDeleteConfirmNotification(notification)}
                           variant="ghost"
                           size="sm"
                           className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50"
@@ -799,6 +807,29 @@ export default function NotificationsAdminPage() {
           </Dialog.Portal>
         </Dialog.Root>
       )}
+
+      <AdminActionModal
+        isOpen={Boolean(deleteConfirmNotification)}
+        onClose={() => setDeleteConfirmNotification(null)}
+        title="Bildirişi sil"
+        description={
+          deleteConfirmNotification
+            ? `\"${deleteConfirmNotification.title}\" bildirişini silmək istədiyinizə əminsiniz?`
+            : "Bu əməliyyatı təsdiqləyin."
+        }
+        actions={[
+          {
+            label: "Sil",
+            variant: "danger",
+            loading: deletingNotification,
+            disabled: deletingNotification || !deleteConfirmNotification,
+            onClick: async () => {
+              if (!deleteConfirmNotification?._id) return;
+              await deleteNotification(deleteConfirmNotification._id);
+            },
+          },
+        ]}
+      />
     </AdminListLayout>
     </PageStateGuard>
   );

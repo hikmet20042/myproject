@@ -4,7 +4,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { processContentImages, updateMediaWithBlobReferences, getFeaturedImageBlobId, validateContentImages } from '@/lib/utils/imageUtils';
 import { cache, generateCacheKey, withCache } from '@/lib/cache';
 import { successResponse, errorResponse } from '@/lib/apiResponse';
-import { NotificationService } from '@/lib/services/notificationService';
+import { NotificationService } from '@/features/notifications/services/notificationService';
 import { getBlogStats } from '@/lib/blogStats';
 
 export async function GET(request: NextRequest) {

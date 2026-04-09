@@ -4,7 +4,7 @@ import { BookOpen, Users, Briefcase, Calendar, ArrowRight, Sparkles } from 'luci
 import { Button, ButtonLink } from '@/components/ui'
 import { ListPageLayout } from '@/components/layout'
 import { ResourceCard } from '@/components/shared'
-import { useLocalizedPath } from '@/lib/useLocalizedPath'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 
 export default function ResourcesPage() {
   const localePath = useLocalizedPath()

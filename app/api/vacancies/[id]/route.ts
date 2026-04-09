@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { NotificationService } from '@/lib/services/notificationService'
+import { NotificationService } from '@/features/notifications/services/notificationService'
 import { isAdmin, isAdminOrOwner, isOwner } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 

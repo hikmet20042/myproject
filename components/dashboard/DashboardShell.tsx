@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, Briefcase, Calendar, User } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useLocalizedPath } from "@/lib/useLocalizedPath";
+import { useLocalizedPath } from "@/hooks/useLocalizedPath";
 
 interface DashboardShellProps {
   children: React.ReactNode;

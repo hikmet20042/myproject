@@ -6,8 +6,8 @@ import { Bell, CheckCheck, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Alert } from "@/components/feedback";
-import NotificationModal from "@/components/NotificationModal";
-import NotificationListItem from "@/components/notifications/NotificationListItem";
+import NotificationModal from "@/features/notifications/components/NotificationModal";
+import NotificationListItem from "@/features/notifications/components/NotificationListItem";
 import {
   deriveDataState,
   SectionContainer,
@@ -18,7 +18,7 @@ import {
 import {
   useNotificationContext,
   type NotificationItem,
-} from "@/components/NotificationContext";
+} from "@/features/notifications/context/NotificationContext";
 
 type StatusFilter = "all" | "unread" | "read";
 type DateFilter = "all" | "today" | "last7days" | "last30days";
