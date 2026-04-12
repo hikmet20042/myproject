@@ -333,7 +333,7 @@ export function getContentCanonicalURL(
   slug?: string,
   locale: 'az' | 'en' = 'az'
 ): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'
   
   const paths: Record<string, string> = {
     vacancy: `/resources/vacancies/${id}`,

@@ -114,8 +114,8 @@ export default function Footer() {
                 </div>
                 <div>
                   <p className="mb-1 text-xs font-medium text-gray-500">{'Əlaqə'}</p>
-                  <a href="mailto:info@icma360.az" className="text-sm font-semibold text-gray-900 transition-colors duration-200 hover:text-accent">
-                    info@icma360.az
+                  <a href="mailto:info@icma360.org" className="text-sm font-semibold text-gray-900 transition-colors duration-200 hover:text-accent">
+                    info@icma360.org
                   </a>
                 </div>
               </div>

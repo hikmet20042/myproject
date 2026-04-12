@@ -107,11 +107,8 @@ export default function RegisterPage() {
         return
       }
 
-      setIsRedirecting(false)
-      setErrors({ submit: 'Sessiya yaradılmadı. Zəhmət olmasa daxil olun.' })
-      setTimeout(() => {
-        router.replace(localePath('/auth/signin'))
-      }, 1200)
+      const pendingEmail = encodeURIComponent(formData.email.trim().toLowerCase())
+      router.replace(localePath(`/auth/verify-email?pending=1&email=${pendingEmail}`))
     } catch {
       setErrors({ submit: 'Xəta baş verdi. Zəhmət olmasa yenidən cəhd edin.' })
     } finally {

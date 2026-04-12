@@ -8,7 +8,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
  */
 export async function GET(request: NextRequest) {
   try {
-    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'
+    const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'
     const currentDate = new Date().toUTCString()
 
     // In build environments where Supabase admin credentials are not configured,

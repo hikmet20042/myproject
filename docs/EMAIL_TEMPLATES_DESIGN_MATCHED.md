@@ -1,0 +1,945 @@
+# icma360 Email Templates - Current Design Match
+
+These templates match your app's **current design** - clean, minimal, with your actual logo and consistent styling.
+
+---
+
+## 🎨 Design System (From Current UI)
+
+| Element | Value |
+|---------|-------|
+| **Logo** | PNG image (`icma360_logo160x87.png`) |
+| **Font** | Inter, sans-serif |
+| **Primary Blue** | `#2563EB` |
+| **Gradient** | `#2563EB` → `#0EA5E9` → `#22C55E` (for buttons/links only) |
+| **Background** | `bg-background` (light gray/white) |
+| **Card BG** | `#FFFFFF` |
+| **Card Border** | `border-gray-200` |
+| **Card Shadow** | `shadow-sm` |
+| **Card Radius** | `rounded-2xl` (16px) |
+| **Text Primary** | `text-gray-900` |
+| **Text Secondary** | `text-gray-600` |
+| **Link Color** | `text-blue-600 hover:text-blue-500` |
+| **Button Style** | Gradient with shadow |
+| **Notice Boxes** | `border-amber-300 bg-amber-50` (warning), `border-blue-200 bg-blue-50` (info) |
+
+---
+
+## 1. Confirm Signup Email
+
+**Template Type:** `Confirm Signup`
+
+**Subject:** 
+```
+icma360 - E-poçt ünvanınızı təsdiqləyin
+```
+
+**Email Content (HTML):**
+
+```html
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>icma360 - Email Confirmation</title>
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: #F9FAFB;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    table {
+      border-collapse: collapse;
+    }
+    
+    .wrapper {
+      width: 100%;
+      table-layout: fixed;
+      background-color: #F9FAFB;
+      padding: 40px 20px;
+    }
+    
+    .main-card {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #FFFFFF;
+      border-radius: 16px;
+      border: 1px solid #E5E7EB;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+    }
+    
+    .logo-section {
+      padding: 32px 40px 24px;
+      text-align: center;
+      border-bottom: 1px solid #F3F4F6;
+    }
+    
+    .logo-image {
+      height: 87px;
+      width: 160px;
+    }
+    
+    .content {
+      padding: 32px 40px;
+    }
+    
+    .heading {
+      margin: 0 0 16px 0;
+      color: #111827;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+    
+    .subtitle {
+      margin: 0 0 24px 0;
+      color: #6B7280;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .description {
+      margin: 0 0 24px 0;
+      color: #374151;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    
+    .button-wrapper {
+      margin: 32px 0;
+      text-align: center;
+    }
+    
+    .cta-button {
+      display: inline-block;
+      padding: 12px 32px;
+      background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 68%, #0EA5E9 100%);
+      color: #FFFFFF !important;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 12px;
+      box-shadow: 0 10px 20px -12px rgba(37, 99, 235, 0.55);
+      transition: all 0.2s ease;
+    }
+    
+    .fallback-text {
+      margin: 24px 0 8px 0;
+      color: #6B7280;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .link-box {
+      margin: 8px 0 0 0;
+      padding: 12px;
+      background-color: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      border-radius: 12px;
+      word-break: break-all;
+      color: #2563EB;
+      font-size: 12px;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    }
+    
+    .footer {
+      padding: 24px 40px;
+      border-top: 1px solid #F3F4F6;
+      background-color: #F9FAFB;
+    }
+    
+    .footer-text {
+      margin: 0 0 8px 0;
+      color: #6B7280;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    
+    .footer-copyright {
+      margin: 0;
+      color: #6B7280;
+      font-size: 12px;
+    }
+    
+    @media only screen and (max-width: 620px) {
+      .wrapper {
+        padding: 20px 10px;
+      }
+      
+      .main-card {
+        width: 100%;
+      }
+      
+      .logo-section {
+        padding: 24px 24px 20px;
+      }
+      
+      .logo-image {
+        height: 65px;
+        width: 120px;
+      }
+      
+      .content {
+        padding: 24px;
+      }
+      
+      .heading {
+        font-size: 20px;
+      }
+      
+      .cta-button {
+        width: 100%;
+        padding: 12px 24px;
+      }
+      
+      .footer {
+        padding: 20px 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <table role="presentation" width="100%">
+      <tr>
+        <td align="center">
+          <table role="presentation" class="main-card" width="600">
+            
+            <!-- Logo Section -->
+            <tr>
+              <td class="logo-section">
+                <img 
+                  src="https://icma360.org/icma360_logo160x87.png" 
+                  alt="icma360" 
+                  class="logo-image"
+                  style="display: block; margin: 0 auto;"
+                />
+              </td>
+            </tr>
+            
+            <!-- Content -->
+            <tr>
+              <td class="content">
+                <h1 class="heading">icma360-a xoş gəldiniz! 🎉</h1>
+                
+                <p class="subtitle">icma360 ilə əlaqə qur, öyrən və inkişaf et</p>
+                
+                <p class="description">
+                  Qeydiyyatınız uğurla başa çatdı. Hesabınızı aktivləşdirmək üçün aşağıdakı düyməni klikləyin:
+                </p>
+                
+                <!-- CTA Button -->
+                <div class="button-wrapper">
+                  <a href="{{ .ConfirmationURL }}" class="cta-button" target="_blank">
+                    E-poçtumu təsdiqlə →
+                  </a>
+                </div>
+                
+                <!-- Fallback Link -->
+                <p class="fallback-text">Və ya bu linki brauzerinizə kopyalayın:</p>
+                <p class="link-box">{{ .ConfirmationURL }}</p>
+              </td>
+            </tr>
+            
+            <!-- Footer -->
+            <tr>
+              <td class="footer">
+                <p class="footer-text">
+                  Bu e-poçtun göndərilməsini siz tələb etməmisinizsə, sadəcə bu mesajı silin.
+                </p>
+                <p class="footer-copyright">
+                  © 2026 icma360. Bütün hüquqlar qorunur.
+                </p>
+              </td>
+            </tr>
+            
+          </table>
+        </td>
+      </tr>
+    </table>
+  </div>
+</body>
+</html>
+```
+
+**Plain Text:**
+```
+icma360-a xoş gəldiniz! 🎉
+
+icma360 ilə əlaqə qur, öyrən və inkişaf et
+
+Qeydiyyatınız uğurla başa çatdı. Hesabınızı aktivləşdirmək üçün aşağıdakı linki brauzerinizə kopyalayın:
+
+{{ .ConfirmationURL }}
+
+Bu e-poçtun göndərilməsini siz tələb etməmisinizsə, sadəcə bu mesajı silin.
+
+© 2026 icma360. Bütün hüquqlar qorunur.
+```
+
+---
+
+## 2. Reset Password Email
+
+**Template Type:** `Reset Password`
+
+**Subject:** 
+```
+icma360 - Parolunuzu sıfırlayın
+```
+
+**Email Content (HTML):**
+
+```html
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>icma360 - Password Reset</title>
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: #F9FAFB;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    table {
+      border-collapse: collapse;
+    }
+    
+    .wrapper {
+      width: 100%;
+      table-layout: fixed;
+      background-color: #F9FAFB;
+      padding: 40px 20px;
+    }
+    
+    .main-card {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #FFFFFF;
+      border-radius: 16px;
+      border: 1px solid #E5E7EB;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+    }
+    
+    .logo-section {
+      padding: 32px 40px 24px;
+      text-align: center;
+      border-bottom: 1px solid #F3F4F6;
+    }
+    
+    .logo-image {
+      height: 87px;
+      width: 160px;
+    }
+    
+    .content {
+      padding: 32px 40px;
+    }
+    
+    .heading {
+      margin: 0 0 16px 0;
+      color: #111827;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+    
+    .description {
+      margin: 0 0 24px 0;
+      color: #374151;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    
+    .button-wrapper {
+      margin: 32px 0;
+      text-align: center;
+    }
+    
+    .cta-button {
+      display: inline-block;
+      padding: 12px 32px;
+      background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 68%, #0EA5E9 100%);
+      color: #FFFFFF !important;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 12px;
+      box-shadow: 0 10px 20px -12px rgba(37, 99, 235, 0.55);
+      transition: all 0.2s ease;
+    }
+    
+    .notice-box {
+      margin: 24px 0 0 0;
+      padding: 12px 16px;
+      background-color: #FFFBEB;
+      border: 1px solid #FCD34D;
+      border-radius: 12px;
+    }
+    
+    .notice-text {
+      margin: 0;
+      color: #92400E;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .fallback-text {
+      margin: 24px 0 8px 0;
+      color: #6B7280;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .link-box {
+      margin: 8px 0 0 0;
+      padding: 12px;
+      background-color: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      border-radius: 12px;
+      word-break: break-all;
+      color: #2563EB;
+      font-size: 12px;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    }
+    
+    .footer {
+      padding: 24px 40px;
+      border-top: 1px solid #F3F4F6;
+      background-color: #F9FAFB;
+    }
+    
+    .footer-text {
+      margin: 0 0 8px 0;
+      color: #6B7280;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    
+    .footer-copyright {
+      margin: 0;
+      color: #6B7280;
+      font-size: 12px;
+    }
+    
+    @media only screen and (max-width: 620px) {
+      .wrapper {
+        padding: 20px 10px;
+      }
+      
+      .main-card {
+        width: 100%;
+      }
+      
+      .logo-section {
+        padding: 24px 24px 20px;
+      }
+      
+      .logo-image {
+        height: 65px;
+        width: 120px;
+      }
+      
+      .content {
+        padding: 24px;
+      }
+      
+      .heading {
+        font-size: 20px;
+      }
+      
+      .cta-button {
+        width: 100%;
+        padding: 12px 24px;
+      }
+      
+      .footer {
+        padding: 20px 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <table role="presentation" width="100%">
+      <tr>
+        <td align="center">
+          <table role="presentation" class="main-card" width="600">
+            
+            <!-- Logo Section -->
+            <tr>
+              <td class="logo-section">
+                <img 
+                  src="https://icma360.org/icma360_logo160x87.png" 
+                  alt="icma360" 
+                  class="logo-image"
+                  style="display: block; margin: 0 auto;"
+                />
+              </td>
+            </tr>
+            
+            <!-- Content -->
+            <tr>
+              <td class="content">
+                <h1 class="heading">Parol Sıfırlama Sorğusu 🔐</h1>
+                
+                <p class="description">
+                  icma360 hesabınız üçün parol sıfırlama sorğusu aldıq. Parolunuzu sıfırlamaq üçün aşağıdakı düyməni klikləyin:
+                </p>
+                
+                <!-- CTA Button -->
+                <div class="button-wrapper">
+                  <a href="{{ .ConfirmationURL }}" class="cta-button" target="_blank">
+                    Parolu sıfırla →
+                  </a>
+                </div>
+                
+                <!-- Expiration Notice -->
+                <div class="notice-box">
+                  <p class="notice-text">
+                    ⏰ Bu link məhdud müddət etibarlıdır. Təhlükəsizlik üçün onu bir dəfə istifadə etmək olar.
+                  </p>
+                </div>
+                
+                <!-- Fallback Link -->
+                <p class="fallback-text" style="margin-top: 24px;">Və ya bu linki brauzerinizə kopyalayın:</p>
+                <p class="link-box">{{ .ConfirmationURL }}</p>
+              </td>
+            </tr>
+            
+            <!-- Footer -->
+            <tr>
+              <td class="footer">
+                <p class="footer-text">
+                  Parol sıfırlama sorğusu göndərməmisinizsə, bu e-poçtu görməzlikdən gələ bilərsiniz. Mövcud parolunuz dəyişməz qalacaq.
+                </p>
+                <p class="footer-copyright">
+                  © 2026 icma360. Bütün hüquqlar qorunur.
+                </p>
+              </td>
+            </tr>
+            
+          </table>
+        </td>
+      </tr>
+    </table>
+  </div>
+</body>
+</html>
+```
+
+**Plain Text:**
+```
+Parol Sıfırlama Sorğusu 🔐
+
+icma360 hesabınız üçün parol sıfırlama sorğusu aldıq. Parolunuzu sıfırlamaq üçün aşağıdakı linki brauzerinizə kopyalayın:
+
+{{ .ConfirmationURL }}
+
+⏰ Bu link məhdud müddət etibarlıdır.
+
+Parol sıfırlama sorğusu göndərməmisinizsə, bu e-poçtu görməzlikdən gələ bilərsiniz. Mövcud parolunuz dəyişməz qalacaq.
+
+© 2026 icma360. Bütün hüquqlar qorunur.
+```
+
+---
+
+## 3. Change Email Confirmation
+
+**Template Type:** `Change Email`
+
+**Subject:** 
+```
+icma360 - E-poçt dəyişikliyini təsdiqləyin
+```
+
+**Email Content (HTML):**
+
+```html
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>icma360 - Email Change</title>
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: #F9FAFB;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    table {
+      border-collapse: collapse;
+    }
+    
+    .wrapper {
+      width: 100%;
+      table-layout: fixed;
+      background-color: #F9FAFB;
+      padding: 40px 20px;
+    }
+    
+    .main-card {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #FFFFFF;
+      border-radius: 16px;
+      border: 1px solid #E5E7EB;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+    }
+    
+    .logo-section {
+      padding: 32px 40px 24px;
+      text-align: center;
+      border-bottom: 1px solid #F3F4F6;
+    }
+    
+    .logo-image {
+      height: 87px;
+      width: 160px;
+    }
+    
+    .content {
+      padding: 32px 40px;
+    }
+    
+    .heading {
+      margin: 0 0 16px 0;
+      color: #111827;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+    
+    .description {
+      margin: 0 0 24px 0;
+      color: #374151;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    
+    .button-wrapper {
+      margin: 32px 0;
+      text-align: center;
+    }
+    
+    .cta-button {
+      display: inline-block;
+      padding: 12px 32px;
+      background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 68%, #0EA5E9 100%);
+      color: #FFFFFF !important;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 12px;
+      box-shadow: 0 10px 20px -12px rgba(37, 99, 235, 0.55);
+      transition: all 0.2s ease;
+    }
+    
+    .notice-box {
+      margin: 24px 0 0 0;
+      padding: 12px 16px;
+      background-color: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      border-radius: 12px;
+    }
+    
+    .notice-text {
+      margin: 0;
+      color: #1E40AF;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .fallback-text {
+      margin: 24px 0 8px 0;
+      color: #6B7280;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .link-box {
+      margin: 8px 0 0 0;
+      padding: 12px;
+      background-color: #F9FAFB;
+      border: 1px solid #E5E7EB;
+      border-radius: 12px;
+      word-break: break-all;
+      color: #2563EB;
+      font-size: 12px;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    }
+    
+    .footer {
+      padding: 24px 40px;
+      border-top: 1px solid #F3F4F6;
+      background-color: #F9FAFB;
+    }
+    
+    .footer-text {
+      margin: 0 0 8px 0;
+      color: #6B7280;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    
+    .footer-copyright {
+      margin: 0;
+      color: #6B7280;
+      font-size: 12px;
+    }
+    
+    @media only screen and (max-width: 620px) {
+      .wrapper {
+        padding: 20px 10px;
+      }
+      
+      .main-card {
+        width: 100%;
+      }
+      
+      .logo-section {
+        padding: 24px 24px 20px;
+      }
+      
+      .logo-image {
+        height: 65px;
+        width: 120px;
+      }
+      
+      .content {
+        padding: 24px;
+      }
+      
+      .heading {
+        font-size: 20px;
+      }
+      
+      .cta-button {
+        width: 100%;
+        padding: 12px 24px;
+      }
+      
+      .footer {
+        padding: 20px 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <table role="presentation" width="100%">
+      <tr>
+        <td align="center">
+          <table role="presentation" class="main-card" width="600">
+            
+            <!-- Logo Section -->
+            <tr>
+              <td class="logo-section">
+                <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" viewBox="0 0 1408 768" width="50%">
+  <path fill="#fff" d="M922 769H1V1.1h1407.8V769zM737 364h-.7l-2.3-2-.2-.6-4.8-4.4-.3-.6a39.5 39.5 0 0 0-46.3 1c-1.8 1.4-3.5 3-5.2 3.5v-8.6h-27.6V460h21.6q3-.2 6.3-1.8-.1-30.9.4-63 2-6.1 4.3-12.4-.1-.1.6-.7c7.4-7.5 15.4-8.5 25.5-2.7q.9.6 1.9 2.1l1.6 2.3q.1-.1.2.9 1.4 3.8 2.5 9.2l.1 9q.1 27.7.5 56.8h27.6v-60.9c0-7.1 1.6-13.5 6.3-18.9l.7-.1q.8-.9 2.2-1.7l.9-.3q10.4-5 20.4 1.6l1 1.2q2.4 4.4 4.7 9.8l.1 1.1q.4 1 .6 3.4l.1 7.4v55.1c.4.9 1 2.4 1.4 2.4q13.1.2 26.8.1c-.2-2.8-.3-5-.2-8V433a358 358 0 0 1 0-21.8V407q-.4-10.3-.6-21.8a43 43 0 0 0-10.3-23.7q-1.4-1.1-3.2-3L790 356l-.3-.6a42 42 0 0 0-49 3.9l-2.5 2.5zm198-11.7-2.3-.2h-25v9.2c-5.6-3.2-10.8-7.4-16.7-9.4a48 48 0 0 0-45.5 7.3c-25.2 18.5-29.6 57.7-10 84.2 18.6 25 56.6 24.7 70.8 6h1.4V460h20.9q3.1 0 6.7-1.9v-99.7zM488.5 459.4l2.7.4 2.4.1h16.5q3 0 6.6-2l-.1-101.3q-.1-2.2-2.5-4.6h-25.8v100.4q.2 3.1.2 7m693.5-105c-7.5 26.8-7.4 53.1 5 78.4a50 50 0 0 0 48 30 50 50 0 0 0 47.3-30.4 103 103 0 0 0 .7-87.7 49 49 0 0 0-42.3-31.5A50 50 0 0 0 1191 336c-3.6 5.5-6 11.8-9.1 18.5m-41.8 13.7-23-6 30.9-46.4c-10.5 0-19.7-.2-28.8.2a9 9 0 0 0-6.3 3.4q-20.7 30.7-40.5 61.9a53 53 0 0 0-4.3 53.8c9.2 19.4 28.2 29.2 52.1 27.6a49 49 0 0 0 45.4-39 50.5 50.5 0 0 0-25.5-55.5M1039 448.5a44 44 0 0 0 12-39.5c-2.7-18.2-14-29.2-31.3-35l2.5-3.7 20.6-27c1.3-1.7 3-3.6 3.1-5.5q.4-10.6.2-21.7h-90V343h54.1L991 368.4c-9 12.1-9 12.2-.8 24.7 1 1.4 3.3 2.5 5.1 2.8 4.3.7 8.7.3 12.9 1.3 8.5 1.9 14 9 14.6 17.5s-4.4 15.7-12.8 18.9a26 26 0 0 1-32.8-12l-2-3.5q-10 6.1-20.1 11.5c-4.3 2.2-4 4.4-2 8.1 17.2 32 67 31 85.9 10.8m-476.1-31.2q-1-3.7-1.6-7.3c-1.8-13.9 5.5-27.2 17.3-31.8 12.5-5 25.3-.5 33.8 11.8l1.3.5 22-13.8c-9.8-21-35.6-31.8-60.6-25.9a55.4 55.4 0 0 0-42 57.6 54.6 54.6 0 0 0 44 53.4c25.4 4.7 50.6-7 58.7-27.7l-23.3-13q-8.9 16-26.2 14.6-17-1.3-23.4-18.4m-416.6-1.7 4.5-.6a27 27 0 0 0 21.6-24.8 27.2 27.2 0 0 0-48.5-18.7q-9.9 12.6-3.9 27.2 7 16.4 26.3 17M403.6 492c2-2.5 4.2-4.8 5.7-7.5a27 27 0 0 0-6.3-33.1c-9-8-23-9-32.8-2-13 9-16.2 26.3-7.2 38.6 9.4 13 26.5 14.9 40.6 4m-44.8-230.3-.9-5a27 27 0 0 0-32.2-19.7 27.5 27.5 0 0 0-20.7 32.2 27.3 27.3 0 0 0 29.5 21.5c14-1.4 24-13 24.3-29M192 470.4a128 128 0 0 1-27.7-48.7l-23.1 5c15.3 48.2 45.7 83 94.6 99.5 46.8 15.7 90.4 7.7 130.3-20.5l-15.7-17.6A120 120 0 0 1 192 470.4m43-26a70.7 70.7 0 0 0 96.9-4.8 72 72 0 0 0 11.2-87.4 71 71 0 0 0-81.4-33.4 69 69 0 0 0-50.8 52.7c-6.8 28.5 1.8 52.9 24.1 73m284.4-126.3-1.2-2.7a17 17 0 0 0-20.2-8.7 17 17 0 0 0-13 17.7 17 17 0 0 0 14 17c13.3 2.8 23.2-7.9 20.4-23.3m-328.2-11.5a120 120 0 0 1 102.3-39.4l4.5-23a141 141 0 0 0-95.5 22.2 142 142 0 0 0-61 83.3l22.9 5.5q7.3-26.6 26.8-48.6m216.6 135.9 5.2 4.2a141 141 0 0 0 7.6-96 143 143 0 0 0-51.7-77.6l-12.3 19.6c43.1 39.2 56.2 86.5 36.7 142.3z"/>
+  <path fill="#30b670" d="M1182 354.2c3.1-6.4 5.5-12.7 9.1-18.2a50 50 0 0 1 49.6-22.7 49 49 0 0 1 42.3 31.5 103 103 0 0 1-.7 87.7 49 49 0 0 1-47.2 30.3 50 50 0 0 1-48-29.9c-12.5-25.3-12.6-51.6-5-78.7m54.1-13c-12.4 0-20.6 5.7-25.1 18a84 84 0 0 0 4.3 64.8 22.6 22.6 0 0 0 39-.1q3.5-5.8 5.4-12.3c4-14.5 4.6-29.3.7-43.9-3.3-12.6-8.1-24.3-24.3-26.5"/>
+  <path fill="#121d34" d="m712 384-.2-.6a9 9 0 0 0-1.8-2.4q-.7-.6-1.9-2.1c-5.5-5.8-11.9-5.8-18.2-3.6-3.3 1.2-7.5 2.4-7.7 7.2q.1.2-.5.5-3.2 6.5-5.7 13.4.1 31.2-.5 61.6c-6.6 0-12.8-.3-19 0-4.3.3-5.7-.9-5.6-5.4v-65l.2-29.4c0-1.4 1.4-4 2.2-4q11.1-.3 22-.2l1.8 7.9c1.8-1.5 3.5-3 6-4.7l3.5-1a36 36 0 0 1 27.1-4.2c5.2 1.3 10.3 3.3 15.4 5v.3q2.4 2.7 4.9 4.7v.4l1.8 3.2 1.1-1.7h.4q1-1.2 1.5-2.4.7-1.1 2.5-2.3 1.9-.4 2.9-1a37 37 0 0 1 30.6-6.2q7.7 1.7 15.2 4v.3q2 1.7 4 2.7 1.3 1.1 2.9 3.1l9 24.4.1 22v45l-.3 5.6q-12.5-1-24.7-2.6v-62.9q-.9-1.5-1.9-2.6-.1-.1.1-1c-.6-4.1 0-8.7-5.2-10q-.5.1-1-1c-6.6-6.5-16.1-6.7-21-1q.1.1-.7.2a8 8 0 0 0-2.2 1.9h-.4c-1.6 1.2-3.5 2.2-4 3.7-1.5 5-3.4 10.1-3.5 15.2q-.6 27-.1 53.8c0 4.2-1.3 5.5-5.4 5.3-6.5-.3-13 0-19.7-.6v-65q-2-4.5-4-8.5"/>
+  <path fill="#2fb66f" d="M1140.5 368.4a50.4 50.4 0 0 1 25.2 55.3 49 49 0 0 1-45.4 39c-24 1.6-42.9-8.2-52-27.6a53 53 0 0 1 4.2-53.8c13-21 26.8-41.4 40.5-61.9a9 9 0 0 1 6.3-3.4c9.1-.4 18.3-.2 28.8-.2l-30.9 46.3zm-10.5 62.2a24 24 0 0 0 6.3-25.7c-3.7-12.3-18-18.2-30.6-13.1-11.8 4.7-17 19.9-11.1 32.1s22 15.5 35.4 6.7"/>
+  <path fill="#111c33" d="M935 459q-3.2.8-6.4 1h-20.9v-10.6h-1.4c-14.2 18.7-52.2 19-70.8-6-19.6-26.5-15.2-65.7 10-84.2A48 48 0 0 1 891 352c5.9 2 11 6.2 16.7 9.4V352c6.8 0 13.1 0 20 .5 2.3 1 4 1.7 6.3 2.5v98.4c0 1.9.7 3.7 1 5.6m-48.7-82c-14.5-2.8-26.4 3-32 15.8-5.7 13-2 30.3 8.6 38.1q3.7 2.6 8 4a27.4 27.4 0 0 0 35.2-18.5c5.2-17-2.7-35.5-19.8-39.5"/>
+  <path fill="#2fb670" d="M1038.7 448.7c-18.6 20-68.4 21-85.6-11-2-3.7-2.3-6 2-8.1q10-5.4 20-11.5l2.1 3.4a26 26 0 0 0 32.8 12 19 19 0 0 0 12.8-18.8 18.5 18.5 0 0 0-14.6-17.5c-4.2-1-8.6-.6-12.9-1.3-1.8-.3-4-1.4-5-2.8-8.3-12.5-8.3-12.6.7-24.7l19.2-25.4h-54v-26.9h89.9c0 7.5.2 14.6-.2 21.7 0 1.9-1.8 3.8-3 5.5l-20.7 27-2.5 3.7c17.3 5.8 28.6 16.8 31.3 35a44 44 0 0 1-12.3 39.7"/>
+  <path fill="#111c33" d="M563 417.7a26 26 0 0 0 23.3 18q17.3 1.4 26.2-14.6l23.3 13c-8.1 20.6-33.3 32.4-58.7 27.7a54.6 54.6 0 0 1-44-53.4 55.4 55.4 0 0 1 42-57.6c25-6 50.8 5 60.7 26q-11.2 6.8-22.1 13.7l-1.3-.5c-8.5-12.3-21.3-16.7-33.8-11.8-11.8 4.6-19.1 18-17.3 31.8q.5 3.5 1.7 7.7"/>
+  <path fill="#172238" d="M500 352.3q7-.3 14.6.3.5 51.2.5 101.5c0 1.6.8 3.2 1.3 4.9-2.1.3-4.2 1-6.3 1q-8.1.2-17-.5c-1.3-2.6-3-4.7-3-6.8v-93.2l.2-4.4z"/>
+  <path fill="#33b571" d="M145.9 415.6q-18.7-.5-25.9-16.9-6-14.6 4-27.2a27.1 27.1 0 0 1 48.4 18.7 27 27 0 0 1-21.6 24.8q-2.1.4-5 .6"/>
+  <path fill="#32b571" d="M403.4 492.4c-13.9 10.6-31 8.6-40.4-4.3a27.5 27.5 0 0 1 7.2-38.7 27 27 0 0 1 32.8 2.1 27 27 0 0 1 6.3 33.1c-1.5 2.7-3.8 5-6 7.8"/>
+  <path fill="#33b571" d="M358.8 262.2c-.4 15.6-10.4 27.2-24.3 28.6a27.3 27.3 0 0 1-29.5-21.5 27.5 27.5 0 0 1 20.7-32.2 27 27 0 0 1 32.2 19.8q.5 2.3.9 5.3"/>
+  <path fill="#4770b3" d="M192.3 470.7a120 120 0 0 0 158.1 17.4l15.7 17.6c-40 28.2-83.5 36.2-130.3 20.5-49-16.5-79.3-51.3-94.6-99.6l23-4.9a128 128 0 0 0 28 49M165.6 431c-1.7-2-3.4-5.5-5.2-5.6-4.3 0-8.7 1.3-13 2.5-1 .3-2.1 2.6-1.9 3.6q1.4 6 3.8 11.8a148 148 0 0 0 83.6 80 143 143 0 0 0 111.5-6.6c6.3-3 12-7.1 18.3-11l-12.4-14.6q-1.6.6-3 1.4-15.4 9.5-32.5 14.8a109 109 0 0 1-47.3 4.3 125 125 0 0 1-60.9-25 128 128 0 0 1-41-55.6"/>
+  <path fill="#4770b3" d="M234.7 444.3c-22-20-30.6-44.3-23.8-72.8 6.5-27 24-44.9 50.8-52.7a71 71 0 0 1 81.4 33.4 72 72 0 0 1-11.2 87.4 71 71 0 0 1-97.2 4.7M212.1 373c-.3 3-1 5.9-1 8.8a70 70 0 0 0 21.7 57.6 67 67 0 0 0 62.3 18 67 67 0 0 0 48.2-37.4q9-17.9 7-38.5a68 68 0 0 0-36.1-54.9 65 65 0 0 0-41.7-7.9 70 70 0 0 0-46.7 26.5 79 79 0 0 0-13.7 27.8"/>
+  <path fill="#111c33" d="M519.5 318.6c2.7 15-7.2 25.7-20.5 23a17 17 0 0 1-14-17 17 17 0 0 1 13-17.8c8.6-2.3 16 1 20.2 8.7z"/>
+  <path fill="#4770b3" d="M191 307a121 121 0 0 0-26.6 48.3l-23-5.5a142 142 0 0 1 61-83.3c29.3-19.2 61.5-26 95.6-22.3l-4.5 23.1Q233.3 262.1 191 307m80.3-61c-2.8 0-5.7-.4-8.5.1-21.8 4-42.6 10.5-61.2 23.4a147 147 0 0 0-52.7 64c-2 4.7-3.3 9.9-4.9 15 4.4.6 8.2.6 11.5 2 8.6 3.5 7.3.6 10.4-5.5 5-10 9.3-20.3 15.4-29.4a87 87 0 0 1 29-28.2q17-9.8 35.2-17.3a98 98 0 0 1 41.7-5c3.6.2 5.2-1.1 5.7-4.5q1-5.6 1.7-11.2c.1-1-1.3-3.2-2.1-3.2-6.8-.3-13.5-.2-21.2-.2m136.2 196.4-14.2-7.3c19.5-55.8 6.4-103.1-36.7-142.3l12.3-19.6a143 143 0 0 1 51.7 77.6q13.1 48.8-7.6 96zm-23-120.4c22.2 35.2 25.1 72.4 11.4 111.6 4.5 2.4 8.8 4.3 12.6 6.8 3 2 4.8 2.2 5.7-1.7 2.6-10.4 5.6-20.8 7.8-31.2 3.9-17.8 1.5-35.4-2.4-52.7a124 124 0 0 0-23.7-50.6c-7-8.7-15.2-16.5-23-24.7-1.6-1.8-3.6-2.4-5.3.2l-7.6 11.7z"/>
+  <path fill="#172238" d="m677.2 361.4-2-7.4-22 .2c-.7 0-2 2.6-2.1 4q-.2 14.7-.1 29.5.1 32.4-.1 64.9c0 4.5 1.3 5.7 5.6 5.5 6.2-.4 12.4 0 19.1.1l1.6.9-6 1h-21.6V352.3h27.6zM716 458h19.7c4.1.3 5.5-1 5.4-5.2q-.4-26.8 0-53.8c.2-5 2.1-10.2 3.6-15.2.5-1.5 2.4-2.5 4-3.7-4.4 5.3-6 11.7-6 18.8v60.9q-14.1.1-27.5-.5.5-1 .9-1.3"/>
+  <path fill="#040c1d" d="M499.5 352.2q-3.6 1.4-9.2 2.9l-.3 4.4.1 93.2c0 2.1 1.7 4.2 2.7 6.7q-.6.7-2.2.2l-2-.7-.2-6.4V352.1zm17 106.3c-.6-1.2-1.4-2.8-1.4-4.4V352.7c.5 1 1.5 2.5 1.5 4zm160.9.2q-.6.3-1.3-.5-.2-30.7.2-61.8.9-.5 1.3-.4zm257.8-.1q-.9-2.3-1.2-5.2V355q-3.2-1-5.9-2.4 2-.6 5.3-.2l1.7.6.3 5.4z"/>
+  <path fill="#172238" d="M789.8 355.7c-4.8-1-9.9-2.6-15-3.7a37 37 0 0 0-30.6 6.2q-1 .6-2.7.8c11.6-11.5 32.1-13 48.3-3.3m-60.9 1c-5-1.4-10-3.4-15.2-4.7a36 36 0 0 0-27 4.1q-1.4.6-3.2 1c11.5-10.1 31-10.4 45.4-.4M781 457l24.7 2.1c.1-2.4.2-3.8.6-5.7q.8-.5 1.2-.4l.4 7H781c-.5 0-1-1.6-1-2.7q.8-.4 1-.3"/>
+  <path fill="#040c1d" d="M716 457.5q-.2 1-.8 1.4-.5-28-.6-56 0-4.4.3-9.4l1.1-.6zm65-1q-.1.6-.8.5-.5-27.3-.5-54.6 0-3.6.3-7.9.8-.6 1-.5z"/>
+  <path fill="#172238" d="M682.5 382.3c0-4.6 4.1-5.8 7.4-7 6.3-2.2 12.7-2.2 18 3.3-9.7-5-17.7-3.9-25.4 3.7M806 386l-9-23.6c6.3 6 8.6 14.2 9.8 23.2q-.7.5-.8.4m-53.6-8c4.5-5.7 14-5.5 20.5.7a22 22 0 0 0-20.5-.8"/>
+  <path fill="#040c1d" d="M806 386.5q.1-.6.7-.5.7 10.4.7 21.5-1 .6-1.4.5zm1.6 66q-.6.6-1.3.5-.4-8.9 0-18.5.8-.6 1.2-.5z"/>
+  <path fill="#172238" d="M807.6 433.6q-.5.5-1.4.4-.3-7 0-14.5.6-.7.8-.6h.5zm-129.8-37.9q-.7.4-1.5.3 2.1-6.4 5.2-13-1.5 6-3.7 12.7m96.3-15.4c5 1 4.5 5.6 5.1 9.5q-2.6-4.4-5-9.5M716 392.5q-.3.6-1 .6-1.7-4.1-3-8.7a89 89 0 0 1 4 8.1"/>
+  <path fill="#040c1d" d="M807.6 418.5c-.1.5-.6.4-.6.4l-.8.1a29 29 0 0 1 0-6.6q.9-.5 1.3-.4z"/>
+  <path fill="#172238" d="M733.9 361.7a34 34 0 0 1-4.8-4.4q2.3 1.7 4.8 4.4m73.7 50q-.6.4-1.3.3-.4-1.4-.3-3.6.4-.5 1.3-.5.5 1.7.3 3.8m-71-47.7q-.1.7-.8 1.6l-1.8-3.2zm57.2-5.3q-1.8-.7-3.7-2.4 1.6.8 3.7 2.4M781 393.6q-.2.5-1 .4a6 6 0 0 1-1-2.7q1.1.7 2 2.3m-42.5-32q0 1-1.2 2.3 0-1 1.2-2.3m10.9 18.4q.3-.9 1.8-1.8-.4.8-1.8 1.8m-39.3 1.3q.9.5 1.7 2-.7-.5-1.7-2m-221.5 77.9q.7-.2 1.8.4-.8.2-1.8-.4"/>
+  <path fill="#111c33" d="M935 352.7q-.3.3-1.3-.2.4-.3 1.3.2"/>
+  <path fill="#fafefd" d="M1236.6 341.2c15.8 2.2 20.6 14 24 26.5a83 83 0 0 1-.8 44 47 47 0 0 1-5.5 12.2 22.6 22.6 0 0 1-39 .1 84 84 0 0 1-4.3-64.8c4.6-12.3 12.8-18 25.6-18"/>
+  <path fill="#f8fefb" d="M1129.8 430.8c-13.2 8.6-29.3 5.3-35.2-6.9s-.7-27.4 11-32.1c12.8-5.1 27 .8 30.7 13.1a24 24 0 0 1-6.5 26"/>
+  <path fill="#fcfdfd" d="M886.7 377c16.7 3.9 24.6 22.4 19.4 39.4a27.4 27.4 0 0 1-35.2 18.5q-4.3-1.4-8-4c-10.5-7.8-14.3-25-8.6-38.1 5.6-12.7 17.5-18.6 32.4-15.8"/>
+  <path fill="#2e6cd6" d="M165.7 431.4a127 127 0 0 0 40.8 55.1 123 123 0 0 0 60.9 25q23.7 3.2 47.3-4.2 17.2-5.3 32.4-14.8 1.6-.9 3.1-1.4l12.4 14.7c-6.3 3.8-12 8-18.4 11a143 143 0 0 1-111.4 6.5 148 148 0 0 1-83.6-80 69 69 0 0 1-3.8-11.8c-.2-1 1-3.3 1.9-3.6 4.3-1.2 8.7-2.5 13-2.5 1.8 0 3.5 3.7 5.4 6"/>
+  <path fill="#2c6cd9" d="M212.3 372.7c3-10.2 7-19.4 13.5-27.4a70 70 0 0 1 46.7-26.5c14.9-1.8 29 .5 41.7 8 21 12.1 33.6 30 36 54.8q2.3 20.7-6.9 38.5a67 67 0 0 1-48.2 37.5 67 67 0 0 1-62.3-18 70 70 0 0 1-21.8-57.7q.4-4.4 1.3-9.2"/>
+  <path fill="#2e6cd4" d="M271.8 246q10.7-.1 20.7.2c.8 0 2.2 2.1 2.1 3.2q-.6 5.6-1.7 11.2c-.5 3.4-2.1 4.7-5.7 4.5a98 98 0 0 0-41.7 5q-18 7.6-35.1 17.3a87 87 0 0 0-29 28.2c-6.2 9.1-10.6 19.5-15.5 29.4-3 6.1-1.8 9-10.4 5.5-3.3-1.4-7.1-1.4-11.5-2 1.6-5.1 2.8-10.3 4.9-15q17.1-39.5 52.7-64a154 154 0 0 1 61.2-23.4c2.8-.5 5.7-.1 9-.1"/>
+  <path fill="#2e6bd5" d="M384.4 321.6 360 291.4l7.6-11.7c1.7-2.6 3.7-2 5.4-.2 7.7 8.2 16 16 23 24.7a124 124 0 0 1 23.6 50.6c4 17.3 6.3 35 2.4 52.7-2.2 10.4-5.2 20.8-7.8 31.2-1 3.9-2.7 3.7-5.7 1.7-3.8-2.5-8-4.4-12.6-6.8 13.7-39.2 10.8-76.4-11.5-112"/>
+</svg>
+              </td>
+            </tr>
+            
+            <!-- Content -->
+            <tr>
+              <td class="content">
+                <h1 class="heading">E-poçt Dəyişikliyini Təsdiqləyin ✉️</h1>
+                
+                <p class="description">
+                  icma360 hesabınızın e-poçt ünvanını dəyişmək istədiyinizi bildirdiniz. Dəyişikliyi təsdiqləmək üçün aşağıdakı düyməni klikləyin:
+                </p>
+                
+                <!-- CTA Button -->
+                <div class="button-wrapper">
+                  <a href="{{ .ConfirmationURL }}" class="cta-button" target="_blank">
+                    E-poçt dəyişikliyini təsdiqlə →
+                  </a>
+                </div>
+                
+                <!-- Security Notice -->
+                <div class="notice-box">
+                  <p class="notice-text">
+                    🔒 Təhlükəsizlik: Bu link yalnız e-poçt dəyişikliyi üçün etibarlıdır. Daxil olduqdan sonra yeni e-poçt ünvanınız aktiv olacaq.
+                  </p>
+                </div>
+                
+                <!-- Fallback Link -->
+                <p class="fallback-text" style="margin-top: 24px;">Və ya bu linki brauzerinizə kopyalayın:</p>
+                <p class="link-box">{{ .ConfirmationURL }}</p>
+              </td>
+            </tr>
+            
+            <!-- Footer -->
+            <tr>
+              <td class="footer">
+                <p class="footer-text">
+                  E-poçt dəyişikliyini siz tələb etməmisinizsə, bu e-poçtu görməzlikdən gələ bilərsiniz və ya tez bir zamanda bizimlə əlaqə saxlayın.
+                </p>
+                <p class="footer-copyright">
+                  © 2026 icma360. Bütün hüquqlar qorunur.
+                </p>
+              </td>
+            </tr>
+            
+          </table>
+        </td>
+      </tr>
+    </table>
+  </div>
+</body>
+</html>
+```
+
+**Plain Text:**
+```
+E-poçt Dəyişikliyini Təsdiqləyin ✉️
+
+icma360 hesabınızın e-poçt ünvanını dəyişmək istədiyinizi bildirdiniz. Dəyişikliyi təsdiqləmək üçün aşağıdakı linki brauzerinizə kopyalayın:
+
+{{ .ConfirmationURL }}
+
+🔒 Təhlükəsizlik: Bu link yalnız e-poçt dəyişikliyi üçün etibarlıdır.
+
+E-poçt dəyişikliyini siz tələb etməmisinizsə, bu e-poçtu görməzlikdən gələ bilərsiniz və ya tez bir zamanda bizimlə əlaqə saxlayın.
+
+© 2026 icma360. Bütün hüquqlar qorunur.
+```
+
+---
+
+## 🎨 Design Features
+
+These templates match your app's current design:
+
+- ✅ **icma360 Logo** - Uses your actual logo PNG (same as auth pages)
+- ✅ **Clean Card Design** - White card with gray border and subtle shadow (matches signin/register)
+- ✅ **Inter Font** - Same font family as your app
+- ✅ **Button Style** - Your gradient button with blue shadow
+- ✅ **Notice Boxes** - Yellow for warnings, blue for info (matches your UI)
+- ✅ **Responsive** - Mobile-optimized
+- ✅ **Minimal & Professional** - Matches your current clean aesthetic
+
+---
+
+## 📧 How to Apply
+
+1. Go to **Supabase Dashboard** → **Authentication** → **Email Templates**
+2. Click each template type (Confirm Signup, Reset Password, Change Email)
+3. Switch to **HTML** editor
+4. Paste the corresponding HTML above
+5. Update the **Subject** line
+6. Click **Save**
+7. Test by registering a new user
+
+---
+
+**Important:** The logo URL (`https://icma360.org/icma360_logo160x87.png`) must be publicly accessible. Make sure your logo is hosted and accessible at this URL. If not, update the URL in the templates to point to your actual logo location.

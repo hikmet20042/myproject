@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { Mail, ArrowLeft } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { Input, Button } from '@/components/ui'
@@ -9,6 +10,7 @@ import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 
 export default function VerifyRequest() {
   const localePath = useLocalizedPath()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -22,6 +24,11 @@ export default function VerifyRequest() {
   useEffect(() => {
     if (message) showSuccess(message)
   }, [message, showSuccess])
+
+  useEffect(() => {
+    const requestedEmail = searchParams?.get('email')
+    if (requestedEmail) setEmail(requestedEmail)
+  }, [searchParams])
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()

@@ -2,9 +2,9 @@ export const siteSettingsDefaults = {
   siteInfo: {
     siteName: 'icma360',
     siteDescription: 'Gənclərin və icmaların inkişafına dəstək platforması',
-    siteUrl: 'https://icma360.az',
-    contactEmail: 'contact@icma360.az',
-    supportEmail: 'support@icma360.az',
+    siteUrl: 'https://icma360.org',
+    contactEmail: 'contact@icma360.org',
+    supportEmail: 'support@icma360.org',
     socialLinks: {},
   },
   contentPolicies: {

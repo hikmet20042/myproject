@@ -156,7 +156,7 @@ export function generateImageSchema(image: {
   caption?: string
   author?: string
 }): string {
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'
   
   const schema = {
     '@context': 'https://schema.org',

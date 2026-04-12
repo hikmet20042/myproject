@@ -2,6 +2,24 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
+type OtpType = 'signup' | 'recovery' | 'email' | 'email_change' | 'invite' | 'magiclink'
+
+function normalizeOtpType(value: string | null): OtpType | null {
+  if (!value) return null
+  const normalized = value.trim().toLowerCase()
+  if (
+    normalized === 'signup' ||
+    normalized === 'recovery' ||
+    normalized === 'email' ||
+    normalized === 'email_change' ||
+    normalized === 'invite' ||
+    normalized === 'magiclink'
+  ) {
+    return normalized
+  }
+  return null
+}
+
 function getSafeNextPath(url: URL) {
   const next = url.searchParams.get('next')
   if (!next) return '/'
@@ -37,6 +55,8 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url)
   const safeNext = getSafeNextPath(url)
   const code = url.searchParams.get('code')
+  const tokenHash = url.searchParams.get('token_hash')
+  const otpType = normalizeOtpType(url.searchParams.get('type'))
   const oauthError = url.searchParams.get('error')
   const oauthErrorDescription = url.searchParams.get('error_description')
 
@@ -49,19 +69,33 @@ export async function GET(request: NextRequest) {
     })
   }
 
-  if (!code) {
+  if (!code && !(tokenHash && otpType)) {
     return redirectToSignIn(url, {
       error: 'OAuthCallback',
-      message: 'Google callback kodu tapılmadı',
+      message: 'Auth callback parametri tapılmadı',
     })
   }
 
-  const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
-  if (exchangeError) {
-    return redirectToSignIn(url, {
-      error: 'OAuthSignin',
-      message: exchangeError.message || 'Google sessiyası yaradıla bilmədi',
+  if (code) {
+    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+    if (exchangeError) {
+      return redirectToSignIn(url, {
+        error: 'OAuthSignin',
+        message: exchangeError.message || 'Sessiya yaradıla bilmədi',
+      })
+    }
+  } else if (tokenHash && otpType) {
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: otpType,
     })
+
+    if (verifyError) {
+      return redirectToSignIn(url, {
+        error: 'Verification',
+        message: verifyError.message || 'Doğrulama keçidi etibarsızdır',
+      })
+    }
   }
 
   const { data } = await supabase.auth.getUser()
@@ -72,32 +106,36 @@ export async function GET(request: NextRequest) {
     })
   }
 
-  const provider = data.user.app_metadata?.provider
-  if (provider && provider !== 'google') {
-    return redirectToSignIn(url, {
-      error: 'OAuthSignin',
-      message: 'Bu hesab Google ilə əlaqəli deyil',
-    })
-  }
+  const provider = String(data.user.app_metadata?.provider || '').toLowerCase() || 'email'
 
   const adminSupabase = createSupabaseAdminClient()
 
-  await adminSupabase
-    .from('accounts')
-    .upsert({
-      id: data.user.id,
-      account_type: 'user',
-      is_admin: false,
-      is_active: true,
-    }, { onConflict: 'id' })
-
-  const { data: account } = await adminSupabase
+  const { data: existingAccount } = await adminSupabase
     .from('accounts')
     .select('account_type, is_admin, is_active')
     .eq('id', data.user.id)
     .maybeSingle()
 
-  const accountType = account?.account_type as 'user' | 'organization' | undefined
+  if (!existingAccount) {
+    await adminSupabase
+      .from('accounts')
+      .upsert({
+        id: data.user.id,
+        account_type: provider === 'google' ? 'user' : null,
+        is_admin: false,
+        is_active: true,
+      }, { onConflict: 'id' })
+  }
+
+  const { data: account } = existingAccount
+    ? { data: existingAccount }
+    : await adminSupabase
+        .from('accounts')
+        .select('account_type, is_admin, is_active')
+        .eq('id', data.user.id)
+        .maybeSingle()
+
+  const accountType = (account?.account_type ?? null) as 'user' | 'organization' | null
   const role = account?.is_admin ? 'admin' : 'user'
 
   if (account?.is_active === false) {
@@ -108,7 +146,7 @@ export async function GET(request: NextRequest) {
     })
   }
 
-  if (accountType === 'organization') {
+  if (provider === 'google' && accountType === 'organization') {
     await supabase.auth.signOut()
     return redirectToSignIn(url, {
       error: 'OAuthSignin',
@@ -129,7 +167,7 @@ export async function GET(request: NextRequest) {
       name: data.user.user_metadata?.name || data.user.email,
       email: data.user.email,
       role,
-      auth_provider: existingUser?.auth_provider || 'google',
+      auth_provider: existingUser?.auth_provider || (provider === 'google' ? 'google' : 'email'),
     }, { onConflict: 'id' })
 
   return NextResponse.redirect(new URL(safeNext, url.origin))

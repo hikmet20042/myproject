@@ -55,7 +55,7 @@ async function fetchDynamicPaths() {
 }
 
 module.exports = {
-  siteUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az',
+  siteUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org',
   generateRobotsTxt: true,
   sitemapSize: 5000,
   changefreq: 'daily',
@@ -73,18 +73,18 @@ module.exports = {
   // Azerbaijani-only alternates
   alternateRefs: [
     {
-      href: process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az',
+      href: process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org',
       hreflang: 'az',
     },
     {
-      href: process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az',
+      href: process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org',
       hreflang: 'x-default',
     },
   ],
 
   additionalPaths: async (config) => {
     const paths = []
-    const siteUrl = config.siteUrl || 'https://icma360.az'
+    const siteUrl = config.siteUrl || 'https://icma360.org'
     
     // Static pages with high priority
     const staticPages = [
@@ -146,7 +146,7 @@ module.exports = {
       }
     ],
     additionalSitemaps: [
-      `${process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'}/sitemap.xml`,
+      `${process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'}/sitemap.xml`,
     ]
   },
   

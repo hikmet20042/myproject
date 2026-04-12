@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(mailtrap.io)",
+      "Bash(curl *)",
+      "Bash(rm *)"
+    ]
+  },
+  "$version": 3
+}

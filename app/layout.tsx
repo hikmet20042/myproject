@@ -16,7 +16,7 @@ import { generateSEOMetadata, generateOrganizationSchema, generateWebSiteSchema,
 import Script from 'next/script'
 import { Suspense } from 'react'
 
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

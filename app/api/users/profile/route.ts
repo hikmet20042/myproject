@@ -18,7 +18,20 @@ async function ensureUserRow(
     .eq('id', session.user.id)
     .maybeSingle()
 
-  if (existingUser) return existingUser
+  if (existingUser) {
+    if (session.user.email && existingUser.email !== session.user.email) {
+      const { data: syncedUser } = await supabase
+        .from('users')
+        .update({ email: session.user.email, updated_at: new Date().toISOString() })
+        .eq('id', session.user.id)
+        .select('id, email, name, role, created_at')
+        .single()
+
+      if (syncedUser) return syncedUser
+    }
+
+    return existingUser
+  }
 
   const { data: createdUser, error: createError } = await supabase
     .from('users')
@@ -85,7 +98,7 @@ export async function GET(request: NextRequest) {
         name: user.name,
         image: profile?.avatar || null,
         role: user.role,
-        emailVerified: null,
+        emailVerified: Boolean(session.user.emailVerified),
         createdAt: user.created_at
       },
       profile: profile || null,

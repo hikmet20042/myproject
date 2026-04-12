@@ -9,13 +9,25 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 
 function VerifyEmailContent() {
   const localePath = useLocalizedPath()
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
+  const [status, setStatus] = useState<'loading' | 'pending' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
   const searchParams = useSearchParams()
 
   useEffect(() => {
+    const pending = searchParams?.get('pending')
+    const pendingEmail = searchParams?.get('email')
     const verified = searchParams?.get('verified')
     const errorDescription = searchParams?.get('error_description')
+
+    if (pending === '1') {
+      setStatus('pending')
+      setMessage(
+        pendingEmail
+          ? `${pendingEmail} ünvanına təsdiq linki göndərildi. Gələnlər və spam qovluğunu yoxlayın.`
+          : 'Təsdiq linki e-poçtunuza göndərildi. Gələnlər və spam qovluğunu yoxlayın.'
+      )
+      return
+    }
 
     if (errorDescription) {
       setStatus('error')
@@ -84,6 +96,30 @@ function VerifyEmailContent() {
               >
                 {'Daxil ol'}
               </Link>
+            </div>
+          )}
+
+          {status === 'pending' && (
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
+                <MailCheck className="h-6 w-6 text-amber-700" />
+              </div>
+              <h2 className="mb-2 text-lg font-semibold text-gray-900">{'Təsdiq e-poçtu göndərildi'}</h2>
+              <p className="mb-6 text-sm text-gray-600">{message}</p>
+              <div className="space-y-3">
+                <Link
+                  href={localePath('/auth/signin')}
+                  className="inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                >
+                  {'Girişə keç'}
+                </Link>
+                <Link
+                  href={localePath('/auth/verify-request')}
+                  className="inline-flex w-full items-center justify-center rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                >
+                  {'Təsdiq e-poçtunu yenidən göndər'}
+                </Link>
+              </div>
             </div>
           )}
 

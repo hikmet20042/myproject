@@ -37,7 +37,7 @@ export function generateSEOMetadata(config: SEOConfig): Metadata {
     structuredData
   } = config
 
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'
   const fullImageUrl = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`
 
   const metadata: Metadata = {
@@ -121,7 +121,7 @@ export function generateSEOMetadata(config: SEOConfig): Metadata {
  * Generate JSON-LD structured data for rich snippets
  */
 export function generateStructuredData(type: string, data: any): string {
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'
   
   const baseData = {
     '@context': 'https://schema.org',
@@ -136,7 +136,7 @@ export function generateStructuredData(type: string, data: any): string {
  * Generate Organization structured data
  */
 export function generateOrganizationSchema() {
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'
   
   return generateStructuredData('Organization', {
     name: 'icma360',
@@ -173,7 +173,7 @@ export function generateOrganizationSchema() {
  * Generate WebSite structured data with search functionality
  */
 export function generateWebSiteSchema() {
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'
   
   return generateStructuredData('WebSite', {
     name: 'icma360',
@@ -196,7 +196,7 @@ export function generateWebSiteSchema() {
  * Generate LocalBusiness structured data for Azerbaijan
  */
 export function generateLocalBusinessSchema() {
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'
   
   return generateStructuredData('LocalBusiness', {
     '@type': ['Organization', 'LocalBusiness'],
@@ -206,7 +206,7 @@ export function generateLocalBusinessSchema() {
     logo: `${siteUrl}/icma360_logo.png`,
     image: `${siteUrl}/og-image.png`,
     telephone: '+994-XX-XXX-XX-XX', // Add your phone number
-    email: 'info@icma360.az', // Add your email
+    email: 'info@icma360.org', // Add your email
     address: {
       '@type': 'PostalAddress',
       streetAddress: 'Bakı şəhəri', // Add specific street address
@@ -258,7 +258,7 @@ export function generateLocalBusinessSchema() {
  * Generate JobPosting structured data
  */
 export function generateJobPostingSchema(vacancy: any) {
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'
   
   return generateStructuredData('JobPosting', {
     title: vacancy.title,
@@ -296,7 +296,7 @@ export function generateJobPostingSchema(vacancy: any) {
  * Generate Event structured data
  */
 export function generateEventSchema(event: any) {
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'
   
   return generateStructuredData('Event', {
     name: event.title,
@@ -333,7 +333,7 @@ export function generateEventSchema(event: any) {
  * Generate Article structured data for blogs
  */
 export function generateArticleSchema(blog: any) {
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'
   
   return generateStructuredData('Article', {
     headline: blog.title,
@@ -365,7 +365,7 @@ export function generateArticleSchema(blog: any) {
  * Generate organization structured data with ratings
  */
 export function generateOrganizationProfileSchema(organization: any, includeRating = false) {
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'
   
   const schema: any = {
     '@type': 'Organization',
@@ -415,7 +415,7 @@ export function generateOrganizationProfileSchema(organization: any, includeRati
  * Generate Review schema for individual reviews
  */
 export function generateReviewSchema(review: any, itemType: 'Organization' | 'JobPosting' | 'Event' = 'Organization') {
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'
   
   return generateStructuredData('Review', {
     itemReviewed: {
@@ -464,7 +464,7 @@ export function generateAggregateRatingSchema(data: {
  * Generate BreadcrumbList structured data
  */
 export function generateBreadcrumbSchema(items: Array<{ name: string; url: string }>) {
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'
   
   return generateStructuredData('BreadcrumbList', {
     itemListElement: items.map((item, index) => ({
@@ -651,7 +651,7 @@ export function generateHowToSchema(data: {
     url?: string
   }>
 }) {
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'
   
   return generateStructuredData('HowTo', {
     name: data.name,
@@ -690,7 +690,7 @@ export function generateCourseSchema(course: {
     instructor?: string
   }>
 }) {
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'
   
   const schema: any = {
     name: course.name,
@@ -812,7 +812,7 @@ export function generateVideoSchema(video: {
   contentUrl?: string
   embedUrl?: string
 }) {
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'
   
   return generateStructuredData('VideoObject', {
     name: video.name,
@@ -846,7 +846,7 @@ export function generateItemListSchema(data: {
     description?: string
   }>
 }) {
-  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.az'
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'
   
   return generateStructuredData('ItemList', {
     name: data.name,

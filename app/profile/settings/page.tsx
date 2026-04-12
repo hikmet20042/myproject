@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { KeyRound, Mail, Pencil, Save, Trash2, Upload, UserRound, XCircle } from "lucide-react";
 import { useSession } from "@/lib/auth/client";
 import { useLocalizedPath } from "@/hooks/useLocalizedPath";
@@ -35,6 +35,7 @@ type ProfileFormState = {
 export default function ProfileSettingsPage() {
   const { data: session } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const localePath = useLocalizedPath();
   const { showError, showSuccess, showInfo: pushInfo } = useGlobalFeedback();
   const [loading, setLoading] = useState(true);
@@ -47,8 +48,21 @@ export default function ProfileSettingsPage() {
   const [profileEditMode, setProfileEditMode] = useState(false);
   const [socialEditMode, setSocialEditMode] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState("");
+  const [changingEmail, setChangingEmail] = useState(false);
+  const [emailPolicyLoading, setEmailPolicyLoading] = useState(false);
+  const [emailPolicy, setEmailPolicy] = useState({
+    currentEmail: "",
+    requiresCurrentPassword: true,
+    requiresGoogleReauth: false,
+    providers: [] as string[],
+  });
+  const [emailForm, setEmailForm] = useState({
+    newEmail: "",
+    currentPassword: "",
+  });
   const [deleteError, setDeleteError] = useState("");
   const [deleteSuccess, setDeleteSuccess] = useState("");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -111,6 +125,13 @@ export default function ProfileSettingsPage() {
   useEffect(() => {
     if (deleteSuccess) pushInfo(deleteSuccess);
   }, [deleteSuccess, pushInfo]);
+
+  useEffect(() => {
+    if (searchParams?.get("emailChange") === "confirmed") {
+      showSuccess("E-poçt dəyişikliyi təsdiqləndi.");
+      router.replace(localePath("/profile/settings"));
+    }
+  }, [searchParams, showSuccess, router, localePath]);
 
   const loadProfile = useCallback(async () => {
     setLoading(true);
@@ -286,6 +307,81 @@ export default function ProfileSettingsPage() {
       setSaveSuccess(responseJson?.data?.message || "Təsdiq e-poçtu göndərildi.");
     } catch (error) {
       setSaveError(getUserErrorMessage(error));
+    }
+  };
+
+  const openEmailModal = async () => {
+    setEmailPolicyLoading(true);
+    setEmailModalOpen(true);
+    setEmailForm({ newEmail: "", currentPassword: "" });
+
+    try {
+      const response = await fetch("/api/auth/change-email", { method: "GET" });
+      const responseJson = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(responseJson?.error?.message || "E-poçt siyasəti yüklənmədi");
+
+      const data = responseJson?.data || {};
+      setEmailPolicy({
+        currentEmail: String(data?.currentEmail || session?.user?.email || ""),
+        requiresCurrentPassword: data?.requiresCurrentPassword !== false,
+        requiresGoogleReauth: Boolean(data?.requiresGoogleReauth),
+        providers: Array.isArray(data?.providers) ? data.providers : [],
+      });
+
+      if (data?.requiresGoogleReauth) {
+        pushInfo('E-poçtu dəyişmək üçün əvvəlcə Google ilə yenidən daxil ol.');
+      }
+    } catch (error) {
+      showError(getUserErrorMessage(error));
+    } finally {
+      setEmailPolicyLoading(false);
+    }
+  };
+
+  const handleChangeEmail = async () => {
+    const newEmail = emailForm.newEmail.trim().toLowerCase();
+    if (!newEmail) {
+      showError("Yeni e-poçt ünvanını daxil et.");
+      return;
+    }
+
+    if (newEmail === String(session?.user?.email || "").toLowerCase()) {
+      showError("Yeni e-poçt mövcud e-poçtla eyni ola bilməz.");
+      return;
+    }
+
+    if (emailPolicy.requiresCurrentPassword && !emailForm.currentPassword.trim()) {
+      showError("Mövcud parol mütləqdir.");
+      return;
+    }
+
+    if (emailPolicy.requiresGoogleReauth) {
+      showError("Əvvəlcə Google ilə yenidən daxil ol, sonra e-poçtu dəyiş.");
+      return;
+    }
+
+    setChangingEmail(true);
+    try {
+      const response = await fetch("/api/auth/change-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          newEmail,
+          currentPassword: emailPolicy.requiresCurrentPassword ? emailForm.currentPassword : undefined,
+        }),
+      });
+
+      const responseJson = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(responseJson?.error?.message || "E-poçt dəyişdirilə bilmədi");
+      }
+
+      showSuccess(responseJson?.data?.message || "Təsdiq linki yeni e-poçta göndərildi.");
+      setEmailModalOpen(false);
+    } catch (error) {
+      showError(getUserErrorMessage(error));
+    } finally {
+      setChangingEmail(false);
     }
   };
 
@@ -609,6 +705,9 @@ export default function ProfileSettingsPage() {
                 <p className="font-medium text-gray-900">{session?.user?.email || "-"}</p>
               </div>
             </div>
+            <Button variant="outline" onClick={openEmailModal}>
+              E-poçtu dəyiş
+            </Button>
           </div>
 
           <div className="flex items-center justify-between rounded-xl border border-gray-200 p-4">
@@ -652,6 +751,75 @@ export default function ProfileSettingsPage() {
           </div>
         </div>
       </SectionCard>
+
+      <Modal
+        isOpen={emailModalOpen}
+        onClose={() => {
+          if (changingEmail) return;
+          setEmailModalOpen(false);
+        }}
+        title="E-poçtu dəyiş"
+        size="md"
+      >
+        <div className="space-y-4">
+          {emailPolicyLoading ? (
+            <p className="text-sm text-gray-500">Yüklənir...</p>
+          ) : (
+            <>
+              <p className="text-sm text-gray-700">
+                Yeni e-poçtu daxil et. Dəyişiklik təsdiq linki ilə tamamlanacaq.
+              </p>
+
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                Cari e-poçt: <strong>{emailPolicy.currentEmail || session?.user?.email || "-"}</strong>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                <Input
+                  label="Yeni e-poçt"
+                  type="email"
+                  value={emailForm.newEmail}
+                  onChange={(e) => setEmailForm((prev) => ({ ...prev, newEmail: e.target.value }))}
+                />
+
+                {emailPolicy.requiresCurrentPassword && (
+                  <Input
+                    label="Mövcud parol"
+                    type="password"
+                    value={emailForm.currentPassword}
+                    onChange={(e) => setEmailForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
+                  />
+                )}
+              </div>
+
+              <div className="flex justify-between gap-2">
+                {emailPolicy.requiresGoogleReauth ? (
+                  <Button variant="outline" onClick={handleGoogleReauth}>
+                    Google ilə yenidən daxil ol
+                  </Button>
+                ) : (
+                  <span />
+                )}
+
+                <Button
+                  variant="primary"
+                  onClick={handleChangeEmail}
+                  loading={changingEmail}
+                  disabled={
+                    changingEmail ||
+                    emailPolicyLoading ||
+                    !emailForm.newEmail.trim() ||
+                    (emailPolicy.requiresCurrentPassword && !emailForm.currentPassword.trim()) ||
+                    emailPolicy.requiresGoogleReauth
+                  }
+                >
+                  Təsdiq linki göndər
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
 
       <Modal
         isOpen={passwordModalOpen}
