@@ -5,9 +5,10 @@ import { useRouter, useParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { useSession } from '@/lib/auth/client'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
-import { PageStateGuard } from '@/components/shared'
+import { ErrorState, LoadingState } from '@/components/shared'
 import { blogQueryKeys, fetchBlogById } from '@/lib/blogQueries'
 import BlogStep1Form from '@/features/blogs/components/BlogStep1Form'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { getEditDraftKey, readLocalDraft, writeLocalDraft } from '@/lib/blogDraftStorage'
 
 type EditBlogData = {
@@ -55,6 +56,7 @@ export default function EditBlogStep1() {
   const router = useRouter()
   const params = useParams()
   const { data: session, status } = useSession()
+  const { showError } = useGlobalFeedback()
   const localePath = useLocalizedPath()
   const blogId = params?.id as string
   const editDraftKey = getEditDraftKey(session?.user?.id, blogId)
@@ -91,6 +93,7 @@ export default function EditBlogStep1() {
         session?.user?.id &&
         authorId !== session.user.id
       ) {
+        showError('Bu bloqu redaktə etmək icazəniz yoxdur')
         setError('Bu bloqu redaktə etmək icazəniz yoxdur')
         setLoading(false)
         return
@@ -101,6 +104,7 @@ export default function EditBlogStep1() {
     const localData = getLocalEditBlogData(editDraftKey, blogId)
     const resolvedData = apiData || localData
     if (!resolvedData) {
+      showError('Bloq məlumatlarını yükləmək alınmadı. Zəhmət olmasa yenidən cəhd edin.')
       setError('Bloq məlumatlarını yükləmək alınmadı. Zəhmət olmasa yenidən cəhd edin.')
       setLoading(false)
       return
@@ -109,45 +113,48 @@ export default function EditBlogStep1() {
     setInitialData(resolvedData)
     saveLocalEditBlogData(editDraftKey, resolvedData)
     setLoading(false)
-  }, [blogId, status, session, blogQuery.data, blogQuery.isLoading, editDraftKey])
+  }, [blogId, status, session, blogQuery.data, blogQuery.isLoading, editDraftKey, showError])
 
-  return (
-    <PageStateGuard
-      isLoading={status === 'loading' || loading}
-      isError={Boolean(error)}
-      isEmpty={false}
-      loadingText="Bloq məlumatları yüklənir..."
-      errorTitle="Bloq yüklənərkən xəta"
-      errorMessage={error}
-      retryText="Profilə qayıt"
-      onRetry={() => {
-        router.push(localePath('/profile'))
-      }}
-    >
-      <BlogStep1Form
-        mode="edit"
-        initialValues={{
-          title: initialData.title,
-          isAnonymous: initialData.isAnonymous,
-          authorName: initialData.authorName,
-        }}
-        userName={session?.user?.name || ''}
-        submitLabel="Yazı mərhələsinə keç →"
-        nextHint="Növbəti: Məzmunu yenilə"
-        onSubmit={(values) => {
-          const base = getLocalEditBlogData(editDraftKey, blogId)
-          saveLocalEditBlogData(editDraftKey, {
-            id: blogId,
-            title: values.title,
-            content: base?.content || null,
-            contentHtml: base?.contentHtml || '',
-            isAnonymous: values.isAnonymous,
-            authorName: values.authorName,
-            status: base?.status || initialData.status || 'pending',
-          })
-          router.push(localePath(`/edit/blog/${blogId}/step2`))
+  if (status === 'loading' || loading) {
+    return <LoadingState text="Bloq məlumatları yüklənir..." />
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        title="Bloq yüklənərkən xəta"
+        message={error}
+        retryText="Profilə qayıt"
+        onRetry={() => {
+          router.push(localePath('/profile'))
         }}
       />
-    </PageStateGuard>
+    )
+  }
+
+  return (
+    <BlogStep1Form
+      initialValues={{
+        title: initialData.title,
+        isAnonymous: initialData.isAnonymous,
+        authorName: initialData.authorName,
+      }}
+      userName={session?.user?.name || ''}
+      submitLabel="Yazmağa davam et →"
+      nextHint="Növbəti: Məzmunu yazın"
+      onSubmit={(values) => {
+        const base = getLocalEditBlogData(editDraftKey, blogId)
+        saveLocalEditBlogData(editDraftKey, {
+          id: blogId,
+          title: values.title,
+          content: base?.content || null,
+          contentHtml: base?.contentHtml || '',
+          isAnonymous: values.isAnonymous,
+          authorName: values.authorName,
+          status: base?.status || initialData.status || 'pending',
+        })
+        router.push(localePath(`/edit/blog/${blogId}/step2`))
+      }}
+    />
   )
 }

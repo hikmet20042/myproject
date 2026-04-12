@@ -7,6 +7,7 @@ import { Calendar, MapPin, Users, Link as LinkIcon, Clock, Tag, ArrowLeft, Check
 import { Button } from '@/components/ui/Button'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { LoadingState, ErrorState } from '@/components/shared'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import AdminListLayout from '@/components/admin/AdminListLayout'
 
 interface Event { _id: string
@@ -65,6 +66,7 @@ interface Event { _id: string
   const [actionLoading, setActionLoading] = useState(false)
   const [adminComment, setAdminComment] = useState('')
   const [showRejectModal, setShowRejectModal] = useState(false)
+  const { showError } = useGlobalFeedback()
 
   const localePath = useLocalizedPath()
   const fetchEvent = useCallback(async () => { if (!params?.id) { setError('Tapılmadı')
@@ -77,6 +79,10 @@ interface Event { _id: string
         setEvent(payload.event) } else { setError('Yükləmək alınmadı') } } catch (error) { setError('Yükləmə xətası') } finally { setLoading(false) } }, [params?.id])
 
   useEffect(() => { fetchEvent() }, [fetchEvent])
+
+  useEffect(() => {
+    if (error) showError(error)
+  }, [error, showError])
 
   const handleApprove = async () => { if (!params?.id) return
     

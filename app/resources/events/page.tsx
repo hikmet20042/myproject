@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Calendar, MapPin, Users, ExternalLink, Clock, Search, Sparkles, ArrowRight } from 'lucide-react';
@@ -15,6 +15,7 @@ import { eventQueryKeys, fetchEvents } from '@/lib/eventQueries';
 import { ApiError } from '@/lib/apiClient';
 import { getUserErrorMessage } from '@/lib/errorMessages';
 import { logError } from '@/lib/logger';
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback';
 
 interface Event { _id: string
   title: string
@@ -70,6 +71,7 @@ export default function EventsPage() {
   const [selectedLocation, setSelectedLocation] = useState('all');
   const [selectedMonth, setSelectedMonth] = useState('all');
   const [selectedEventType, setSelectedEventType] = useState('all');
+  const { showError } = useGlobalFeedback();
   const localePath = useLocalizedPath()
   const months = [
     { value: 'all', label: 'Bütün Aylar' },
@@ -174,6 +176,12 @@ export default function EventsPage() {
       logError('Events API error', apiError);
     }
   }
+
+  useEffect(() => {
+    if (eventsQuery.isError) {
+      showError(getUserErrorMessage(eventsQuery.error))
+    }
+  }, [eventsQuery.isError, eventsQuery.error, showError])
 
   const events: Event[] = eventsQuery.data?.items ?? []
   const filteredData = events;

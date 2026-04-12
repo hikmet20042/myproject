@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react'
 import { Input, Button } from '@/components/ui'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { signInWithOAuth } from '@/lib/auth/client'
 import Logo from '@/components/Logo'
@@ -13,6 +14,7 @@ import Logo from '@/components/Logo'
 export default function RegisterPage() {
   const router = useRouter()
   const localePath = useLocalizedPath()
+  const { showError, showInfo } = useGlobalFeedback()
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -24,6 +26,14 @@ export default function RegisterPage() {
   const [isRedirecting, setIsRedirecting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+  useEffect(() => {
+    if (errors.submit) showError(errors.submit)
+  }, [errors.submit, showError])
+
+  useEffect(() => {
+    if (isRedirecting) showInfo('Hesab yaradıldı, yönləndirilir...')
+  }, [isRedirecting, showInfo])
 
   const waitForSession = async (timeoutMs = 3000, intervalMs = 250) => {
     const supabase = createSupabaseBrowserClient()
@@ -136,17 +146,6 @@ export default function RegisterPage() {
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-          {isRedirecting && (
-            <div className="mb-4 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">
-              Hesab yaradıldı, yönləndirilir...
-            </div>
-          )}
-          {errors.submit && (
-            <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-              {errors.submit}
-            </div>
-          )}
-
           <div className="mb-6">
             <Button
               onClick={handleGoogleSignUp}

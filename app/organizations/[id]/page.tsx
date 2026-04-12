@@ -12,6 +12,7 @@ import { fetchOrganizationById } from "@/lib/organizationQueries";
 import { PageStateGuard } from "@/components/shared";
 import { logError } from "@/lib/logger";
 import { AppContainer } from "@/components/layout";
+import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 
 type Organization = {
   id: string;
@@ -69,6 +70,7 @@ export default function OrganizationDetailPage() {
   const [featuredEvent, setFeaturedEvent] = useState<EventItem | null>(null);
   const [featuredVacancy, setFeaturedVacancy] = useState<VacancyItem | null>(null);
   const [error, setError] = useState("");
+  const { showError } = useGlobalFeedback();
 
   const loadData = useCallback(async () => {
     if (!organizationId) return;
@@ -122,6 +124,10 @@ export default function OrganizationDetailPage() {
     if (!organizationId) return;
     void loadData();
   }, [organizationId, loadData]);
+
+  useEffect(() => {
+    if (error) showError(error);
+  }, [error, showError]);
 
   const socialLinks = useMemo(() => {
     if (!organization?.socialMedia) return [];

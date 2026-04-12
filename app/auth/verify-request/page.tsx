@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Mail, ArrowLeft } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { Input, Button } from '@/components/ui'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 
 export default function VerifyRequest() {
   const localePath = useLocalizedPath()
@@ -12,6 +13,15 @@ export default function VerifyRequest() {
   const [isLoading, setIsLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const { showError, showSuccess } = useGlobalFeedback()
+
+  useEffect(() => {
+    if (error) showError(error)
+  }, [error, showError])
+
+  useEffect(() => {
+    if (message) showSuccess(message)
+  }, [message, showSuccess])
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -62,18 +72,6 @@ export default function VerifyRequest() {
             <p className="mt-2 text-sm text-gray-600">
               {'Təsdiq e-poçtu göndərmək üçün e-poçt ünvanını daxil edin.'}
             </p>
-
-            {message && (
-              <div className="mt-6 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
-                {message}
-              </div>
-            )}
-
-            {error && (
-              <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-                {error}
-              </div>
-            )}
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <div>

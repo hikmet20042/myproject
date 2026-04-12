@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { useLocalizedPath } from "@/hooks/useLocalizedPath";
+import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import { fetchOrganizations } from "@/lib/organizationQueries";
 import { EmptyState, ResourceCard } from "@/components/shared";
 import { logError } from "@/lib/logger";
@@ -29,6 +30,7 @@ const truncateText = (value: string, maxLength: number) => {
 
 export default function OrganizationsPage() {
   const localePath = useLocalizedPath();
+  const { showError } = useGlobalFeedback();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -62,6 +64,12 @@ export default function OrganizationsPage() {
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (error) {
+      showError(error);
+    }
+  }, [error, showError]);
 
   const focusAreaOptions = useMemo(() => {
     const set = new Set<string>();

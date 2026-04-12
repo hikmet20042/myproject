@@ -7,6 +7,7 @@ import { ArrowLeft, CheckCircle, XCircle, AlertCircle, MapPin, Briefcase, Calend
 import { Button } from '@/components/ui/Button'
 import { LoadingState, ErrorState } from '@/components/shared'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import AdminListLayout from '@/components/admin/AdminListLayout'
 
 interface Vacancy { _id: string
@@ -43,6 +44,7 @@ export default function AdminVacancyPreview() {
   const [actionLoading, setActionLoading] = useState(false)
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [adminComment, setAdminComment] = useState('')
+  const { showError } = useGlobalFeedback()
 
   const fetchVacancy = useCallback(async () => { if (!params?.id) return
 
@@ -53,6 +55,10 @@ export default function AdminVacancyPreview() {
       setVacancy(payload.vacancy) } catch (err) { setError('Vakansiyanı yükləmək alınmadı') } finally { setLoading(false) } }, [params?.id])
 
   useEffect(() => { fetchVacancy() }, [fetchVacancy])
+
+  useEffect(() => {
+    if (error) showError(error)
+  }, [error, showError])
 
   const handleApprove = async () => { if (!params?.id) return
 

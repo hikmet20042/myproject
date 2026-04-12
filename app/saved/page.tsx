@@ -5,12 +5,12 @@ import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { Bookmark, Calendar, Briefcase, BookOpen } from 'lucide-react'
 import { useSession } from '@/lib/auth/client'
-import { Alert } from '@/components/feedback'
 import { EmptyState, LoadingState } from '@/components/shared'
 import { Button } from '@/components/ui/Button'
 import { AppContainer } from '@/components/layout'
 import { ResourceCard } from '@/components/shared'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { PageHeader, SectionCard } from '@/features/profile/components/ui'
 
 type SavedItem = {
@@ -29,6 +29,7 @@ type SavedItem = {
 export default function SavedItemsPage() {
   const router = useRouter()
   const localePath = useLocalizedPath()
+  const { showError } = useGlobalFeedback()
   const { data: session, status } = useSession()
 
   useEffect(() => {
@@ -78,6 +79,12 @@ export default function SavedItemsPage() {
     blogs: savedItems.filter((item) => item.itemType === 'blog').length,
   }
 
+  useEffect(() => {
+    if (savedQuery.isError) {
+      showError(savedQuery.error instanceof Error ? savedQuery.error.message : 'Saxlanılmışlar yüklənmədi.')
+    }
+  }, [savedQuery.isError, savedQuery.error, showError])
+
   if (shouldBlockRender) {
     return <LoadingState text={'Saxlanılanlar yüklənir...'} />
   }
@@ -98,12 +105,11 @@ export default function SavedItemsPage() {
           />
 
           {savedQuery.isError && (
-            <Alert variant="error">
-              {savedQuery.error instanceof Error ? savedQuery.error.message : 'Saxlanılmışlar yüklənmədi.'}
-              <button className="ml-2 underline" onClick={() => void savedQuery.refetch()}>
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={() => void savedQuery.refetch()}>
                 Yenidən cəhd et
-              </button>
-            </Alert>
+              </Button>
+            </div>
           )}
 
           <SectionCard title="Saxlanılan məzmunlar" description="Saxladığın məzmunlar üzrə qısa xülasə və siyahı.">

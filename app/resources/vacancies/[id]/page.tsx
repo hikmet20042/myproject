@@ -22,6 +22,7 @@ import SaveItemButtonContainer from '@/components/containers/SaveItemButtonConta
 import ViewTracker from '@/components/ViewTracker'
 import { LoadingState, ErrorState } from '@/components/shared'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { DetailPageLayout } from '@/components/layout'
 
 interface Vacancy {
@@ -85,12 +86,17 @@ export default function VacancyDetailPage() {
   const [vacancy, setVacancy] = useState<Vacancy | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const { showError } = useGlobalFeedback()
 
   useEffect(() => {
     if (params?.id) {
       void fetchVacancy(params.id as string)
     }
   }, [params?.id])
+
+  useEffect(() => {
+    if (error) showError(error)
+  }, [error, showError])
 
   const fetchVacancy = async (id: string) => {
     try {

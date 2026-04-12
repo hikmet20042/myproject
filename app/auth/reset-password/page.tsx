@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Loader2, Lock, Eye, EyeOff } from 'lucide-react'
 import { Input, Button } from '@/components/ui'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 
 function ResetPasswordContent() {
@@ -20,8 +21,20 @@ function ResetPasswordContent() {
   const [isRecoveryReady, setIsRecoveryReady] = useState(false)
   const [isCheckingRecovery, setIsCheckingRecovery] = useState(true)
   const [recoveryEmail, setRecoveryEmail] = useState('')
+  const { showError, showSuccess, showInfo } = useGlobalFeedback()
 
   const router = useRouter()
+
+  useEffect(() => {
+    if (error) showError(error)
+  }, [error, showError])
+
+  useEffect(() => {
+    if (message) {
+      showSuccess(message)
+      showInfo('Giriş səhifəsinə yönləndirilir...')
+    }
+  }, [message, showSuccess, showInfo])
 
   useEffect(() => {
     let isCancelled = false
@@ -205,19 +218,6 @@ function ResetPasswordContent() {
               {`${recoveryEmail} üçün yeni şifrə daxil edin`}
             </p>
           </div>
-
-          {message && (
-            <div className="mb-5 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
-              <p>{message}</p>
-              <p className="mt-1">{'Giriş səhifəsinə yönləndirilir...'}</p>
-            </div>
-          )}
-
-          {error && (
-            <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-              {error}
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>

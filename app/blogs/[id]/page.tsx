@@ -24,6 +24,7 @@ import {
   BookOpen,
 } from "lucide-react";
 import { useLocalizedPath } from "@/hooks/useLocalizedPath";
+import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import ViewTracker from "@/components/ViewTracker";
 import { blogQueryKeys, fetchBlogById } from "@/lib/blogQueries";
 import { DetailPageLayout } from "@/components/layout";
@@ -273,6 +274,7 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
   }, [params.id]);
 
   const localePath = useLocalizedPath();
+  const { showError } = useGlobalFeedback();
   const [contentReady, setContentReady] = useState(false);
 
   const blogQuery = useQuery({
@@ -311,6 +313,12 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
   });
 
   const blog = blogQuery.data || null;
+
+  useEffect(() => {
+    if (blogQuery.isError) {
+      showError("Bloq yüklənərkən xəta baş verdi");
+    }
+  }, [blogQuery.isError, showError]);
 
   useEffect(() => {
     setContentReady(false);

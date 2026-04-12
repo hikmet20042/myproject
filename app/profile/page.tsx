@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertCircle, FileText, Settings, UserCog } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth/client";
-import { Alert } from "@/components/feedback";
 import { EmptyState, LoadingState, ErrorState } from "@/components/shared";
 import { Button } from "@/components/ui/Button";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
@@ -50,15 +49,13 @@ function ProfileOverviewContent() {
   const { status } = useSession();
   const router = useRouter();
   const localePath = useLocalizedPath();
+  const { showError, showSuccess } = useGlobalFeedback();
 
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileStats, setProfileStats] = useState<ProfileStats>(DEFAULT_STATS);
   const [profileLoadError, setProfileLoadError] = useState("");
-  const [statsLoadError, setStatsLoadError] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
-  const [resendSuccess, setResendSuccess] = useState("");
-  const [resendError, setResendError] = useState("");
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string>("");
 
   const profileCompletion = useMemo(() => {
@@ -91,7 +88,6 @@ function ProfileOverviewContent() {
   }, []);
 
   const loadProfileStats = useCallback(async () => {
-    setStatsLoadError("");
     const response = await fetch("/api/users/profile/stats");
     if (!response.ok) throw new Error(getUserErrorMessage(null));
 
@@ -119,7 +115,7 @@ function ProfileOverviewContent() {
         if (!cancelled) {
           const message = getUserErrorMessage(error);
           setProfileLoadError(message);
-          setStatsLoadError(message);
+          showError(message);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -130,21 +126,19 @@ function ProfileOverviewContent() {
     return () => {
       cancelled = true;
     };
-  }, [status, loadProfile, loadProfileStats]);
+  }, [status, loadProfile, loadProfileStats, showError]);
 
   const handleResendVerification = async () => {
     setResendLoading(true);
-    setResendSuccess("");
-    setResendError("");
     try {
       const response = await fetch("/api/auth/verify-request", { method: "POST" });
       const payload = await response.json();
       if (!response.ok) {
         throw new Error(payload?.error?.message || "E-poçt göndərilə bilmədi.");
       }
-      setResendSuccess(payload?.data?.message || "Təsdiq e-poçtu göndərildi! Gələnlər qutunu yoxla.");
+      showSuccess(payload?.data?.message || "Təsdiq e-poçtu göndərildi! Gələnlər qutunu yoxla.");
     } catch (e) {
-      setResendError(getUserErrorMessage(e));
+      showError(getUserErrorMessage(e));
     } finally {
       setResendLoading(false);
     }
@@ -199,14 +193,10 @@ function ProfileOverviewContent() {
                   {resendLoading ? "Göndərilir..." : "Təsdiq e-poçtunu göndər"}
                 </Button>
               </div>
-              {resendSuccess && <Alert variant="success" className="mt-3">{resendSuccess}</Alert>}
-              {resendError && <Alert variant="error" className="mt-3">{resendError}</Alert>}
             </div>
           </div>
         </div>
       )}
-
-      {statsLoadError && <Alert variant="error">{statsLoadError}</Alert>}
 
       <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <ProfileStatCard label="Bloqlar" value={profileStats.totalBlogs} />

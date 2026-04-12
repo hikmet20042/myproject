@@ -12,7 +12,6 @@ type BlogStep1FormValues = {
 }
 
 type BlogStep1FormProps = {
-  mode: 'submit' | 'edit'
   initialValues: BlogStep1FormValues
   userName?: string
   submitLabel: string
@@ -21,7 +20,6 @@ type BlogStep1FormProps = {
 }
 
 export default function BlogStep1Form({
-  mode,
   initialValues,
   userName = '',
   submitLabel,
@@ -50,11 +48,7 @@ export default function BlogStep1Form({
   return (
     <FormLayout
       title={'Bloq məlumatları'}
-      subtitle={
-        mode === 'edit'
-          ? 'Mövcud bloqu redaktə edirsiniz. Əsas məlumatları yeniləyin və növbəti mərhələyə keçin.'
-          : 'Əsas məlumatlarla başlayaq. Bloq yazınız haqqında bizə məlumat verin.'
-      }
+      subtitle={'Əsas məlumatlarla başlayaq. Bloq yazınız haqqında bizə məlumat verin.'}
       currentStep={1}
       totalSteps={2}
     >

@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { LoadingState } from "@/components/shared";
+import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import AdminListLayout from "@/components/admin/AdminListLayout";
 
 type User = {
@@ -28,6 +29,7 @@ type User = {
 };
 
 export default function UsersAdminPage() {
+  const { showError, showSuccess } = useGlobalFeedback();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -88,6 +90,7 @@ export default function UsersAdminPage() {
       }
     } catch (error) {
       console.error("Error loading users:", error);
+      showError("İstifadəçilər yüklənmədi");
     }
   };
 
@@ -128,10 +131,14 @@ export default function UsersAdminPage() {
         setShowUserModal(false);
         setSelectedUser(null);
         setUserAction(null);
+        showSuccess("Əməliyyat uğurla tamamlandı");
         await loadUsers();
+      } else {
+        showError("Əməliyyat tamamlanmadı");
       }
     } catch (error) {
       console.error("Error executing user action:", error);
+      showError("Əməliyyat zamanı xəta baş verdi");
     } finally {
       setIsProcessing(false);
     }
@@ -165,6 +172,7 @@ export default function UsersAdminPage() {
       }
     } catch (error) {
       console.error("Error loading users:", error);
+      showError("İstifadəçilər yüklənmədi");
     }
   };
 

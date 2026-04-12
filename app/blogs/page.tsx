@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import BlogCard from '@/features/blogs/components/BlogCard'
 import { Button, ButtonLink, SearchBar } from '@/components/ui'
@@ -12,6 +12,7 @@ import { blogQueryKeys, fetchBlogs } from '@/lib/blogQueries'
 import { ApiError } from '@/lib/apiClient'
 import { getUserErrorMessage } from '@/lib/errorMessages'
 import { logError } from '@/lib/logger'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 
 interface CommunityBlog { id: number;
   title: string;
@@ -39,10 +40,12 @@ const generateExcerpt = (content: any): string => { let textContent = '';
 
 export default function CommunityBlogs() {
   const localePath = useLocalizedPath();
+  const { showError } = useGlobalFeedback()
   const [searchQuery, setSearchQuery] = useState<string>('')
+  const blogsLimit = 50
   const blogsQuery = useQuery({
-    queryKey: blogQueryKeys.list({ page: 1, limit: 100 }),
-    queryFn: () => fetchBlogs({ page: 1, limit: 100 })
+    queryKey: blogQueryKeys.list({ page: 1, limit: blogsLimit }),
+    queryFn: () => fetchBlogs({ page: 1, limit: blogsLimit })
   })
 
   // Client-side filtering based on search only
@@ -56,6 +59,12 @@ export default function CommunityBlogs() {
       logError('Blogs API error', apiError)
     }
   }
+
+  useEffect(() => {
+    if (blogsQuery.isError) {
+      showError(getUserErrorMessage(blogsQuery.error))
+    }
+  }, [blogsQuery.isError, blogsQuery.error, showError])
 
   const allBlogs: CommunityBlog[] = (blogsQuery.data?.items || [])
     .filter((blog: any) => blog.status === 'approved')

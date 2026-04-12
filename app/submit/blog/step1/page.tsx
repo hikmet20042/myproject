@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/auth/client'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { LoadingState, UnauthorizedState } from '@/components/shared'
 import BlogStep1Form from '@/features/blogs/components/BlogStep1Form'
 import { getSubmitDraftKey, readLocalDraft, writeLocalDraft } from '@/lib/blogDraftStorage'
@@ -20,6 +21,7 @@ type DraftBlog = {
 export default function BlogStep1Page() {
   const router = useRouter()
   const localePath = useLocalizedPath()
+  const { showInfo } = useGlobalFeedback()
   const { data: session, status } = useSession()
   const draftKey = getSubmitDraftKey(session?.user?.id)
   const [initialTitle, setInitialTitle] = useState('')
@@ -33,6 +35,12 @@ export default function BlogStep1Page() {
     if (typeof d.isAnonymous === 'boolean') setInitialAnonymous(d.isAnonymous)
     if (typeof d.authorName === 'string') setInitialAuthorName(d.authorName)
   }, [draftKey])
+
+  useEffect(() => {
+    if (session?.user?.accountType === 'organization') {
+      showInfo('Təşkilat hesabları bloq paylaşa bilməz')
+    }
+  }, [session?.user?.accountType, showInfo])
 
   if (status === 'loading') return <LoadingState text="Yüklənir..." />
 
@@ -49,7 +57,6 @@ export default function BlogStep1Page() {
 
   return (
     <BlogStep1Form
-      mode="submit"
       initialValues={{
         title: initialTitle,
         isAnonymous: initialAnonymous,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import {
   Eye,
   EyeOff,
@@ -13,6 +13,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Input, Button } from "@/components/ui";
 import { useLocalizedPath } from "@/hooks/useLocalizedPath";
+import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import Logo from "@/components/Logo";
 
 function SignInContent() {
@@ -27,6 +28,33 @@ function SignInContent() {
   const safeCallbackUrl = normalizeInternalCallbackUrl(callbackUrl) || "/";
   const urlError = searchParams?.get("error");
   const urlMessage = searchParams?.get("message");
+  const { showError, showInfo } = useGlobalFeedback();
+
+  const resolvedUrlErrorMessage =
+    urlError === "CredentialsSignin"
+      ? "Yanlış e-poçt və ya şifrə"
+      : urlError === "OAuthSignin"
+        ? "Google ilə daxil olma xətası"
+        : urlError === "Verification"
+          ? "Daxil olmadan əvvəl e-poçtunu təsdiqlə"
+          : urlError
+            ? "Daxil olma zamanı xəta baş verdi"
+            : "";
+
+  const verificationRequired =
+    error === "Daxil olmadan əvvəl e-poçtunu təsdiqlə" || urlError === "Verification";
+
+  useEffect(() => {
+    if (error) showError(error);
+  }, [error, showError]);
+
+  useEffect(() => {
+    if (resolvedUrlErrorMessage) showError(resolvedUrlErrorMessage);
+  }, [resolvedUrlErrorMessage, showError]);
+
+  useEffect(() => {
+    if (urlMessage) showInfo(urlMessage);
+  }, [urlMessage, showInfo]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -105,88 +133,16 @@ function SignInContent() {
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-            {(error || urlError) && (
-              <div className="mb-4">
-                {/* Email verification error - special styling */}
-                {error === "Daxil olmadan əvvəl e-poçtunu təsdiqlə" ||
-                urlError === "Verification" ? (
-                  <div className="bg-yellow-50 border border-yellow-300 rounded-md p-4 flex items-center">
-                    <svg
-                      className="h-6 w-6 text-yellow-500 mr-3"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 100-16 8 8 0 000 16z"
-                      />
-                    </svg>
-                    <div className="text-sm text-yellow-800">
-                      <strong>{"E-poçt təsdiqlənməyib."}</strong>{" "}
-                      {
-                        "Təsdiq e-poçtu üçün gələnlər qutusunu (və spam qovluğunu) yoxla."
-                      }{" "}
-                      <br />
-                      <span className="block mt-1">
-                        {"Daxil olmadan əvvəl e-poçtunu təsdiqləməlisən."}{" "}
-                        <Link
-                          href={localePath("/auth/verify-request")}
-                          className="underline text-blue-600"
-                        >
-                          {"Təsdiq e-poçtunu yenidən göndər"}
-                        </Link>
-                      </span>
-                    </div>
-                  </div>
-                ) : /* Provider mismatch errors - informational styling */
-                error?.includes("Bu hesab Google ilə yaradılıb") ||
-                  error?.includes("Bu hesab e-poçt/şifrə ilə yaradılıb") ? (
-                  <div className="bg-blue-50 border border-blue-300 rounded-md p-4">
-                    <div className="flex items-start">
-                      <svg
-                        className="h-6 w-6 text-blue-500 mr-3 flex-shrink-0 mt-0.5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <div className="text-sm text-blue-800">
-                        <strong>{"Hesab Daxil Olma Üsulu"}</strong>
-                        <p className="mt-1">{error}</p>
-                      </div>
-                    </div>
-                  </div>
-                  ) : (
-                    /* Generic error - red styling */
-                    <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                      <div className="text-sm text-red-600">
-                        {error ||
-                          (urlError === "CredentialsSignin"
-                            ? "Yanlış e-poçt və ya şifrə"
-                            : urlError === "OAuthSignin"
-                              ? "Google ilə daxil olma xətası"
-                              : urlError === "Verification"
-                                ? "Daxil olmadan əvvəl e-poçtunu təsdiqlə"
-                                : "Daxil olma zamanı xəta baş verdi")}
-                      </div>
-                    </div>
-                  )}
-              </div>
-            )}
-            {!error && !urlError && urlMessage && (
-              <div className="mb-4">
-                <div className="bg-blue-50 border border-blue-300 rounded-md p-4">
-                  <div className="text-sm text-blue-800">{urlMessage}</div>
-                </div>
+            {verificationRequired && (
+              <div className="mb-4 rounded-md border border-yellow-300 bg-yellow-50 p-4 text-sm text-yellow-800">
+                <strong>{"E-poçt təsdiqlənməyib."}</strong>{" "}
+                {"Daxil olmadan əvvəl e-poçtunu təsdiqləməlisən. "}
+                <Link
+                  href={localePath("/auth/verify-request")}
+                  className="underline text-blue-700"
+                >
+                  {"Təsdiq e-poçtunu yenidən göndər"}
+                </Link>
               </div>
             )}
 

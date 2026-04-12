@@ -5,10 +5,11 @@ import { useRouter, useParams } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSession } from '@/lib/auth/client'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
-import { PageStateGuard, SuccessState } from '@/components/shared'
+import { LoadingState, SuccessState } from '@/components/shared'
 import { ButtonLink } from '@/components/ui'
 import { blogQueryKeys, editBlog, fetchBlogById } from '@/lib/blogQueries'
 import BlogEditorForm from '@/features/blogs/components/BlogEditorForm'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { getEditDraftKey, readLocalDraft, removeLocalDraft, writeLocalDraft } from '@/lib/blogDraftStorage'
 
 type EditBlogData = {
@@ -93,6 +94,7 @@ export default function EditBlogStep2Page() {
   const params = useParams()
   const blogId = params?.id as string
   const localePath = useLocalizedPath()
+  const { showError, showSuccess } = useGlobalFeedback()
   const editDraftKey = getEditDraftKey(session?.user?.id, blogId)
   const [content, setContent] = useState<any>(null)
   const [contentHtml, setContentHtml] = useState('')
@@ -172,89 +174,91 @@ export default function EditBlogStep2Page() {
     )
   }
 
+  if (!init) {
+    return <LoadingState text="Redaktor yüklənir..." />
+  }
+
   return (
-    <PageStateGuard
-      isLoading={!init}
-      isError={false}
-      isEmpty={false}
-      loadingText="Redaktor yüklənir..."
-    >
-      <BlogEditorForm
-        mode="edit"
-        title={title}
-        displayAuthor={isAnonymous ? 'Anonim' : authorName || session?.user?.name || 'İcma Üzvü'}
-        content={content}
-        contentHtml={contentHtml}
-        characterCount={characterCount}
-        showPreview={showPreview}
-        isSubmitting={editBlogMutation.isPending}
-        error={error}
-        backLabel="Geri"
-        submitLabel={editBlogMutation.isPending ? 'Yenilənir...' : 'Bloqu yenilə'}
-        progressHint={
-          characterCount < 100
-            ? `Minimum 100 simvol tələb olunur (${100 - characterCount} simvol qalıb)`
-            : 'Məzmun hazırdır. Yeniləyə bilərsiniz.'
+    <BlogEditorForm
+      mode="edit"
+      title={title}
+      displayAuthor={isAnonymous ? 'Anonim' : authorName || session?.user?.name || 'İcma Üzvü'}
+      content={content}
+      contentHtml={contentHtml}
+      characterCount={characterCount}
+      showPreview={showPreview}
+      isSubmitting={editBlogMutation.isPending}
+      error={error}
+      backLabel="Geri"
+      submitLabel={editBlogMutation.isPending ? 'Yenilənir...' : 'Bloqu yenilə'}
+      progressHint={
+        characterCount < 100
+          ? `Minimum 100 simvol tələb olunur (${100 - characterCount} simvol qalıb)`
+          : 'Məzmun hazırdır. Yeniləyə bilərsiniz.'
+      }
+      onTogglePreview={() => setShowPreview((prev) => !prev)}
+      onEditorChange={(json, html, text) => {
+        setContent(json)
+        setContentHtml(html)
+        setCharacterCount(text.length)
+        saveLocalEditBlogData(editDraftKey, {
+          id: blogId,
+          title,
+          content: json,
+          contentHtml: html,
+          isAnonymous,
+          authorName,
+          status: blogStatus,
+        })
+      }}
+      onBack={() => {
+        saveLocalEditBlogData(editDraftKey, {
+          id: blogId,
+          title,
+          content,
+          contentHtml,
+          isAnonymous,
+          authorName,
+          status: blogStatus,
+        })
+        router.push(localePath(`/edit/blog/${blogId}/step1`))
+      }}
+      onSubmit={async () => {
+        if (!content || !JSON.stringify(content).trim() || JSON.stringify(content).trim() === '{}') {
+          showError('Təqdim etməzdən əvvəl məzmun əlavə edin')
+          setError('Təqdim etməzdən əvvəl məzmun əlavə edin')
+          return
         }
-        onTogglePreview={() => setShowPreview((prev) => !prev)}
-        onEditorChange={(json, html, text) => {
-          setContent(json)
-          setContentHtml(html)
-          setCharacterCount(text.length)
-          saveLocalEditBlogData(editDraftKey, {
-            id: blogId,
-            title,
-            content: json,
-            contentHtml: html,
-            isAnonymous,
-            authorName,
-            status: blogStatus,
-          })
-        }}
-        onBack={() => {
-          saveLocalEditBlogData(editDraftKey, {
-            id: blogId,
+        if (characterCount < 100) {
+          showError('Bloq məzmunu ən azı 100 simvol olmalıdır.')
+          setError('Bloq məzmunu ən azı 100 simvol olmalıdır.')
+          return
+        }
+        setError('')
+        try {
+          const isUpdateRequest = blogStatus === 'approved'
+          await editBlogMutation.mutateAsync({
             title,
             content,
             contentHtml,
             isAnonymous,
-            authorName,
-            status: blogStatus,
+            authorName: isAnonymous ? 'Anonim' : (authorName || session?.user?.name),
+            status: 'pending',
+            requestUpdate: isUpdateRequest,
+            media: extractMedia(content),
           })
-          router.push(localePath(`/edit/blog/${blogId}/step1`))
-        }}
-        onSubmit={async () => {
-          if (!content || !JSON.stringify(content).trim() || JSON.stringify(content).trim() === '{}') {
-            setError('Təqdim etməzdən əvvəl məzmun əlavə edin')
-            return
-          }
-          if (characterCount < 100) {
-            setError('Bloq məzmunu ən azı 100 simvol olmalıdır.')
-            return
-          }
-          setError('')
-          try {
-            const isUpdateRequest = blogStatus === 'approved'
-            await editBlogMutation.mutateAsync({
-              title,
-              content,
-              contentHtml,
-              isAnonymous,
-              authorName: isAnonymous ? 'Anonim' : (authorName || session?.user?.name),
-              status: 'pending',
-              requestUpdate: isUpdateRequest,
-              media: extractMedia(content),
-            })
-            removeLocalDraft(editDraftKey)
-            setSuccess(true)
-            setTimeout(() => {
-              router.push(localePath('/profile'))
-            }, 1800)
-          } catch (submitError: any) {
-            setError(submitError?.message || 'Bloqu yeniləmək alınmadı')
-          }
-        }}
-      />
-    </PageStateGuard>
+          removeLocalDraft(editDraftKey)
+          showSuccess('Bloq yenilənməsi uğurla göndərildi')
+          setSuccess(true)
+          setTimeout(() => {
+            router.push(localePath('/profile'))
+          }, 1800)
+        } catch (submitError: any) {
+          const message = submitError?.message || 'Bloqu yeniləmək alınmadı'
+          showError(message)
+          setError(message)
+        }
+      }}
+    />
   )
 }

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui";
 import { EmptyState, ErrorState, LoadingState } from "@/components/shared";
 import { useLocalizedPath } from "@/hooks/useLocalizedPath";
+import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 
 interface User {
   _id: string;
@@ -53,6 +54,7 @@ export default function PublicProfilePage() {
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const { showError } = useGlobalFeedback();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -87,6 +89,10 @@ export default function PublicProfilePage() {
 
     void fetchUserData();
   }, [profileId]);
+
+  useEffect(() => {
+    if (error) showError(error);
+  }, [error, showError]);
 
   const joinedDate = useMemo(() => {
     if (!user?.joinedAt) return "Naməlum";

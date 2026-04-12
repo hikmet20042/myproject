@@ -4,10 +4,12 @@ import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useSession } from '@/lib/auth/client'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { LoadingState, UnauthorizedState } from '@/components/shared'
 
 export default function SubmitBlogPage() { const router = useRouter()
   const { data: session, status } = useSession()
+  const { showInfo } = useGlobalFeedback()
   const localePath = useLocalizedPath()
 
   useEffect(() => {
@@ -15,6 +17,12 @@ export default function SubmitBlogPage() { const router = useRouter()
     if (session?.user?.accountType === 'organization') return
     router.replace(localePath("/submit/blog/step1"))
   }, [router, localePath, session?.user?.accountType, status])
+
+  useEffect(() => {
+    if (session?.user?.accountType === 'organization') {
+      showInfo('Təşkilat hesabları bloq paylaşa bilməz')
+    }
+  }, [session?.user?.accountType, showInfo])
 
   if (status === 'loading') {
     return <LoadingState text="Yüklənir..." />

@@ -17,6 +17,7 @@ import { Briefcase,
   Award } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useSession } from '@/lib/auth/client'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { blogQueryKeys, fetchBlogs } from '@/lib/blogQueries'
 import { fetchOrganizations } from '@/lib/organizationQueries'
 import { LoadingState, ErrorState, EmptyState, ResourceCard } from '@/components/shared'
@@ -70,6 +71,7 @@ type RecommendedItem = {
 export default function HomePage() {
   const localePath = useLocalizedPath()
   const { data: session, status } = useSession()
+  const { showError } = useGlobalFeedback()
 
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -102,6 +104,16 @@ export default function HomePage() {
 
   useEffect(() => { setMounted(true)
     loadAllContent() }, [])
+
+  useEffect(() => {
+    if (organizationsError) showError(organizationsError)
+  }, [organizationsError, showError])
+
+  useEffect(() => {
+    if (homepageBlogsQuery.isError) {
+      showError('Bloqlar yüklənmədi')
+    }
+  }, [homepageBlogsQuery.isError, showError])
 
   useEffect(() => {
     const loadInterests = async () => {

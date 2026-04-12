@@ -1,6 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -12,6 +13,7 @@ import SaveItemButtonContainer from '@/components/containers/SaveItemButtonConta
 import ViewTracker from '@/components/ViewTracker'
 import { LoadingState, ErrorState } from '@/components/shared'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { eventQueryKeys, fetchEventById } from '@/lib/eventQueries'
 import { DetailPageLayout } from '@/components/layout'
 
@@ -43,6 +45,7 @@ interface Event { _id: string
   views?: number }
 
 export default function EventDetailPage() { const localePath = useLocalizedPath()
+  const { showError } = useGlobalFeedback()
 
   const params = useParams()
   const eventId = String(params?.id || '')
@@ -53,6 +56,12 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
     retry: false
   })
   const event = eventQuery.data as Event | undefined
+
+  useEffect(() => {
+    if (eventQuery.isError) {
+      showError(eventQuery.error instanceof Error ? eventQuery.error.message : 'Tədbir yüklənmədi')
+    }
+  }, [eventQuery.isError, eventQuery.error, showError])
 
   const formatDate = (dateString: string) => { if (!dateString) return 'Tarix müəyyən deyil'
     const date = new Date(dateString)

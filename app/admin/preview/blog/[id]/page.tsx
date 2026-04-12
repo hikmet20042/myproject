@@ -58,7 +58,8 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
       
       const data = await response.json()
       setBlog(data?.data?.blog || null) } catch (error) { console.error('Error loading blog:', error)
-      setError('Bloqu yükləmək mümkün olmadı') } finally { setLoading(false) } }, [params.id])
+      showError('Bloqu yükləmək mümkün olmadı')
+      setError('Bloqu yükləmək mümkün olmadı') } finally { setLoading(false) } }, [params.id, showError])
 
   useEffect(() => { loadStory() }, [loadStory])
 

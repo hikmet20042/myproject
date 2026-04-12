@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import SaveItemButtonContainer from '@/components/containers/SaveItemButtonContainer';
 import { useLocalizedPath } from '@/hooks/useLocalizedPath';
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback';
 import { ResourceFilterContainer, ActiveFilterBadges, EmptyState, ResourceCard } from '@/components/shared';
 import { ListPageLayout } from '@/components/layout';
 import { ApiError } from '@/lib/apiClient';
@@ -15,6 +16,7 @@ import { getUserErrorMessage } from '@/lib/errorMessages';
 
 export default function VacanciesPage() {
   const localePath = useLocalizedPath();
+  const { showError } = useGlobalFeedback();
 
   const locale = 'az-AZ';
 
@@ -65,6 +67,10 @@ export default function VacanciesPage() {
   useEffect(() => {
     void loadVacancies();
   }, [loadVacancies]);
+
+  useEffect(() => {
+    if (errorKey) showError(errorKey)
+  }, [errorKey, showError])
 
   const vacancies = useMemo(() => { const source = Array.isArray(rawVacancies) ? rawVacancies : [];
     return source.map((vacancy: any) => { const locationValue = vacancy?.location?.isRemote

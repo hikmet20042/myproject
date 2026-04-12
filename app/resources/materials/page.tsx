@@ -11,6 +11,7 @@ import { Select } from '@/components/ui/Select';
 import { ApiError } from '@/lib/apiClient';
 import { getUserErrorMessage } from '@/lib/errorMessages';
 import { ListPageLayout } from '@/components/layout';
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback';
 
 interface Material { _id: string;
   title: string;
@@ -57,6 +58,7 @@ const extractMaterials = (payload: any): Material[] => {
 
 export default function Resources() {
   const localePath = useLocalizedPath();
+  const { showError } = useGlobalFeedback();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -64,6 +66,10 @@ export default function Resources() {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => { fetchMaterials(); }, []);
+
+  useEffect(() => {
+    if (error) showError(error)
+  }, [error, showError])
 
   const fetchMaterials = async () => { try { setLoading(true);
       const response = await fetch('/api/materials?limit=100');

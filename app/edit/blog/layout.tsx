@@ -1,29 +1,10 @@
-import Link from 'next/link'
-
 export default function BlogEditLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <section className="bg-primary text-white py-10">
-        <div className="section-padding">
-          <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl lg:text-4xl font-bold">Bloqunu redaktə et</h1>
-            <p className="text-gray-100 mt-2">İki addım: məlumatlar və məzmun.</p>
-            <div className="mt-6 flex items-center gap-3 text-sm">
-              <span className="px-3 py-1 rounded-full bg-white/10">1. Məlumatlar</span>
-              <span>→</span>
-              <span className="px-3 py-1 rounded-full bg-white/10">2. Yazı</span>
-            </div>
-          </div>
-        </div>
-      </section>
-      <section className="py-10">
-        <div className="section-padding">
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-white rounded-xl shadow p-6">
-              {children}
-            </div>
-          </div>
-        </div>
+    <div className="relative min-h-screen overflow-hidden bg-background">
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-35" />
+      <div className="absolute left-1/2 top-16 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-200/30 blur-3xl" />
+      <section className="relative z-10 py-0">
+        {children}
       </section>
     </div>
   )

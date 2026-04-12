@@ -9,10 +9,10 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { TextArea } from "@/components/ui/Textarea";
 import { Modal } from "@/components/ui/Modal";
-import { Alert } from "@/components/feedback";
 import { PageHeader, SectionCard } from "@/features/profile/components/ui";
 import { getUserErrorMessage } from "@/lib/errorMessages";
 import { signInWithOAuth, signOut } from "@/lib/auth/client";
+import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 
 type ProfileFormState = {
   name: string;
@@ -36,6 +36,7 @@ export default function ProfileSettingsPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const localePath = useLocalizedPath();
+  const { showError, showSuccess, showInfo: pushInfo } = useGlobalFeedback();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -86,6 +87,30 @@ export default function ProfileSettingsPage() {
       youtube: "",
     },
   });
+
+  useEffect(() => {
+    if (saveError) showError(saveError);
+  }, [saveError, showError]);
+
+  useEffect(() => {
+    if (saveSuccess) showSuccess(saveSuccess);
+  }, [saveSuccess, showSuccess]);
+
+  useEffect(() => {
+    if (passwordError) showError(passwordError);
+  }, [passwordError, showError]);
+
+  useEffect(() => {
+    if (passwordSuccess) showSuccess(passwordSuccess);
+  }, [passwordSuccess, showSuccess]);
+
+  useEffect(() => {
+    if (deleteError) showError(deleteError);
+  }, [deleteError, showError]);
+
+  useEffect(() => {
+    if (deleteSuccess) pushInfo(deleteSuccess);
+  }, [deleteSuccess, pushInfo]);
 
   const loadProfile = useCallback(async () => {
     setLoading(true);
@@ -187,6 +212,10 @@ export default function ProfileSettingsPage() {
     }
     return "";
   }, [form]);
+
+  useEffect(() => {
+    if (invalidUrlMessage) pushInfo(invalidUrlMessage);
+  }, [invalidUrlMessage, pushInfo]);
 
   const isDirty = useMemo(() => {
     if (!initialForm) return false;
@@ -367,6 +396,9 @@ export default function ProfileSettingsPage() {
         providers: Array.isArray(data?.providers) ? data.providers : [],
         deleteConfirmationText: String(data?.deleteConfirmationText || "DELETE"),
       });
+      if (data?.requiresGoogleReauth) {
+        pushInfo('Google hesabı üçün təsdiq addımı lazımdır. "Google ilə yenidən daxil ol" düyməsini sıx və geri qayıdandan sonra silməni tamamla.');
+      }
     } catch (error) {
       setDeleteError(getUserErrorMessage(error));
     } finally {
@@ -422,10 +454,6 @@ export default function ProfileSettingsPage() {
           </Button>
         }
       />
-
-      {saveError && <Alert variant="error">{saveError}</Alert>}
-      {saveSuccess && <Alert variant="success">{saveSuccess}</Alert>}
-      {!!invalidUrlMessage && <Alert variant="warning">{invalidUrlMessage}</Alert>}
 
       <SectionCard
         title="Profil məlumatları"
@@ -596,9 +624,6 @@ export default function ProfileSettingsPage() {
             </Button>
           </div>
 
-          {passwordError && <Alert variant="error">{passwordError}</Alert>}
-          {passwordSuccess && <Alert variant="success">{passwordSuccess}</Alert>}
-
           {!session?.user?.emailVerified && (
             <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50 p-4">
               <div>
@@ -620,9 +645,6 @@ export default function ProfileSettingsPage() {
               <p className="text-sm text-red-700">Bu əməliyyat geri qaytarılmır. Davam etmək üçün "DELETE" yaz.</p>
             </div>
           </div>
-
-          {deleteSuccess && <Alert variant="success">{deleteSuccess}</Alert>}
-
           <div className="flex justify-end">
             <Button variant="danger" onClick={openDeleteModal}>
               Hesabı sil
@@ -643,8 +665,6 @@ export default function ProfileSettingsPage() {
       >
         <div className="space-y-4">
           <p className="text-sm text-gray-700">Təhlükəsizlik üçün cari parolu təsdiqlə və yeni parol daxil et.</p>
-          {passwordError && <Alert variant="error">{passwordError}</Alert>}
-          {passwordSuccess && <Alert variant="success">{passwordSuccess}</Alert>}
 
           <div className="grid grid-cols-1 gap-4">
             <Input
@@ -693,14 +713,6 @@ export default function ProfileSettingsPage() {
               <p className="text-sm text-gray-700">
                 Bu əməliyyat geri qaytarılmır. Davam etmək üçün təsdiq mətni və mövcud parolu daxil et.
               </p>
-
-              {deletePolicy.requiresGoogleReauth && (
-                <Alert variant="warning">
-                  Google hesabı üçün təsdiq addımı lazımdır. "Google ilə yenidən daxil ol" düyməsini sıx və geri qayıdandan sonra silməni tamamla.
-                </Alert>
-              )}
-
-              {deleteError && <Alert variant="error">{deleteError}</Alert>}
 
               <div className="grid grid-cols-1 gap-4">
                 <Input

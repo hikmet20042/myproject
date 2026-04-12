@@ -9,6 +9,7 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { LoadingState, SuccessState, UnauthorizedState } from '@/components/shared'
 import { ButtonLink } from '@/components/ui'
 import BlogEditorForm from '@/features/blogs/components/BlogEditorForm'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { getSubmitDraftKey, readLocalDraft, removeLocalDraft, writeLocalDraft } from '@/lib/blogDraftStorage'
 
 type DraftBlog = {
@@ -66,6 +67,7 @@ export default function SubmitBlogStep2Page() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const localePath = useLocalizedPath()
+  const { showError, showSuccess } = useGlobalFeedback()
   const draftKey = getSubmitDraftKey(session?.user?.id)
   const [content, setContent] = useState<any>(null)
   const [contentHtml, setContentHtml] = useState('')
@@ -196,14 +198,17 @@ export default function SubmitBlogStep2Page() {
       }}
       onSubmit={async () => {
         if (!title.trim()) {
+          showError('Başlıq əlavə edin. Sonra bloqu göndərə bilərsiniz.')
           setError('Başlıq əlavə edin. Sonra bloqu göndərə bilərsiniz.')
           return
         }
         if (!content || !JSON.stringify(content).trim() || JSON.stringify(content).trim() === '{}') {
+          showError('Göndərməzdən əvvəl zəhmət olmasa məzmun əlavə edin')
           setError('Göndərməzdən əvvəl zəhmət olmasa məzmun əlavə edin')
           return
         }
         if (characterCount < 100) {
+          showError('Bloqunuz ən azı 100 simvoldan ibarət olmalıdır')
           setError('Bloqunuz ən azı 100 simvoldan ibarət olmalıdır')
           return
         }
@@ -227,6 +232,7 @@ export default function SubmitBlogStep2Page() {
             }),
           })
           removeLocalDraft(draftKey)
+          showSuccess('Bloq uğurla göndərildi')
           setSuccess(true)
           redirectTimeoutRef.current = setTimeout(() => {
             router.push(localePath('/profile'))
@@ -238,6 +244,7 @@ export default function SubmitBlogStep2Page() {
                 ? submitError.message
                 : getUserErrorMessage(submitError)
               : getUserErrorMessage(submitError)
+          showError(resolved)
           setError(resolved)
         } finally {
           setIsSubmitting(false)

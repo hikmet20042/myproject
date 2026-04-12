@@ -1,11 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Edit3, Eye, History, Trash2 } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { Alert } from "@/components/feedback";
 import { EmptyState } from "@/components/shared";
 import { Button } from "@/components/ui/Button";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
@@ -173,6 +172,12 @@ export default function ProfileBlogsPage() {
     return blogs.filter((blog: any) => blog.status === filter);
   }, [blogs, filter]);
 
+  useEffect(() => {
+    if (userBlogsQuery.isError) {
+      showError("Bloqları yükləmək mümkün olmadı.");
+    }
+  }, [userBlogsQuery.isError, showError]);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -209,11 +214,6 @@ export default function ProfileBlogsPage() {
                   Ləğv et
                 </Button>
               </div>
-              {deleteBlogMutation.isError && (
-                <Alert variant="error" className="mt-4">
-                  {getUserErrorMessage(deleteBlogMutation.error)}
-                </Alert>
-              )}
             </Dialog.Content>
           </Dialog.Portal>
         </Dialog.Root>
@@ -260,9 +260,9 @@ export default function ProfileBlogsPage() {
             ))}
           </div>
         ) : userBlogsQuery.isError ? (
-          <Alert variant="error">
-            Bloqları yükləmək mümkün olmadı. <button className="underline ml-1" onClick={() => userBlogsQuery.refetch()}>Yenidən cəhd et</button>
-          </Alert>
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => userBlogsQuery.refetch()}>Yenidən cəhd et</Button>
+          </div>
         ) : blogs.length === 0 ? (
           <EmptyState
             title="Hələ bloq yazmamısan"

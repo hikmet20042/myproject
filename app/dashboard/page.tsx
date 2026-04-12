@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { EmptyState, ErrorState, LoadingState } from '@/components/shared'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 
 type FetchResult = {
   ok: boolean
@@ -13,6 +14,7 @@ type FetchResult = {
 export default function Dashboard() {
   const router = useRouter()
   const localePath = useLocalizedPath()
+  const { showError } = useGlobalFeedback()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showFirstAction, setShowFirstAction] = useState(false)
@@ -65,6 +67,10 @@ export default function Dashboard() {
     }
     void load()
   }, [router, localePath, retryKey])
+
+  useEffect(() => {
+    if (error) showError(error)
+  }, [error, showError])
 
   if (loading) {
     return <LoadingState text="Dashboard yüklənir..." />
