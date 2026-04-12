@@ -294,6 +294,17 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    if (updatedEventRow.status === 'pending') {
+      await NotificationService.notifyAdminsAboutSubmission(
+        'event',
+        updatedEventRow.id,
+        updatedEventRow.title,
+        isApprovedOrganization(session)
+          ? organization?.data?.organization_name || 'Unknown organization'
+          : session.user.name || 'Unknown submitter'
+      )
+    }
+
     if (updatedEventRow.status === 'approved' && updatedEventRow.is_published) {
       await NotificationService.notifyUsersAboutRelevantItem({
         itemType: 'event',

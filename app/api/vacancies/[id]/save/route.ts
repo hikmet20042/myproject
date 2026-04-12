@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { NotificationService } from '@/features/notifications/services/notificationService'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,7 +24,7 @@ export async function POST(
     // Check if vacancy exists
     const { data: vacancy, error: vacancyError } = await supabase
       .from('vacancies')
-      .select('id')
+      .select('id, title, created_by, created_by_organization')
       .eq('id', vacancyId)
       .single();
     if (vacancyError || !vacancy) {
@@ -50,6 +51,27 @@ export async function POST(
         content_id: vacancyId,
       });
       action = 'saved';
+
+      try {
+        const ownerUserId = vacancy.created_by ? String(vacancy.created_by) : null
+        const ownerOrganizationId = vacancy.created_by_organization ? String(vacancy.created_by_organization) : null
+        const shouldNotifyUser = Boolean(ownerUserId && ownerUserId !== userId)
+        const shouldNotifyOrganization = Boolean(ownerOrganizationId && ownerOrganizationId !== userId)
+
+        if (shouldNotifyUser || shouldNotifyOrganization) {
+          await NotificationService.notifyContentSaved({
+            recipientUserId: shouldNotifyUser ? ownerUserId || undefined : undefined,
+            recipientOrganizationId: shouldNotifyOrganization ? ownerOrganizationId || undefined : undefined,
+            contentType: 'vacancy',
+            contentId: vacancyId,
+            contentTitle: vacancy.title || 'Untitled',
+            savedById: userId,
+            savedByName: session.user.name,
+          })
+        }
+      } catch (notificationError) {
+        console.error('Failed to notify vacancy owner about save:', notificationError)
+      }
     }
     
     return successResponse({

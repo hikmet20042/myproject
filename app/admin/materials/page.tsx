@@ -94,6 +94,11 @@ export default function MaterialsAdminPage() {
   const [materialCategoryFilter, setMaterialCategoryFilter] = useState("all");
   const [materialSearch, setMaterialSearch] = useState("");
 
+  const unwrapPayload = (responseData: any) =>
+    responseData && typeof responseData === "object" && "data" in responseData
+      ? responseData.data
+      : responseData;
+
   useEffect(() => {
     setLoading(true);
     loadMaterials().finally(() => setLoading(false));
@@ -117,7 +122,8 @@ export default function MaterialsAdminPage() {
 
       const response = await fetch(`/api/admin/materials?${params}`);
       if (response.ok) {
-        const data = await response.json();
+        const responseData = await response.json();
+        const data = unwrapPayload(responseData);
         setMaterials(data.materials || []);
         setMaterialPagination({
           page: data.page || 1,
@@ -132,10 +138,10 @@ export default function MaterialsAdminPage() {
             featured: data.stats.featured || 0,
           });
         } else {
-          const published = data.materials.filter(
+          const published = (data.materials || []).filter(
             (m: Material) => m.isPublished,
           ).length;
-          const featured = data.materials.filter(
+          const featured = (data.materials || []).filter(
             (m: Material) => m.featured,
           ).length;
           setMaterialStats({

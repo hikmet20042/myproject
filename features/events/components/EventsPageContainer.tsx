@@ -9,9 +9,9 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Alert } from "@/components/feedback";
-import EventsList from "@/features/events/components/EventsList";
+import EventsSection from "@/features/events/components/EventsSection";
 import EventDeleteDialog from "@/features/events/components/EventDeleteDialog";
-import type { EventItem } from "@/features/events/components/types";
+import type { EventItem } from "@/features/events/types/items";
 import { useDeleteEvent, useEvents } from "@/lib/eventQueries";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import {
@@ -24,7 +24,7 @@ import {
 import {
   statusOptions,
   categoryOptions,
-} from "@/features/events/components/types";
+} from "@/features/events/types/items";
 
 export default function EventsPageContainer() {
   const localePath = useLocalizedPath();
@@ -129,21 +129,21 @@ export default function EventsPageContainer() {
       ),
       "loading-initial": () => <SectionLoading variant="list" rows={3} />,
       "empty-list": () => (
-        <EventsList
+        <EventsSection
           events={events}
           filteredEvents={filteredEvents}
           onRequestDelete={handleDeleteRequest}
         />
       ),
       "empty-filtered": () => (
-        <EventsList
+        <EventsSection
           events={events}
           filteredEvents={filteredEvents}
           onRequestDelete={handleDeleteRequest}
         />
       ),
       content: () => (
-        <EventsList
+        <EventsSection
           events={events}
           filteredEvents={filteredEvents}
           onRequestDelete={handleDeleteRequest}

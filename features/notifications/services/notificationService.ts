@@ -49,9 +49,11 @@ export class NotificationService {
         throw error || new Error('Failed to create notification')
       }
       
-      // Emit real-time notification to user (Socket.IO when available)
-      if (params.userId) {
-        emitNotificationToUser(params.userId, {
+      const recipientId = params.userId || params.organizationId || null
+
+      // Emit real-time notification to the recipient id (user or organization account id)
+      if (recipientId) {
+        emitNotificationToUser(recipientId, {
           id: notification.id,
           type: notification.type,
           title: notification.title,
@@ -65,8 +67,8 @@ export class NotificationService {
       
       // Also attempt to send via SSE (server-sent events) if a connection exists
       try {
-        if (params.userId) {
-          await sendSSENotification(params.userId, {
+        if (recipientId) {
+          await sendSSENotification(recipientId, {
             id: notification.id,
             type: notification.type,
             title: notification.title,
@@ -108,13 +110,15 @@ export class NotificationService {
     const message = isApproved
       ? `"${blogTitle}" has been approved and is now visible.`
       : `"${blogTitle}" was rejected.${adminComment ? ` Reason: ${adminComment}` : ''}`
+
+    const actionUrl = isApproved ? `/blogs/${blogId}` : '/profile/blogs'
     
     return this.createNotification({
       userId,
       type: isApproved ? 'blog_approved' : 'blog_rejected',
       title,
       message,
-      actionUrl: `/blogs/${blogId}`,
+      actionUrl,
       data: {
         blogId,
         title: blogTitle,
@@ -206,7 +210,7 @@ export class NotificationService {
       const supabase = createSupabaseAdminClient()
       const { data: admins } = await supabase
         .from('accounts')
-        .select('id')
+        .select('id, account_type')
         .eq('is_admin', true)
       
       if (!admins || admins.length === 0) return
@@ -215,13 +219,15 @@ export class NotificationService {
       const message = `${submitterName} submitted a new ${submissionType}: "${submissionTitle}". Review needed.`
       
       let actionUrl = '/admin'
-      if (submissionType === 'blog') {
-        actionUrl = `/admin/preview/${submissionId}`
-      }
+      if (submissionType === 'blog') actionUrl = `/admin/preview/blog/${submissionId}`
+      if (submissionType === 'event') actionUrl = `/admin/preview/events/${submissionId}`
+      if (submissionType === 'vacancy') actionUrl = `/admin/preview/vacancies/${submissionId}`
+      if (submissionType === 'organization') actionUrl = '/admin/organizations'
 
       // Create notifications for all admins
-      const notifications = admins.map(admin => ({
-        user_id: admin.id,
+      const notifications = admins.map((admin: any) => ({
+        user_id: admin.account_type === 'user' ? admin.id : null,
+        organization_id: admin.account_type === 'organization' ? admin.id : null,
         type: 'admin_action_required',
         title,
         message,
@@ -245,8 +251,9 @@ export class NotificationService {
       for (let i = 0; i < notificationRows.length && i < admins.length; i++) {
         const notification = notificationRows[i] as any
         const admin = admins[i] as any
-        
-        emitNotificationToUser(admin.id.toString(), {
+        const recipientId = String(admin.id)
+
+        emitNotificationToUser(recipientId, {
           id: notification.id,
           type: notification.type,
           title: notification.title,
@@ -580,6 +587,74 @@ export class NotificationService {
         dislikedByName
       }
     });
+  }
+
+  static async notifyOrganizationFollow(params: {
+    organizationId: string
+    organizationName?: string | null
+    followerId: string
+    followerName?: string | null
+    action: 'follow' | 'unfollow'
+  }) {
+    const actorName = params.followerName?.trim() || 'Someone'
+    const orgName = params.organizationName?.trim() || 'your organization'
+    const isFollow = params.action === 'follow'
+
+    return this.createNotification({
+      organizationId: params.organizationId,
+      type: isFollow ? 'organization_followed' : 'organization_unfollowed',
+      title: isFollow ? 'New follower' : 'Follower removed',
+      message: isFollow
+        ? `${actorName} started following ${orgName}.`
+        : `${actorName} unfollowed ${orgName}.`,
+      actionUrl: '/profile',
+      data: {
+        organizationId: params.organizationId,
+        organizationName: params.organizationName,
+        action: params.action,
+        actor: {
+          id: params.followerId,
+          name: actorName,
+        },
+      },
+    })
+  }
+
+  static async notifyContentSaved(params: {
+    recipientUserId?: string
+    recipientOrganizationId?: string
+    contentType: 'blog' | 'event' | 'vacancy'
+    contentId: string
+    contentTitle: string
+    savedById: string
+    savedByName?: string | null
+  }) {
+    const actorName = params.savedByName?.trim() || 'Someone'
+    const type = `${params.contentType}_saved`
+    const actionUrl =
+      params.contentType === 'blog'
+        ? `/blogs/${params.contentId}`
+        : params.contentType === 'event'
+          ? `/resources/events/${params.contentId}`
+          : `/resources/vacancies/${params.contentId}`
+
+    return this.createNotification({
+      userId: params.recipientUserId,
+      organizationId: params.recipientOrganizationId,
+      type,
+      title: 'Content saved',
+      message: `${actorName} saved your ${params.contentType} "${params.contentTitle}".`,
+      actionUrl,
+      data: {
+        contentType: params.contentType,
+        contentId: params.contentId,
+        contentTitle: params.contentTitle,
+        actor: {
+          id: params.savedById,
+          name: actorName,
+        },
+      },
+    })
   }
 }
 

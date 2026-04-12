@@ -1,5 +1,5 @@
 import type { ContentFormSchema } from '@/features/forms/schema/types'
-import type { VacancyFormData } from '@/features/vacancies/components/vacancyForm.types'
+import type { VacancyFormData } from '@/features/vacancies/types/form'
 
 export type VacancyBasicInfoData = Pick<
   VacancyFormData,

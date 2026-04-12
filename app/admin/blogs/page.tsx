@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronDown, Filter, SortAsc, SortDesc } from "lucide-react";
+import DOMPurify from "dompurify";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
@@ -35,8 +36,25 @@ const defaultFilters = {
   sortOrder: "desc",
 };
 
+const REJECTION_TEMPLATES = [
+  "Məzmun keyfiyyəti yetərli deyil. Daha konkret faktlar və daha aydın struktur əlavə edin.",
+  "Platforma qaydalarına uyğunluq problemi var. Zəhmət olmasa həssas məlumatları çıxarın.",
+  "Formatlama problemi var. Başlıq/mətn axını və oxunaqlılığı yaxşılaşdırın.",
+];
+
+const getBlogStatusLabel = (blog: BlogAdminItem) => {
+  const status = blog.status;
+  const reviewedAt = (blog as any).reviewedAt || (blog as any).reviewed_at;
+  const updatedAt = (blog as any).updatedAt || (blog as any).updated_at;
+  const updateRequestFor = (blog as any)?.media?.updateRequestFor;
+
+  if (updateRequestFor && status === "pending") return "yenilənmə sorğusu";
+  if (status === "pending" && reviewedAt && updatedAt && updatedAt > reviewedAt) return "yenidən baxışda";
+  return status;
+};
+
 export default function BlogsAdminPage() {
-  const { showError } = useGlobalFeedback();
+  const { showError, showInfo } = useGlobalFeedback();
   const [adminComment, setAdminComment] = useState("");
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [showBulkModal, setShowBulkModal] = useState(false);
@@ -168,6 +186,19 @@ export default function BlogsAdminPage() {
 
   const executeBulkAction = useCallback(async () => {
     if (!bulkAction || selectedBlogs.length === 0) return;
+
+    const hasUpdateRequest = selectedBlogs.some(
+      (item: any) => Boolean((item as any)?.media?.updateRequestFor),
+    );
+    if (
+      hasUpdateRequest &&
+      (bulkAction.key === blogActions.bulkApprove.key ||
+        bulkAction.key === blogActions.bulkReject.key)
+    ) {
+      showInfo("Yenilənmə sorğuları üçün toplu təsdiq/rədd deaktivdir. Hər bloqu ayrıca yoxlayın.");
+      return;
+    }
+
     const normalizedComment = bulkComment.trim();
     await executeAction("blogs", bulkAction.key, selectedBlogs, {
       selectedItems: selectedBlogs.map((item) => item._id),
@@ -253,7 +284,7 @@ export default function BlogsAdminPage() {
                         : "bg-red-100 text-red-800"
                   }`}
                 >
-                  {blog.status}
+                    {getBlogStatusLabel(blog)}
                 </span>
                 <span className="text-sm text-gray-500">
                   {"tərəfindən"}{" "}
@@ -597,7 +628,7 @@ export default function BlogsAdminPage() {
                   modalState.item.contentHtml.trim() ? (
                   <div
                     dangerouslySetInnerHTML={{
-                      __html: modalState.item.contentHtml,
+                      __html: DOMPurify.sanitize(modalState.item.contentHtml),
                     }}
                   />
                 ) : (
@@ -613,6 +644,18 @@ export default function BlogsAdminPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 {"Şərh"}
               </label>
+              <div className="mb-2 flex flex-wrap gap-2">
+                {REJECTION_TEMPLATES.map((template) => (
+                  <button
+                    key={template}
+                    type="button"
+                    className="rounded-full border border-gray-300 px-2.5 py-1 text-[11px] text-gray-600 hover:border-red-300 hover:text-red-700"
+                    onClick={() => setAdminComment(template)}
+                  >
+                    Şablon
+                  </button>
+                ))}
+              </div>
               <textarea
                 value={adminComment}
                 onChange={(e) => setAdminComment(e.target.value)}

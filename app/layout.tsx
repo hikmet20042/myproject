@@ -1,7 +1,7 @@
 import './globals.css'
 import type { Metadata } from 'next'
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
+import Header from '@/components/layout/Header'
+import Footer from '@/components/layout/Footer'
 import AuthProvider from '@/components/AuthProvider'
 import { NotificationProvider } from '@/features/notifications/context/NotificationContext'
 import { SocketProvider } from '@/components/SocketProvider'
@@ -9,7 +9,7 @@ import { SSENotificationProvider } from '@/features/notifications/providers/SSEN
 import QueryProvider from '@/components/QueryProvider'
 import GoogleAnalytics from '@/components/GoogleAnalytics'
 import GlobalFeedback from '@/components/admin/GlobalFeedback'
-import EventsRealtimeSync from '@/components/events/EventsRealtimeSync'
+import EventsRealtimeSyncContainer from '@/features/events/components/EventsRealtimeSyncContainer'
 import { GlobalFeedbackProvider } from '@/hooks/useGlobalFeedback'
 import { ErrorBoundary } from '@/components/shared'
 import { generateSEOMetadata, generateOrganizationSchema, generateWebSiteSchema, generateLocalBusinessSchema, azerbaijanKeywords } from '@/lib/seo'
@@ -119,7 +119,7 @@ export default function RootLayout({
                   <NotificationProvider>
                     <GlobalFeedbackProvider>
                       <ErrorBoundary>
-                        <EventsRealtimeSync />
+                        <EventsRealtimeSyncContainer />
                         <GlobalFeedback />
                         <Header />
                         <main className="min-h-screen">

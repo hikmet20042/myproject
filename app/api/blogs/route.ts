@@ -7,16 +7,26 @@ import { successResponse, errorResponse } from '@/lib/apiResponse';
 import { NotificationService } from '@/features/notifications/services/notificationService';
 import { getBlogStats } from '@/lib/blogStats';
 
+const MAX_PAGE_SIZE = 50;
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = createSupabaseAdminClient();
     const { searchParams } = new URL(request.url);
 
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const page = Number.parseInt(searchParams.get('page') || '1', 10);
+    const limit = Number.parseInt(searchParams.get('limit') || '10', 10);
     const search = searchParams.get('search');
     const tags = searchParams.get('tags');
-    const status = searchParams.get('status') || 'approved';
+    const status = 'approved';
+
+    if (!Number.isFinite(page) || page < 1) {
+      return errorResponse('Invalid page parameter', 'VALIDATION_ERROR', {}, 400);
+    }
+    if (!Number.isFinite(limit) || limit < 1 || limit > MAX_PAGE_SIZE) {
+      return errorResponse(`Limit must be between 1 and ${MAX_PAGE_SIZE}`, 'VALIDATION_ERROR', {}, 400);
+    }
+
     const skip = (page - 1) * limit;
 
     // Generate cache key
@@ -94,7 +104,12 @@ export async function POST(request: NextRequest) {
     if (!('emailVerified' in session.user) || !session.user.emailVerified) {
       return errorResponse('You must verify your email before submitting blogs.', 'EMAIL_NOT_VERIFIED', {}, 403);
     }
-    const body = await request.json();
+    let body: any;
+    try {
+      body = await request.json();
+    } catch {
+      return errorResponse('Invalid JSON body', 'VALIDATION_ERROR', {}, 400);
+    }
     const { title, content, contentHtml, tags, abstract, isAnonymous, authorName, media, featuredImage } = body;
     if (!title || title.length < 5 || title.length > 200) {
       return errorResponse('Title must be between 5 and 200 characters', 'VALIDATION_ERROR', {}, 400);
@@ -193,6 +208,15 @@ export async function POST(request: NextRequest) {
 
     if (error || !blog) {
       return errorResponse('Failed to submit blog', 'CREATE_BLOG_FAILED', {}, 500);
+    }
+
+    if (blog.status === 'pending') {
+      await NotificationService.notifyAdminsAboutSubmission(
+        'blog',
+        blog.id,
+        blog.title,
+        finalAuthorName || session.user.name || 'Unknown submitter'
+      )
     }
 
     if (blog.status === 'approved') {

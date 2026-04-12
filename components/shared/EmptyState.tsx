@@ -23,7 +23,7 @@ export default function EmptyState({
 }: EmptyStateProps) {
   const containerClassName = fullPage
     ? 'min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 flex items-center justify-center p-6'
-    : 'w-full rounded-2xl border border-slate-200 bg-white shadow-sm p-8 md:p-10 flex items-center justify-center'
+    : 'w-full ui-radius-xl border border-slate-200 bg-white ui-shadow-sm p-8 md:p-10 flex items-center justify-center'
 
   return (
     <div className={`${containerClassName} ${className}`}>

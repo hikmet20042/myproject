@@ -6,7 +6,7 @@ import { ErrorState } from '@/components/shared'
 import { SectionLoading } from '@/features/ui-state'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useSession } from '@/lib/auth/client'
-import { useDashboardData } from '@/components/dashboard/DashboardDataProvider'
+import { useDashboardVacancyData } from '@/components/containers/DashboardVacancyDataContainer'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import VacancyForm, {
   type VacancyFormInitialData,
@@ -24,7 +24,7 @@ export default function EditVacancyPage() {
   const router = useRouter()
   const localePath = useLocalizedPath()
   const { data: session, status: sessionStatus } = useSession()
-  const { markVacanciesDirty } = useDashboardData()
+  const { markVacanciesDirty } = useDashboardVacancyData()
   const { showSuccess } = useGlobalFeedback()
 
   const vacancyId = String(params?.id || '')

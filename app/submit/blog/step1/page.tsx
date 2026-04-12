@@ -6,6 +6,7 @@ import { useSession } from '@/lib/auth/client'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { LoadingState, UnauthorizedState } from '@/components/shared'
 import BlogStep1Form from '@/features/blogs/components/BlogStep1Form'
+import { getSubmitDraftKey, readLocalDraft, writeLocalDraft } from '@/lib/blogDraftStorage'
 
 type DraftBlog = {
   title?: string
@@ -20,22 +21,18 @@ export default function BlogStep1Page() {
   const router = useRouter()
   const localePath = useLocalizedPath()
   const { data: session, status } = useSession()
+  const draftKey = getSubmitDraftKey(session?.user?.id)
   const [initialTitle, setInitialTitle] = useState('')
   const [initialAnonymous, setInitialAnonymous] = useState(false)
   const [initialAuthorName, setInitialAuthorName] = useState('')
 
   useEffect(() => {
-    const saved = localStorage.getItem('draftBlog')
-    if (!saved) return
-    try {
-      const d = JSON.parse(saved) as DraftBlog
-      if (d.title) setInitialTitle(d.title)
-      if (typeof d.isAnonymous === 'boolean') setInitialAnonymous(d.isAnonymous)
-      if (typeof d.authorName === 'string') setInitialAuthorName(d.authorName)
-    } catch {
-      return
-    }
-  }, [])
+    const d = readLocalDraft<DraftBlog>(draftKey)
+    if (!d) return
+    if (d.title) setInitialTitle(d.title)
+    if (typeof d.isAnonymous === 'boolean') setInitialAnonymous(d.isAnonymous)
+    if (typeof d.authorName === 'string') setInitialAuthorName(d.authorName)
+  }, [draftKey])
 
   if (status === 'loading') return <LoadingState text="Yüklənir..." />
 
@@ -62,20 +59,16 @@ export default function BlogStep1Page() {
       submitLabel="Yazmağa davam et →"
       nextHint="Növbəti: Məzmunu yazın"
       onSubmit={(values) => {
-        const saved = localStorage.getItem('draftBlog')
-        const base: DraftBlog = saved ? JSON.parse(saved) : {}
-        localStorage.setItem(
-          'draftBlog',
-          JSON.stringify({
-            ...base,
-            title: values.title,
-            isAnonymous: values.isAnonymous,
-            authorName: values.authorName,
-            content: base.content || null,
-            contentHtml: base.contentHtml || '',
-            characterCount: base.characterCount || 0,
-          }),
-        )
+        const base = readLocalDraft<DraftBlog>(draftKey) || {}
+        writeLocalDraft(draftKey, {
+          ...base,
+          title: values.title,
+          isAnonymous: values.isAnonymous,
+          authorName: values.authorName,
+          content: base.content || null,
+          contentHtml: base.contentHtml || '',
+          characterCount: base.characterCount || 0,
+        })
         router.push(localePath('/submit/blog/step2'))
       }}
     />

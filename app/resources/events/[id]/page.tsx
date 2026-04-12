@@ -8,7 +8,7 @@ import { Calendar, MapPin, Users, Clock, ExternalLink, Tag, Sparkles, TrendingUp
 import { Button, ButtonLink } from '@/components/ui'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
-import SaveButton from '@/components/SaveButton'
+import SaveItemButtonContainer from '@/components/containers/SaveItemButtonContainer'
 import ViewTracker from '@/components/ViewTracker'
 import { LoadingState, ErrorState } from '@/components/shared'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
@@ -232,7 +232,7 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <SaveButton
+                    <SaveItemButtonContainer
                       itemId={event._id}
                       itemType="event"
                       itemTitle={event.title}
@@ -271,7 +271,7 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
                   <h1 className="mb-4 text-3xl font-black text-gray-900 sm:text-4xl">{event.title}</h1>
                 </div>
                 <div className="flex items-center gap-2">
-                  <SaveButton
+                  <SaveItemButtonContainer
                     itemId={event._id}
                     itemType="event"
                     itemTitle={event.title}
@@ -352,7 +352,7 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
                       <p className="text-sm text-gray-600">
                         Birbaşa müraciət linki hazırda mövcud deyil. Tədbiri saxlayın və təşkilatçını izləyin.
                       </p>
-                      <SaveButton
+                      <SaveItemButtonContainer
                         itemId={event._id}
                         itemType="event"
                         itemTitle={event.title}

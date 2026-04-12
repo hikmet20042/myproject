@@ -49,6 +49,11 @@ export default function VacanciesAdminPage() {
   );
   const [deletingVacancy, setDeletingVacancy] = useState(false);
 
+  const unwrapPayload = (responseData: any) =>
+    responseData && typeof responseData === "object" && "data" in responseData
+      ? responseData.data
+      : responseData;
+
   useEffect(() => {
     setLoading(true);
     loadVacancies().finally(() => setLoading(false));
@@ -72,13 +77,16 @@ export default function VacanciesAdminPage() {
 
       const response = await fetch(`/api/vacancies?${params}`);
       if (response.ok) {
-        const data = await response.json();
+        const responseData = await response.json();
+        const data = unwrapPayload(responseData);
         setVacancies(data.vacancies || []);
         setVacancyPagination({
-          page: data.page || 1,
-          totalPages: data.totalPages || 1,
-          total: data.total || 0,
-          limit: data.limit || 10,
+          page: data.pagination?.currentPage || data.page || 1,
+          totalPages:
+            data.pagination?.totalPages || data.pagination?.pages || data.totalPages || 1,
+          total:
+            data.pagination?.totalVacancies || data.pagination?.total || data.total || 0,
+          limit: data.pagination?.limit || data.limit || 10,
         });
         setVacancyStats({
           pending: data.stats?.pending || 0,
@@ -149,13 +157,16 @@ export default function VacanciesAdminPage() {
 
       const response = await fetch(`/api/vacancies?${params}`);
       if (response.ok) {
-        const data = await response.json();
+        const responseData = await response.json();
+        const data = unwrapPayload(responseData);
         setVacancies(data.vacancies || []);
         setVacancyPagination({
-          page: data.page || 1,
-          totalPages: data.totalPages || 1,
-          total: data.total || 0,
-          limit: data.limit || 10,
+          page: data.pagination?.currentPage || data.page || 1,
+          totalPages:
+            data.pagination?.totalPages || data.pagination?.pages || data.totalPages || 1,
+          total:
+            data.pagination?.totalVacancies || data.pagination?.total || data.total || 0,
+          limit: data.pagination?.limit || data.limit || 10,
         });
         setVacancyStats({
           pending: data.stats?.pending || 0,

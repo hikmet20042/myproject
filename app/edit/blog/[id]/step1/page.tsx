@@ -8,6 +8,7 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { PageStateGuard } from '@/components/shared'
 import { blogQueryKeys, fetchBlogById } from '@/lib/blogQueries'
 import BlogStep1Form from '@/features/blogs/components/BlogStep1Form'
+import { getEditDraftKey, readLocalDraft, writeLocalDraft } from '@/lib/blogDraftStorage'
 
 type EditBlogData = {
   id: string
@@ -16,6 +17,7 @@ type EditBlogData = {
   contentHtml: string
   isAnonymous: boolean
   authorName: string
+  status?: string
 }
 
 const normalizeBlogData = (blog: any, fallbackName?: string): EditBlogData => {
@@ -27,30 +29,26 @@ const normalizeBlogData = (blog: any, fallbackName?: string): EditBlogData => {
     contentHtml: blog?.contentHtml || blog?.content_html || '',
     isAnonymous,
     authorName: isAnonymous ? 'Anonim' : (blog?.authorName || blog?.author_name || fallbackName || ''),
+    status: blog?.status || 'pending',
   }
 }
 
-const getLocalEditBlogData = (blogId: string): EditBlogData | null => {
-  const saved = localStorage.getItem('editBlogData')
-  if (!saved) return null
-  try {
-    const parsed = JSON.parse(saved)
-    if (parsed?.id !== blogId) return null
-    return {
-      id: parsed.id,
-      title: parsed.title || '',
-      content: parsed.content || null,
-      contentHtml: parsed.contentHtml || '',
-      isAnonymous: !!parsed.isAnonymous,
-      authorName: parsed.authorName || '',
-    }
-  } catch {
-    return null
+const getLocalEditBlogData = (storageKey: string, blogId: string): EditBlogData | null => {
+  const parsed = readLocalDraft<Partial<EditBlogData>>(storageKey)
+  if (!parsed || parsed?.id !== blogId) return null
+  return {
+    id: parsed.id || '',
+    title: parsed.title || '',
+    content: parsed.content || null,
+    contentHtml: parsed.contentHtml || '',
+    isAnonymous: !!parsed.isAnonymous,
+    authorName: parsed.authorName || '',
+    status: parsed.status || 'pending',
   }
 }
 
-const saveLocalEditBlogData = (data: EditBlogData) => {
-  localStorage.setItem('editBlogData', JSON.stringify(data))
+const saveLocalEditBlogData = (storageKey: string, data: EditBlogData) => {
+  writeLocalDraft(storageKey, data)
 }
 
 export default function EditBlogStep1() {
@@ -59,6 +57,7 @@ export default function EditBlogStep1() {
   const { data: session, status } = useSession()
   const localePath = useLocalizedPath()
   const blogId = params?.id as string
+  const editDraftKey = getEditDraftKey(session?.user?.id, blogId)
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -90,8 +89,7 @@ export default function EditBlogStep1() {
       if (
         authorId &&
         session?.user?.id &&
-        authorId !== session.user.id &&
-        (blog?.author_name || blog?.authorName) !== session?.user?.name
+        authorId !== session.user.id
       ) {
         setError('Bu bloqu redaktə etmək icazəniz yoxdur')
         setLoading(false)
@@ -100,7 +98,7 @@ export default function EditBlogStep1() {
       apiData = normalizeBlogData(blog, session?.user?.name || undefined)
     }
 
-    const localData = getLocalEditBlogData(blogId)
+    const localData = getLocalEditBlogData(editDraftKey, blogId)
     const resolvedData = apiData || localData
     if (!resolvedData) {
       setError('Bloq məlumatlarını yükləmək alınmadı. Zəhmət olmasa yenidən cəhd edin.')
@@ -109,9 +107,9 @@ export default function EditBlogStep1() {
     }
 
     setInitialData(resolvedData)
-    saveLocalEditBlogData(resolvedData)
+    saveLocalEditBlogData(editDraftKey, resolvedData)
     setLoading(false)
-  }, [blogId, status, session, blogQuery.data, blogQuery.isLoading])
+  }, [blogId, status, session, blogQuery.data, blogQuery.isLoading, editDraftKey])
 
   return (
     <PageStateGuard
@@ -137,14 +135,15 @@ export default function EditBlogStep1() {
         submitLabel="Yazı mərhələsinə keç →"
         nextHint="Növbəti: Məzmunu yenilə"
         onSubmit={(values) => {
-          const base = getLocalEditBlogData(blogId)
-          saveLocalEditBlogData({
+          const base = getLocalEditBlogData(editDraftKey, blogId)
+          saveLocalEditBlogData(editDraftKey, {
             id: blogId,
             title: values.title,
             content: base?.content || null,
             contentHtml: base?.contentHtml || '',
             isAnonymous: values.isAnonymous,
             authorName: values.authorName,
+            status: base?.status || initialData.status || 'pending',
           })
           router.push(localePath(`/edit/blog/${blogId}/step2`))
         }}

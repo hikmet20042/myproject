@@ -2,7 +2,7 @@
 
 import { BookOpen, User, Calendar } from 'lucide-react'
 import { ResourceCard } from '@/components/shared'
-import SaveButton from '@/components/SaveButton'
+import SaveItemButtonContainer from '@/components/containers/SaveItemButtonContainer'
 
 interface Blog { id: string | number;
   title: string;
@@ -40,7 +40,7 @@ export default function BlogCard({ blog }: BlogCardProps) {
               {'Sənin Təqdimatın'}
             </span>
           )}
-          <SaveButton itemId={String(blog.id)} itemType="blog" itemTitle={blog.title} size="sm" showText={false} />
+          <SaveItemButtonContainer itemId={String(blog.id)} itemType="blog" itemTitle={blog.title} size="sm" showText={false} />
         </div>
       }
       metadata={

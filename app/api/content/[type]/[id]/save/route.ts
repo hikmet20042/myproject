@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { NotificationService } from '@/features/notifications/services/notificationService'
 
 const CONTENT_TABLE_BY_TYPE = {
   blog: 'blogs',
@@ -22,6 +23,48 @@ async function assertContentExists(supabase: any, contentType: ContentType, cont
     .maybeSingle()
   if (error) throw error
   return Boolean(data?.id)
+}
+
+async function getContentOwnerAndTitle(supabase: any, contentType: ContentType, contentId: string) {
+  if (contentType === 'blog') {
+    const { data } = await supabase
+      .from('blogs')
+      .select('id, title, author_id')
+      .eq('id', contentId)
+      .maybeSingle()
+
+    return {
+      title: data?.title || 'Untitled',
+      ownerUserId: data?.author_id || null,
+      ownerOrganizationId: null,
+    }
+  }
+
+  if (contentType === 'event') {
+    const { data } = await supabase
+      .from('events')
+      .select('id, title, created_by, created_by_organization')
+      .eq('id', contentId)
+      .maybeSingle()
+
+    return {
+      title: data?.title || 'Untitled',
+      ownerUserId: data?.created_by || null,
+      ownerOrganizationId: data?.created_by_organization || null,
+    }
+  }
+
+  const { data } = await supabase
+    .from('vacancies')
+    .select('id, title, created_by, created_by_organization')
+    .eq('id', contentId)
+    .maybeSingle()
+
+  return {
+    title: data?.title || 'Untitled',
+    ownerUserId: data?.created_by || null,
+    ownerOrganizationId: data?.created_by_organization || null,
+  }
 }
 
 export async function POST(
@@ -70,6 +113,29 @@ export async function POST(
           content_id: contentId,
         })
       if (insertError) return errorResponse(insertError.message, 'API_ERROR', {}, 500)
+
+      try {
+        const ownerData = await getContentOwnerAndTitle(supabase, contentType, contentId)
+        const ownerUserId = ownerData.ownerUserId ? String(ownerData.ownerUserId) : null
+        const ownerOrganizationId = ownerData.ownerOrganizationId ? String(ownerData.ownerOrganizationId) : null
+        const actorId = session.user.id
+        const shouldNotifyUser = Boolean(ownerUserId && ownerUserId !== actorId)
+        const shouldNotifyOrganization = Boolean(ownerOrganizationId && ownerOrganizationId !== actorId)
+
+        if (shouldNotifyUser || shouldNotifyOrganization) {
+          await NotificationService.notifyContentSaved({
+            recipientUserId: shouldNotifyUser ? ownerUserId || undefined : undefined,
+            recipientOrganizationId: shouldNotifyOrganization ? ownerOrganizationId || undefined : undefined,
+            contentType,
+            contentId,
+            contentTitle: ownerData.title,
+            savedById: actorId,
+            savedByName: session.user.name,
+          })
+        }
+      } catch (notificationError) {
+        console.error('Failed to notify content save owner:', notificationError)
+      }
     }
 
     const { count: totalSaves } = await supabase

@@ -18,7 +18,7 @@ import {
 import { ButtonLink } from '@/components/ui'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
-import SaveButton from '../../../../components/SaveButton'
+import SaveItemButtonContainer from '@/components/containers/SaveItemButtonContainer'
 import ViewTracker from '@/components/ViewTracker'
 import { LoadingState, ErrorState } from '@/components/shared'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
@@ -466,7 +466,7 @@ export default function VacancyDetailPage() {
               </div>
 
               <div className="mt-6 border-t border-gray-200 pt-6">
-                <SaveButton itemId={vacancy._id} itemType="vacancy" itemTitle={vacancy.title} size="md" className="w-full rounded-xl py-3 font-bold" />
+                <SaveItemButtonContainer itemId={vacancy._id} itemType="vacancy" itemTitle={vacancy.title} size="md" className="w-full rounded-xl py-3 font-bold" />
               </div>
             </CardContent>
           </Card>

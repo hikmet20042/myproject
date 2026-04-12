@@ -48,6 +48,11 @@ export default function UsersAdminPage() {
   const [showUserModal, setShowUserModal] = useState(false);
   const [userAction, setUserAction] = useState<"role" | "delete" | null>(null);
 
+  const unwrapPayload = (responseData: any) =>
+    responseData && typeof responseData === "object" && "data" in responseData
+      ? responseData.data
+      : responseData;
+
   useEffect(() => {
     setLoading(true);
     loadUsers().finally(() => setLoading(false));
@@ -64,11 +69,12 @@ export default function UsersAdminPage() {
 
       const response = await fetch(`/api/admin/users?${params}`);
       if (response.ok) {
-        const data = await response.json();
+        const responseData = await response.json();
+        const data = unwrapPayload(responseData);
         setUsers(data.users || []);
         setUserPagination({
-          page: data.pagination.page,
-          totalPages: data.pagination.totalPages,
+          page: data.pagination?.page || 1,
+          totalPages: data.pagination?.totalPages || 1,
           total: data.pagination.total || 0,
         });
 
@@ -148,11 +154,12 @@ export default function UsersAdminPage() {
 
       const response = await fetch(`/api/admin/users?${params}`);
       if (response.ok) {
-        const data = await response.json();
+        const responseData = await response.json();
+        const data = unwrapPayload(responseData);
         setUsers(data.users || []);
         setUserPagination({
-          page: data.pagination.page,
-          totalPages: data.pagination.totalPages,
+          page: data.pagination?.page || 1,
+          totalPages: data.pagination?.totalPages || 1,
           total: data.pagination.total || 0,
         });
       }

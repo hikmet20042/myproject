@@ -9,10 +9,10 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Alert } from "@/components/feedback";
-import VacanciesList from "@/features/vacancies/components/VacanciesList";
+import VacanciesSection from "@/features/vacancies/components/VacanciesSection";
 import VacancyDeleteDialog from "@/features/vacancies/components/VacancyDeleteDialog";
-import type { VacancyItem } from "@/features/vacancies/components/types";
-import { useDashboardData } from "@/components/dashboard/DashboardDataProvider";
+import type { VacancyItem } from "@/features/vacancies/types/items";
+import { useDashboardVacancyData } from "@/components/containers/DashboardVacancyDataContainer";
 import {
   renderSectionByState,
   resolveSectionState,
@@ -24,7 +24,7 @@ import {
   statusOptions,
   categoryOptions,
   compensationOptions,
-} from "@/features/vacancies/components/types";
+} from "@/features/vacancies/types/items";
 
 const VACANCIES_STALE_MS = 30_000;
 
@@ -37,7 +37,7 @@ export default function VacanciesPageContainer() {
     ensureFreshVacancies,
     refreshVacancies,
     removeVacancyById,
-  } = useDashboardData();
+  } = useDashboardVacancyData();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -135,21 +135,21 @@ export default function VacanciesPageContainer() {
       ),
       "loading-initial": () => <SectionLoading variant="list" rows={3} />,
       "empty-list": () => (
-        <VacanciesList
+        <VacanciesSection
           vacancies={vacancies}
           filteredVacancies={filteredVacancies}
           onRequestDelete={handleDeleteRequest}
         />
       ),
       "empty-filtered": () => (
-        <VacanciesList
+        <VacanciesSection
           vacancies={vacancies}
           filteredVacancies={filteredVacancies}
           onRequestDelete={handleDeleteRequest}
         />
       ),
       content: () => (
-        <VacanciesList
+        <VacanciesSection
           vacancies={vacancies}
           filteredVacancies={filteredVacancies}
           onRequestDelete={handleDeleteRequest}

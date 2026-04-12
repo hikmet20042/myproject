@@ -21,6 +21,9 @@ export type BlogAdminItem = {
   author?: { _id?: string; name?: string; email?: string } | string;
   isAnonymous?: boolean;
   createdAt: string;
+  updatedAt?: string;
+  reviewedAt?: string;
+  media?: Record<string, unknown>;
 };
 
 export type EventAdminItem = {
@@ -103,6 +106,9 @@ export const adminConfig: AdminConfigMap = {
             author_id?: { id?: string; name?: string; email?: string } | string;
             is_anonymous?: boolean;
             created_at?: string;
+            updated_at?: string;
+            reviewed_at?: string;
+            media?: Record<string, unknown>;
           }>;
           page?: number;
           total?: number;
@@ -128,6 +134,9 @@ export const adminConfig: AdminConfigMap = {
             : item.author_id,
         isAnonymous: !!item.is_anonymous,
         createdAt: item.created_at || new Date().toISOString(),
+        updatedAt: item.updated_at,
+        reviewedAt: item.reviewed_at,
+        media: item.media,
       }));
       return {
         items,
@@ -163,12 +172,12 @@ export const adminConfig: AdminConfigMap = {
         label: "Təsdiq Et",
         apiAction: "approve",
         method: "PUT",
+        endpoint: "/api/admin/blogs/:id",
         variant: "primary",
         type: "api",
         scope: "row",
         roles: ["admin"],
-        getBody: (item, context) => ({
-          id: item._id,
+        getBody: (_item, context) => ({
           status: "approved",
           adminComment: (context?.adminComment as string | null | undefined) || null,
         }),
@@ -178,12 +187,12 @@ export const adminConfig: AdminConfigMap = {
         label: "Rədd Et",
         apiAction: "reject",
         method: "PUT",
+        endpoint: "/api/admin/blogs/:id",
         variant: "danger",
         type: "api",
         scope: "row",
         roles: ["admin"],
-        getBody: (item, context) => ({
-          id: item._id,
+        getBody: (_item, context) => ({
           status: "rejected",
           adminComment: (context?.adminComment as string | undefined) || "",
         }),
@@ -193,12 +202,12 @@ export const adminConfig: AdminConfigMap = {
         label: "Sil",
         apiAction: "delete",
         method: "DELETE",
+        endpoint: "/api/admin/blogs/:id",
         variant: "danger",
         type: "api",
         scope: "row",
         roles: ["admin"],
         confirmMessage: "Bu bloqu silmək istədiyinizə əminsiniz?",
-        getParams: (item) => ({ id: item._id }),
       },
       bulkApprove: {
         key: "bulkApprove",

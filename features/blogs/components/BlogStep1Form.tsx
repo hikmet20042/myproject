@@ -71,11 +71,12 @@ export default function BlogStep1Form({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
+                maxLength={200}
                 placeholder={'Bloqunuz üçün cəlbedici bir başlıq verin...'}
                 className="w-full pl-4 pr-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-300"
               />
               <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">
-                {title.length}/100
+                {title.length}/200
               </div>
             </div>
             <p className="text-sm text-gray-600 flex items-start gap-2">

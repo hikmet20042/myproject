@@ -7,7 +7,7 @@ import { Calendar, MapPin, Users, ExternalLink, Clock, Search, Sparkles, ArrowRi
 import { Button, ButtonLink } from '@/components/ui';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import SaveButton from '@/components/SaveButton';
+import SaveItemButtonContainer from '@/components/containers/SaveItemButtonContainer';
 import { useLocalizedPath } from '@/hooks/useLocalizedPath';
 import { EmptyState, ResourceFilterContainer, ActiveFilterBadges, ResourceCard } from '@/components/shared';
 import { ListPageLayout } from '@/components/layout';
@@ -395,7 +395,7 @@ export default function EventsPage() {
                         actions={
                           <div className="space-y-3">
                             <div className="flex flex-wrap gap-2">
-                              <SaveButton itemId={event._id} itemType="event" itemTitle={event.title} size="sm" showText={true} />
+                              <SaveItemButtonContainer itemId={event._id} itemType="event" itemTitle={event.title} size="sm" showText={true} />
                               {event.applicationLink && !deadlinePassed && (
                                 <ButtonLink href={event.applicationLink} variant="outline" size="sm" icon={ExternalLink} iconPosition="right" hoverEffect="scale" external>
                                   Müraciət et

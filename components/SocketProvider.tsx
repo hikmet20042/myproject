@@ -4,6 +4,8 @@ import { createContext, useContext, useEffect, useState, useRef } from 'react'
 import { useSession } from '@/lib/auth/client'
 import { io, Socket } from 'socket.io-client'
 
+const DEBUG_REALTIME = process.env.NEXT_PUBLIC_DEBUG_LOGS === 'true'
+
 interface SocketContextValue {
   socket: Socket | null
   isConnected: boolean
@@ -18,17 +20,8 @@ export const useSocket = () => useContext(SocketContext)
 
 // Check if Socket.IO should be enabled (disabled on Vercel production)
 const isSocketEnabled = () => {
-  // Check environment variable first
-  if (process.env.NEXT_PUBLIC_ENABLE_SOCKET === 'false') {
-    return false
-  }
-
-  // Auto-disable on Vercel serverless environment (unless explicitly enabled)
-  if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_VERCEL_ENV && process.env.NEXT_PUBLIC_ENABLE_SOCKET !== 'true') {
-    return false
-  }
-
-  return true
+  // Keep websocket transport opt-in to avoid unnecessary homepage requests.
+  return process.env.NEXT_PUBLIC_ENABLE_SOCKET === 'true'
 }
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
@@ -54,7 +47,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     // Skip Socket.IO initialization on Vercel
     if (!isSocketEnabled()) {
-      console.log('Socket.IO disabled on Vercel serverless environment')
+      if (DEBUG_REALTIME) {
+        console.log('Socket.IO disabled')
+      }
       return
     }
 
@@ -85,7 +80,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         socketRef.current = newSocket
 
         newSocket.on('connect', () => {
-          console.log('Socket.IO connected:', newSocket.id)
+          if (DEBUG_REALTIME) {
+            console.log('Socket.IO connected:', newSocket.id)
+          }
           setIsConnected(true)
 
           // Join user-specific room if authenticated
@@ -95,18 +92,24 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         })
 
         newSocket.on('disconnect', () => {
-          console.log('Socket.IO disconnected')
+          if (DEBUG_REALTIME) {
+            console.log('Socket.IO disconnected')
+          }
           setIsConnected(false)
         })
 
         newSocket.on('connect_error', (error) => {
-          console.error('Socket.IO connection error:', error.message)
+          if (DEBUG_REALTIME) {
+            console.error('Socket.IO connection error:', error.message)
+          }
           setIsConnected(false)
         })
 
         setSocket(newSocket)
       } catch (error) {
-        console.error('Failed to initialize Socket.IO:', error)
+        if (DEBUG_REALTIME) {
+          console.error('Failed to initialize Socket.IO:', error)
+        }
         isInitializingRef.current = false
       }
     }

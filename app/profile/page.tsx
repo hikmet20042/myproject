@@ -1,17 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { AlertCircle, Bell, FileText, UserCog } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AlertCircle, FileText, Settings, UserCog } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth/client";
 import { Alert } from "@/components/feedback";
-import { LoadingState, ErrorState } from "@/components/shared";
+import { EmptyState, LoadingState, ErrorState } from "@/components/shared";
 import { Button } from "@/components/ui/Button";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import { getUserErrorMessage } from "@/lib/errorMessages";
 import { useLocalizedPath } from "@/hooks/useLocalizedPath";
 import {
-  EmptyState,
   PageHeader,
   ProfileHeaderCard,
   ProfileStatCard,
@@ -49,7 +48,6 @@ const DEFAULT_STATS: ProfileStats = {
 
 function ProfileOverviewContent() {
   const { status } = useSession();
-  const { showSuccess, showError } = useGlobalFeedback();
   const router = useRouter();
   const localePath = useLocalizedPath();
 
@@ -58,39 +56,26 @@ function ProfileOverviewContent() {
   const [profileStats, setProfileStats] = useState<ProfileStats>(DEFAULT_STATS);
   const [profileLoadError, setProfileLoadError] = useState("");
   const [statsLoadError, setStatsLoadError] = useState("");
-  const [editing, setEditing] = useState(false);
-  const [saveLoading, setSaveLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSuccess, setResendSuccess] = useState("");
   const [resendError, setResendError] = useState("");
   const [lastUpdatedAt, setLastUpdatedAt] = useState<string>("");
 
-  const [formData, setFormData] = useState({
-    name: "",
-    bio: "",
-    location: "",
-    website: "",
-    phone: "",
-    dateOfBirth: "",
-    gender: "",
-    occupation: "",
-    organization: "",
-    interests: "",
-    avatar: "",
-    socialLinks: "",
-    socialMedia: {
-      facebook: "",
-      twitter: "",
-      instagram: "",
-      linkedin: "",
-      youtube: "",
-      website: "",
-    },
-    registrationNumber: "",
-    focusAreas: [] as string[],
-    status: "",
-    contactPerson: "",
-  });
+  const profileCompletion = useMemo(() => {
+    const checks = [
+      Boolean(profile?.profile?.bio),
+      Boolean(profile?.profile?.location),
+      Boolean(profile?.profile?.website),
+      Boolean(profile?.profile?.occupation),
+    ];
+    const completed = checks.filter(Boolean).length;
+    return Math.round((completed / checks.length) * 100);
+  }, [
+    profile?.profile?.bio,
+    profile?.profile?.location,
+    profile?.profile?.website,
+    profile?.profile?.occupation,
+  ]);
 
   const loadProfile = useCallback(async () => {
     setProfileLoadError("");
@@ -103,32 +88,6 @@ function ProfileOverviewContent() {
 
     setProfile(payload);
     setLastUpdatedAt(payload.profile?.updatedAt || payload.user?.updatedAt || new Date().toISOString());
-    setFormData({
-      name: payload.user.name || "",
-      bio: payload.profile?.bio || "",
-      location: payload.profile?.location || "",
-      website: payload.profile?.website || "",
-      phone: payload.profile?.phone || "",
-      dateOfBirth: payload.profile?.dateOfBirth || "",
-      gender: payload.profile?.gender || "",
-      occupation: payload.profile?.occupation || "",
-      organization: payload.profile?.organization || "",
-      interests: payload.profile?.interests || "",
-      avatar: payload.profile?.avatarUrl || payload.profile?.avatar || "",
-      socialMedia: {
-        facebook: payload.profile?.socialMedia?.facebook || "",
-        twitter: payload.profile?.socialMedia?.twitter || "",
-        instagram: payload.profile?.socialMedia?.instagram || "",
-        linkedin: payload.profile?.socialMedia?.linkedin || "",
-        youtube: payload.profile?.socialMedia?.youtube || "",
-        website: payload.profile?.socialMedia?.website || "",
-      },
-      socialLinks: payload.profile?.socialLinks || "",
-      registrationNumber: payload.profile?.registrationNumber || "",
-      focusAreas: payload.profile?.focusAreas || [],
-      status: payload.profile?.status || "",
-      contactPerson: payload.profile?.contactPerson || "",
-    });
   }, []);
 
   const loadProfileStats = useCallback(async () => {
@@ -173,37 +132,12 @@ function ProfileOverviewContent() {
     };
   }, [status, loadProfile, loadProfileStats]);
 
-  const handleSaveProfile = async () => {
-    setSaveLoading(true);
-    try {
-      const response = await fetch("/api/users/profile", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-      const result = await response.json();
-
-      if (!response.ok) {
-        showError(`${"Profil yadda saxlanmadı"}: ${getUserErrorMessage(result?.error)}`);
-        return;
-      }
-
-      setEditing(false);
-      await loadProfile();
-      showSuccess("Profil uğurla yeniləndi!");
-    } catch (error) {
-      showError(getUserErrorMessage(error));
-    } finally {
-      setSaveLoading(false);
-    }
-  };
-
   const handleResendVerification = async () => {
     setResendLoading(true);
     setResendSuccess("");
     setResendError("");
     try {
-      const response = await fetch("/api/auth/resend-verification", { method: "POST" });
+      const response = await fetch("/api/auth/verify-request", { method: "POST" });
       const payload = await response.json();
       if (!response.ok) {
         throw new Error(payload?.error?.message || "E-poçt göndərilə bilmədi.");
@@ -233,12 +167,11 @@ function ProfileOverviewContent() {
 
   const isUnverified = Boolean(profile?.user) && !profile?.user?.emailVerified;
   const joinedDateLabel = new Date(profileStats.joinedDate || Date.now()).toLocaleDateString();
-
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Profilə ümumi baxış"
-        description="Şəxsi məlumatlarını idarə et, aktivliyini izlə və əsas bölmələrə sürətli keçid et."
+        title="Profil mərkəzi"
+        description="Hesab məlumatların və aktivliyin bir yerdə."
         actions={
           <span className="text-xs text-gray-500">
             Son yenilənmə: {lastUpdatedAt ? new Date(lastUpdatedAt).toLocaleString() : "-"}
@@ -251,21 +184,19 @@ function ProfileOverviewContent() {
         email={profile.user.email}
         bio={profile.profile?.bio || ""}
         avatarUrl={profile.profile?.avatarUrl || profile.profile?.avatar || profile.user.image}
-        onEdit={() => setEditing((prev) => !prev)}
+        onEdit={() => router.push(localePath("/profile/settings"))}
       />
 
       {isUnverified && (
         <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-4">
           <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+            <AlertCircle className="mt-0.5 h-5 w-5 text-amber-600" />
             <div className="flex-1">
-              <h3 className="text-sm font-semibold text-amber-800">E-poçt ünvanı təsdiqlənməyib</h3>
-              <p className="mt-1 text-sm text-amber-700">
-                Bəzi funksiyalardan istifadə üçün e-poçt ünvanınızı təsdiqləməlisiniz.
-              </p>
+              <h3 className="text-sm font-semibold text-amber-800">E-poçt təsdiqlənməyib</h3>
+              <p className="mt-1 text-sm text-amber-700">Bəzi funksiyalar üçün e-poçt təsdiqi tələb olunur.</p>
               <div className="mt-3">
                 <Button size="sm" onClick={handleResendVerification} disabled={resendLoading}>
-                  {resendLoading ? "Göndərilir..." : "Təsdiq e-poçtunu yenidən göndər"}
+                  {resendLoading ? "Göndərilir..." : "Təsdiq e-poçtunu göndər"}
                 </Button>
               </div>
               {resendSuccess && <Alert variant="success" className="mt-3">{resendSuccess}</Alert>}
@@ -275,132 +206,67 @@ function ProfileOverviewContent() {
         </div>
       )}
 
-      {statsLoadError && (
-        <Alert variant="error">{statsLoadError}</Alert>
-      )}
+      {statsLoadError && <Alert variant="error">{statsLoadError}</Alert>}
 
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <ProfileStatCard label="Bloqlar" value={profileStats.totalBlogs} />
         <ProfileStatCard label="Baxışlar" value={profileStats.totalViews} />
-        <ProfileStatCard label="Qoşulma tarixi" value={joinedDateLabel} />
+        <ProfileStatCard label="Bəyənmələr" value={profileStats.totalLikes} />
+        <ProfileStatCard label="Saxlanılanlar" value={profileStats.totalSaves} />
       </section>
 
-      <SectionCard title="Sürətli əməliyyatlar" description="Ən çox istifadə olunan profil idarəetmə addımları.">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Button variant="outline" onClick={() => setEditing(true)}>
-            <UserCog className="w-4 h-4 mr-2" />
-            Profili redaktə et
-          </Button>
-          <Button variant="outline" onClick={() => router.push(localePath("/profile/blogs"))}>
-            <FileText className="w-4 h-4 mr-2" />
-            Bloqlara keç
-          </Button>
-          <Button variant="outline" onClick={() => router.push(localePath("/profile/notifications"))}>
-            <Bell className="w-4 h-4 mr-2" />
-            Bildirişlərə bax
-          </Button>
-        </div>
-      </SectionCard>
-
       <SectionCard
-        title="Profil məlumatları"
-        description="Şəxsi məlumatların və sosial keçidlərin."
+        title="Qısa məlumat"
+        description="Profil vəziyyəti və əsas məlumatların."
         actions={
-          <Button
-            variant={editing ? "outline" : "primary"}
-            onClick={() => setEditing((prev) => !prev)}
-            disabled={saveLoading}
-          >
-            {editing ? "Ləğv et" : "Redaktə et"}
+          <Button variant="outline" onClick={() => router.push(localePath("/profile/settings"))}>
+            <Settings className="mr-2 h-4 w-4" />
+            Tənzimlə
           </Button>
         }
       >
-        {editing ? (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">Ad</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">Location</label>
-                <input
-                  type="text"
-                  value={formData.location}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">Website</label>
-                <input
-                  type="url"
-                  value={formData.website}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, website: e.target.value }))}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-600 mb-1">Occupation</label>
-                <input
-                  type="text"
-                  value={formData.occupation}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, occupation: e.target.value }))}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50/40 p-4 text-sm">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-gray-500">Profil doluluğu</span>
+              <span className="font-semibold text-gray-900">{profileCompletion}%</span>
             </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">Bio</label>
-              <textarea
-                rows={4}
-                value={formData.bio}
-                onChange={(e) => setFormData((prev) => ({ ...prev, bio: e.target.value }))}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-gray-500">Qoşulma tarixi</span>
+              <span className="font-medium text-gray-900">{joinedDateLabel}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="primary" onClick={handleSaveProfile} loading={saveLoading} disabled={saveLoading}>
-                {saveLoading ? "Yadda saxlanılır..." : "Yadda saxla"}
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-gray-500">Məkan</span>
+              <span className="font-medium text-gray-900">{profile.profile?.location || "-"}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-gray-500">Peşə</span>
+              <span className="font-medium text-gray-900">{profile.profile?.occupation || "-"}</span>
+            </div>
+          </div>
+
+          <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50/40 p-4 text-sm">
+            <p className="text-gray-500">Sürətli əməliyyatlar</p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <Button variant="outline" onClick={() => router.push(localePath("/profile/settings"))}>
+                <UserCog className="mr-2 h-4 w-4" />
+                Profili redaktə et
               </Button>
-              <Button variant="outline" onClick={() => setEditing(false)} disabled={saveLoading}>
-                Ləğv et
+              <Button variant="outline" onClick={() => router.push(localePath("/profile/blogs"))}>
+                <FileText className="mr-2 h-4 w-4" />
+                Bloqlar
               </Button>
             </div>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div className="rounded-xl border border-gray-200 p-3">
-              <p className="text-gray-500">Telefon</p>
-              <p className="mt-1 font-medium text-gray-900">{formData.phone || "-"}</p>
-            </div>
-            <div className="rounded-xl border border-gray-200 p-3">
-              <p className="text-gray-500">Website</p>
-              <p className="mt-1 font-medium text-gray-900">{formData.website || "-"}</p>
-            </div>
-            <div className="rounded-xl border border-gray-200 p-3">
-              <p className="text-gray-500">Occupation</p>
-              <p className="mt-1 font-medium text-gray-900">{formData.occupation || "-"}</p>
-            </div>
-            <div className="rounded-xl border border-gray-200 p-3">
-              <p className="text-gray-500">Location</p>
-              <p className="mt-1 font-medium text-gray-900">{formData.location || "-"}</p>
-            </div>
-          </div>
-        )}
+        </div>
       </SectionCard>
 
-      {!profile.profile?.bio && !editing && (
+      {!profile.profile?.bio && (
         <EmptyState
           title="Profilini tamamlamağa başla"
-          description="Qısa bio və əsas məlumatlar əlavə etməklə profilini daha faydalı et."
-          actionLabel="Profili redaktə et"
-          onAction={() => setEditing(true)}
+          message="Qısa bio əlavə edərək profilini daha faydalı et."
+          actionText="Tənzimləmələrə keç"
+          onAction={() => router.push(localePath("/profile/settings"))}
         />
       )}
     </div>

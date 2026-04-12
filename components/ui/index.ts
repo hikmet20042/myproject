@@ -43,3 +43,5 @@ export type { ContactCardProps } from './ContactCard';
 
 export { SocialLink } from './SocialLink';
 export type { SocialLinkProps } from './SocialLink';
+
+export { SaveItemButton } from './SaveItemButton';

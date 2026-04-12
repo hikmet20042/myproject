@@ -9,6 +9,7 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { LoadingState, SuccessState, UnauthorizedState } from '@/components/shared'
 import { ButtonLink } from '@/components/ui'
 import BlogEditorForm from '@/features/blogs/components/BlogEditorForm'
+import { getSubmitDraftKey, readLocalDraft, removeLocalDraft, writeLocalDraft } from '@/lib/blogDraftStorage'
 
 type DraftBlog = {
   title?: string
@@ -20,19 +21,52 @@ type DraftBlog = {
 }
 
 function extractMedia(json: any): Array<{ type: string; url: string; alt?: string }> {
-  if (!json || !Array.isArray(json?.blocks)) return []
+  const blocks = Array.isArray(json)
+    ? json
+    : Array.isArray(json?.blocks)
+      ? json.blocks
+      : []
+
+  if (!Array.isArray(blocks)) return []
   const media: Array<{ type: string; url: string; alt?: string }> = []
-  for (const block of json.blocks) {
+  for (const block of blocks) {
     if (block.type === 'image' && block.props?.url) media.push({ type: 'image', url: block.props.url, alt: block.props.alt || '' })
     if (block.type === 'embed' && block.props?.url) media.push({ type: 'embed', url: block.props.url })
   }
   return media
 }
 
+function getCharacterCount(content: any, contentHtml: string) {
+  const blocks = Array.isArray(content)
+    ? content
+    : Array.isArray(content?.blocks)
+      ? content.blocks
+      : null
+
+  if (Array.isArray(blocks)) {
+    return blocks
+      .map((block: any) => {
+        if (Array.isArray(block?.content)) {
+          return block.content.map((item: any) => item?.text || '').join('')
+        }
+        return ''
+      })
+      .join(' ')
+      .trim().length
+  }
+
+  if (typeof contentHtml === 'string' && contentHtml.trim()) {
+    return contentHtml.replace(/<[^>]*>/g, '').trim().length
+  }
+
+  return 0
+}
+
 export default function SubmitBlogStep2Page() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const localePath = useLocalizedPath()
+  const draftKey = getSubmitDraftKey(session?.user?.id)
   const [content, setContent] = useState<any>(null)
   const [contentHtml, setContentHtml] = useState('')
   const [characterCount, setCharacterCount] = useState(0)
@@ -48,30 +82,25 @@ export default function SubmitBlogStep2Page() {
   const redirectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    const saved = localStorage.getItem('draftBlog')
-    if (!saved) {
+    const d = readLocalDraft<DraftBlog>(draftKey)
+    if (!d) {
       setInit(true)
       return
     }
-    try {
-      const d = JSON.parse(saved) as DraftBlog
-      setTitle(d.title || '')
-      setTags(
-        Array.isArray(d.tags) ? d.tags : typeof d.tags === 'string' ? d.tags.split(',').filter(Boolean) : [],
-      )
-      setIsAnonymous(Boolean(d.isAnonymous))
-      setAuthorName(d.authorName || '')
-      if (d.content) {
-        const normalized = Array.isArray(d.content) ? d.content : d.content?.blocks || d.content
-        setContent(normalized)
-      }
-      if (d.contentHtml) setContentHtml(d.contentHtml)
-    } catch {
-      return
-    } finally {
-      setInit(true)
+    setTitle(d.title || '')
+    setTags(
+      Array.isArray(d.tags) ? d.tags : typeof d.tags === 'string' ? d.tags.split(',').filter(Boolean) : [],
+    )
+    setIsAnonymous(Boolean(d.isAnonymous))
+    setAuthorName(d.authorName || '')
+    if (d.content) {
+      const normalized = Array.isArray(d.content) ? d.content : d.content?.blocks || d.content
+      setContent(normalized)
     }
-  }, [])
+    if (d.contentHtml) setContentHtml(d.contentHtml)
+    setCharacterCount(getCharacterCount(d.content, d.contentHtml || ''))
+    setInit(true)
+  }, [draftKey])
 
   useEffect(() => {
     return () => {
@@ -139,38 +168,30 @@ export default function SubmitBlogStep2Page() {
         setContent(json)
         setContentHtml(html)
         setCharacterCount(text.length)
-        const saved = localStorage.getItem('draftBlog')
-        const base = saved ? JSON.parse(saved) : {}
-        localStorage.setItem(
-          'draftBlog',
-          JSON.stringify({
-            ...base,
-            title,
-            tags,
-            isAnonymous,
-            authorName,
-            content: json,
-            contentHtml: html,
-            characterCount: text.length,
-          }),
-        )
+        const base = readLocalDraft<DraftBlog>(draftKey) || {}
+        writeLocalDraft(draftKey, {
+          ...base,
+          title,
+          tags,
+          isAnonymous,
+          authorName,
+          content: json,
+          contentHtml: html,
+          characterCount: text.length,
+        })
       }}
       onBack={() => {
-        const saved = localStorage.getItem('draftBlog')
-        const base = saved ? JSON.parse(saved) : {}
-        localStorage.setItem(
-          'draftBlog',
-          JSON.stringify({
-            ...base,
-            title,
-            tags,
-            isAnonymous,
-            authorName,
-            content,
-            contentHtml,
-            characterCount,
-          }),
-        )
+        const base = readLocalDraft<DraftBlog>(draftKey) || {}
+        writeLocalDraft(draftKey, {
+          ...base,
+          title,
+          tags,
+          isAnonymous,
+          authorName,
+          content,
+          contentHtml,
+          characterCount,
+        })
         router.push(localePath('/submit/blog/step1'))
       }}
       onSubmit={async () => {
@@ -190,21 +211,22 @@ export default function SubmitBlogStep2Page() {
         setIsSubmitting(true)
         setError('')
         try {
+          const contentPayload = Array.isArray(content) ? { blocks: content } : content
           await apiFetch<{ blog: { id: string } }>('/api/blogs', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               type: 'blog',
               title,
-              content,
+              content: contentPayload,
               contentHtml,
               tags: Array.isArray(tags) ? tags : [],
               isAnonymous,
               authorName: !isAnonymous ? authorName : undefined,
-              media: extractMedia(content),
+              media: extractMedia(contentPayload),
             }),
           })
-          localStorage.removeItem('draftBlog')
+          removeLocalDraft(draftKey)
           setSuccess(true)
           redirectTimeoutRef.current = setTimeout(() => {
             router.push(localePath('/profile'))

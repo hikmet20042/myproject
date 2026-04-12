@@ -2,7 +2,7 @@
 
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import type { EventItem } from "@/features/events/components/types";
+import type { EventItem } from "@/features/events/types/items";
 
 interface EventDeleteDialogProps {
   isOpen: boolean;

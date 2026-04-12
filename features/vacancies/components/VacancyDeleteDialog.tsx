@@ -2,7 +2,7 @@
 
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import type { VacancyItem } from "@/features/vacancies/components/types";
+import type { VacancyItem } from "@/features/vacancies/types/items";
 
 interface VacancyDeleteDialogProps {
   isOpen: boolean;

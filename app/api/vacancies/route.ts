@@ -478,6 +478,17 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    if (vacancyRow.status === 'pending') {
+      await NotificationService.notifyAdminsAboutSubmission(
+        'vacancy',
+        populatedVacancy.id,
+        populatedVacancy.title,
+        isApprovedOrganization(session)
+          ? organizationProfile?.data?.organization_name || 'Unknown organization'
+          : session.user.name || 'Unknown submitter'
+      )
+    }
+
     if (vacancyRow.status === 'approved' && vacancyRow.is_published) {
       await NotificationService.notifyUsersAboutRelevantItem({
         itemType: 'vacancy',

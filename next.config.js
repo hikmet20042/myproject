@@ -167,7 +167,12 @@ const nextConfig = {
   },
   
   // Webpack optimizations
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, dev }) => {
+    // Avoid noisy filesystem cache warnings in local development.
+    if (dev) {
+      config.cache = { type: 'memory' }
+    }
+
     // Optimize bundle size
     if (!isServer) {
       config.optimization = {

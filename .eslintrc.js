@@ -74,5 +74,39 @@ module.exports = {
         ],
       },
     },
+    {
+      files: ['components/ui/**/*.tsx', 'components/shared/**/*.tsx'],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            paths: [
+              {
+                name: '@tanstack/react-query',
+                message: 'UI components must not contain query logic. Move query usage to a Container.',
+              },
+              {
+                name: '@/lib/auth/client',
+                message: 'UI components must not own auth/session logic. Move to a Container.',
+              },
+              {
+                name: 'axios',
+                message: 'UI components must not perform API calls directly. Move data logic to a Container/service.',
+              },
+            ],
+            patterns: [
+              {
+                group: ['@/lib/*Queries', '@/lib/admin-api', '@/lib/apiClient'],
+                message: 'UI components must not import data-query or API client modules directly.',
+              },
+              {
+                group: ['@/features/*/services/*', '@/features/*/context/*', '@/features/*/providers/*'],
+                message: 'UI components must not import feature service/context/provider business layers directly.',
+              },
+            ],
+          },
+        ],
+      },
+    },
   ],
 }

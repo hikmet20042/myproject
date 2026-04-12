@@ -66,6 +66,11 @@ export default function NotificationsAdminPage() {
   >(null);
   const [deletingNotification, setDeletingNotification] = useState(false);
 
+  const unwrapPayload = (responseData: any) =>
+    responseData && typeof responseData === "object" && "data" in responseData
+      ? responseData.data
+      : responseData;
+
   useEffect(() => {
     setLoading(true);
     loadNotifications().finally(() => setLoading(false));
@@ -89,14 +94,15 @@ export default function NotificationsAdminPage() {
 
       const response = await fetch(`/api/admin/notifications?${params}`);
       if (response.ok) {
-        const data = await response.json();
+        const responseData = await response.json();
+        const data = unwrapPayload(responseData);
         setNotifications(data.notifications || []);
         setNotificationStats(
           data.stats || { total: 0, unread: 0, read: 0, today: 0 },
         );
         setNotificationPagination({
-          page: data.pagination.page,
-          totalPages: data.pagination.totalPages,
+          page: data.pagination?.page || 1,
+          totalPages: data.pagination?.totalPages || 1,
         });
       }
     } catch (error) {
@@ -151,8 +157,9 @@ export default function NotificationsAdminPage() {
         });
 
         if (response.ok) {
-          const data = await response.json();
-          showSuccess(`Elan ${data.count} istifadəçiyə göndərildi`);
+          const responseData = await response.json();
+          const data = unwrapPayload(responseData);
+          showSuccess(`Elan ${data.count || 0} istifadəçiyə göndərildi`);
         } else {
           const error = await response.json();
           showError(error.error || "Elanı göndərmək alınmadı");

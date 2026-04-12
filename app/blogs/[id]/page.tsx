@@ -10,7 +10,7 @@ const BlocknoteReadOnly = dynamic(
 );
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import BlogReactions from "@/features/blogs/components/BlogReactions";
+import BlogReactionsContainer from "@/features/blogs/components/BlogReactionsContainer";
 import {
   LoadingState,
   ErrorState,
@@ -27,7 +27,7 @@ import { useLocalizedPath } from "@/hooks/useLocalizedPath";
 import ViewTracker from "@/components/ViewTracker";
 import { blogQueryKeys, fetchBlogById } from "@/lib/blogQueries";
 import { DetailPageLayout } from "@/components/layout";
-import SaveButton from "@/components/SaveButton";
+import SaveItemButtonContainer from "@/components/containers/SaveItemButtonContainer";
 
 // Custom CSS styles for professional BlocknoteReadOnly editor
 const blogStyles = `
@@ -459,7 +459,7 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
                           </p>
                         </div>
                       </div>
-                      <BlogReactions
+                      <BlogReactionsContainer
                         blogId={blog._id || blog.id}
                         initialLikes={blog.likes || 0}
                         initialDislikes={blog.dislikes || 0}
@@ -484,7 +484,7 @@ export default function BlogDetailPage({ params }: { params: { id: string } }) {
                   </p>
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row">
-                  <SaveButton itemId={blog._id || blog.id} itemType="blog" itemTitle={blog.title} size="md" />
+                  <SaveItemButtonContainer itemId={blog._id || blog.id} itemType="blog" itemTitle={blog.title} size="md" />
                   <Link href={localePath("/blogs")}>
                     <Button variant="outline" className="w-full sm:w-auto">
                       {"Bloqlara Qayıt"}

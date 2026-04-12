@@ -9,6 +9,7 @@ import { PageStateGuard, SuccessState } from '@/components/shared'
 import { ButtonLink } from '@/components/ui'
 import { blogQueryKeys, editBlog, fetchBlogById } from '@/lib/blogQueries'
 import BlogEditorForm from '@/features/blogs/components/BlogEditorForm'
+import { getEditDraftKey, readLocalDraft, removeLocalDraft, writeLocalDraft } from '@/lib/blogDraftStorage'
 
 type EditBlogData = {
   id: string
@@ -17,39 +18,73 @@ type EditBlogData = {
   contentHtml: string
   isAnonymous: boolean
   authorName: string
+  status?: string
 }
 
-const getLocalEditBlogData = (blogId: string): EditBlogData | null => {
-  const saved = localStorage.getItem('editBlogData')
-  if (!saved) return null
-  try {
-    const parsed = JSON.parse(saved)
-    if (parsed?.id !== blogId) return null
-    return {
-      id: parsed.id,
-      title: parsed.title || '',
-      content: parsed.content || null,
-      contentHtml: parsed.contentHtml || '',
-      isAnonymous: !!parsed.isAnonymous,
-      authorName: parsed.authorName || '',
-    }
-  } catch {
-    return null
+const getLocalEditBlogData = (storageKey: string, blogId: string): EditBlogData | null => {
+  const parsed = readLocalDraft<Partial<EditBlogData>>(storageKey)
+  if (!parsed || parsed?.id !== blogId) return null
+  return {
+    id: parsed.id || '',
+    title: parsed.title || '',
+    content: parsed.content || null,
+    contentHtml: parsed.contentHtml || '',
+    isAnonymous: !!parsed.isAnonymous,
+    authorName: parsed.authorName || '',
+    status: parsed.status || 'pending',
   }
 }
 
-const saveLocalEditBlogData = (data: EditBlogData) => {
-  localStorage.setItem('editBlogData', JSON.stringify(data))
+const saveLocalEditBlogData = (storageKey: string, data: EditBlogData) => {
+  writeLocalDraft(storageKey, data)
 }
 
 function extractMedia(content: any) {
   const media: string[] = []
-  if (Array.isArray(content)) {
-    content.forEach((block: any) => {
+  const blocks = Array.isArray(content)
+    ? content
+    : Array.isArray(content?.blocks)
+      ? content.blocks
+      : []
+
+  if (Array.isArray(blocks)) {
+    blocks.forEach((block: any) => {
       if (block.type === 'image' && block.props?.url) media.push(block.props.url)
     })
   }
   return media
+}
+
+function getCharacterCount(content: any, contentHtml: string) {
+  if (Array.isArray(content)) {
+    return content
+      .map((block: any) => {
+        if (Array.isArray(block?.content)) {
+          return block.content.map((item: any) => item?.text || '').join('')
+        }
+        return ''
+      })
+      .join(' ')
+      .trim().length
+  }
+
+  if (content && Array.isArray(content?.blocks)) {
+    return content.blocks
+      .map((block: any) => {
+        if (Array.isArray(block?.content)) {
+          return block.content.map((item: any) => item?.text || '').join('')
+        }
+        return ''
+      })
+      .join(' ')
+      .trim().length
+  }
+
+  if (typeof contentHtml === 'string' && contentHtml.trim()) {
+    return contentHtml.replace(/<[^>]*>/g, '').trim().length
+  }
+
+  return 0
 }
 
 export default function EditBlogStep2Page() {
@@ -58,6 +93,7 @@ export default function EditBlogStep2Page() {
   const params = useParams()
   const blogId = params?.id as string
   const localePath = useLocalizedPath()
+  const editDraftKey = getEditDraftKey(session?.user?.id, blogId)
   const [content, setContent] = useState<any>(null)
   const [contentHtml, setContentHtml] = useState('')
   const [characterCount, setCharacterCount] = useState(0)
@@ -67,6 +103,7 @@ export default function EditBlogStep2Page() {
   const [title, setTitle] = useState('')
   const [isAnonymous, setIsAnonymous] = useState(false)
   const [authorName, setAuthorName] = useState('')
+  const [blogStatus, setBlogStatus] = useState<'pending' | 'approved' | 'rejected'>('pending')
   const [init, setInit] = useState(false)
   const queryClient = useQueryClient()
 
@@ -89,7 +126,7 @@ export default function EditBlogStep2Page() {
   useEffect(() => {
     if (!blogId || status === 'loading' || blogQuery.isLoading) return
     const blog = blogQuery.data as any
-    const localData = getLocalEditBlogData(blogId)
+    const localData = getLocalEditBlogData(editDraftKey, blogId)
     const fallback = {
       id: blog?.id || blog?._id || blogId,
       title: blog?.title || '',
@@ -97,22 +134,30 @@ export default function EditBlogStep2Page() {
       contentHtml: blog?.contentHtml || '',
       isAnonymous: !!(blog?.isAnonymous ?? false),
       authorName: blog?.authorName || session?.user?.name || '',
+      status: blog?.status || 'pending',
     }
     const resolved = localData || fallback
     setTitle(resolved.title || '')
     setContent(resolved.content || null)
     setContentHtml(resolved.contentHtml || '')
+    setCharacterCount(getCharacterCount(resolved.content, resolved.contentHtml || ''))
     setIsAnonymous(!!resolved.isAnonymous)
     setAuthorName(resolved.authorName || '')
-    saveLocalEditBlogData(resolved)
+    setBlogStatus((resolved.status as 'pending' | 'approved' | 'rejected') || 'pending')
+    saveLocalEditBlogData(editDraftKey, resolved)
     setInit(true)
-  }, [blogId, status, blogQuery.data, blogQuery.isLoading, session?.user?.name])
+  }, [blogId, status, blogQuery.data, blogQuery.isLoading, session?.user?.name, editDraftKey])
 
   if (success) {
+    const successMessage =
+      blogStatus === 'approved'
+        ? 'Yenilənmə sorğunuz göndərildi və moderasiya üçün gözləmədədir.'
+        : 'Bloqunuz yeniləndi və yoxlama üçün göndərildi.'
+
     return (
       <SuccessState
         title={'Bloq uğurla yeniləndi'}
-        message={'Bloqunuz yeniləndi və yoxlama üçün göndərildi.'}
+        message={successMessage}
         actions={
           <>
             <ButtonLink href={localePath('/profile')} variant="gradient-green" hoverEffect="scale">
@@ -156,23 +201,25 @@ export default function EditBlogStep2Page() {
           setContent(json)
           setContentHtml(html)
           setCharacterCount(text.length)
-          saveLocalEditBlogData({
+          saveLocalEditBlogData(editDraftKey, {
             id: blogId,
             title,
             content: json,
             contentHtml: html,
             isAnonymous,
             authorName,
+            status: blogStatus,
           })
         }}
         onBack={() => {
-          saveLocalEditBlogData({
+          saveLocalEditBlogData(editDraftKey, {
             id: blogId,
             title,
             content,
             contentHtml,
             isAnonymous,
             authorName,
+            status: blogStatus,
           })
           router.push(localePath(`/edit/blog/${blogId}/step1`))
         }}
@@ -187,6 +234,7 @@ export default function EditBlogStep2Page() {
           }
           setError('')
           try {
+            const isUpdateRequest = blogStatus === 'approved'
             await editBlogMutation.mutateAsync({
               title,
               content,
@@ -194,9 +242,10 @@ export default function EditBlogStep2Page() {
               isAnonymous,
               authorName: isAnonymous ? 'Anonim' : (authorName || session?.user?.name),
               status: 'pending',
+              requestUpdate: isUpdateRequest,
               media: extractMedia(content),
             })
-            localStorage.removeItem('editBlogData')
+            removeLocalDraft(editDraftKey)
             setSuccess(true)
             setTimeout(() => {
               router.push(localePath('/profile'))

@@ -17,7 +17,7 @@ import { useLocalizedPath } from "@/hooks/useLocalizedPath";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
-import type { VacancyItem } from "@/features/vacancies/components/types";
+import type { VacancyItem } from "@/features/vacancies/types/items";
 
 interface VacancyRowProps {
   vacancy: VacancyItem;

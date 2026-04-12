@@ -21,6 +21,7 @@ const AUTH_CALLBACK_STORAGE_KEY = 'auth:callbackUrl'
 const FORCE_REFRESH_EVENT = 'auth:force-refresh'
 const FOCUS_REFRESH_THROTTLE_MS = 15 * 1000
 const PENDING_REFRESH_INTERVAL_MS = 10 * 1000
+const DEBUG_AUTH_CLIENT = process.env.NEXT_PUBLIC_DEBUG_AUTH === 'true'
 
 function areUsersEqual(a: ClientSessionUser, b: ClientSessionUser) {
   return (
@@ -199,9 +200,9 @@ export default function AuthProvider({ children }: AuthProviderProps) {
       const snapshot = await getAccountSnapshot(user.id, options?.forceAccountRefresh)
 
       if (!snapshot || !snapshot.isActive) {
-        if (!snapshot) {
+        if (DEBUG_AUTH_CLIENT && !snapshot) {
           console.warn('[auth] Missing account row', { userId: user.id })
-        } else {
+        } else if (DEBUG_AUTH_CLIENT) {
           console.warn('[auth] Inactive account', { userId: user.id })
         }
         await supabase.auth.signOut()
@@ -226,7 +227,9 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
       applyAuthState(nextSession, 'authenticated')
     } catch (error) {
-      console.error('[auth] Sync error:', error)
+      if (DEBUG_AUTH_CLIENT) {
+        console.error('[auth] Sync error:', error)
+      }
     } finally {
       isSyncingRef.current = false
     }
@@ -238,7 +241,9 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     isMountedRef.current = true
-    console.debug('[auth] provider:mount')
+    if (DEBUG_AUTH_CLIENT) {
+      console.debug('[auth] provider:mount')
+    }
 
     if (!supabase) {
       applyAuthState(null, 'unauthenticated')
@@ -252,7 +257,9 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, authSession) => {
-      console.debug('[auth] onAuthStateChange', { event })
+      if (DEBUG_AUTH_CLIENT) {
+        console.debug('[auth] onAuthStateChange', { event })
+      }
 
       if (event === 'SIGNED_IN') {
         hasRedirectedRef.current = false
@@ -272,7 +279,9 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
     return () => {
       isMountedRef.current = false
-      console.debug('[auth] provider:unmount')
+      if (DEBUG_AUTH_CLIENT) {
+        console.debug('[auth] provider:unmount')
+      }
       subscription.unsubscribe()
     }
     // Mount once: keep one auth subscription for the whole app lifecycle.
@@ -281,10 +290,12 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     if (previousStatusRef.current !== status) {
-      console.debug('[auth] status:transition', {
-        from: previousStatusRef.current,
-        to: status,
-      })
+      if (DEBUG_AUTH_CLIENT) {
+        console.debug('[auth] status:transition', {
+          from: previousStatusRef.current,
+          to: status,
+        })
+      }
       previousStatusRef.current = status
     }
 
@@ -293,10 +304,12 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     }
 
     if (status !== 'loading') {
-      console.debug('[auth] ready', {
-        status,
-        userId: session?.user?.id ?? null,
-      })
+      if (DEBUG_AUTH_CLIENT) {
+        console.debug('[auth] ready', {
+          status,
+          userId: session?.user?.id ?? null,
+        })
+      }
     }
   }, [session?.user?.id, status])
 

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { PageStateGuard } from "@/components/shared";
 import ProfileView from "@/features/profile/components/ProfileView";
-import ProfileForm from "@/features/profile/components/ProfileForm";
+import ProfileFormContainer from "@/features/profile/components/ProfileFormContainer";
 import { fetchMyOrganization } from "@/lib/organizationQueries";
 import { logError } from "@/lib/logger";
 import { AppContainer } from "@/components/layout";
@@ -131,7 +131,7 @@ export default function ProfilePageContainer({ variant = "dashboard" }: ProfileP
               <h2 className="text-lg font-semibold text-slate-900">{editHeaderTitle}</h2>
               <p className="mt-1 text-sm text-slate-600">{editHeaderText}</p>
             </div>
-            <ProfileForm
+            <ProfileFormContainer
               organizationProfile={organizationProfile}
               onSave={(updatedProfile) => {
                 setOrganizationProfile(updatedProfile);

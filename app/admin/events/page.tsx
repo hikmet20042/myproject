@@ -55,10 +55,20 @@ export default function EventsAdminPage() {
   );
 
   const unwrapPayload = (responseData: any): AdminEventsPayload => {
-    if (responseData && typeof responseData === "object" && "data" in responseData) {
-      return responseData.data;
-    }
-    return responseData;
+    const payload =
+      responseData && typeof responseData === "object" && "data" in responseData
+        ? responseData.data
+        : responseData;
+    return {
+      items: payload?.items || payload?.events || [],
+      pagination: payload?.pagination || {
+        page: 1,
+        pages: 1,
+        total: 0,
+        limit: 20,
+      },
+      stats: payload?.stats || defaultStats,
+    };
   };
 
   const parseApiError = async (response: Response, fallback: string) => {
@@ -82,11 +92,7 @@ export default function EventsAdminPage() {
       }
       const responseData = await response.json();
       const data = unwrapPayload(responseData);
-      return {
-        items: data.items || [],
-        pagination: data.pagination || { page: eventPage, pages: 1, total: 0, limit: 20 },
-        stats: data.stats || defaultStats,
-      } as AdminEventsPayload;
+      return data as AdminEventsPayload;
     },
     staleTime: 30_000,
     refetchOnWindowFocus: false,

@@ -172,10 +172,6 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
     await refreshNotifications({ force: true })
   }, [refreshNotifications])
 
-  useEffect(() => {
-    void refreshNotifications({ force: true })
-  }, [refreshNotifications])
-
   return (
     <NotificationContext.Provider
       value={{

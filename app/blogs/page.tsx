@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import BlogCard from '../../components/BlogCard'
+import BlogCard from '@/features/blogs/components/BlogCard'
 import { Button, ButtonLink, SearchBar } from '@/components/ui'
 import { EmptyState } from '@/components/shared'
 import { ListPageLayout } from '@/components/layout'

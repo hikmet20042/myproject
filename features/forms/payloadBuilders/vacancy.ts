@@ -2,7 +2,7 @@ import { createPayloadBuilder } from '@/features/forms/payloadBuilder'
 import type {
   VacancyFormData,
   VacancyFormSubmitPayload,
-} from '@/features/vacancies/components/vacancyForm.types'
+} from '@/features/vacancies/types/form'
 
 export const buildVacancySubmitPayload = createPayloadBuilder<
   VacancyFormData,

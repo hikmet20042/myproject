@@ -6,6 +6,7 @@ import { cache } from '@/lib/cache'
 import { isAdminOrOwner } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { getBlogStats } from '@/lib/blogStats'
+import { NotificationService } from '@/features/notifications/services/notificationService'
 
 export const dynamic = 'force-dynamic'
 
@@ -66,8 +67,13 @@ export async function PATCH(
       return errorResponse('Story ID is required', 'VALIDATION_ERROR', {}, 400)
     }
 
-    const body = await request.json()
-    const { title, content, contentHtml, tags, abstract, isAnonymous, authorName, media, featuredImage, status: reqStatus } = body
+    let body: any
+    try {
+      body = await request.json()
+    } catch {
+      return errorResponse('Invalid JSON body', 'VALIDATION_ERROR', {}, 400)
+    }
+    const { title, content, contentHtml, tags, abstract, isAnonymous, authorName, media, featuredImage, status: reqStatus, requestUpdate } = body
 
     const { data: existingStory } = await supabase
       .from('blogs')
@@ -80,8 +86,10 @@ export async function PATCH(
       return errorResponse('Story not found or you do not have permission to edit it', 'BLOG_NOT_FOUND', {}, 404)
     }
 
-    if (existingStory.status === 'approved') {
-      return errorResponse('Approved blogs cannot be edited. Contact an administrator if changes are needed.', 'FORBIDDEN', {}, 403)
+    const isApprovedUpdateRequest = existingStory.status === 'approved' && reqStatus === 'pending' && requestUpdate === true
+
+    if (existingStory.status === 'approved' && !isApprovedUpdateRequest) {
+      return errorResponse('Approved blogs cannot be edited directly. Submit an update request instead.', 'FORBIDDEN', {}, 403)
     }
 
     if (content !== undefined || contentHtml !== undefined) {
@@ -114,7 +122,13 @@ export async function PATCH(
       updated_at: new Date().toISOString()
     }
 
-    if (title !== undefined) updateData.title = title.trim()
+    if (title !== undefined) {
+      const trimmedTitle = title.trim()
+      if (trimmedTitle.length < 5 || trimmedTitle.length > 200) {
+        return errorResponse('Title must be between 5 and 200 characters', 'VALIDATION_ERROR', {}, 400)
+      }
+      updateData.title = trimmedTitle
+    }
     if (content !== undefined) updateData.content = content
     if (contentHtml !== undefined) updateData.content_html = contentHtml
     if (tags !== undefined) updateData.tags = tags
@@ -136,19 +150,115 @@ export async function PATCH(
       updateData.featured_image = featuredImage
       updateData.featured_image_blob_id = getFeaturedImageBlobId(featuredImage) ?? null
     }
-    if (reqStatus !== undefined) updateData.status = reqStatus
-
-    if (existingStory.status === 'rejected' && reqStatus === 'pending') {
-      updateData.admin_comment = null
+    if (reqStatus !== undefined) {
+      if (reqStatus !== 'pending') {
+        return errorResponse('Only pending status can be requested from user edits', 'FORBIDDEN', {}, 403)
+      }
+      updateData.status = 'pending'
     }
 
-    const { data: blog } = await supabase
+    if (isApprovedUpdateRequest) {
+      const { data: originalBlog, error: originalBlogError } = await supabase
+        .from('blogs')
+        .select('*')
+        .eq('id', id)
+        .eq('author_id', session.user.id)
+        .single()
+
+      if (originalBlogError || !originalBlog) {
+        return errorResponse('Original approved blog not found', 'BLOG_NOT_FOUND', {}, 404)
+      }
+
+      const mergedMedia = {
+        ...(originalBlog.media && typeof originalBlog.media === 'object' ? originalBlog.media : {}),
+        ...(media && typeof media === 'object' ? media : {}),
+        updateRequestFor: id,
+      }
+
+      const requestPayload: any = {
+        title: title !== undefined ? updateData.title : originalBlog.title,
+        content: content !== undefined ? content : originalBlog.content,
+        content_html: contentHtml !== undefined ? contentHtml : originalBlog.content_html,
+        tags: tags !== undefined ? tags : originalBlog.tags,
+        abstract: abstract !== undefined ? abstract : originalBlog.abstract,
+        is_anonymous: isAnonymous !== undefined ? isAnonymous : originalBlog.is_anonymous,
+        author_name: updateData.author_name || originalBlog.author_name,
+        media: mergedMedia,
+        featured_image: featuredImage !== undefined ? featuredImage : originalBlog.featured_image,
+        featured_image_blob_id:
+          featuredImage !== undefined
+            ? getFeaturedImageBlobId(featuredImage) ?? null
+            : (originalBlog.featured_image_blob_id ?? null),
+        status: 'pending',
+        updated_at: new Date().toISOString(),
+      }
+
+      const { data: existingRequest } = await supabase
+        .from('blogs')
+        .select('id')
+        .eq('author_id', session.user.id)
+        .eq('status', 'pending')
+        .contains('media', { updateRequestFor: id })
+        .maybeSingle()
+
+      let requestBlog: any = null
+      if (existingRequest?.id) {
+        const { data: updatedRequest, error: updateRequestError } = await supabase
+          .from('blogs')
+          .update(requestPayload)
+          .eq('id', existingRequest.id)
+          .eq('author_id', session.user.id)
+          .select('*')
+          .single()
+
+        if (updateRequestError || !updatedRequest) {
+          return errorResponse('Failed to update blog request', 'UPDATE_BLOG_FAILED', {}, 500)
+        }
+        requestBlog = updatedRequest
+      } else {
+        const { data: insertedRequest, error: insertRequestError } = await supabase
+          .from('blogs')
+          .insert({
+            ...requestPayload,
+            author_id: session.user.id,
+            reviewed_at: null,
+            reviewed_by: null,
+          })
+          .select('*')
+          .single()
+
+        if (insertRequestError || !insertedRequest) {
+          return errorResponse('Failed to create blog update request', 'CREATE_BLOG_FAILED', {}, 500)
+        }
+        requestBlog = insertedRequest
+      }
+
+      cache.blogs.clear()
+
+      await NotificationService.notifyAdminsAboutSubmission(
+        'blog',
+        requestBlog.id,
+        requestBlog.title,
+        requestBlog.author_name || session.user.name || 'Unknown submitter'
+      )
+
+      return successResponse(
+        { blog: requestBlog },
+        { message: 'Blog update request submitted for review' }
+      )
+    }
+
+    const { data: blog, error: updateError } = await supabase
       .from('blogs')
       .update(updateData)
       .eq('id', id)
       .eq('author_id', session.user.id)
       .select('*')
       .single()
+
+    if (updateError || !blog) {
+      return errorResponse('Failed to update blog', 'UPDATE_BLOG_FAILED', {}, 500)
+    }
 
     cache.blogs.clear()
     return successResponse({ blog }, { message: 'Story updated successfully' })

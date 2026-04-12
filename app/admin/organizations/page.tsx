@@ -83,6 +83,11 @@ export default function OrganizationsAdminPage() {
   >(null);
   const [deletingOrganization, setDeletingOrganization] = useState(false);
 
+  const unwrapPayload = (responseData: any) =>
+    responseData && typeof responseData === "object" && "data" in responseData
+      ? responseData.data
+      : responseData;
+
   useEffect(() => {
     setLoading(true);
     loadOrganizations().finally(() => setLoading(false));
@@ -101,14 +106,15 @@ export default function OrganizationsAdminPage() {
 
       const response = await fetch(`/api/admin/organizations?${params}`);
       if (response.ok) {
-        const data = await response.json();
+        const responseData = await response.json();
+        const data = unwrapPayload(responseData);
         setOrganizations(data.organizations || []);
         setOrganizationStats(
           data.stats || { pending: 0, approved: 0, rejected: 0, total: 0 },
         );
         setOrganizationPagination({
-          page: data.pagination.currentPage,
-          totalPages: data.pagination.totalPages,
+          page: data.pagination?.currentPage || 1,
+          totalPages: data.pagination?.totalPages || 1,
         });
       }
     } catch (error) {
@@ -174,14 +180,15 @@ export default function OrganizationsAdminPage() {
 
       const response = await fetch(`/api/admin/organizations?${params}`);
       if (response.ok) {
-        const data = await response.json();
+        const responseData = await response.json();
+        const data = unwrapPayload(responseData);
         setOrganizations(data.organizations || []);
         setOrganizationStats(
           data.stats || { pending: 0, approved: 0, rejected: 0, total: 0 },
         );
         setOrganizationPagination({
-          page: data.pagination.currentPage,
-          totalPages: data.pagination.totalPages,
+          page: data.pagination?.currentPage || 1,
+          totalPages: data.pagination?.totalPages || 1,
         });
       }
     } catch (error) {

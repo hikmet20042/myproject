@@ -1,4 +1,4 @@
-import type { VacancyFormData } from '@/features/vacancies/components/vacancyForm.types'
+import type { VacancyFormData } from '@/features/vacancies/types/form'
 
 export const validateVacancyForm = (formData: VacancyFormData) => {
   if (!formData.applicationDeadline) {

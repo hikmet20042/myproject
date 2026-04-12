@@ -3,13 +3,13 @@
 import { useRouter } from 'next/navigation'
 import VacancyForm, { type VacancyFormSubmitPayload } from '@/features/vacancies/components/VacancyForm'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
-import { useDashboardData } from '@/components/dashboard/DashboardDataProvider'
+import { useDashboardVacancyData } from '@/components/containers/DashboardVacancyDataContainer'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 
 export default function CreateVacancyPage() {
   const router = useRouter()
   const localePath = useLocalizedPath()
-  const { markVacanciesDirty } = useDashboardData()
+  const { markVacanciesDirty } = useDashboardVacancyData()
   const { showSuccess } = useGlobalFeedback()
 
   const handleCreate = async (payload: VacancyFormSubmitPayload) => {

@@ -1,0 +1,153 @@
+import { NextRequest } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import { getServerSession } from '@/lib/auth/server'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { isApprovedOrganization } from '@/lib/auth/permissions'
+import { successResponse, errorResponse } from '@/lib/apiResponse'
+
+const RECENT_REAUTH_WINDOW_MS = 5 * 60 * 1000
+
+function getAuthProviderInfo(user: any) {
+  const identities = Array.isArray(user?.identities) ? user.identities : []
+  const providers = new Set<string>()
+
+  for (const identity of identities) {
+    const provider = String(identity?.provider || '').trim().toLowerCase()
+    if (provider) providers.add(provider)
+  }
+
+  const appProvider = String(user?.app_metadata?.provider || '').trim().toLowerCase()
+  if (appProvider) providers.add(appProvider)
+
+  const providerList = Array.from(providers)
+  const hasPasswordProvider = providerList.includes('email')
+  const isGoogleOnly = providerList.includes('google') && !hasPasswordProvider
+
+  return {
+    providers: providerList,
+    hasPasswordProvider,
+    isGoogleOnly,
+  }
+}
+
+function hasRecentSignIn(user: any) {
+  const lastSignInAtRaw = user?.last_sign_in_at
+  if (!lastSignInAtRaw) return false
+  const lastSignInAt = new Date(lastSignInAtRaw).getTime()
+  if (Number.isNaN(lastSignInAt)) return false
+  return Date.now() - lastSignInAt <= RECENT_REAUTH_WINDOW_MS
+}
+
+export async function GET() {
+  try {
+    const session = await getServerSession()
+    if (!session?.user?.id) {
+      return errorResponse('Authentication required', 'API_ERROR', {}, 401)
+    }
+
+    const supabaseServer = createSupabaseServerClient()
+    const { data: authData } = await supabaseServer.auth.getUser()
+
+    if (!authData?.user?.id || authData.user.id !== session.user.id) {
+      return errorResponse('Authentication required', 'API_ERROR', {}, 401)
+    }
+
+    const providerInfo = getAuthProviderInfo(authData.user)
+    const recentlyReauthenticated = hasRecentSignIn(authData.user)
+    const requiresGoogleReauth = providerInfo.isGoogleOnly && !recentlyReauthenticated
+
+    return successResponse({
+      requiresCurrentPassword: !providerInfo.isGoogleOnly,
+      requiresPasswordSetup: false,
+      requiresGoogleReauth,
+      recentlyReauthenticated,
+      providers: providerInfo.providers,
+      deleteConfirmationText: 'DELETE',
+    })
+  } catch (error) {
+    console.error('GET /api/users/account error:', error)
+    return errorResponse('Internal server error', 'API_ERROR', {}, 500)
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getServerSession()
+    if (!session?.user?.id) {
+      return errorResponse('Authentication required', 'API_ERROR', {}, 401)
+    }
+
+    if (isApprovedOrganization(session)) {
+      return errorResponse('Organization accounts must be removed from organization settings', 'API_ERROR', {}, 400)
+    }
+
+    const body = await request.json().catch(() => ({}))
+    const confirmText = String(body?.confirmText || '').trim().toUpperCase()
+    const currentPassword = String(body?.currentPassword || '').trim()
+
+    if (confirmText !== 'DELETE') {
+      return errorResponse('Confirmation text is invalid', 'API_ERROR', {}, 400)
+    }
+
+    if (!currentPassword) {
+      return errorResponse('Current password is required', 'API_ERROR', {}, 400)
+    }
+
+    const supabaseServer = createSupabaseServerClient()
+    const { data: authData } = await supabaseServer.auth.getUser()
+
+    if (!authData?.user?.id || authData.user.id !== session.user.id) {
+      return errorResponse('Authentication required', 'API_ERROR', {}, 401)
+    }
+
+    const providerInfo = getAuthProviderInfo(authData.user)
+    if (providerInfo.isGoogleOnly && !hasRecentSignIn(authData.user)) {
+      return errorResponse('Hesabı silmək üçün Google ilə yenidən daxil ol və yenidən cəhd et.', 'API_ERROR', {}, 400)
+    }
+
+    if (!providerInfo.isGoogleOnly) {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+      if (!supabaseUrl || !supabaseAnonKey || !authData.user.email) {
+        return errorResponse('Password verification is currently unavailable', 'API_ERROR', {}, 500)
+      }
+
+      const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      })
+
+      const { error: signInError } = await anonClient.auth.signInWithPassword({
+        email: authData.user.email,
+        password: currentPassword,
+      })
+
+      if (signInError) {
+        return errorResponse('Current password is incorrect', 'API_ERROR', {}, 400)
+      }
+    }
+
+    const supabase = createSupabaseAdminClient()
+    const userId = session.user.id
+
+    // Best-effort cleanup of user-owned records to avoid relation errors.
+    await Promise.allSettled([
+      supabase.from('user_profiles').delete().eq('user_id', userId),
+      supabase.from('blogs').delete().eq('author_id', userId),
+      supabase.from('notifications').delete().eq('user_id', userId),
+      supabase.from('content_saves').delete().eq('user_id', userId),
+      supabase.from('image_blobs').delete().eq('uploaded_by', userId),
+    ])
+
+    const { error: deleteError } = await supabase.auth.admin.deleteUser(userId)
+    if (deleteError) {
+      return errorResponse(deleteError.message || 'Failed to delete account', 'API_ERROR', {}, 500)
+    }
+
+    return successResponse({ message: 'Account deleted successfully' })
+  } catch (error) {
+    console.error('DELETE /api/users/account error:', error)
+    return errorResponse('Internal server error', 'API_ERROR', {}, 500)
+  }
+}

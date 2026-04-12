@@ -28,10 +28,10 @@ export type ResourceOwner = {
 }
 
 const toId = (value?: string | number | null) => (value === undefined || value === null ? null : String(value))
-const DEV = process.env.NODE_ENV === 'development'
+const PERMISSIONS_DEBUG = process.env.DEBUG_PERMISSIONS_LOGS === 'true'
 
 const logPermissionFailure = (reason: string, session: Session) => {
-  if (!DEV) return
+  if (!PERMISSIONS_DEBUG) return
   console.warn('[permissions] denied', {
     reason,
     userId: session?.user?.id ?? null,

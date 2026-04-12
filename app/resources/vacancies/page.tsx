@@ -6,7 +6,7 @@ import { Search, Briefcase, MapPin, Users, ExternalLink, Calendar, Sparkles, Arr
 import { ButtonLink } from '@/components/ui';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
-import SaveButton from '../../../components/SaveButton';
+import SaveItemButtonContainer from '@/components/containers/SaveItemButtonContainer';
 import { useLocalizedPath } from '@/hooks/useLocalizedPath';
 import { ResourceFilterContainer, ActiveFilterBadges, EmptyState, ResourceCard } from '@/components/shared';
 import { ListPageLayout } from '@/components/layout';
@@ -429,7 +429,7 @@ export default function VacanciesPage() {
                     actions={
                       <div className="space-y-3">
                         <div className="flex flex-wrap gap-2">
-                          <SaveButton
+                          <SaveItemButtonContainer
                             itemId={vacancy.id}
                             itemType="vacancy"
                             itemTitle={vacancy.title}

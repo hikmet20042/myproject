@@ -33,6 +33,12 @@ type Blog = { _id: string
   likes?: number
   category?: string }
 
+const REJECTION_TEMPLATES = [
+  'Məzmun keyfiyyəti yetərli deyil. Daha konkret faktlar və daha aydın struktur əlavə edin.',
+  'Platforma qaydalarına uyğunluq problemi var. Zəhmət olmasa həssas məlumatları çıxarın.',
+  'Formatlama problemi var. Başlıq/mətn axını və oxunaqlılığı yaxşılaşdırın.',
+]
+
 export default function AdminStoryPreview({ params }: { params: { id: string } }) {
   const router = useRouter()
   const { showError, showSuccess } = useGlobalFeedback()
@@ -85,7 +91,7 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
         title={'Bloq tapılmadı'}
         message={error || 'Axtardığınız bloq mövcud deyil.'}
         retryText={'Adminə Qayıt'}
-        onRetry={() => router.push(localePath("/admin"))}
+          onRetry={() => router.push(localePath("/admin/blogs"))}
       />
     ) }
 
@@ -99,19 +105,14 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
       return }
     
     setIsProcessing(true)
-    try { console.log('Sending request to:', `/api/admin/blogs/${blog._id}`)
-      console.log('Request body:', { status: actionType === 'approve' ? 'approved' : 'rejected',
-        adminComment: adminComment.trim() || null })
-      
+    try {
       const response = await fetch(`/api/admin/blogs/${blog._id}`, { method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: actionType === 'approve' ? 'approved' : 'rejected',
           adminComment: adminComment.trim() || null }) })
-      
-      console.log('Response status:', response.status)
+
       const data = await response.json()
-      console.log('Response data:', data)
-      
+
       if (response.ok) { setBlog(data?.data?.blog || null)
         setShowModal(false)
         setActionType(null)
@@ -142,7 +143,7 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
       <div className="relative z-10 border-b border-gray-200 bg-white/90 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <Link href={localePath("/admin")} 
+            <Link href={localePath("/admin/blogs")} 
               className="inline-flex items-center text-gray-600 hover:text-gray-900"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -302,6 +303,18 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   {actionType === 'approve' ? 'Şərh' + ' (' + 'ixtiyari' + ')' : 'Rədd etmə səbəbi...'}
                 </label>
+                <div className="mb-2 flex flex-wrap gap-2">
+                  {REJECTION_TEMPLATES.map((template) => (
+                    <button
+                      key={template}
+                      type="button"
+                      className="rounded-full border border-gray-300 px-2.5 py-1 text-[11px] text-gray-600 hover:border-red-300 hover:text-red-700"
+                      onClick={() => setAdminComment(template)}
+                    >
+                      {'Şablon'}
+                    </button>
+                  ))}
+                </div>
                 <textarea
                   value={adminComment}
                   onChange={(e) => setAdminComment(e.target.value)}

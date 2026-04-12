@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { NotificationService } from '@/features/notifications/services/notificationService'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,7 +24,7 @@ export async function POST(
     // Check if event exists
     const { data: event, error: eventError } = await supabase
       .from('events')
-      .select('id')
+      .select('id, title, created_by, created_by_organization')
       .eq('id', eventId)
       .single();
     if (eventError || !event) {
@@ -50,6 +51,27 @@ export async function POST(
         content_id: eventId,
       });
       action = 'saved';
+
+      try {
+        const ownerUserId = event.created_by ? String(event.created_by) : null
+        const ownerOrganizationId = event.created_by_organization ? String(event.created_by_organization) : null
+        const shouldNotifyUser = Boolean(ownerUserId && ownerUserId !== userId)
+        const shouldNotifyOrganization = Boolean(ownerOrganizationId && ownerOrganizationId !== userId)
+
+        if (shouldNotifyUser || shouldNotifyOrganization) {
+          await NotificationService.notifyContentSaved({
+            recipientUserId: shouldNotifyUser ? ownerUserId || undefined : undefined,
+            recipientOrganizationId: shouldNotifyOrganization ? ownerOrganizationId || undefined : undefined,
+            contentType: 'event',
+            contentId: eventId,
+            contentTitle: event.title || 'Untitled',
+            savedById: userId,
+            savedByName: session.user.name,
+          })
+        }
+      } catch (notificationError) {
+        console.error('Failed to notify event owner about save:', notificationError)
+      }
     }
     
     return successResponse({

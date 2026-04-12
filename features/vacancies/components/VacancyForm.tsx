@@ -18,7 +18,7 @@ import {
   type VacancyFormInitialData,
   type VacancyFormSubmitPayload,
   INITIAL_VACANCY_FORM_DATA,
-} from '@/features/vacancies/components/vacancyForm.types'
+} from '@/features/vacancies/types/form'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 

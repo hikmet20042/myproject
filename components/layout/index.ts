@@ -8,3 +8,5 @@ export { default as DetailPageLayout } from './DetailPageLayout';
 
 export { Grid, GridItem } from './Grid';
 export type { GridProps, GridItemProps } from './Grid';
+export { default as Header } from './Header';
+export { default as Footer } from './Footer';

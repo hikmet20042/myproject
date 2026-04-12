@@ -3,6 +3,7 @@ import { getServerSession } from '@/lib/auth/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { isAdmin } from '@/lib/auth/permissions';
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { NotificationService } from '@/features/notifications/services/notificationService'
 
 type OrganizationProfileRow = {
   account_id: string;
@@ -215,17 +216,18 @@ export async function PUT(request: NextRequest) {
       ? `Təbriklər! "${updatedOrganization.organization_name}" təşkilatınız təsdiqləndi. İndi bütün təşkilat funksiyalarına çıxışınız var.`
       : `Təşkilat qeydiyyatınız nəzərdən keçirildi. Səbəb: ${rejectionReasonText}`;
 
-    await supabase.from('notifications').insert({
-      organization_id: updatedOrganization.account_id,
+    await NotificationService.createNotification({
+      organizationId: updatedOrganization.account_id,
       type: action === 'approve' ? 'organization_approved' : 'organization_rejected',
       title: notificationTitle,
       message: notificationMessage,
-      data: { 
+      data: {
         action,
         organizationName: updatedOrganization.organization_name,
-          ...(action === 'reject' && { rejectionReason: rejectionReasonText })
+        ...(action === 'reject' && { rejectionReason: rejectionReasonText })
       },
-    });
+      actionUrl: '/profile',
+    })
 
     return successResponse({ 
       message: `Organization ${action}d successfully`,
@@ -315,17 +317,18 @@ export async function PATCH(request: NextRequest) {
         ? `Təbriklər! "${organization.organization_name}" təşkilatınız təsdiqləndi. İndi bütün təşkilat funksiyalarına çıxışınız var.`
         : `Təşkilat qeydiyyatınız nəzərdən keçirildi. Səbəb: ${rejectionReasonText}`;
 
-      await supabase.from('notifications').insert({
-        organization_id: organization.account_id,
+      await NotificationService.createNotification({
+        organizationId: organization.account_id,
         type: action === 'approve' ? 'organization_approved' : 'organization_rejected',
         title: notificationTitle,
         message: notificationMessage,
-        data: { 
+        data: {
           action,
           organizationName: organization.organization_name,
           ...(action === 'reject' && { rejectionReason: rejectionReasonText })
         },
-      });
+        actionUrl: '/profile',
+      })
     }
 
     return successResponse({ 

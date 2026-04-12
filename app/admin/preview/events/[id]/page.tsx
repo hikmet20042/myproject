@@ -85,7 +85,7 @@ interface Event { _id: string
         headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify({ action: 'approve' }) })
 
-      if (response.ok) { router.push(localePath("/admin?tab=events")) } else { setError('Təsdiqləmə alınmadı') } } catch (error) { setError('Təsdiqləmə xətası') } finally { setActionLoading(false) } }
+      if (response.ok) { router.push(localePath("/admin/events")) } else { setError('Təsdiqləmə alınmadı') } } catch (error) { setError('Təsdiqləmə xətası') } finally { setActionLoading(false) } }
 
   const handleReject = async () => { if (!params?.id) return
     
@@ -98,7 +98,7 @@ interface Event { _id: string
         body: JSON.stringify({ action: 'reject',
           adminComment }) })
 
-      if (response.ok) { router.push(localePath("/admin?tab=events")) } else { setError('Rədd etmək alınmadı') } } catch (error) { setError('Rədd xətası') } finally { setActionLoading(false)
+      if (response.ok) { router.push(localePath("/admin/events")) } else { setError('Rədd etmək alınmadı') } } catch (error) { setError('Rədd xətası') } finally { setActionLoading(false)
       setShowRejectModal(false) } }
 
   const formatEventType = (type: string) => {
@@ -154,7 +154,7 @@ interface Event { _id: string
         title={'Tapılmadı'}
         message={error || 'Axtardığınız tədbir mövcud deyil.'}
         retryText={'Adminə Qayıt'}
-        onRetry={() => router.push(localePath("/admin"))}
+        onRetry={() => router.push(localePath("/admin/events"))}
       />
     ) }
 
@@ -167,7 +167,7 @@ interface Event { _id: string
         {/* Header */}
         <div className="mb-8">
           <Button
-            onClick={() => router.push(localePath("/admin?tab=events"))}
+            onClick={() => router.push(localePath("/admin/events"))}
             variant="ghost"
             size="sm"
             className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4"

@@ -17,7 +17,7 @@ import { useLocalizedPath } from "@/hooks/useLocalizedPath";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
-import type { EventItem } from "@/features/events/components/types";
+import type { EventItem } from "@/features/events/types/items";
 import { prefetchEventDetail } from "@/lib/eventQueries";
 
 interface EventRowProps {

@@ -8,7 +8,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "analyze:architecture": "node scripts/analyze-architecture.mjs",
+    "lint:architecture": "node scripts/check-architecture.mjs",
     "check:ui-patterns": "node scripts/check-ui-patterns.mjs",
+    "lint:system": "npm run lint && npm run check:ui-patterns && npm run lint:architecture",
+    "hooks:install": "node scripts/install-git-hooks.mjs",
+    "precommit": "npm run lint:system",
     "postbuild": "next-sitemap"
   },
   "dependencies": {

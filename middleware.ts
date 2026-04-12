@@ -85,6 +85,8 @@ async function checkAuthorization(pathWithoutLanguage: string, pathname: string,
       pathWithoutLanguage.startsWith('/edit/blog') ||
       pathWithoutLanguage.startsWith('/dashboard') ||
       pathWithoutLanguage.startsWith('/profile') ||
+      pathWithoutLanguage.startsWith('/saved') ||
+      pathWithoutLanguage.startsWith('/notifications') ||
       pathWithoutLanguage.startsWith('/organization') ||
       pathWithoutLanguage.startsWith('/admin') ||
       pathWithoutLanguage.startsWith('/onboarding'))

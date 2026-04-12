@@ -8,7 +8,7 @@ interface PageHeaderProps {
 
 export default function PageHeader({ title, description, actions }: PageHeaderProps) {
   return (
-    <header className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm">
+    <header className="ui-radius-xl border border-gray-200 bg-white p-5 sm:p-6 ui-shadow-sm">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-black text-gray-900 sm:text-3xl">{title}</h1>

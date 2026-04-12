@@ -49,7 +49,8 @@ export default function AdminVacancyPreview() {
     try { const response = await fetch(`/api/vacancies/${params.id}`)
       if (!response.ok) { throw new Error('Vakansiyanı yükləmək alınmadı') }
       const data = await response.json()
-      setVacancy(data.vacancy) } catch (err) { setError('Vakansiyanı yükləmək alınmadı') } finally { setLoading(false) } }, [params?.id])
+      const payload = data?.data || data
+      setVacancy(payload.vacancy) } catch (err) { setError('Vakansiyanı yükləmək alınmadı') } finally { setLoading(false) } }, [params?.id])
 
   useEffect(() => { fetchVacancy() }, [fetchVacancy])
 
@@ -60,7 +61,7 @@ export default function AdminVacancyPreview() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'approve' }) })
 
-      if (response.ok) { router.push(localePath('/admin')) } else { setError('Vakansiyanı təsdiqləmək alınmadı') } } catch (err) { setError('Vakansiyanı təsdiqləmək alınmadı') } finally { setActionLoading(false) } }
+      if (response.ok) { router.push(localePath('/admin/vacancies')) } else { setError('Vakansiyanı təsdiqləmək alınmadı') } } catch (err) { setError('Vakansiyanı təsdiqləmək alınmadı') } finally { setActionLoading(false) } }
 
   const handleReject = async () => { if (!params?.id) return
     if (!adminComment.trim()) { setError('Rədd səbəbi tələb olunur')
@@ -71,7 +72,7 @@ export default function AdminVacancyPreview() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'reject', rejectionReason: adminComment.trim() }) })
 
-      if (response.ok) { router.push(localePath('/admin')) } else { setError('Vakansiyanı rədd etmək alınmadı') } } catch (err) { setError('Vakansiyanı rədd etmək alınmadı') } finally { setActionLoading(false)
+      if (response.ok) { router.push(localePath('/admin/vacancies')) } else { setError('Vakansiyanı rədd etmək alınmadı') } } catch (err) { setError('Vakansiyanı rədd etmək alınmadı') } finally { setActionLoading(false)
       setShowRejectModal(false) } }
 
   const getStatusBadge = (statusValue?: string) => { if (statusValue === 'approved') { return (
@@ -104,7 +105,7 @@ export default function AdminVacancyPreview() {
         title={'Vakansiya tapılmadı'}
         message={error || 'Axtardığınız vakansiya mövcud deyil.'}
         retryText={'Adminə Qayıt'}
-        onRetry={() => router.push(localePath('/admin'))}
+        onRetry={() => router.push(localePath('/admin/vacancies'))}
       />
     ) }
 
@@ -118,7 +119,7 @@ export default function AdminVacancyPreview() {
       <div className="absolute left-1/2 top-16 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-200/30 blur-3xl" />
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Button
-          onClick={() => router.push(localePath('/admin'))}
+          onClick={() => router.push(localePath('/admin/vacancies'))}
           variant="ghost"
           size="sm"
           className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4"

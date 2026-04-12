@@ -1,5 +1,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
+const DEBUG_AUTH = process.env.DEBUG_AUTH_LOGS === 'true'
+
 export type AppSessionUser = {
   id: string
   email: string | null
@@ -41,7 +43,7 @@ export async function getServerSession() {
       .eq('account_id', user.id)
       .maybeSingle()
 
-    if (!organizationProfile) {
+    if (DEBUG_AUTH && !organizationProfile) {
       console.warn(`Missing organization_profiles row for account_id=${user.id}`)
     }
 
@@ -55,7 +57,7 @@ export async function getServerSession() {
         ? moderationStatus
         : null
 
-    if (process.env.NODE_ENV === 'development') {
+    if (DEBUG_AUTH) {
       console.debug('[auth][server] authority', {
         id: user.id,
         role,
@@ -84,7 +86,7 @@ export async function getServerSession() {
     .eq('id', user.id)
     .maybeSingle()
 
-  if (process.env.NODE_ENV === 'development') {
+  if (DEBUG_AUTH) {
     console.debug('[auth][server] authority', {
       id: user.id,
       role,

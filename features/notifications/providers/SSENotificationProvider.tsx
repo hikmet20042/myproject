@@ -3,6 +3,8 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { useSession } from '@/lib/auth/client'
 
+const DEBUG_REALTIME = process.env.NEXT_PUBLIC_DEBUG_LOGS === 'true'
+
 interface SSENotification {
   _id: string
   title: string
@@ -59,7 +61,9 @@ export function SSENotificationProvider({ children }: { children: React.ReactNod
         eventSourceRef.current = eventSource
 
         eventSource.onopen = () => {
-          console.log('✅ SSE connected for real-time notifications')
+          if (DEBUG_REALTIME) {
+            console.log('SSE connected for real-time notifications')
+          }
           setIsConnected(true)
         }
 
@@ -68,9 +72,13 @@ export function SSENotificationProvider({ children }: { children: React.ReactNod
             const data = JSON.parse(event.data)
             
             if (data.type === 'connected') {
-              console.log('SSE connection established:', data.userId)
+              if (DEBUG_REALTIME) {
+                console.log('SSE connection established:', data.userId)
+              }
             } else if (data.type === 'notification') {
-              console.log('📬 New notification received via SSE:', data.notification)
+              if (DEBUG_REALTIME) {
+                console.log('New notification received via SSE:', data.notification)
+              }
               setLastNotification(data.notification)
               
               // Show browser notification
@@ -83,23 +91,31 @@ export function SSENotificationProvider({ children }: { children: React.ReactNod
               }
             }
           } catch (error) {
-            console.error('Error parsing SSE message:', error)
+            if (DEBUG_REALTIME) {
+              console.error('Error parsing SSE message:', error)
+            }
           }
         }
 
         eventSource.onerror = (error) => {
-          console.error('SSE connection error:', error)
+          if (DEBUG_REALTIME) {
+            console.error('SSE connection error:', error)
+          }
           setIsConnected(false)
           eventSource.close()
           
           // Attempt to reconnect after 5 seconds
           reconnectTimeoutRef.current = setTimeout(() => {
-            console.log('🔄 Attempting to reconnect SSE...')
+            if (DEBUG_REALTIME) {
+              console.log('Attempting to reconnect SSE...')
+            }
             connectSSE()
           }, 5000)
         }
       } catch (error) {
-        console.error('Failed to create SSE connection:', error)
+        if (DEBUG_REALTIME) {
+          console.error('Failed to create SSE connection:', error)
+        }
       }
     }
 
