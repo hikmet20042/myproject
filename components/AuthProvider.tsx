@@ -220,7 +220,7 @@ export default function AuthProvider({ children }: AuthProviderProps) {
           organizationStatus: snapshot.organizationStatus,
           emailVerified: !!user.email_confirmed_at,
           // Keep these for compatibility if they are used elsewhere
-          name: user.user_metadata?.name ?? user.email?.split('@')[0] ?? 'User',
+          name: user.user_metadata?.name || user.user_metadata?.full_name || user.user_metadata?.display_name || user.email?.split('@')[0] || 'User',
           isActive: snapshot.isActive,
         },
       }
@@ -263,10 +263,17 @@ export default function AuthProvider({ children }: AuthProviderProps) {
 
       if (event === 'SIGNED_IN') {
         hasRedirectedRef.current = false
+        // Clear account cache on sign-in to ensure fresh account type
+        accountSnapshotRef.current.clear()
+        // Force account refresh on sign-in to get latest account_type
+        void syncAuth(`auth:${event}`, authSession?.user ?? null, { forceAccountRefresh: true })
+        return
       }
 
       if (event === 'SIGNED_OUT') {
         hasRedirectedRef.current = false
+        // Clear account cache on sign-out
+        accountSnapshotRef.current.clear()
       }
 
       // Avoid extra profile/account roundtrips for token refresh churn.

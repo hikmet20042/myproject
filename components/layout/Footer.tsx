@@ -72,7 +72,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link 
-                  href={localePath('/submit/blog/step1')} 
+                  href={localePath('/submit/blog')} 
                   className="text-sm font-medium text-gray-600 transition-colors duration-200 hover:text-blue-700"
                 >
                   {'Təcrübə Paylaş'}

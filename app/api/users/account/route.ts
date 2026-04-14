@@ -78,8 +78,9 @@ export async function DELETE(request: NextRequest) {
       return errorResponse('Authentication required', 'API_ERROR', {}, 401)
     }
 
-    if (isApprovedOrganization(session)) {
-      return errorResponse('Organization accounts must be removed from organization settings', 'API_ERROR', {}, 400)
+    // Block ALL organizations - account deletion is for regular users only
+    if (session.user.accountType === 'organization') {
+      return errorResponse('Organization accounts must be deleted through organization settings', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403);
     }
 
     const body = await request.json().catch(() => ({}))
@@ -131,17 +132,60 @@ export async function DELETE(request: NextRequest) {
     const supabase = createSupabaseAdminClient()
     const userId = session.user.id
 
-    // Best-effort cleanup of user-owned records to avoid relation errors.
-    await Promise.allSettled([
-      supabase.from('user_profiles').delete().eq('user_id', userId),
-      supabase.from('blogs').delete().eq('author_id', userId),
-      supabase.from('notifications').delete().eq('user_id', userId),
-      supabase.from('content_saves').delete().eq('user_id', userId),
-      supabase.from('image_blobs').delete().eq('uploaded_by', userId),
-    ])
+    // Comprehensive cleanup of ALL user-related data
+    // Execute in order to respect foreign key constraints
+    
+    // 1. Delete user's reactions (likes/dislikes) on blogs
+    await supabase.from('blog_reactions').delete().eq('user_id', userId)
 
+    // 2. Delete user's saved content (bookmarks)
+    await supabase.from('content_saves').delete().eq('user_id', userId)
+
+    // 3. Delete user's organization follows
+    await supabase.from('organization_followers').delete().eq('user_id', userId)
+
+    // 4. Delete user's notifications
+    await supabase.from('notifications').delete().eq('user_id', userId)
+
+    // 5. Delete user's uploaded images (and their blob data)
+    await supabase.from('image_blobs').delete().eq('uploaded_by', userId)
+
+    // 6. Delete user's blogs and their related data
+    const { data: userBlogs } = await supabase
+      .from('blogs')
+      .select('id')
+      .eq('author_id', userId)
+    
+    if (userBlogs && userBlogs.length > 0) {
+      const blogIds = userBlogs.map(b => b.id)
+      
+      // Delete reactions and views on user's own blogs
+      await supabase.from('blog_reactions').delete().in('blog_id', blogIds)
+      await supabase.from('blog_views').delete().in('blog_id', blogIds)
+      
+      // Delete saves of user's blogs by other users
+      await supabase.from('content_saves').delete().in('content_id', blogIds).eq('content_type', 'blog')
+      
+      // Delete the blogs themselves
+      await supabase.from('blogs').delete().eq('author_id', userId)
+    }
+
+    // 7. Delete user's profile (extended data)
+    await supabase.from('user_profiles').delete().eq('user_id', userId)
+
+    // 8. Delete user's events (if any)
+    await supabase.from('events').delete().eq('created_by', userId)
+
+    // 9. Delete user's vacancies (if any)
+    await supabase.from('vacancies').delete().eq('created_by', userId)
+
+    // 10. Delete user's materials (if any)
+    await supabase.from('materials').delete().eq('created_by', userId)
+
+    // 11. Finally, delete the user's auth account (this cascades to accounts table)
     const { error: deleteError } = await supabase.auth.admin.deleteUser(userId)
     if (deleteError) {
+      console.error('Failed to delete auth user:', deleteError)
       return errorResponse(deleteError.message || 'Failed to delete account', 'API_ERROR', {}, 500)
     }
 

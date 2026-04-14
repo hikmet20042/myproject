@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/auth/client'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { FormLayout } from '@/components/forms'
-import { Button } from '@/components/ui'
+import { Button, Input } from '@/components/ui'
 import { LoadingState } from '@/components/shared'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 
@@ -17,6 +17,8 @@ export default function OnboardingUserPage() {
   const { data: session, status } = useSession()
   const { showError, showSuccess } = useGlobalFeedback()
   const [selectedInterests, setSelectedInterests] = useState<string[]>([])
+  const [name, setName] = useState('')
+  const [needsName, setNeedsName] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
@@ -26,7 +28,12 @@ export default function OnboardingUserPage() {
       return
     }
     if (session.user.accountType === 'user') {
-      router.replace(localePath('/'))
+      // Check if the user's name looks like an email prefix (has no spaces, or contains @)
+      const currentName = session.user.name || ''
+      const looksIncomplete = !currentName || !currentName.includes(' ') || currentName.includes('@')
+      setNeedsName(looksIncomplete)
+      if (looksIncomplete) setName('')
+      else router.replace(localePath('/'))
     }
   }, [status, session, router, localePath])
 
@@ -44,6 +51,10 @@ export default function OnboardingUserPage() {
   }
 
   const handleSubmit = async () => {
+    if (needsName && !name.trim()) {
+      showError('Zəhmət olmasa adınızı daxil edin.')
+      return
+    }
     if (selectedInterests.length < 1) {
       showError('Ən azı 1 maraq sahəsi seçin.')
       return
@@ -54,14 +65,17 @@ export default function OnboardingUserPage() {
       const response = await fetch('/api/onboarding/user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ interests: selectedInterests }),
+        body: JSON.stringify({
+          interests: selectedInterests,
+          ...(needsName && name.trim() ? { name: name.trim() } : {}),
+        }),
       })
       const data = await response.json()
       if (!response.ok) {
         showError(data?.error || 'Saxlama alınmadı')
         return
       }
-      showSuccess('Profil maraqları yadda saxlanıldı.')
+      showSuccess('Profil uğurla tamamlandı.')
       router.push(localePath('/'))
     } catch {
       showError('Xəta baş verdi. Zəhmət olmasa yenidən cəhd edin.')
@@ -72,10 +86,25 @@ export default function OnboardingUserPage() {
 
   return (
     <FormLayout
-      title="Maraq sahələrinizi seçin"
-      subtitle="Təcrübəni fərdiləşdirmək üçün ən azı 1 sahə seçin (maksimum 5)."
+      title={needsName ? 'Profilinizi tamamlayın' : 'Maraq sahələrinizi seçin'}
+      subtitle={needsName
+        ? 'Adınızı daxil edin və maraq sahələrinizi seçin.'
+        : 'Təcrübəni fərdiləşdirmək üçün ən azı 1 sahə seçin (maksimum 5).'}
     >
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+        {needsName && (
+          <div className="mb-6">
+            <Input
+              label="Adınız"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Ad və Soyad"
+              required
+            />
+          </div>
+        )}
+
+        <h3 className="text-base font-bold text-gray-900 mb-3">Maraq sahələri</h3>
         <div className="flex flex-wrap gap-3">
           {INTEREST_OPTIONS.map((interest) => {
             const active = selectedInterests.includes(interest)
@@ -92,8 +121,8 @@ export default function OnboardingUserPage() {
               >
                 {interest}
               </button>
-            )
-          })}
+            )}
+          )}
         </div>
 
         <div className="mt-6 flex items-center justify-between">

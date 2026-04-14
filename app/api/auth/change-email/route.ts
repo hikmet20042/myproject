@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { checkRateLimit, getRequestIp } from '@/lib/security/rateLimit'
+import { NotificationService } from '@/features/notifications/services/notificationService'
 
 type ProviderInfo = {
   providers: string[]
@@ -153,6 +154,13 @@ export async function POST(request: NextRequest) {
 
     if (updateError) {
       return errorResponse(updateError.message || 'E-poçt dəyişdirilə bilmədi', 'API_ERROR', {}, 400)
+    }
+
+    // Send email change notification
+    try {
+      await NotificationService.notifyEmailChangeInitiated(authData.user.id, authData.user.email || '', newEmail)
+    } catch (notificationError) {
+      console.error('Failed to send email change notification:', notificationError)
     }
 
     return successResponse({

@@ -21,6 +21,7 @@ import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { blogQueryKeys, fetchBlogs } from '@/lib/blogQueries'
 import { fetchOrganizations } from '@/lib/organizationQueries'
 import { LoadingState, ErrorState, EmptyState, ResourceCard } from '@/components/shared'
+import BlogCard from '@/features/blogs/components/BlogCard'
 import { HomeSectionLayout } from '@/components/layout'
 import { logError } from '@/lib/logger'
 
@@ -29,6 +30,7 @@ import { logError } from '@/lib/logger'
 
 
 interface Event { _id: string
+  slug: string
   title: string
   eventType: string
   eventDate: string
@@ -37,6 +39,7 @@ interface Event { _id: string
   organizationName?: string }
 
 interface Vacancy { _id: string
+  slug: string
   title: string
   createdBy?: { _id: string
     name: string
@@ -47,13 +50,17 @@ interface Vacancy { _id: string
   applicationDeadline: string }
 
 interface Blog { _id: string
+  slug: string
   title: string
   authorName: string
   createdAt: string
   tags: string[]
-  content: any }
+  content: any
+  excerpt?: string
+  status?: string }
 
 interface Organization { _id: string
+  slug: string
   organizationName: string
   focusAreas: string[]
   location?: { city?: string } }
@@ -95,11 +102,14 @@ export default function HomePage() {
     .filter((blog: any) => blog.status === 'approved')
     .map((blog: any) => ({
       _id: blog._id || blog.id,
+      slug: blog.slug,
       title: blog.title,
       authorName: blog.authorName || blog.author_name || 'Anonim',
       createdAt: blog.createdAt || blog.created_at || new Date().toISOString(),
       tags: blog.tags || [],
-      content: blog.content
+      content: blog.content,
+      excerpt: blog.excerpt,
+      status: blog.status
     }))
 
   useEffect(() => { setMounted(true)
@@ -182,7 +192,7 @@ export default function HomePage() {
       id: item._id,
       type: 'vacancy',
       title: item.title,
-      href: `/resources/vacancies/${item._id}`,
+      href: `/resources/vacancies/${item.slug}`,
       metaOne: item.createdBy?.name || 'Naməlum',
       metaTwo: item.location?.city || item.location?.country || 'Naməlum',
       badge: item.type || 'vakansiya',
@@ -191,7 +201,7 @@ export default function HomePage() {
       id: item._id,
       type: 'event',
       title: item.title,
-      href: `/resources/events/${item._id}`,
+      href: `/resources/events/${item.slug}`,
       metaOne: item.organizationName || 'Naməlum',
       metaTwo: item.location?.type === 'online' ? 'Onlayn' : item.location?.city || 'Məlumat yoxdur',
       badge: item.eventType || 'tədbir',
@@ -262,7 +272,7 @@ export default function HomePage() {
                 <ArrowRight size={16} />
               </Link>
               <Link
-                href={localePath('/submit/blog/step1')}
+                href={localePath('/submit/blog')}
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-6 py-3 text-gray-800 font-semibold hover:bg-gray-50 transition-colors"
               >
                 <MessageSquare size={18} />
@@ -349,7 +359,7 @@ export default function HomePage() {
                 <ResourceCard
                   key={loading ? idx : item._id}
                   type="vacancy"
-                  href={loading ? undefined : `/resources/vacancies/${item._id}`}
+                  href={loading ? undefined : `/resources/vacancies/${item.slug}`}
                   title={loading ? 'Yüklənir...' : item.title}
                   badges={loading ? [] : [{ label: item.type, variant: 'info' }]}
                   icon={
@@ -402,7 +412,7 @@ export default function HomePage() {
                 <ResourceCard
                   key={loading ? idx : item._id}
                   type="event"
-                  href={loading ? undefined : `/resources/events/${item._id}`}
+                  href={loading ? undefined : `/resources/events/${item.slug}`}
                   title={loading ? 'Yüklənir...' : item.title}
                   badges={loading ? [] : [{ label: item.eventType, variant: 'success' }]}
                   icon={
@@ -460,35 +470,44 @@ export default function HomePage() {
                   />
                 </div>
               ) : (
-                (homepageBlogsQuery.isLoading ? Array.from({ length: 6 }) : blogs).map((item: any, idx) => (
-                  <ResourceCard
-                    key={homepageBlogsQuery.isLoading ? idx : item._id}
-                    type="blog"
-                    href={homepageBlogsQuery.isLoading ? undefined : `/blogs/${item._id}`}
-                    title={homepageBlogsQuery.isLoading ? 'Yüklənir...' : item.title}
-                    description={homepageBlogsQuery.isLoading ? undefined : extractExcerpt(item.content)}
-                    badges={homepageBlogsQuery.isLoading ? [] : (item.tags || []).slice(0, 2).map((tag: string) => ({ label: `#${tag}`, variant: 'secondary' as const }))}
-                    icon={
-                      <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <BookOpen className="w-5 h-5 text-primary" />
+                (homepageBlogsQuery.isLoading ? Array.from({ length: 6 }) : blogs).map((item: any, idx) => {
+                  if (homepageBlogsQuery.isLoading) {
+                    return (
+                      <div key={idx} className="animate-pulse">
+                        <div className="rounded-2xl border border-gray-200 bg-white p-6 h-64">
+                          <div className="flex items-start gap-4 mb-4">
+                            <div className="w-14 h-14 rounded-xl bg-gray-200" />
+                            <div className="flex-1 space-y-2">
+                              <div className="h-5 bg-gray-200 rounded w-3/4" />
+                              <div className="h-4 bg-gray-200 rounded w-1/2" />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="h-4 bg-gray-200 rounded" />
+                            <div className="h-4 bg-gray-200 rounded w-5/6" />
+                          </div>
+                        </div>
                       </div>
-                    }
-                    metadata={
-                      homepageBlogsQuery.isLoading ? (
-                        <div className="space-y-2 animate-pulse">
-                          <div className="h-4 w-24 bg-gray-200 rounded" />
-                          <div className="h-4 w-1/2 bg-gray-200 rounded" />
-                        </div>
-                      ) : (
-                        <div className="flex justify-between text-xs text-gray-500">
-                          <span className="font-medium">{item.authorName}</span>
-                          <span>{formatDate(item.createdAt)}</span>
-                        </div>
-                      )
-                    }
-                    actionText={homepageBlogsQuery.isLoading ? undefined : 'Bloqu oxu'}
-                  />
-                ))
+                    )
+                  }
+
+                  return (
+                    <BlogCard
+                      key={item._id}
+                      blog={{
+                        id: item._id,
+                        slug: item.slug,
+                        title: item.title,
+                        authorName: item.authorName,
+                        authorAvatar: item.authorAvatar,
+                        date: item.createdAt,
+                        excerpt: item.excerpt || extractExcerpt(item.content),
+                        content: item.content,
+                        status: item.status
+                      }}
+                    />
+                  )
+                })
               )}
             </div>
       </HomeSectionLayout>
@@ -498,7 +517,7 @@ export default function HomePage() {
         title={<>{'Tərəfdaş'} <span className="text-primary">{'Təşkilatlar'}</span></>}
         description={'icma360 qeydiyyatında olan təşkilatlarla tanış ol.'}
         ctaLabel={'Tərəfdaşlar'}
-        ctaHref={localePath('/resources/organizations')}
+        ctaHref={localePath('/o')}
         sectionClassName="py-16 md:py-20 bg-slate-50/60"
         emphasis="neutral"
       >
@@ -520,7 +539,7 @@ export default function HomePage() {
                 <ResourceCard
                   key={loading ? idx : item._id}
                   type="organization"
-                  href={loading ? undefined : `/resources/organizations/${item._id}`}
+                  href={loading ? undefined : `/o/${item.slug}`}
                   title={loading ? 'Yüklənir...' : item.organizationName}
                   badges={loading ? [] : (item.focusAreas || []).slice(0, 3).map((area: string) => ({ label: translateFocusArea(area), variant: 'secondary' as const }))}
                   icon={
@@ -560,7 +579,7 @@ export default function HomePage() {
               {'Böyük bir şəbəkənin parçası ol! Öz hekayəni paylaş, aktiv fürsətləri ilk sən tap və təşkilatlarla tanış ol.'}
             </p>
             <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <Link href={localePath('/submit/blog/step1')} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-white font-semibold hover:bg-blue-700 transition-colors">
+              <Link href={localePath('/submit/blog')} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-white font-semibold hover:bg-blue-700 transition-colors">
                 <BookOpen size={18} /> {'Bloqunu Paylaşın'}
               </Link>
               <Link href={localePath('/resources')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-6 py-3 text-gray-800 font-semibold hover:bg-gray-50 transition-colors">

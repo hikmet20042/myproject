@@ -17,7 +17,7 @@ async function fetchDynamicPaths() {
 
     const { data: vacancies, error: vacanciesError } = await supabase
       .from('vacancies')
-      .select('id')
+      .select('slug')
       .eq('status', 'approved')
       .limit(1000)
 
@@ -25,7 +25,7 @@ async function fetchDynamicPaths() {
 
     const { data: events, error: eventsError } = await supabase
       .from('events')
-      .select('id')
+      .select('slug')
       .eq('status', 'approved')
       .limit(1000)
 
@@ -33,7 +33,7 @@ async function fetchDynamicPaths() {
 
     const { data: blogs, error: blogsError } = await supabase
       .from('blogs')
-      .select('id')
+      .select('slug')
       .eq('status', 'approved')
       .limit(1000)
 
@@ -41,7 +41,7 @@ async function fetchDynamicPaths() {
 
     const { data: organizations, error: organizationsError } = await supabase
       .from('organization_profiles')
-      .select('account_id')
+      .select('slug')
       .eq('moderation_status', 'approved')
       .limit(1000)
 
@@ -90,7 +90,7 @@ module.exports = {
     const staticPages = [
       { url: '/', priority: 1.0, changefreq: 'daily' },
       { url: '/resources', priority: 0.9, changefreq: 'daily' },
-      { url: '/resources/organizations', priority: 0.8, changefreq: 'weekly' },
+      { url: '/o', priority: 0.8, changefreq: 'weekly' },
       { url: '/blogs', priority: 0.8, changefreq: 'daily' },
       { url: '/about', priority: 0.7, changefreq: 'weekly' },
     ]
@@ -104,22 +104,22 @@ module.exports = {
     
     // Add vacancies (high priority for job listings)
     vacancies.forEach(vacancy => {
-      paths.push(config.transform(config, `/resources/vacancies/${vacancy.id}`, 0.9, 'daily'))
+      paths.push(config.transform(config, `/resources/vacancies/${vacancy.slug}`, 0.9, 'daily'))
     })
-    
+
     // Add events
     events.forEach(event => {
-      paths.push(config.transform(config, `/resources/events/${event.id}`, 0.8, 'daily'))
+      paths.push(config.transform(config, `/resources/events/${event.slug}`, 0.8, 'daily'))
     })
-    
+
     // Add blogs
     blogs.forEach(blog => {
-      paths.push(config.transform(config, `/blogs/${blog.id}`, 0.7, 'weekly'))
+      paths.push(config.transform(config, `/blogs/${blog.slug}`, 0.7, 'weekly'))
     })
-    
+
     // Add organizations
     organizations.forEach(organization => {
-      paths.push(config.transform(config, `/resources/organizations/${organization.account_id}`, 0.7, 'weekly'))
+      paths.push(config.transform(config, `/o/${organization.slug}`, 0.7, 'weekly'))
     })
     
     return paths

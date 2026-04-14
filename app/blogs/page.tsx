@@ -15,8 +15,11 @@ import { logError } from '@/lib/logger'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 
 interface CommunityBlog { id: number;
+  slug: string;
   title: string;
   authorName: string;
+  authorId?: string | null;
+  authorUrlHandle?: string | null;
   date: string;
   excerpt: string;
   content: any; // Can be string or BlockNote array
@@ -70,8 +73,11 @@ export default function CommunityBlogs() {
     .filter((blog: any) => blog.status === 'approved')
     .map((blog: any) => ({
       id: blog._id || blog.id,
+      slug: blog.slug,
       title: blog.title,
       authorName: blog.authorName || blog.author_name || 'Anonim',
+      authorId: blog.author_id || blog.authorId || null,
+      authorUrlHandle: blog.authorUrlHandle || blog.author_url_handle || null,
       date: blog.createdAt || blog.created_at || blog.submittedAt || blog.date || new Date().toISOString(),
       excerpt: blog.excerpt || generateExcerpt(blog.content),
       content: blog.content,
@@ -94,7 +100,7 @@ export default function CommunityBlogs() {
       icon={Sparkles}
       headerActions={
         <>
-          <ButtonLink href={localePath('/submit/blog/step1')} variant="secondary" size="lg" hoverEffect="scale">
+          <ButtonLink href={localePath('/submit/blog')} variant="secondary" size="lg" hoverEffect="scale">
             {'Bloq Paylaş'}
           </ButtonLink>
           <ButtonLink href={localePath('/resources')} variant="outline" size="lg" hoverEffect="scale">
@@ -212,7 +218,7 @@ export default function CommunityBlogs() {
 
             <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
               <ButtonLink
-                href={localePath('/submit/blog/step1')}
+                href={localePath('/submit/blog')}
                 variant="secondary"
                 size="lg"
                 icon={Sparkles}

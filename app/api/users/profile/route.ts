@@ -70,9 +70,9 @@ export async function GET(request: NextRequest) {
     console.log('Profile GET - Session is admin:', isAdmin(session));
     console.log('Profile GET - Is Organization:', isApprovedOrganization(session));
 
-    // Check if user is organization - if so, redirect to organization-specific profile endpoint
-    if (isApprovedOrganization(session)) {
-      return errorResponse('Organization profiles should use /api/organizations/me endpoint', "API_ERROR", {}, 400);
+    // Block ALL organizations - /profile routes are for regular users only
+    if (session.user.accountType === 'organization') {
+      return errorResponse('Organization accounts cannot access user profile endpoints. Use /api/organizations/me instead.', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403);
     }
 
     // Handle regular users
@@ -91,6 +91,13 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .single();
 
+    // Get url_handle from accounts
+    const { data: account } = await supabase
+      .from('accounts')
+      .select('url_handle')
+      .eq('id', user.id)
+      .single();
+
     return successResponse({
       user: {
         id: user.id,
@@ -99,10 +106,11 @@ export async function GET(request: NextRequest) {
         image: profile?.avatar || null,
         role: user.role,
         emailVerified: Boolean(session.user.emailVerified),
-        createdAt: user.created_at
+        createdAt: user.created_at,
+        urlHandle: account?.url_handle || null,
       },
       profile: profile || null,
-      isOrganization: false
+      isOrganization: false,
     });
   } catch (error) {
     console.error('Profile fetch error:', error);
@@ -120,13 +128,13 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
 
-    // Reject organization profile updates - they should use organization-specific endpoints
-    if (isApprovedOrganization(session)) {
-      return errorResponse('Organization profiles should use /api/organizations/me endpoint', "API_ERROR", {}, 400);
+    // Block ALL organizations - /profile routes are for regular users only
+    if (session.user.accountType === 'organization') {
+      return errorResponse('Organization accounts cannot access user profile endpoints. Use /api/organizations/me instead.', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403);
     }
 
     // Handle regular user profile updates
-    const { name, bio, location, website, phone, dateOfBirth, gender, occupation, organization, interests, avatar, socialLinks, socialMedia } = body;
+    const { name, bio, location, website, phone, dateOfBirth, gender, occupation, organization, interests, avatar, socialLinks, socialMedia, urlHandle } = body;
 
     // Update user basic info
     if (name) {
@@ -134,6 +142,22 @@ export async function PUT(request: NextRequest) {
         .from('users')
         .update({ name, updated_at: new Date().toISOString() })
         .eq('id', session.user.id);
+    }
+
+    // Update URL handle on accounts if provided
+    if (urlHandle !== undefined) {
+      const normalizedHandle = urlHandle === '' ? null : String(urlHandle).toLowerCase().trim()
+      const { error: handleError } = await supabase
+        .from('accounts')
+        .update({ url_handle: normalizedHandle, updated_at: new Date().toISOString() })
+        .eq('id', session.user.id)
+      if (handleError) {
+        const msg = handleError.message || ''
+        if (msg.includes('reserved') || msg.includes('Handle') || msg.includes('duplicate')) {
+          return errorResponse(msg, 'HANDLE_UNAVAILABLE', {}, 400)
+        }
+        return errorResponse('Failed to update handle', 'HANDLE_UPDATE_FAILED', {}, 500)
+      }
     }
 
     // Handle avatar - extract blob ID if it's a blob URL

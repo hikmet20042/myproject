@@ -16,6 +16,11 @@ const APPROVED_ORGANIZATION_ONLY_PREFIXES = [
   '/dashboard',
 ]
 
+// Regular users should NOT access these organization-only routes
+const ORGANIZATION_ONLY_PREFIXES = [
+  '/dashboard',
+]
+
 function shouldExcludePath(pathname: string): boolean {
   return excludedPaths.some(path => pathname.startsWith(path))
 }
@@ -156,10 +161,29 @@ async function checkAuthorization(pathWithoutLanguage: string, pathname: string,
           }
         }
       }
+
+      // Regular-user-only routes: block organizations and redirect to dashboard
+      const REGULAR_USER_ONLY_PREFIXES = ['/profile', '/submit/blog']
+      const isRegularUserOnlyRoute = REGULAR_USER_ONLY_PREFIXES.some(prefix =>
+        pathWithoutLanguage.startsWith(prefix)
+      )
+
+      if (isRegularUserOnlyRoute && accountType === 'organization') {
+        return NextResponse.redirect(new URL('/dashboard', req.url))
+      }
+
+      // Organization-only routes: block regular users and redirect to home
+      const isOrganizationOnlyRoute = ORGANIZATION_ONLY_PREFIXES.some(prefix =>
+        pathWithoutLanguage.startsWith(prefix)
+      )
+
+      if (isOrganizationOnlyRoute && accountType === 'user') {
+        return NextResponse.redirect(new URL('/', req.url))
+      }
     }
 
   }
-  
+
   return null
 }
 

@@ -31,22 +31,40 @@ function formatRelativeTime(dateString: string) {
 function getNotificationTypeLabel(type: string) {
   const typeKey = type.toUpperCase().replace("-", "_");
   const typeLabels: Record<string, string> = {
+    WELCOME: "Xoş gəlmisiniz",
+    PASSWORD_CHANGED: "Parol dəyişdirildi",
+    EMAIL_CHANGE_INITIATED: "E-poçt dəyişdirilir",
+    EMAIL_CONFIRMED: "E-poçt təsdiqləndi",
     NEW_RELEVANT_ITEM: "Yeni uyğun imkan",
     SAVED_ITEM_UPDATE: "Saxlanılan imkan yeniliyi",
     SYSTEM: "Sistem bildirişi",
     BLOG_LIKE: "Bloq Bəyənməsi",
     BLOG_DISLIKE: "Bloq Bəyənməməsi",
+    BLOG_APPROVED: "Blog Təsdiqləndi",
+    BLOG_REJECTED: "Blog Rədd Edildi",
+    EVENT_APPROVED: "Tədbir Təsdiqləndi",
+    EVENT_REJECTED: "Tədbir Rədd Edildi",
+    VACANCY_APPROVED: "Vakansiya Təsdiqləndi",
+    VACANCY_REJECTED: "Vakansiya Rədd Edildi",
     COMMENT_ADDED: "Yeni Şərh",
     COMMENT_REPLY: "Şərhə Cavab",
     COMMENT_LIKE: "Şərh Bəyənməsi",
     COMMENT_DISLIKE: "Şərh Bəyənməməsi",
     EVENT_DEADLINE: "Tədbir Son Tarixi",
-    EVENT_UPDATED: "Tədbir Yeniləməsi",
     VACANCY_DEADLINE: "Vakansiya Son Tarixi",
+    EVENT_UPDATED: "Tədbir Yeniləməsi",
     VACANCY_UPDATED: "Vakansiya Yeniləməsi",
+    ORGANIZATION_NEW_EVENT: "Yeni Tədbir",
+    ORGANIZATION_NEW_VACANCY: "Yeni Vakansiya",
+    ORGANIZATION_FOLLOWED: "Yeni İzləyici",
+    ORGANIZATION_UNFOLLOWED: "İzləyici Silindi",
+    BLOG_SAVED: "Blog Saxlanıldı",
+    EVENT_SAVED: "Tədbir Saxlanıldı",
+    VACANCY_SAVED: "Vakansiya Saxlanıldı",
     SYSTEM_ANNOUNCEMENT: "Sistem Elanı",
+    ADMIN_ACTION_REQUIRED: "Admin Əməliyyatı",
   };
-  return typeLabels[typeKey] || type.replace("_", " ").toUpperCase();
+  return typeLabels[typeKey] || type.replace(/[_-]/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
 function getNotificationTypeColor(type: string) {
@@ -56,13 +74,38 @@ function getNotificationTypeColor(type: string) {
     case "comment_reply":
     case "comment_like":
     case "comment_dislike":
+    case "organization_followed":
+    case "organization_unfollowed":
+    case "blog_saved":
+    case "event_saved":
+    case "vacancy_saved":
       return "text-blue-700";
     case "event_deadline":
+    case "vacancy_deadline":
       return "text-amber-700";
-    case "NEW_RELEVANT_ITEM":
-    case "new_relevant_item":
+    case "welcome":
+    case "email_confirmed":
       return "text-emerald-700";
-    case "SYSTEM":
+    case "password_changed":
+      return "text-green-700";
+    case "email_change_initiated":
+      return "text-cyan-700";
+    case "blog_approved":
+    case "event_approved":
+    case "vacancy_approved":
+      return "text-emerald-700";
+    case "blog_rejected":
+    case "event_rejected":
+    case "vacancy_rejected":
+      return "text-rose-700";
+    case "organization_new_event":
+    case "organization_new_vacancy":
+      return "text-violet-700";
+    case "new_relevant_item":
+      return "text-teal-700";
+    case "admin_action_required":
+      return "text-orange-700";
+    case "system_announcement":
     case "system":
       return "text-slate-700";
     default:

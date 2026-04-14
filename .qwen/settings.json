@@ -4,7 +4,14 @@
       "WebSearch",
       "WebFetch(mailtrap.io)",
       "Bash(curl *)",
-      "Bash(rm *)"
+      "Bash(rm *)",
+      "Bash(npm run *)",
+      "Bash(npm *)",
+      "Bash(node *)",
+      "Bash(npx *)",
+      "Bash(mv *)",
+      "Bash(mkdir *)",
+      "Bash(grep *)"
     ]
   },
   "$version": 3

@@ -339,7 +339,7 @@ export function getContentCanonicalURL(
     vacancy: `/resources/vacancies/${id}`,
     event: `/resources/events/${id}`,
     blog: `/blogs/${id}`,
-    organization: `/resources/organizations/${id}`,
+    organization: `/o/${id}`,
     material: `/resources/materials/${id}`,
   }
 

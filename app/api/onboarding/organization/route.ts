@@ -28,6 +28,22 @@ export async function POST(request: NextRequest) {
 
     const supabase = createSupabaseAdminClient()
 
+    // Ensure the user's name is set (fall back to org name if missing)
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('name')
+      .eq('id', session.user.id)
+      .single()
+
+    const currentName = existingUser?.name || ''
+    const nameLooksIncomplete = !currentName || !currentName.includes(' ') || currentName.includes('@')
+    if (nameLooksIncomplete) {
+      await supabase
+        .from('users')
+        .update({ name: organizationName, updated_at: new Date().toISOString() })
+        .eq('id', session.user.id)
+    }
+
     const { error: accountError } = await supabase
       .from('accounts')
       .update({

@@ -1,5 +1,6 @@
 export interface EventItem {
   _id: string;
+  slug: string;
   title: string;
   description: string;
   eventDate: string;

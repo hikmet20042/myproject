@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useSession, signOut } from '@/lib/auth/client'
 import { canAccessAdmin, canAccessDashboard, isOrganization } from '@/lib/auth/permissions'
 import { Menu, X, User, ChevronDown, ArrowRight, Bookmark } from 'lucide-react'
@@ -24,6 +25,27 @@ export default function Header() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
   const { unreadCount } = useNotificationContext()
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  // Fetch user avatar on mount
+  const fetchAvatar = useCallback(async () => {
+    if (!session?.user?.id) return;
+    try {
+      const response = await fetch('/api/profile/image');
+      if (response.ok) {
+        const data = await response.json();
+        setAvatarUrl(data?.data?.url || data?.data?.profileImage?.url || null);
+      }
+    } catch (error) {
+      console.error('Failed to fetch avatar:', error);
+    }
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      void fetchAvatar();
+    }
+  }, [session?.user?.id, fetchAvatar]);
 
   // Navigation items with translations
   const navigation: NavigationItem[] = [
@@ -34,7 +56,7 @@ export default function Header() {
       href: localePath('/resources'),
       dropdown: [
         { name: 'Bütün Resurslar', href: localePath('/resources') },
-        { name: 'Təşkilatlar', href: localePath('/resources/organizations') },
+        { name: 'Təşkilatlar', href: localePath('/o'), },
         { name: 'Tədbirlər', href: localePath('/resources/events') },
         { name: 'Vakansiyalar', href: localePath('/resources/vacancies') },
         { name: 'Materiallar', href: localePath('/resources/materials') }
@@ -127,8 +149,12 @@ export default function Header() {
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-gray-800 hover:bg-slate-100 transition-colors duration-200 border border-blue-100 whitespace-nowrap"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-md">
-                    {session.user?.name?.charAt(0).toUpperCase() || <User className="h-4 w-4" />}
+                  <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm shadow-md">
+                    {avatarUrl ? (
+                      <Image src={avatarUrl} alt="Avatar" fill className="object-cover" />
+                    ) : (
+                      session.user?.name?.charAt(0).toUpperCase() || <User className="h-4 w-4" />
+                    )}
                   </div>
                   <span className="max-w-[120px] truncate text-gray-800 font-semibold">{session.user?.name || 'İstifadəçi'}</span>
                   <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} />
@@ -283,8 +309,12 @@ export default function Header() {
                   ) : session ? (
                     <div className="space-y-2">
                       <div className="flex items-center gap-3 px-4 py-4 mb-4 bg-slate-50 rounded-lg border border-blue-100">
-                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-md">
-                          {session.user?.name?.charAt(0).toUpperCase()}
+                        <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-md">
+                          {avatarUrl ? (
+                            <Image src={avatarUrl} alt="Avatar" fill className="object-cover" />
+                          ) : (
+                            session.user?.name?.charAt(0).toUpperCase()
+                          )}
                         </div>
                         <div>
                           <p className="text-sm font-bold text-gray-900">{session.user?.name}</p>

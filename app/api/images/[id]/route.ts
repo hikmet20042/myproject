@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { isAdmin } from '@/lib/auth/permissions'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,13 +22,39 @@ function byteaToBuffer(value: unknown): Buffer | null {
   return null;
 }
 
+async function isImageReferencedByApprovedContent(supabase: any, imageId: string): Promise<boolean> {
+  // Check if image is referenced as featured_image in an approved blog
+  const { data: blogCount } = await supabase
+    .from('blogs')
+    .select('id', { count: 'exact', head: true })
+    .eq('featured_image_blob_id', imageId)
+    .eq('status', 'approved');
+  if (blogCount && blogCount > 0) return true;
+
+  // Check if image is referenced in blog media (JSONB)
+  const { data: blogMedia } = await supabase
+    .from('blogs')
+    .select('media')
+    .eq('status', 'approved');
+  if (blogMedia) {
+    for (const row of blogMedia) {
+      if (row.media && Array.isArray(row.media)) {
+        if (row.media.some((m: any) => m.blobId === imageId || m.blob_id === imageId)) return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createSupabaseAdminClient();
+    const session = await getServerSession();
 
+    const supabase = createSupabaseAdminClient();
     const { id } = params;
 
     if (!id) {
@@ -39,8 +67,17 @@ export async function GET(
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error || !imageBlob) {
+      return NextResponse.json({ error: 'Image not found' }, { status: 404 });
+    }
+
+    // Authorization: allow if the user uploaded it, or if it's referenced by approved content
+    const isOwner = session?.user?.id && imageBlob.uploaded_by === session.user.id;
+    const isAdminUser = isAdmin(session);
+    const isPublic = await isImageReferencedByApprovedContent(supabase, id);
+
+    if (!isOwner && !isAdminUser && !isPublic) {
       return NextResponse.json({ error: 'Image not found' }, { status: 404 });
     }
 
@@ -106,6 +143,7 @@ export async function HEAD(
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession();
     const supabase = createSupabaseAdminClient();
 
     const { id } = params;
@@ -116,11 +154,20 @@ export async function HEAD(
 
     const { data: imageBlob, error } = await supabase
       .from('image_blobs')
-      .select('id, original_name, mimetype, content_type, size, uploaded_at, created_at')
+      .select('id, original_name, mimetype, content_type, size, uploaded_by, uploaded_at, created_at')
       .eq('id', id)
       .single();
-    
+
     if (error || !imageBlob) {
+      return new NextResponse(null, { status: 404 });
+    }
+
+    // Same auth check as GET
+    const isOwner = session?.user?.id && imageBlob.uploaded_by === session.user.id;
+    const isAdminUser = isAdmin(session);
+    const isPublic = await isImageReferencedByApprovedContent(supabase, id);
+
+    if (!isOwner && !isAdminUser && !isPublic) {
       return new NextResponse(null, { status: 404 });
     }
 

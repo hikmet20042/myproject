@@ -128,7 +128,8 @@ class CloudinaryService {
   }
 
   /**
-   * Upload blog image with optimizations
+   * Upload blog content image with optimizations for modern web standards
+   * Max 1200x1200, quality 80, auto format (WebP/AVIF)
    */
   async uploadBlogImage(
     buffer: Buffer,
@@ -138,8 +139,8 @@ class CloudinaryService {
       folder: 'blogs',
       public_id: filename ? `blog_${filename.split('.')[0]}` : undefined,
       transformation: [
-        { width: 1600, height: 1200, crop: 'limit' },
-        { quality: 'auto:good' },
+        { width: 1200, height: 1200, crop: 'limit' },
+        { quality: 80 },
         { fetch_format: 'auto' },
       ],
       tags: ['blog', 'content'],

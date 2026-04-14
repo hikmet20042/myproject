@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { checkRateLimit, getRequestIp } from '@/lib/security/rateLimit'
+import { NotificationService } from '@/features/notifications/services/notificationService'
 
 const CHANGE_PASSWORD_LIMIT = 10
 const CHANGE_PASSWORD_WINDOW_MS = 15 * 60 * 1000
@@ -69,6 +70,13 @@ export async function POST(request: NextRequest) {
 
     if (updateError) {
       return errorResponse(updateError.message, "API_ERROR", {}, 500)
+    }
+
+    // Send password changed notification
+    try {
+      await NotificationService.notifyPasswordChanged(authData.user.id)
+    } catch (notificationError) {
+      console.error('Failed to send password change notification:', notificationError)
     }
 
     return successResponse({ message: 'Password changed successfully' }, {}, 200)

@@ -18,6 +18,7 @@ import { logError } from '@/lib/logger';
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback';
 
 interface Event { _id: string
+  slug: string
   title: string
   description: string
   category: string
@@ -39,6 +40,7 @@ interface Event { _id: string
     name: string }
   createdByOrganization?: { _id?: string
     id?: string
+    slug?: string
     organizationName?: string }
   organizationName?: string
   isApproved: boolean
@@ -331,7 +333,7 @@ export default function EventsPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredData.map((event) => { const organizationName = event.organizationName || event.createdByOrganization?.organizationName || event.createdBy?.name || 'Naməlum';
-                    const organizationId = event.createdByOrganization?.id || event.createdByOrganization?._id;
+                    const organizationSlug = event.createdByOrganization?.urlHandle || event.createdByOrganization?.slug;
                     const hasDeadline = event.applicationDeadline;
                     const deadlinePassed = hasDeadline ? isDeadlinePassed(event.applicationDeadline!) : false;
                     const deadlineNear = hasDeadline ? isDeadlineNear(event.applicationDeadline!) : false;
@@ -366,8 +368,8 @@ export default function EventsPage() {
                             </div>
                             <div className="flex items-center gap-2 text-sm">
                               <Users className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                              {organizationId ? (
-                                <Link href={localePath(`/organizations/${organizationId}`)} className="text-gray-700 font-medium truncate hover:text-primary">
+                              {organizationSlug ? (
+                                <Link href={localePath(`/o/${organizationSlug}`)} className="text-gray-700 font-medium truncate hover:text-primary">
                                   {organizationName}
                                 </Link>
                               ) : (
@@ -411,7 +413,7 @@ export default function EventsPage() {
                               )}
                             </div>
                             <div className="flex gap-2">
-                              <ButtonLink href={localePath(`/resources/events/${event._id}`)} variant="secondary" size="sm" className="flex-1" shadow="sm" hoverEffect="scale">
+                              <ButtonLink href={localePath(`/resources/events/${event.slug}`)} variant="secondary" size="sm" className="flex-1" shadow="sm" hoverEffect="scale">
                                 {'Ətraflı bax'}
                               </ButtonLink>
                             </div>

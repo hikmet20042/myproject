@@ -16,10 +16,12 @@ const isContentType = (value: string): value is ContentType => value in CONTENT_
 
 async function assertContentExists(supabase: any, contentType: ContentType, contentId: string) {
   const tableName = CONTENT_TABLE_BY_TYPE[contentType]
+  // Only consider approved content as "existing" to prevent leaking unpublished content IDs
   const { data, error } = await supabase
     .from(tableName)
     .select('id')
     .eq('id', contentId)
+    .eq('status', 'approved')
     .maybeSingle()
   if (error) throw error
   return Boolean(data?.id)
@@ -129,8 +131,6 @@ export async function POST(
             contentType,
             contentId,
             contentTitle: ownerData.title,
-            savedById: actorId,
-            savedByName: session.user.name,
           })
         }
       } catch (notificationError) {

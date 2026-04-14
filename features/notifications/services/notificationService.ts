@@ -277,7 +277,7 @@ export class NotificationService {
     const message = userType === 'organization'
       ? 'Təşkilat qeydiyyatınız üçün təşəkkür edirik. Təşkilat funksiyalarına daxil olmaq üçün e-poçtunuzu təsdiqləyin və admin təsdiqini gözləyin.'
       : 'İcmamıza qoşulduğunuz üçün təşəkkür edirik. Başlamaq üçün e-poçtunuzu təsdiqləyin.'
-    
+
     return this.createNotification({
       userId,
       type: 'welcome',
@@ -285,6 +285,48 @@ export class NotificationService {
       message,
       actionUrl: '/profile',
       data: { userType }
+    })
+  }
+
+  /**
+   * Notify user about password change
+   */
+  static async notifyPasswordChanged(userId: string) {
+    return this.createNotification({
+      userId,
+      type: 'password_changed',
+      title: 'Parol dəyişdirildi',
+      message: 'Hesabınızın parolu uğurla yeniləndi.',
+      actionUrl: '/profile/settings',
+      data: {}
+    })
+  }
+
+  /**
+   * Notify user about email change initiation
+   */
+  static async notifyEmailChangeInitiated(userId: string, oldEmail: string, newEmail: string) {
+    return this.createNotification({
+      userId,
+      type: 'email_change_initiated',
+      title: 'E-poçt dəyişdirilir',
+      message: `E-poçt ünvanınızı ${oldEmail} → ${newEmail} olaraq dəyişmək üçün təsdiq linki göndərildi. Yeni e-poçtunuzu yoxlayın.`,
+      actionUrl: '/profile/settings',
+      data: { oldEmail, newEmail }
+    })
+  }
+
+  /**
+   * Notify user about email confirmation
+   */
+  static async notifyEmailConfirmed(userId: string, email: string) {
+    return this.createNotification({
+      userId,
+      type: 'email_confirmed',
+      title: 'E-poçt təsdiqləndi',
+      message: `E-poçt ünvanınız (${email}) uğurla təsdiqləndi. İndi bütün funksiyalardan istifadə edə bilərsiniz.`,
+      actionUrl: '/profile',
+      data: { email }
     })
   }
 
@@ -297,6 +339,7 @@ export class NotificationService {
       const sevenDaysFromNow = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
       const supabase = createSupabaseAdminClient()
 
+      // Check events
       const { data: saveRows } = await supabase
         .from('content_saves')
         .select('user_id, content_id')
@@ -352,8 +395,8 @@ export class NotificationService {
           await this.createNotification({
             userId: userId,
             type: 'event_deadline',
-            title: 'Event deadline approaching',
-            message: `The application deadline for "${event.title}" is in ${daysUntilDeadline} day${daysUntilDeadline > 1 ? 's' : ''}`,
+            title: 'Tədbir müraciət son tarixi yaxınlaşır',
+            message: `"${event.title}" tədbiri üçün müraciət son tarixi ${daysUntilDeadline} gün içindədir`,
             actionUrl: `/resources/events/${event.id}`,
             data: {
               eventId: event.id,
@@ -365,9 +408,78 @@ export class NotificationService {
         }
       }
 
+      // Check vacancies
+      const { data: vacancySaveRows } = await supabase
+        .from('content_saves')
+        .select('user_id, content_id')
+        .eq('content_type', 'vacancy')
+
+      const vacancySavesByUser = new Map<string, string[]>()
+      for (const row of vacancySaveRows || []) {
+        const userId = row.user_id as string | undefined
+        const vacancyId = row.content_id as string | undefined
+        if (!userId || !vacancyId) continue
+        const list = vacancySavesByUser.get(userId) || []
+        list.push(vacancyId)
+        vacancySavesByUser.set(userId, list)
+      }
+
+      for (const [userId, savedVacancies] of Array.from(vacancySavesByUser.entries())) {
+        const { data: upcomingVacancies } = await supabase
+          .from('vacancies')
+          .select('id, title, application_deadline')
+          .in('id', savedVacancies)
+          .eq('status', 'approved')
+          .gte('application_deadline', now.toISOString())
+          .lte('application_deadline', sevenDaysFromNow.toISOString())
+
+        if (!upcomingVacancies || upcomingVacancies.length === 0) {
+          continue
+        }
+
+        const since = new Date(now.getTime() - (24 * 60 * 60 * 1000)).toISOString()
+        const { data: recentNotifications } = await supabase
+          .from('notifications')
+          .select('data')
+          .eq('user_id', userId)
+          .eq('type', 'vacancy_deadline')
+          .gte('created_at', since)
+
+        const notifiedVacancyIds = new Set(
+          (recentNotifications || [])
+            .map(notification => (notification.data as any)?.vacancyId)
+            .filter(Boolean)
+        )
+
+        for (const vacancy of upcomingVacancies) {
+          if (notifiedVacancyIds.has(vacancy.id)) {
+            continue
+          }
+
+          const deadlineDate = vacancy.application_deadline ? new Date(vacancy.application_deadline) : null
+          const daysUntilDeadline = deadlineDate
+            ? Math.ceil((deadlineDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000))
+            : 0
+
+          await this.createNotification({
+            userId: userId,
+            type: 'vacancy_deadline',
+            title: 'Vakansiya müraciət son tarixi yaxınlaşır',
+            message: `"${vacancy.title}" vakansiyası üçün müraciət son tarixi ${daysUntilDeadline} gün içərisindədir`,
+            actionUrl: `/resources/vacancies/${vacancy.id}`,
+            data: {
+              vacancyId: vacancy.id,
+              vacancyTitle: vacancy.title,
+              deadline: vacancy.application_deadline,
+              daysUntilDeadline
+            }
+          });
+        }
+      }
+
       return {
         success: true,
-        usersChecked: savesByUser.size
+        usersChecked: savesByUser.size + vacancySavesByUser.size
       };
     } catch (error) {
       console.error('Error checking event deadlines:', error);
@@ -400,7 +512,7 @@ export class NotificationService {
       const type = params.contentType === 'event' ? 'organization_new_event' : 'organization_new_vacancy'
       const title = params.contentType === 'event' ? 'New Event from Followed Organization' : 'New Vacancy from Followed Organization'
       const message = `${params.organizationName} posted: "${params.contentTitle}"`
-      const actionUrl = `/organizations/${params.organizationId}`
+      const actionUrl = `/o/${params.organizationId}`
 
       const insertPayload = followerIds.map((userId) => ({
         user_id: userId,
@@ -544,47 +656,17 @@ export class NotificationService {
   /**
    * Notify blog author about likes
    */
-  static async notifyBlogLike(blogId: string, blogTitle: string, blogAuthorId: string, likedBy: string, likedByName: string) {
+  static async notifyBlogLike(blogId: string, blogTitle: string, blogAuthorId: string) {
     return this.createNotification({
       userId: blogAuthorId,
       type: 'blog_like',
-      title: 'Blog liked',
-      message: `${likedByName} liked your blog "${blogTitle}"`,
+      title: 'Bloq bəyənildi',
+      message: `Kimsə "${blogTitle}" bloqunu bəyəndi`,
       actionUrl: `/blogs/${blogId}`,
       data: {
         blogId,
         title: blogTitle,
         blogTitle,
-        actor: {
-          id: likedBy,
-          name: likedByName
-        },
-        likedBy,
-        likedByName
-      }
-    });
-  }
-
-  /**
-   * Notify blog author about dislikes
-   */
-  static async notifyBlogDislike(blogId: string, blogTitle: string, blogAuthorId: string, dislikedBy: string, dislikedByName: string) {
-    return this.createNotification({
-      userId: blogAuthorId,
-      type: 'blog_dislike',
-      title: 'Blog disliked',
-      message: `${dislikedByName} disliked your blog "${blogTitle}"`,
-      actionUrl: `/blogs/${blogId}`,
-      data: {
-        blogId,
-        title: blogTitle,
-        blogTitle,
-        actor: {
-          id: dislikedBy,
-          name: dislikedByName
-        },
-        dislikedBy,
-        dislikedByName
       }
     });
   }
@@ -596,26 +678,21 @@ export class NotificationService {
     followerName?: string | null
     action: 'follow' | 'unfollow'
   }) {
-    const actorName = params.followerName?.trim() || 'Someone'
     const orgName = params.organizationName?.trim() || 'your organization'
     const isFollow = params.action === 'follow'
 
     return this.createNotification({
       organizationId: params.organizationId,
       type: isFollow ? 'organization_followed' : 'organization_unfollowed',
-      title: isFollow ? 'New follower' : 'Follower removed',
+      title: isFollow ? 'Yeni izləyici' : 'İzləyici silindi',
       message: isFollow
-        ? `${actorName} started following ${orgName}.`
-        : `${actorName} unfollowed ${orgName}.`,
+        ? `Kimsə ${orgName} təşkilatını izləməyə başladı.`
+        : `Kimsə ${orgName} təşkilatını izləməyi dayandırdı.`,
       actionUrl: '/profile',
       data: {
         organizationId: params.organizationId,
         organizationName: params.organizationName,
         action: params.action,
-        actor: {
-          id: params.followerId,
-          name: actorName,
-        },
       },
     })
   }
@@ -626,10 +703,7 @@ export class NotificationService {
     contentType: 'blog' | 'event' | 'vacancy'
     contentId: string
     contentTitle: string
-    savedById: string
-    savedByName?: string | null
   }) {
-    const actorName = params.savedByName?.trim() || 'Someone'
     const type = `${params.contentType}_saved`
     const actionUrl =
       params.contentType === 'blog'
@@ -638,21 +712,23 @@ export class NotificationService {
           ? `/resources/events/${params.contentId}`
           : `/resources/vacancies/${params.contentId}`
 
+    const typeLabels = {
+      blog: 'bloqunu',
+      event: 'tədbirini',
+      vacancy: 'vakansiyasını',
+    }
+
     return this.createNotification({
       userId: params.recipientUserId,
       organizationId: params.recipientOrganizationId,
       type,
-      title: 'Content saved',
-      message: `${actorName} saved your ${params.contentType} "${params.contentTitle}".`,
+      title: 'Məzmun saxlanıldı',
+      message: `Kimsə sizin "${params.contentTitle}" ${typeLabels[params.contentType]} saxladı.`,
       actionUrl,
       data: {
         contentType: params.contentType,
         contentId: params.contentId,
         contentTitle: params.contentTitle,
-        actor: {
-          id: params.savedById,
-          name: actorName,
-        },
       },
     })
   }

@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from("events")
-      .select("*, created_by (id, name, email), created_by_organization (id, organization_name, email), approved_by (id, name)", {
+      .select("*, created_by (id, name, email), created_by_organization (id, organization_name, url_handle), approved_by (id, name)", {
         count: "exact",
       })
       .order(orderField, { ascending })
@@ -137,9 +137,38 @@ export async function GET(request: NextRequest) {
     }
 
     const events = (eventRows || []).map(mapEventToResponse);
+    
+    // Fetch organization names for events created by organizations
+    const orgIds = eventRows
+      .filter((e: any) => e.created_by_organization)
+      .map((e: any) => e.created_by_organization.id)
+    
+    let orgNames: any[] = []
+    if (orgIds.length > 0) {
+      const { data: orgData } = await supabase
+        .from('organization_profiles')
+        .select('account_id, organization_name, email')
+        .in('account_id', orgIds)
+      orgNames = orgData || []
+    }
+    
+    // Merge organization names into events
+    const eventsWithOrgNames = events.map((event: any) => {
+      if (!event.createdByOrganization) return event
+      const orgProfile = orgNames.find((o: any) => o.account_id === event.createdByOrganization.id)
+      return {
+        ...event,
+        createdByOrganization: {
+          ...event.createdByOrganization,
+          organizationName: orgProfile?.organization_name || 'Unknown organization',
+          email: orgProfile?.email || event.createdByOrganization.email || null,
+        }
+      }
+    })
+    
     const total = count || 0;
     const payload: Record<string, any> = {
-      events,
+      events: eventsWithOrgNames,
       pagination: {
         page,
         limit,

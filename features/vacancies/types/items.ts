@@ -1,5 +1,6 @@
 export interface VacancyItem {
   _id: string;
+  slug: string;
   title: string;
   description: string;
   type: "job" | "volunteer" | "internship";

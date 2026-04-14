@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { KeyRound, Mail, Pencil, Save, Trash2, Upload, UserRound, XCircle } from "lucide-react";
+import { AlertCircle, Check, KeyRound, Link, Loader2, Mail, Pencil, Save, Trash2, Upload, UserRound, XCircle } from "lucide-react";
 import { useSession } from "@/lib/auth/client";
 import { useLocalizedPath } from "@/hooks/useLocalizedPath";
 import { Button } from "@/components/ui/Button";
@@ -13,6 +13,7 @@ import { PageHeader, SectionCard } from "@/features/profile/components/ui";
 import { getUserErrorMessage } from "@/lib/errorMessages";
 import { signInWithOAuth, signOut } from "@/lib/auth/client";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
+import { ImageCropper } from "@/components/shared";
 
 type ProfileFormState = {
   name: string;
@@ -23,6 +24,7 @@ type ProfileFormState = {
   occupation: string;
   interests: string;
   avatar: string;
+  urlHandle: string;
   socialMedia: {
     facebook: string;
     linkedin: string;
@@ -31,6 +33,146 @@ type ProfileFormState = {
     youtube: string;
   };
 };
+
+type UrlHandleSectionProps = {
+  currentHandle: string;
+  onChange: (handle: string) => void;
+  onSave: () => Promise<boolean>;
+  previewUrl: string;
+};
+
+function UrlHandleSection({ currentHandle, onChange, onSave, previewUrl }: UrlHandleSectionProps) {
+  const [editing, setEditing] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [available, setAvailable] = useState<boolean | null>(null);
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [localHandle, setLocalHandle] = useState(currentHandle);
+
+  useEffect(() => {
+    setLocalHandle(currentHandle);
+  }, [currentHandle]);
+
+  const checkAvailability = async (handle: string) => {
+    if (!handle || handle.length < 3) {
+      setAvailable(null);
+      setReason("");
+      return;
+    }
+    setChecking(true);
+    try {
+      const res = await fetch(`/api/handles/check?handle=${encodeURIComponent(handle)}`);
+      const json = await res.json();
+      setAvailable(json.data?.available ?? false);
+      setReason(json.data?.reason || "");
+    } catch {
+      setAvailable(null);
+      setReason("");
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const handleChange = (value: string) => {
+    const normalized = value.toLowerCase().replace(/[^a-z0-9_-]/g, "");
+    setLocalHandle(normalized);
+    onChange(normalized);
+    setAvailable(null);
+    setReason("");
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    const ok = await onSave();
+    setSaving(false);
+    if (ok) setEditing(false);
+  };
+
+  if (!editing) {
+    return (
+      <SectionCard
+        title="Profil keçidi"
+        description="İctimai profilinizə xüsusi URL seçin."
+        actions={
+          <Button variant="outline" onClick={() => setEditing(true)}>
+            <Pencil className="w-4 h-4 mr-2" />
+            Redaktə et
+          </Button>
+        }
+      >
+        <div className="flex items-center gap-2 text-sm">
+          <Link className="w-4 h-4 text-gray-500" />
+          {currentHandle ? (
+            <span className="text-gray-900">
+              <code className="bg-gray-100 px-2 py-0.5 rounded text-sm">/u/{currentHandle}</code>
+            </span>
+          ) : (
+            <span className="text-gray-400">Keçid təyin edilməyib</span>
+          )}
+        </div>
+      </SectionCard>
+    );
+  }
+
+  const isValid = localHandle.length >= 3 && localHandle.length <= 50 && /^[a-z0-9][a-z0-9_-]*[a-z0-9]$|^[a-z0-9]$/.test(localHandle);
+  const isDirty = localHandle !== currentHandle;
+
+  return (
+    <SectionCard
+      title="Profil keçidi"
+      description="İctimai profilinizə xüsusi URL seçin. Bu, digər istifadəçilərin sizi asanlıqla tapmasını təmin edir."
+      actions={
+        <>
+          <Button variant="outline" onClick={() => { setLocalHandle(currentHandle); setEditing(false); setAvailable(null); setReason(""); }} disabled={saving}>
+            Ləğv et
+          </Button>
+          <Button variant="primary" onClick={handleSave} loading={saving} disabled={saving || !isDirty || !isValid || checking || available === false}>
+            <Save className="w-4 h-4 mr-2" />
+            Yadda saxla
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Keçid</label>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-500 text-sm flex-shrink-0">/u/</span>
+            <input
+              type="text"
+              value={localHandle}
+              onChange={(e) => handleChange(e.target.value)}
+              onBlur={() => localHandle.length >= 3 && checkAvailability(localHandle)}
+              placeholder="istifadəçi-adı"
+              className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-400 text-sm"
+              maxLength={50}
+            />
+            {checking && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
+            {!checking && available === true && <Check className="w-4 h-4 text-green-500" />}
+            {!checking && available === false && <AlertCircle className="w-4 h-4 text-red-500" />}
+          </div>
+        </div>
+
+        {reason && (
+          <p className="text-sm text-red-600 flex items-center gap-1.5">
+            <AlertCircle className="w-3.5 h-3.5" />
+            {reason}
+          </p>
+        )}
+
+        {localHandle && isValid && previewUrl && (
+          <p className="text-sm text-gray-500">
+            Profilinizə keçid: <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">{previewUrl}</code>
+          </p>
+        )}
+
+        {!localHandle && (
+          <p className="text-sm text-gray-500">Boş buraxılsanız, standart profil URL-i istifadə olunacaq.</p>
+        )}
+      </div>
+    </SectionCard>
+  );
+}
 
 export default function ProfileSettingsPage() {
   const { data: session } = useSession();
@@ -84,6 +226,8 @@ export default function ProfileSettingsPage() {
     confirmText: "",
     currentPassword: "",
   });
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [pendingImage, setPendingImage] = useState<File | string | null>(null);
   const [form, setForm] = useState<ProfileFormState>({
     name: "",
     bio: "",
@@ -93,6 +237,7 @@ export default function ProfileSettingsPage() {
     occupation: "",
     interests: "",
     avatar: "",
+    urlHandle: "",
     socialMedia: {
       facebook: "",
       linkedin: "",
@@ -150,6 +295,7 @@ export default function ProfileSettingsPage() {
         occupation: payload?.profile?.occupation || "",
         interests: payload?.profile?.interests || "",
         avatar: payload?.profile?.avatar || payload?.profile?.avatarUrl || "",
+        urlHandle: payload?.user?.urlHandle || "",
         socialMedia: {
           facebook: payload?.profile?.socialMedia?.facebook || "",
           linkedin: payload?.profile?.socialMedia?.linkedin || "",
@@ -191,6 +337,22 @@ export default function ProfileSettingsPage() {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleFileSelect = (file: File) => {
+    setPendingImage(file);
+    setCropModalOpen(true);
+  };
+
+  const handleCropComplete = async (croppedFile: File) => {
+    setCropModalOpen(false);
+    setPendingImage(null);
+    await handleUpload(croppedFile);
+  };
+
+  const handleCropCancel = () => {
+    setCropModalOpen(false);
+    setPendingImage(null);
   };
 
   const handleRemoveAvatar = async () => {
@@ -604,7 +766,7 @@ export default function ProfileSettingsPage() {
                 disabled={uploading || !profileEditMode}
                 onChange={(event) => {
                   const file = event.target.files?.[0];
-                  if (file) void handleUpload(file);
+                  if (file) handleFileSelect(file);
                 }}
               />
             </label>
@@ -641,6 +803,13 @@ export default function ProfileSettingsPage() {
           )}
         </div>
       </SectionCard>
+
+      <UrlHandleSection
+        currentHandle={form.urlHandle}
+        onChange={(handle) => setForm((prev) => ({ ...prev, urlHandle: handle }))}
+        onSave={handleSave}
+        previewUrl={form.urlHandle ? `${typeof window !== 'undefined' ? window.location.origin : ''}/u/${form.urlHandle}` : ''}
+      />
 
       <SectionCard
         title="Sosial keçidlər"
@@ -933,6 +1102,15 @@ export default function ProfileSettingsPage() {
           )}
         </div>
       </Modal>
+
+      {cropModalOpen && pendingImage && (
+        <ImageCropper
+          image={pendingImage}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+          isLoading={uploading}
+        />
+      )}
     </div>
   );
 }

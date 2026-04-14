@@ -56,8 +56,8 @@ export const fetchOrganizations = async (params: OrganizationListParams = {}) =>
   };
 };
 
-export const fetchOrganizationById = async (id: string) => {
-  const endpoint = `/api/organizations/${id}`;
+export const fetchOrganizationBySlug = async (slug: string) => {
+  const endpoint = `/api/organizations/${slug}`;
   const { data } = await apiFetch<{
     organization: any;
     featuredEvent?: any;
@@ -72,6 +72,9 @@ export const fetchOrganizationById = async (id: string) => {
     featuredVacancy: data?.featuredVacancy || null,
   };
 };
+
+/** @deprecated Use fetchOrganizationBySlug instead */
+export const fetchOrganizationById = fetchOrganizationBySlug;
 
 export const fetchMyOrganization = async () => {
   const endpoint = "/api/organizations/me";

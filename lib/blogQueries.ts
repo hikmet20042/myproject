@@ -26,8 +26,8 @@ export const blogQueryKeys = {
   all: ['blogs'] as const,
   list: (params: BlogListParams = {}) => ['blogs', 'list', params] as const,
   user: ['blogs', 'user'] as const,
-  detail: (id: string) => ['blog', id] as const,
-  reactions: (id: string) => ['blog', id, 'reactions'] as const
+  detail: (slug: string) => ['blog', slug] as const,
+  reactions: (slug: string) => ['blog', slug, 'reactions'] as const
 }
 
 export const fetchBlogs = async (params: BlogListParams = {}): Promise<ListQueryResult> => {
@@ -42,10 +42,13 @@ export const fetchBlogs = async (params: BlogListParams = {}): Promise<ListQuery
   }
 }
 
-export const fetchBlogById = async (id: string) => {
-  const { data } = await apiFetch<{ blog: any }>(`/api/blogs/${id}`)
+export const fetchBlogBySlug = async (slug: string) => {
+  const { data } = await apiFetch<{ blog: any }>(`/api/blogs/${slug}`)
   return data?.blog || null
 }
+
+/** @deprecated Use fetchBlogBySlug instead */
+export const fetchBlogById = fetchBlogBySlug
 
 export const fetchUserBlogs = async (): Promise<ListQueryResult> => {
   const { data, meta } = await apiFetch<{ items: any[] }>('/api/blogs/user')
@@ -56,10 +59,10 @@ export const fetchUserBlogs = async (): Promise<ListQueryResult> => {
   }
 }
 
-export const fetchBlogReactions = async (id: string) => {
+export const fetchBlogReactions = async (slug: string) => {
   const [likeResult, dislikeResult] = await Promise.all([
-    apiFetch<{ likes?: number; hasLiked?: boolean }>(`/api/blogs/${id}/like`),
-    apiFetch<{ dislikes?: number; hasDisliked?: boolean }>(`/api/blogs/${id}/dislike`)
+    apiFetch<{ likes?: number; hasLiked?: boolean }>(`/api/blogs/${slug}/like`),
+    apiFetch<{ dislikes?: number; hasDisliked?: boolean }>(`/api/blogs/${slug}/dislike`)
   ])
   return {
     likes: likeResult.data?.likes || 0,
@@ -69,7 +72,7 @@ export const fetchBlogReactions = async (id: string) => {
   }
 }
 
-export const likeBlog = async (id: string) => {
+export const likeBlog = async (slug: string) => {
   const { data } = await apiFetch<{
     action?: string
     likes?: number
@@ -77,11 +80,11 @@ export const likeBlog = async (id: string) => {
     hasLiked?: boolean
     hasDisliked?: boolean
     engagementScore?: number
-  }>(`/api/blogs/${id}/like`, { method: 'POST' })
+  }>(`/api/blogs/${slug}/like`, { method: 'POST' })
   return data
 }
 
-export const dislikeBlog = async (id: string) => {
+export const dislikeBlog = async (slug: string) => {
   const { data } = await apiFetch<{
     action?: string
     likes?: number
@@ -89,12 +92,12 @@ export const dislikeBlog = async (id: string) => {
     hasLiked?: boolean
     hasDisliked?: boolean
     engagementScore?: number
-  }>(`/api/blogs/${id}/dislike`, { method: 'POST' })
+  }>(`/api/blogs/${slug}/dislike`, { method: 'POST' })
   return data
 }
 
-export const editBlog = async (id: string, payload: Record<string, any>) => {
-  const { data } = await apiFetch<{ blog: any }>(`/api/blogs/${id}`, {
+export const editBlog = async (slug: string, payload: Record<string, any>) => {
+  const { data } = await apiFetch<{ blog: any }>(`/api/blogs/${slug}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -102,7 +105,7 @@ export const editBlog = async (id: string, payload: Record<string, any>) => {
   return data
 }
 
-export const deleteBlog = async (id: string) => {
-  const { data } = await apiFetch<{ id?: string }>(`/api/blogs/${id}`, { method: 'DELETE' })
+export const deleteBlog = async (slug: string) => {
+  const { data } = await apiFetch<{ id?: string }>(`/api/blogs/${slug}`, { method: 'DELETE' })
   return data
 }

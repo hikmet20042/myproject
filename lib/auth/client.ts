@@ -71,5 +71,11 @@ export async function signInWithOAuth(provider: 'google', redirectTo?: string) {
 
 export async function signOut() {
   const supabase = createSupabaseBrowserClient()
+  
+  // Dispatch force refresh event before signing out to clear any cached state
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('auth:force-refresh'))
+  }
+  
   return supabase.auth.signOut()
 }

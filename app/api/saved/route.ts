@@ -121,19 +121,19 @@ export async function GET(request: NextRequest) {
       idsByType.event.length
         ? supabase
             .from('events')
-            .select('id,title,description,category,event_type,organization_name,event_date')
+            .select('id,slug,title,description,category,event_type,organization_name,event_date')
             .in('id', idsByType.event)
         : Promise.resolve({ data: [], error: null } as any),
       idsByType.vacancy.length
         ? supabase
             .from('vacancies')
-            .select('id,title,description,type,work_type,application_deadline')
+            .select('id,slug,title,description,type,work_type,application_deadline')
             .in('id', idsByType.vacancy)
         : Promise.resolve({ data: [], error: null } as any),
       idsByType.blog.length
         ? supabase
             .from('blogs')
-            .select('id,title,abstract,author_name,created_at,status')
+            .select('id,slug,title,abstract,author_name,created_at,status')
             .in('id', idsByType.blog)
         : Promise.resolve({ data: [], error: null } as any),
     ])
@@ -154,7 +154,7 @@ export async function GET(request: NextRequest) {
             createdAt: row.created_at,
             title: event.title,
             description: event.description,
-            href: `/resources/events/${event.id}`,
+            href: `/resources/events/${event.slug}`,
             metaOne: event.organization_name || event.category || '',
             metaTwo: event.event_date || '',
             badge: event.event_type || 'event',
@@ -170,7 +170,7 @@ export async function GET(request: NextRequest) {
             createdAt: row.created_at,
             title: vacancy.title,
             description: vacancy.description,
-            href: `/resources/vacancies/${vacancy.id}`,
+            href: `/resources/vacancies/${vacancy.slug}`,
             metaOne: vacancy.type || vacancy.work_type || '',
             metaTwo: vacancy.application_deadline || '',
             badge: vacancy.work_type || 'vacancy',
@@ -186,7 +186,7 @@ export async function GET(request: NextRequest) {
             createdAt: row.created_at,
             title: blog.title,
             description: blog.abstract || '',
-            href: `/blogs/${blog.id}`,
+            href: `/blogs/${blog.slug}`,
             metaOne: blog.author_name || '',
             metaTwo: blog.created_at || '',
             badge: 'blog',

@@ -64,7 +64,17 @@ export async function GET(request: NextRequest) {
     const blogsWithStats = await Promise.all(
       blogs.map(async (blog: any) => {
         const stats = await getBlogStats(supabase, blog.id, null)
-        return { ...blog, ...stats }
+        // Include author handle
+        let authorUrlHandle = null
+        if (blog.author_id) {
+          const { data: account } = await supabase
+            .from('accounts')
+            .select('url_handle')
+            .eq('id', blog.author_id)
+            .single()
+          authorUrlHandle = account?.url_handle || null
+        }
+        return { ...blog, ...stats, authorUrlHandle }
       })
     )
 
@@ -159,19 +169,21 @@ export async function POST(request: NextRequest) {
     // Process featured image
     const featuredImageBlobId = getFeaturedImageBlobId(featuredImage);
 
-    // Handle author name assignment
-    let finalAuthorName = '';
-    if (isAnonymous) {
-      finalAuthorName = 'Anonim';
-    } else if (authorName && authorName.trim()) {
-      // Use custom author name if provided
-      finalAuthorName = authorName.trim();
-    } else if (session?.user?.name) {
-      // Fall back to session user name
-      finalAuthorName = session.user.name;
-    } else {
-      finalAuthorName = 'Anonim';
+    // Handle author name assignment securely
+    // Users can only publish under their own name or anonymously - never a custom name
+    // Defensive: fetch name from DB if session doesn't have it
+    let dbUserName = session.user.name
+    if (!dbUserName) {
+      const { data: userRow } = await supabase
+        .from('users')
+        .select('name')
+        .eq('id', session.user.id)
+        .single()
+      dbUserName = userRow?.name || null
     }
+    const finalAuthorName = isAnonymous
+      ? 'Anonim'
+      : (dbUserName || 'Anonim');
 
     const storyData = {
       title: title.trim(),

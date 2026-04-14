@@ -685,7 +685,7 @@ set search_path = public
 as $$
 begin
   insert into public.accounts (id, account_type, is_admin, is_active)
-  values (new.id, 'user', false, true)
+  values (new.id, null, false, true)
   on conflict (id) do nothing;
   return new;
 end;

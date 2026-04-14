@@ -31,9 +31,11 @@ export default function ProfileLayout({ children }: { children: React.ReactNode 
       return;
     }
 
+    // /profile and all subpages are regular-user-only routes
+    // Organizations should use /dashboard/profile instead
     if (session?.user?.accountType === 'organization') {
       setIsRedirecting(true);
-      router.replace(localePath('/dashboard/profile'));
+      router.push(localePath('/dashboard/profile'));
       return;
     }
 

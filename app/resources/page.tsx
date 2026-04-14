@@ -24,7 +24,7 @@ export default function ResourcesPage() {
       type: 'organization' as const,
       title: 'Təşkilat Kataloqu',
       description: 'Gender bərabərliyi və sağ qalanlara dəstək üzərində çalışan təşkilatları kəşf edin və əlaqə saxlayın.',
-      href: '/resources/organizations',
+      href: '/o',
       icon: Users,
       tone: 'green',
     },
@@ -50,7 +50,7 @@ export default function ResourcesPage() {
 
   const quickAccessItems = [
     { href: localePath('/resources/materials'), label: 'Materiallara Bax', icon: BookOpen, variant: 'primary' as const },
-    { href: localePath('/resources/organizations'), label: 'Təşkilatları Tap', icon: Users, variant: 'outline' as const },
+    { href: localePath('/o'), label: 'Təşkilatları Tap', icon: Users, variant: 'outline' as const },
     { href: localePath('/resources/vacancies'), label: 'Vakansiyaları Tap', icon: Briefcase, variant: 'primary' as const },
     { href: localePath('/resources/events'), label: 'Yaxınlaşan Tədbirlər', icon: Calendar, variant: 'outline' as const },
   ]

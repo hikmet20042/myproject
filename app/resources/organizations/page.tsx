@@ -13,6 +13,7 @@ import { logError } from '@/lib/logger';
 import { ListPageLayout } from '@/components/layout';
 
 interface Organization { _id: string
+  slug: string
   organizationName: string
   organizationType?: string
   description: string
@@ -326,7 +327,7 @@ export default function OrganizationsPage() { const localePath = useLocalizedPat
                       </div>
                       <div className="flex gap-2">
                       <ButtonLink
-                        href={localePath(`/resources/organizations/${organization._id}`)}
+                        href={localePath(`/o/${organization.slug}`)}
                         variant="secondary"
                         size="sm"
                         hoverEffect="scale"

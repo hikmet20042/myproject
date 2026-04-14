@@ -86,6 +86,10 @@ export async function getServerSession() {
     .eq('id', user.id)
     .maybeSingle()
 
+  // Comprehensive name resolution chain for server session
+  const metadataName = user.user_metadata?.name || user.user_metadata?.full_name || user.user_metadata?.display_name
+  const resolvedName = profile?.name || metadataName || user.email?.split('@')[0] || null
+
   if (DEBUG_AUTH) {
     console.debug('[auth][server] authority', {
       id: user.id,
@@ -99,7 +103,7 @@ export async function getServerSession() {
     user: {
       id: user.id,
       email: user.email ?? null,
-      name: profile?.name ?? user.user_metadata?.name ?? null,
+      name: resolvedName,
       role,
       emailVerified: !!user.email_confirmed_at,
       accountType,

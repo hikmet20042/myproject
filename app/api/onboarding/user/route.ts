@@ -27,7 +27,11 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createSupabaseAdminClient()
-    const userName = session.user.name || session.user.email?.split('@')[0] || 'İstifadəçi'
+
+    // Use the provided name from onboarding, or fall back to existing name, then email prefix
+    const providedName = typeof body?.name === 'string' && body.name.trim() ? body.name.trim() : null
+    const fallbackName = session.user.name || session.user.email?.split('@')[0] || 'İstifadəçi'
+    const userName = providedName || fallbackName
 
     const { error: userUpsertError } = await supabase
       .from('users')

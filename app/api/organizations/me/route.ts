@@ -35,7 +35,10 @@ export async function GET(request: NextRequest) {
     }
 
     return successResponse({
-      organization: normalizeOrganizationProfile(organizationProfile),
+      organization: {
+        ...normalizeOrganizationProfile(organizationProfile),
+        urlHandle: organizationProfile.url_handle || null,
+      },
     })
   } catch (error) {
     console.error('Organization profile fetch error:', error)
@@ -103,6 +106,22 @@ export async function PUT(request: NextRequest) {
     if (hasOwn('focusAreas')) updateData.focus_areas = validation.data.focusAreas
     if (hasOwn('socialMedia')) updateData.social_links = validation.data.socialMedia
 
+    // Handle URL handle update
+    if (hasOwn('urlHandle')) {
+      const normalizedHandle = body.urlHandle === '' ? null : String(body.urlHandle).toLowerCase().trim()
+      const { error: handleError } = await supabase
+        .from('organization_profiles')
+        .update({ url_handle: normalizedHandle, updated_at: new Date().toISOString() })
+        .eq('account_id', session.user.id)
+      if (handleError) {
+        const msg = handleError.message || ''
+        if (msg.includes('reserved') || msg.includes('Handle') || msg.includes('duplicate') || msg.includes('unique')) {
+          return errorResponse(msg, 'HANDLE_UNAVAILABLE', {}, 400)
+        }
+        return errorResponse('Failed to update handle', 'HANDLE_UPDATE_FAILED', {}, 500)
+      }
+    }
+
     if (Object.keys(updateData).length === 0) {
       return successResponse({
         message: 'No organization profile changes provided',
@@ -125,7 +144,10 @@ export async function PUT(request: NextRequest) {
 
     return successResponse({
       message: 'Organization profile updated successfully',
-      organization: normalizeOrganizationProfile(updatedOrganization),
+      organization: {
+        ...normalizeOrganizationProfile(updatedOrganization),
+        urlHandle: updatedOrganization.url_handle || null,
+      },
     })
   } catch (error) {
     console.error('Organization profile update error:', error)

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { NotificationService } from '@/features/notifications/services/notificationService'
 
 type OtpType = 'signup' | 'recovery' | 'email' | 'email_change' | 'invite' | 'magiclink'
 
@@ -116,12 +117,14 @@ export async function GET(request: NextRequest) {
     .eq('id', data.user.id)
     .maybeSingle()
 
+  const isFirstTimeUser = !existingAccount
+
   if (!existingAccount) {
     await adminSupabase
       .from('accounts')
       .upsert({
         id: data.user.id,
-        account_type: provider === 'google' ? 'user' : null,
+        account_type: null, // Let onboarding flow determine the account type
         is_admin: false,
         is_active: true,
       }, { onConflict: 'id' })
@@ -160,15 +163,45 @@ export async function GET(request: NextRequest) {
     .eq('id', data.user.id)
     .maybeSingle()
 
+  const isNewUserRow = !existingUser
+
+  // Extract name from Google profile with comprehensive fallback chain
+  const metadata = data.user.user_metadata || {}
+  const googleName = metadata.name || metadata.full_name || metadata.display_name || ''
+  const emailPrefix = data.user.email ? data.user.email.split('@')[0] : 'İstifadəçi'
+  // Capitalize email prefix for better display
+  const fallbackName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1)
+
   await adminSupabase
     .from('users')
     .upsert({
       id: data.user.id,
-      name: data.user.user_metadata?.name || data.user.email,
+      name: googleName || fallbackName,
       email: data.user.email,
       role,
       auth_provider: existingUser?.auth_provider || (provider === 'google' ? 'google' : 'email'),
     }, { onConflict: 'id' })
+
+  // For Google OAuth users: automatically confirm email and send notifications on first signup
+  if (provider === 'google' && isFirstTimeUser) {
+    try {
+      // Google users are auto-confirmed by Google, so send email confirmed notification
+      await NotificationService.notifyEmailConfirmed(data.user.id, data.user.email || '')
+      // Also send welcome notification
+      await NotificationService.sendWelcomeNotification(data.user.id, 'user')
+    } catch (notificationError) {
+      console.error('Failed to send notifications for Google user:', notificationError)
+    }
+  }
+
+  // Send email confirmation notification if this was an email confirmation
+  if (otpType === 'signup' || otpType === 'email' || otpType === 'email_change') {
+    try {
+      await NotificationService.notifyEmailConfirmed(data.user.id, data.user.email || '')
+    } catch (notificationError) {
+      console.error('Failed to send email confirmation notification:', notificationError)
+    }
+  }
 
   return NextResponse.redirect(new URL(safeNext, url.origin))
 }

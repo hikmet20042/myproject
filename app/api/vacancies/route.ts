@@ -170,7 +170,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('vacancies')
       .select(
-        '*, created_by (id, name, email), created_by_organization (id, organization_name, email), approved_by (id, name)',
+        '*, created_by (id, name, email), created_by_organization (id), approved_by (id, name)',
         { count: 'exact' }
       )
       .order(orderField, { ascending })
@@ -214,6 +214,35 @@ export async function GET(request: NextRequest) {
     }
 
     const vacancies = (vacancyRows || []).map(mapVacancy)
+    
+    // Fetch organization names for vacancies created by organizations
+    const orgIds = vacancyRows
+      .filter((v: any) => v.created_by_organization)
+      .map((v: any) => v.created_by_organization.id)
+    
+    let orgNames: any[] = []
+    if (orgIds.length > 0) {
+      const { data: orgData } = await supabase
+        .from('organization_profiles')
+        .select('account_id, organization_name, email')
+        .in('account_id', orgIds)
+      orgNames = orgData || []
+    }
+    
+    // Merge organization names into vacancies
+    const vacanciesWithOrgNames = vacancies.map((vacancy: any) => {
+      if (!vacancy.createdByOrganization) return vacancy
+      const orgProfile = orgNames.find((o: any) => o.account_id === vacancy.createdByOrganization.id)
+      return {
+        ...vacancy,
+        createdByOrganization: {
+          ...vacancy.createdByOrganization,
+          organizationName: orgProfile?.organization_name || 'Unknown organization',
+          email: orgProfile?.email || vacancy.createdByOrganization.email || null,
+        }
+      }
+    })
+    
     const total = count || 0
     
     // Calculate stats for admin view
@@ -235,7 +264,7 @@ export async function GET(request: NextRequest) {
     }
     
     const response: any = {
-      vacancies,
+      vacancies: vacanciesWithOrgNames,
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / limit),
@@ -458,7 +487,7 @@ export async function POST(request: NextRequest) {
         languages: body.languages || [],
         image_url: body.imageUrl || null
       })
-      .select('*, created_by (id, name, email), created_by_organization (id, organization_name, email)')
+      .select('*, created_by (id, name, email), created_by_organization (id, organization_name, url_handle)')
       .single()
 
     if (error || !vacancyRow) {

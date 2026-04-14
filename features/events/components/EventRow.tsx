@@ -157,7 +157,7 @@ export default function EventRow({ event, onRequestDelete }: EventRowProps) {
           </div>
 
           <div className="flex items-center gap-2 lg:ml-4">
-            <Link href={localePath(`/resources/events/${event._id}`)} onMouseEnter={prefetchDetail} onFocus={prefetchDetail}>
+            <Link href={localePath(`/resources/events/${event.slug}`)} onMouseEnter={prefetchDetail} onFocus={prefetchDetail}>
               <Button
                 variant="ghost"
                 size="sm"
@@ -166,7 +166,7 @@ export default function EventRow({ event, onRequestDelete }: EventRowProps) {
                 className="rounded-xl border border-transparent hover:border-blue-200 hover:bg-blue-50"
               />
             </Link>
-            <Link href={localePath(`/dashboard/events/${event._id}/edit`)} onMouseEnter={prefetchDetail} onFocus={prefetchDetail}>
+            <Link href={localePath(`/dashboard/events/${event.slug}/edit`)} onMouseEnter={prefetchDetail} onFocus={prefetchDetail}>
               <Button
                 variant="ghost"
                 size="sm"

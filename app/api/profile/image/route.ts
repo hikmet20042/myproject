@@ -10,8 +10,9 @@ export const dynamic = 'force-dynamic';
 const IMAGE_ID_REGEX = /\/api\/images\/([0-9a-f-]{36})$/i;
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']);
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
-const MAX_IMAGE_WIDTH = 1024;
-const MAX_IMAGE_HEIGHT = 1024;
+// Profile pictures are displayed small, optimize for 400x400 max
+const MAX_IMAGE_WIDTH = 400;
+const MAX_IMAGE_HEIGHT = 400;
 
 const extractBlobIdFromUrl = (url?: string | null): string | null => {
   if (!url) return null;
@@ -74,8 +75,8 @@ const optimizeProfileImage = async (buffer: Buffer, mimeType: string) => {
       });
     }
 
-    // Convert to webp to reduce DB footprint while preserving quality.
-    const optimized = await pipeline.webp({ quality: 82, effort: 5 }).toBuffer();
+    // Convert to webp at quality 75 to reduce DB footprint while maintaining good visual quality.
+    const optimized = await pipeline.webp({ quality: 75, effort: 6 }).toBuffer();
     return {
       buffer: optimized,
       mimeType: 'image/webp',

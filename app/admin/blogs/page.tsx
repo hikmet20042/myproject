@@ -290,16 +290,16 @@ export default function BlogsAdminPage() {
                   {"tərəfindən"}{" "}
                   {blog.isAnonymous ? (
                     "Anonim"
-                  ) : author?._id ? (
+                  ) : (author as any)?.urlHandle ? (
                     <Link
-                      href={`/profile/${author._id}`}
+                      href={`/u/${(author as any).urlHandle}`}
                       className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
                       target="_blank"
                     >
                       {authorName || "Naməlum"}
                     </Link>
                   ) : (
-                    authorName || "Naməlum"
+                    <span className="font-medium text-gray-700">{authorName || "Naməlum"}</span>
                   )}
                 </span>
                 <span className="text-xs text-gray-400">

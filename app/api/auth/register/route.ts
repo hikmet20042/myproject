@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { NotificationService } from '@/features/notifications/services/notificationService'
 
 export async function POST(request: NextRequest) {
   let createdAuthUserId: string | null = null
@@ -76,6 +77,15 @@ export async function POST(request: NextRequest) {
     }
 
     createdAuthUserId = null
+
+    // Send welcome notification to the new user
+    try {
+      await NotificationService.sendWelcomeNotification(signUpData.user.id, 'user')
+    } catch (welcomeError) {
+      console.error('Failed to send welcome notification:', welcomeError)
+      // Don't fail registration if welcome notification fails
+    }
+
     return successResponse({
       message: 'Qeydiyyat uğurludur',
     })

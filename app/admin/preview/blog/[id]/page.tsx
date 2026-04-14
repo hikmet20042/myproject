@@ -129,10 +129,11 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
   
   // Handle author display - author is now populated with name, email, and _id
   const authorObject = typeof blog.author === 'object' ? blog.author : null
-  const authorDisplay = blog.isAnonymous 
+  const authorHandle = (authorObject as any)?.urlHandle || null
+  const authorDisplay = blog.isAnonymous
     ? 'Anonim'
     : (authorObject?.name || authorObject?.email || blog.authorName || 'Naməlum müəllif')
-  
+
   const authorId = authorObject?._id || null
 
   return (
@@ -196,16 +197,16 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
                 <User className="w-4 h-4 mr-1" />
                 {blog.isAnonymous ? (
                   authorDisplay
-                ) : authorId ? (
-                  <Link 
-                    href={`/profile/${authorId}`}
+                ) : authorHandle ? (
+                  <Link
+                    href={`/u/${authorHandle}`}
                     className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
                     target="_blank"
                   >
                     {authorDisplay}
                   </Link>
                 ) : (
-                  authorDisplay
+                  <span className="font-medium text-gray-700">{authorDisplay}</span>
                 )}
               </div>
               <div className="flex items-center">

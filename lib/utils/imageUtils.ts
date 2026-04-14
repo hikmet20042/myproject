@@ -1,8 +1,15 @@
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
 /**
- * Utility functions for handling image blob storage
+ * Utility functions for handling image storage (both Supabase blobs and Cloudinary)
  */
+
+/**
+ * Check if a URL is a Cloudinary URL
+ */
+export function isCloudinaryUrl(url: string): boolean {
+  return url.includes('res.cloudinary.com') || url.includes('cloudinary.com');
+}
 
 /**
  * Extract blob ID from a blob URL
@@ -11,7 +18,7 @@ export function extractBlobIdFromUrl(url: string): string | null {
   if (!url || !url.startsWith('/api/images/')) {
     return null;
   }
-  
+
   const blobId = url.replace('/api/images/', '');
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(blobId);
   return isUuid ? blobId : null;
@@ -26,18 +33,19 @@ export function blobIdToUrl(blobId: string): string {
 
 /**
  * Process content to extract and convert image references
- * This function scans BlockNote content for images and converts file URLs to blob URLs
+ * This function scans BlockNote content for images and extracts their URLs
  */
 export function processContentImages(content: any): {
   processedContent: any;
   imageReferences: Array<{
     url: string;
     blobId?: string;
+    isCloudinary?: boolean;
     alt?: string;
   }>;
 } {
-  const imageReferences: Array<{ url: string; blobId?: string; alt?: string }> = [];
-  
+  const imageReferences: Array<{ url: string; blobId?: string; isCloudinary?: boolean; alt?: string }> = [];
+
   if (!content || !Array.isArray(content)) {
     return { processedContent: content, imageReferences };
   }
@@ -47,16 +55,18 @@ export function processContentImages(content: any): {
       const url = block.props.url;
       const alt = block.props.alt || '';
       const blobId = extractBlobIdFromUrl(url);
-      
+      const isCloudinary = isCloudinaryUrl(url);
+
       imageReferences.push({
         url,
         blobId: blobId || undefined,
+        isCloudinary,
         alt
       });
-      
+
       return block; // Return as-is, URLs are already correct
     }
-    
+
     // Process nested content if it exists
     if (block.content && Array.isArray(block.content)) {
       const nestedResult = processContentImages(block.content);
@@ -66,7 +76,7 @@ export function processContentImages(content: any): {
         content: nestedResult.processedContent
       };
     }
-    
+
     return block;
   });
 
@@ -81,9 +91,10 @@ export function updateMediaWithBlobReferences(
 ): Array<{ type: string; url: string; alt?: string; blobId?: string }> {
   return media.map(item => {
     const blobId = extractBlobIdFromUrl(item.url);
+    const isCloudinary = isCloudinaryUrl(item.url);
     return {
       ...item,
-      blobId: blobId || undefined
+      blobId: isCloudinary ? undefined : (blobId || undefined)
     };
   });
 }
@@ -93,13 +104,19 @@ export function updateMediaWithBlobReferences(
  */
 export function getFeaturedImageBlobId(featuredImageUrl?: string): string | undefined {
   if (!featuredImageUrl) return undefined;
-  
+
+  // Don't try to extract blob ID from Cloudinary URLs
+  if (isCloudinaryUrl(featuredImageUrl)) {
+    return undefined;
+  }
+
   const blobId = extractBlobIdFromUrl(featuredImageUrl);
   return blobId || undefined;
 }
 
 /**
  * Validate that all blob IDs in content exist and belong to the user
+ * Skips validation for Cloudinary URLs (they are validated by Cloudinary)
  */
 export async function validateContentImages(
   content: any,
@@ -110,9 +127,11 @@ export async function validateContentImages(
   missingImages: string[];
 }> {
   const { imageReferences } = processContentImages(content);
+  
+  // Only validate Supabase blob images, skip Cloudinary URLs
   const blobIds = imageReferences
-    .map(ref => ref.blobId)
-    .filter(Boolean) as string[];
+    .filter(ref => !ref.isCloudinary && ref.blobId)
+    .map(ref => ref.blobId!) as string[];
 
   if (blobIds.length === 0) {
     return { isValid: true, invalidImages: [], missingImages: [] };
@@ -133,7 +152,7 @@ export async function validateContentImages(
 
     const existingIds = (existingImages || []).map(img => img.id);
     const missingImages = blobIds.filter(id => !existingIds.includes(id));
-    
+
     return {
       isValid: missingImages.length === 0,
       invalidImages: [], // For now, we only check ownership, not validity

@@ -53,11 +53,11 @@ export async function GET(request: NextRequest) {
       return errorResponse('Unauthorized', "API_ERROR", {}, 401);
     }
     
-    // Redirect organization users - they should use organization-specific endpoints
-    if (isApprovedOrganization(session)) {
-      return errorResponse('Organization stats should use /api/organization/stats endpoint', "API_ERROR", {}, 400);
+    // Block ALL organizations - /profile routes are for regular users only
+    if (session.user.accountType === 'organization') {
+      return errorResponse('Organization accounts cannot access user profile stats. Use /api/organization/stats instead.', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403);
     }
-    
+
     const user = await ensureUserRow(supabase, session)
     if (!user) {
       return errorResponse('User not found', "API_ERROR", {}, 404);
@@ -183,8 +183,9 @@ export async function GET(request: NextRequest) {
 
         return {
           // Basic counts from aggregated data
-          totalStories: approvedStories || 0,
-          
+          totalBlogs: blogRows.length || 0, // Count ALL blogs (not just approved)
+          totalStories: approvedStories || 0, // Keep for backward compatibility
+
           totalViews,
           totalUniqueViews,
           totalLikes,

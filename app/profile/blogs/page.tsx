@@ -185,7 +185,7 @@ export default function ProfileBlogsPage() {
         description="Yazdığın bloqları idarə et, statusunu izlə və lazım olduqda yenilə."
         actions={
           session?.user?.emailVerified ? (
-            <Button onClick={() => router.push(localePath("/submit/blog/step1"))}>Yeni bloq yaz</Button>
+            <Button onClick={() => router.push(localePath("/submit/blog"))}>Yeni bloq yaz</Button>
           ) : undefined
         }
       />
@@ -268,7 +268,7 @@ export default function ProfileBlogsPage() {
             title="Hələ bloq yazmamısan"
             message="İlk bloqunu yazaraq məzmununu idarə etməyə başla."
             actionText={session?.user?.emailVerified ? "İlk bloqunu yaz" : undefined}
-            onAction={session?.user?.emailVerified ? () => router.push(localePath("/submit/blog/step1")) : undefined}
+            onAction={session?.user?.emailVerified ? () => router.push(localePath("/submit/blog")) : undefined}
           />
         ) : filteredBlogs.length === 0 ? (
           <EmptyState
@@ -319,7 +319,7 @@ export default function ProfileBlogsPage() {
                               ? "Yenilənmə sorğusu üçün redaktə səhifəsinə yönləndirilir..."
                               : "Redaktə səhifəsinə yönləndirilir..."
                           );
-                          router.push(localePath(`/edit/blog/${blogId}/step1`));
+                          router.push(localePath(`/edit/blog/${blogId}`));
                         }}
                         loading={navigatingEditId === blogId}
                         disabled={navigatingEditId !== null}

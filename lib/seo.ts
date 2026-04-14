@@ -288,7 +288,7 @@ export function generateJobPostingSchema(vacancy: any) {
         unitText: 'MONTH',
       },
     } : undefined,
-    url: `${siteUrl}/resources/vacancies/${vacancy._id}`,
+    url: `${siteUrl}/resources/vacancies/${vacancy.slug}`,
   })
 }
 
@@ -324,7 +324,7 @@ export function generateEventSchema(event: any) {
       name: event.organizationName || event.organization,
       url: event.website,
     },
-    url: `${siteUrl}/resources/events/${event._id}`,
+    url: `${siteUrl}/resources/events/${event.slug}`,
     image: event.image || `${siteUrl}/og-image.png`,
   })
 }
@@ -355,7 +355,7 @@ export function generateArticleSchema(blog: any) {
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': `${siteUrl}/blogs/${blog._id}`,
+      '@id': `${siteUrl}/blogs/${blog.slug}`,
     },
     keywords: blog.tags?.join(', '),
   })

@@ -91,9 +91,11 @@ export default function VacanciesPage() {
       const applicationEmail = applicationProcess?.email || vacancy?.applicationEmail;
 
       return { id: vacancy._id,
+        slug: vacancy.slug,
         title: vacancy.title,
         organization: vacancy?.createdByOrganization?.organizationName || vacancy?.createdBy?.name || 'Naməlum',
         organizationId: vacancy?.createdByOrganization?.id || vacancy?.createdByOrganization?._id || null,
+        organizationSlug: vacancy?.createdByOrganization?.urlHandle || vacancy?.createdByOrganization?.slug || null,
         type: vacancy.type,
         location: locationValue,
         experience: vacancy.experienceLevel,
@@ -408,8 +410,8 @@ export default function VacanciesPage() {
                       <>
                         <div className="flex items-center gap-2 text-sm">
                           <Users className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                          {vacancy.organizationId ? (
-                            <Link href={localePath(`/organizations/${vacancy.organizationId}`)} className="text-gray-700 font-medium hover:text-primary truncate">
+                          {vacancy.organizationSlug ? (
+                            <Link href={localePath(`/o/${vacancy.organizationSlug}`)} className="text-gray-700 font-medium hover:text-primary truncate">
                               {vacancy.organization}
                             </Link>
                           ) : (
@@ -471,7 +473,7 @@ export default function VacanciesPage() {
                         </div>
                         <div className="flex gap-2">
                           <ButtonLink
-                            href={localePath(`/resources/vacancies/${vacancy.id}`)}
+                            href={localePath(`/resources/vacancies/${vacancy.slug}`)}
                             variant="secondary"
                             size="sm"
                             className="flex-1"

@@ -219,7 +219,7 @@ export default function VacancyRow({ vacancy, onRequestDelete }: VacancyRowProps
           </div>
 
           <div className="flex items-center gap-2 lg:ml-4">
-            <Link href={localePath(`/resources/vacancies/${vacancy._id}`)}>
+            <Link href={localePath(`/resources/vacancies/${vacancy.slug}`)}>
               <Button
                 variant="ghost"
                 size="sm"
@@ -228,7 +228,7 @@ export default function VacancyRow({ vacancy, onRequestDelete }: VacancyRowProps
                 className="rounded-xl border border-transparent hover:border-blue-200 hover:bg-blue-50"
               />
             </Link>
-            <Link href={localePath(`/dashboard/vacancies/${vacancy._id}/edit`)}>
+            <Link href={localePath(`/dashboard/vacancies/${vacancy.slug}/edit`)}>
               <Button
                 variant="ghost"
                 size="sm"

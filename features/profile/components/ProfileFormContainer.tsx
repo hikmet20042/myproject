@@ -45,6 +45,7 @@ export default function ProfileFormContainer({
       website: "",
     },
     profileImage: organizationProfile?.profileImage || "",
+    urlHandle: organizationProfile?.urlHandle || "",
   });
   const { showError, showSuccess } = useGlobalFeedback();
   const [saving, setSaving] = useState(false);
@@ -203,6 +204,26 @@ export default function ProfileFormContainer({
               }
               required
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">{"Profil keçidi"}</label>
+            <div className="mt-1 flex items-center gap-2">
+              <span className="text-gray-500 text-sm">/o/</span>
+              <input
+                type="text"
+                value={formData.urlHandle}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    urlHandle: (e.target as HTMLInputElement).value.toLowerCase().replace(/[^a-z0-9_-]/g, ""),
+                  }))
+                }
+                placeholder="təşkilat-adı"
+                className="flex-1 rounded-xl border border-gray-200 bg-white py-2.5 pl-3 pr-3 text-sm text-gray-800 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-4 focus:ring-blue-100"
+                maxLength={50}
+              />
+            </div>
+            <p className="mt-1 text-xs text-slate-500">Kiçik hərflər, rəqəmlər, defis və alt xətt. Boş buraxılsa, ad avtomatik istifadə olunacaq.</p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">{"Təşkilat növü"}</label>
