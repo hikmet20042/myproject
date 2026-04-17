@@ -95,12 +95,12 @@ export const saveEvent = async (slug: string) => {
   const { data } = await apiFetch<{
     action?: string
     hasSaved?: boolean
-  }>(`/api/events/${slug}/save`, { method: 'POST' })
+  }>(`/api/content/event/${slug}/save`, { method: 'POST' })
   return data
 }
 
 export const fetchEventSaveStatus = async (slug: string) => {
-  const { data } = await apiFetch<{ hasSaved?: boolean; canSave?: boolean }>(`/api/events/${slug}/save`)
+  const { data } = await apiFetch<{ hasSaved?: boolean; canSave?: boolean }>(`/api/content/event/${slug}/save`)
   return data
 }
 

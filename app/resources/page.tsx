@@ -5,9 +5,12 @@ import { Button, ButtonLink } from '@/components/ui'
 import { ListPageLayout } from '@/components/layout'
 import { ResourceCard } from '@/components/shared'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { useSession } from '@/lib/auth/client'
 
 export default function ResourcesPage() {
   const localePath = useLocalizedPath()
+  const { data: session } = useSession()
+  const isOrganizationUser = session?.user?.accountType === 'organization'
 
   const resourceCategories = [
     {
@@ -24,7 +27,7 @@ export default function ResourcesPage() {
       type: 'organization' as const,
       title: 'Təşkilat Kataloqu',
       description: 'Gender bərabərliyi və sağ qalanlara dəstək üzərində çalışan təşkilatları kəşf edin və əlaqə saxlayın.',
-      href: '/o',
+      href: '/resources/organizations',
       icon: Users,
       tone: 'green',
     },
@@ -50,7 +53,7 @@ export default function ResourcesPage() {
 
   const quickAccessItems = [
     { href: localePath('/resources/materials'), label: 'Materiallara Bax', icon: BookOpen, variant: 'primary' as const },
-    { href: localePath('/o'), label: 'Təşkilatları Tap', icon: Users, variant: 'outline' as const },
+    { href: localePath('/resources/organizations'), label: 'Təşkilatları Tap', icon: Users, variant: 'outline' as const },
     { href: localePath('/resources/vacancies'), label: 'Vakansiyaları Tap', icon: Briefcase, variant: 'primary' as const },
     { href: localePath('/resources/events'), label: 'Yaxınlaşan Tədbirlər', icon: Calendar, variant: 'outline' as const },
   ]
@@ -61,14 +64,28 @@ export default function ResourcesPage() {
       description="Gender bərabərliyini irəli aparmaq və sağ qalanlara dəstəyi gücləndirmək üçün seçilmiş alətlər, təşkilatlar və imkanlar."
       icon={Sparkles}
       headerActions={
-        <>
-          <ButtonLink href={localePath('/submit')} variant="secondary" size="lg" hoverEffect="scale">
-            {'Bloq Paylaş'}
-          </ButtonLink>
-          <ButtonLink href={localePath('/resources')} variant="outline" size="lg" hoverEffect="scale">
-            {'Fürsətləri Kəşf Et'}
-          </ButtonLink>
-        </>
+        isOrganizationUser ? (
+          <>
+            <ButtonLink href={localePath('/dashboard/events/create')} variant="secondary" size="lg" hoverEffect="scale">
+              {'Tədbir Paylaş'}
+            </ButtonLink>
+            <ButtonLink href={localePath('/dashboard/vacancies/create')} variant="outline" size="lg" hoverEffect="scale">
+              {'Vakansiya Paylaş'}
+            </ButtonLink>
+            <ButtonLink href={localePath('/dashboard/profile')} variant="outline" size="lg" hoverEffect="scale">
+              {'Təşkilat Paneli'}
+            </ButtonLink>
+          </>
+        ) : (
+          <>
+            <ButtonLink href={localePath('/submit')} variant="secondary" size="lg" hoverEffect="scale">
+              {'Bloq Paylaş'}
+            </ButtonLink>
+            <ButtonLink href={localePath('/resources')} variant="outline" size="lg" hoverEffect="scale">
+              {'Fürsətləri Kəşf Et'}
+            </ButtonLink>
+          </>
+        )
       }
       content={
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

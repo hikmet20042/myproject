@@ -84,19 +84,27 @@ export async function GET(request: NextRequest) {
         let totalViews = 0;
         let totalUniqueViews = 0;
         let totalLikes = 0;
+        let totalDislikes = 0;
         let totalSaves = 0;
 
         if (blogIds.length > 0) {
-          const [viewsCountRes, likesCountRes, savesCountRes] = await Promise.all([
+          const [viewsCountRes, uniqueViewsCountRes, likesCountRes, dislikesCountRes, savesCountRes] = await Promise.all([
             supabase
               .from('blog_views')
               .select('*', { count: 'exact', head: true })
               .in('blog_id', blogIds),
             supabase
+              .rpc('count_distinct_blog_views', { p_blog_ids: blogIds }),
+            supabase
               .from('blog_reactions')
               .select('*', { count: 'exact', head: true })
               .in('blog_id', blogIds)
               .eq('reaction_type', 'like'),
+            supabase
+              .from('blog_reactions')
+              .select('*', { count: 'exact', head: true })
+              .in('blog_id', blogIds)
+              .eq('reaction_type', 'dislike'),
             supabase
               .from('content_saves')
               .select('*', { count: 'exact', head: true })
@@ -108,9 +116,73 @@ export async function GET(request: NextRequest) {
             return errorResponse('Failed to fetch profile stats', 'FETCH_PROFILE_STATS_FAILED', {}, 500);
           }
           totalViews = viewsCountRes.count || 0;
-          totalUniqueViews = viewsCountRes.count || 0;
+          totalUniqueViews = uniqueViewsCountRes.data || 0;
           totalLikes = likesCountRes.count || 0;
+          totalDislikes = dislikesCountRes.count || 0;
           totalSaves = savesCountRes.count || 0;
+        }
+
+        // Fetch user's events and vacancies and count their views and saves
+        const [{ data: userEvents }, { data: userVacancies }] = await Promise.all([
+          supabase
+            .from('events')
+            .select('id')
+            .or(`created_by.eq.${session.user.id},created_by_organization.eq.${session.user.id}`),
+          supabase
+            .from('vacancies')
+            .select('id')
+            .or(`created_by.eq.${session.user.id},created_by_organization.eq.${session.user.id}`),
+        ]);
+
+        const eventIds = (userEvents || []).map((e: any) => e.id).filter(Boolean);
+        const vacancyIds = (userVacancies || []).map((v: any) => v.id).filter(Boolean);
+
+        if (eventIds.length > 0) {
+          const [eventViewsRes, eventUniqueViewsRes, eventSavesRes] = await Promise.all([
+            supabase
+              .from('content_views')
+              .select('*', { count: 'exact', head: true })
+              .eq('content_type', 'event')
+              .in('content_id', eventIds),
+            supabase
+              .rpc('count_distinct_content_views', { p_content_type: 'event', p_content_ids: eventIds }),
+            supabase
+              .from('content_saves')
+              .select('*', { count: 'exact', head: true })
+              .eq('content_type', 'event')
+              .in('content_id', eventIds),
+          ]);
+
+          if (eventViewsRes.error) {
+            return errorResponse('Failed to fetch event views', 'FETCH_EVENT_VIEWS_FAILED', {}, 500);
+          }
+          totalViews += eventViewsRes.count || 0;
+          totalUniqueViews += eventUniqueViewsRes.data || 0;
+          totalSaves += eventSavesRes.count || 0;
+        }
+
+        if (vacancyIds.length > 0) {
+          const [vacancyViewsRes, vacancyUniqueViewsRes, vacancySavesRes] = await Promise.all([
+            supabase
+              .from('content_views')
+              .select('*', { count: 'exact', head: true })
+              .eq('content_type', 'vacancy')
+              .in('content_id', vacancyIds),
+            supabase
+              .rpc('count_distinct_content_views', { p_content_type: 'vacancy', p_content_ids: vacancyIds }),
+            supabase
+              .from('content_saves')
+              .select('*', { count: 'exact', head: true })
+              .eq('content_type', 'vacancy')
+              .in('content_id', vacancyIds),
+          ]);
+
+          if (vacancyViewsRes.error) {
+            return errorResponse('Failed to fetch vacancy views', 'FETCH_VACANCY_VIEWS_FAILED', {}, 500);
+          }
+          totalViews += vacancyViewsRes.count || 0;
+          totalUniqueViews += vacancyUniqueViewsRes.data || 0;
+          totalSaves += vacancySavesRes.count || 0;
         }
 
         const recentActivity: string[] = [];
@@ -189,6 +261,7 @@ export async function GET(request: NextRequest) {
           totalViews,
           totalUniqueViews,
           totalLikes,
+          totalDislikes,
           totalSaves,
 
           // User info

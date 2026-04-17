@@ -14,6 +14,7 @@ import {
   FileText,
   Mail,
   Globe,
+  Eye,
 } from 'lucide-react'
 import { ButtonLink } from '@/components/ui'
 import { Card, CardContent } from '@/components/ui/Card'
@@ -27,6 +28,8 @@ import { DetailPageLayout } from '@/components/layout'
 
 interface Vacancy {
   _id: string
+  id: string
+  slug: string
   title: string
   description: string
   type: 'job' | 'volunteer' | 'internship'
@@ -189,7 +192,12 @@ export default function VacancyDetailPage() {
   const isDeadlineNear = daysUntilDeadline > 0 && daysUntilDeadline <= 7
 
   return (
-    <DetailPageLayout
+    <>
+      {vacancy.status === 'approved' && (
+        <ViewTracker itemType="vacancy" itemId={vacancy.slug} minTimeMs={10000} selector="#vacancy-content" />
+      )}
+      <DetailPageLayout
+
       backHref={localePath('/resources/vacancies')}
       backLabel={'Vakansiyalara qayıt'}
       breadcrumbItems={[
@@ -230,13 +238,14 @@ export default function VacancyDetailPage() {
             )}
           </div>
           <div className="mt-4 inline-flex rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-sm text-blue-700">
-            <ViewTracker itemId={vacancy._id} itemType="vacancy" initialViews={vacancy.views} />
+            <Eye className="w-4 h-4 mr-2" />
+            <span className="font-bold">{vacancy.views || 0} baxış</span>
           </div>
         </>
       }
       mainContent={
         <>
-          <Card className="border border-gray-200 shadow-sm">
+          <Card id="vacancy-content" className="border border-gray-200 shadow-sm">
             <CardContent className="p-6 sm:p-8">
               <h2 className="text-2xl sm:text-3xl font-black text-gray-900 mb-4 flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
@@ -472,7 +481,7 @@ export default function VacancyDetailPage() {
               </div>
 
               <div className="mt-6 border-t border-gray-200 pt-6">
-                <SaveItemButtonContainer itemId={vacancy._id} itemType="vacancy" itemTitle={vacancy.title} size="md" className="w-full rounded-xl py-3 font-bold" />
+                <SaveItemButtonContainer itemId={vacancy.id} itemType="vacancy" itemTitle={vacancy.title} size="md" className="w-full rounded-xl py-3 font-bold" />
               </div>
             </CardContent>
           </Card>
@@ -502,5 +511,6 @@ export default function VacancyDetailPage() {
         </>
       }
     />
+    </>
   )
 }

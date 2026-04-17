@@ -6,6 +6,7 @@ import {
   DollarSign,
   Clock,
   Users,
+  Bookmark,
   Eye,
   Edit,
   Trash2,
@@ -149,7 +150,7 @@ export default function VacancyRow({ vacancy, onRequestDelete }: VacancyRowProps
 
             <p className="mb-3 line-clamp-2 text-gray-600">{vacancy.description}</p>
 
-            <div className="mb-3 grid grid-cols-1 gap-3 text-sm text-gray-500 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mb-3 grid grid-cols-1 gap-3 text-sm text-gray-500 sm:grid-cols-2 lg:grid-cols-5">
               <div className="flex items-center gap-1.5">
                 <MapPin className="h-4 w-4 text-cyan-500" />
                 <span className="truncate">
@@ -183,6 +184,18 @@ export default function VacancyRow({ vacancy, onRequestDelete }: VacancyRowProps
                 <span>
                   {"Son tarix"}: {new Date(vacancy.applicationDeadline).toLocaleDateString()}
                 </span>
+              </div>
+              {typeof vacancy.views === 'number' && vacancy.views > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <Eye className="h-4 w-4 text-violet-500" />
+                  <span>
+                    {vacancy.views.toLocaleString()} baxış
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center gap-1.5">
+                <Bookmark className="h-4 w-4 text-amber-500" />
+                <span>{(vacancy.saves || 0).toLocaleString()} saxlama</span>
               </div>
             </div>
 

@@ -7,7 +7,7 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Bookmark, Eye, ThumbsDown, ThumbsUp } from 'lucide-react';
 
 interface ResourceCardProps {
   /** Resource domain type for semantic grouping */
@@ -50,6 +50,14 @@ interface ResourceCardProps {
   style?: CSSProperties;
   /** Optional top-right slot for badges/icons */
   topRight?: ReactNode;
+  /** Optional view count to display */
+  views?: number;
+  /** Optional like count to display */
+  likes?: number;
+  /** Optional dislike count to display */
+  dislikes?: number;
+  /** Optional save count to display */
+  saves?: number;
 }
 
 /**
@@ -75,6 +83,10 @@ export function ResourceCard({
   wrapperClassName = '',
   style,
   topRight,
+  views,
+  likes,
+  dislikes,
+  saves,
 }: ResourceCardProps) {
   const localePath = useLocalizedPath()
   const content = (
@@ -108,18 +120,48 @@ export function ResourceCard({
             </div>
           )}
 
-          {/* Badges */}
-          {badges && badges.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-3">
-              {badges.map((badge, idx) => (
-                <Badge
-                  key={idx}
-                  variant={badge.variant || 'primary'}
-                  className="text-xs"
-                >
-                  {badge.label}
-                </Badge>
-              ))}
+          {/* Badges and Views */}
+          {( (badges && badges.length > 0) || views !== undefined || likes !== undefined || dislikes !== undefined || saves !== undefined ) && (
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex flex-wrap gap-2">
+                {badges?.map((badge, idx) => (
+                  <Badge
+                    key={idx}
+                    variant={badge.variant || 'primary'}
+                    className="text-xs"
+                  >
+                    {badge.label}
+                  </Badge>
+                ))}
+              </div>
+              {(views !== undefined || likes !== undefined || dislikes !== undefined || saves !== undefined) && (
+                <div className="flex items-center gap-3">
+                  {views !== undefined && (
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500 bg-gray-100/50 px-2 py-1 rounded-lg">
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>{views.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {likes !== undefined && (
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
+                      <ThumbsUp className="w-3.5 h-3.5 fill-current" />
+                      <span>{likes.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {dislikes !== undefined && (
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-rose-700 bg-rose-50 px-2 py-1 rounded-lg">
+                      <ThumbsDown className="w-3.5 h-3.5" />
+                      <span>{dislikes.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {saves !== undefined && (
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-1 rounded-lg">
+                      <Bookmark className="w-3.5 h-3.5" />
+                      <span>{saves.toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

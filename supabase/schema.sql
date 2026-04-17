@@ -350,18 +350,6 @@ create table if not exists public.organization_followers (
   unique(organization_id, user_id)
 );
 
-create table if not exists public.saved_items (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.users(id) on delete cascade,
-  item_id text not null,
-  item_type text not null check (item_type in ('event', 'vacancy', 'blog')),
-  created_at timestamptz not null default now(),
-  unique(user_id, item_id, item_type)
-);
-
-create index if not exists idx_saved_items_user_id on public.saved_items(user_id);
-create index if not exists idx_saved_items_type_item on public.saved_items(item_type, item_id);
-
 create table if not exists public.content_saves (
   id uuid primary key default gen_random_uuid(),
   content_type text not null check (content_type in ('blog', 'event', 'vacancy')),
@@ -407,7 +395,6 @@ alter table public.vacancies enable row level security;
 alter table public.materials enable row level security;
 alter table public.notifications enable row level security;
 alter table public.organization_followers enable row level security;
-alter table public.saved_items enable row level security;
 alter table public.content_saves enable row level security;
 alter table public.site_settings enable row level security;
 alter table public.user_analytics enable row level security;
@@ -488,14 +475,6 @@ create policy "Users can follow organizations" on public.organization_followers
 drop policy if exists "Users can unfollow organizations" on public.organization_followers;
 create policy "Users can unfollow organizations" on public.organization_followers
   for delete using (auth.uid() = user_id);
-
-drop policy if exists "Users can view own saved items" on public.saved_items;
-create policy "Users can view own saved items" on public.saved_items
-  for select using (auth.uid() = user_id);
-
-drop policy if exists "Users can manage own saved items" on public.saved_items;
-create policy "Users can manage own saved items" on public.saved_items
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 drop policy if exists "Users can view own content saves" on public.content_saves;
 create policy "Users can view own content saves" on public.content_saves

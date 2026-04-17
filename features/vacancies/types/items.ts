@@ -49,6 +49,9 @@ export interface VacancyItem {
   createdAt: string;
   updatedAt: string;
   createdBy: { _id: string; name: string; email: string };
+  views?: number;
+  uniqueViews?: number;
+  saves?: number;
 }
 
 export const vacancyCategories = [

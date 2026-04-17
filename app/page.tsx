@@ -78,6 +78,7 @@ type RecommendedItem = {
 export default function HomePage() {
   const localePath = useLocalizedPath()
   const { data: session, status } = useSession()
+  const isOrganizationUser = session?.user?.accountType === 'organization'
   const { showError } = useGlobalFeedback()
 
   const [mounted, setMounted] = useState(false)
@@ -263,21 +264,49 @@ export default function HomePage() {
             </p>
 
             <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <Link
-                href={localePath('/resources')}
-                className="brand-primary-btn inline-flex items-center justify-center gap-2 rounded-xl border border-transparent px-6 py-3 text-white font-semibold transition-all duration-200"
-              >
-                <Target size={18} />
-                {'İndi Kəşf Et'}
-                <ArrowRight size={16} />
-              </Link>
-              <Link
-                href={localePath('/submit/blog')}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-6 py-3 text-gray-800 font-semibold hover:bg-gray-50 transition-colors"
-              >
-                <MessageSquare size={18} />
-                {'Bloq Paylaş'}
-              </Link>
+              {isOrganizationUser ? (
+                <>
+                  <Link
+                    href={localePath('/dashboard/events/create')}
+                    className="brand-primary-btn inline-flex items-center justify-center gap-2 rounded-xl border border-transparent px-6 py-3 text-white font-semibold transition-all duration-200"
+                  >
+                    <Calendar size={18} />
+                    {'Tədbir Paylaş'}
+                    <ArrowRight size={16} />
+                  </Link>
+                  <Link
+                    href={localePath('/dashboard/vacancies/create')}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-6 py-3 text-gray-800 font-semibold hover:bg-gray-50 transition-colors"
+                  >
+                    <Briefcase size={18} />
+                    {'Vakansiya Paylaş'}
+                  </Link>
+                  <Link
+                    href={localePath('/dashboard/profile')}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-6 py-3 text-gray-800 font-semibold hover:bg-gray-50 transition-colors"
+                  >
+                    {'Təşkilat Paneli'}
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href={localePath('/resources')}
+                    className="brand-primary-btn inline-flex items-center justify-center gap-2 rounded-xl border border-transparent px-6 py-3 text-white font-semibold transition-all duration-200"
+                  >
+                    <Target size={18} />
+                    {'İndi Kəşf Et'}
+                    <ArrowRight size={16} />
+                  </Link>
+                  <Link
+                    href={localePath('/submit/blog')}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-6 py-3 text-gray-800 font-semibold hover:bg-gray-50 transition-colors"
+                  >
+                    <MessageSquare size={18} />
+                    {'Bloq Paylaş'}
+                  </Link>
+                </>
+              )}
             </div>
 
             <div className="mt-14 flex items-center justify-center gap-8 text-sm text-gray-500">
@@ -503,7 +532,10 @@ export default function HomePage() {
                         date: item.createdAt,
                         excerpt: item.excerpt || extractExcerpt(item.content),
                         content: item.content,
-                        status: item.status
+                        status: item.status,
+                        views: item.views,
+                        likes: item.likes,
+                        saves: item.saves,
                       }}
                     />
                   )
@@ -517,7 +549,7 @@ export default function HomePage() {
         title={<>{'Tərəfdaş'} <span className="text-primary">{'Təşkilatlar'}</span></>}
         description={'icma360 qeydiyyatında olan təşkilatlarla tanış ol.'}
         ctaLabel={'Tərəfdaşlar'}
-        ctaHref={localePath('/o')}
+        ctaHref={localePath('/resources/organizations')}
         sectionClassName="py-16 md:py-20 bg-slate-50/60"
         emphasis="neutral"
       >
@@ -579,12 +611,28 @@ export default function HomePage() {
               {'Böyük bir şəbəkənin parçası ol! Öz hekayəni paylaş, aktiv fürsətləri ilk sən tap və təşkilatlarla tanış ol.'}
             </p>
             <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <Link href={localePath('/submit/blog')} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-white font-semibold hover:bg-blue-700 transition-colors">
-                <BookOpen size={18} /> {'Bloqunu Paylaşın'}
-              </Link>
-              <Link href={localePath('/resources')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-6 py-3 text-gray-800 font-semibold hover:bg-gray-50 transition-colors">
-                {'Fürsətləri Kəşf Et'} <ArrowRight size={16} />
-              </Link>
+              {isOrganizationUser ? (
+                <>
+                  <Link href={localePath('/dashboard/events/create')} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-white font-semibold hover:bg-blue-700 transition-colors">
+                    <Calendar size={18} /> {'Tədbir Paylaş'}
+                  </Link>
+                  <Link href={localePath('/dashboard/vacancies/create')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-6 py-3 text-gray-800 font-semibold hover:bg-gray-50 transition-colors">
+                    <Briefcase size={16} /> {'Vakansiya Paylaş'}
+                  </Link>
+                  <Link href={localePath('/dashboard/profile')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-6 py-3 text-gray-800 font-semibold hover:bg-gray-50 transition-colors">
+                    {'Təşkilat Paneli'} <ArrowRight size={16} />
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link href={localePath('/submit/blog')} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-white font-semibold hover:bg-blue-700 transition-colors">
+                    <BookOpen size={18} /> {'Bloqunu Paylaşın'}
+                  </Link>
+                  <Link href={localePath('/resources')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-6 py-3 text-gray-800 font-semibold hover:bg-gray-50 transition-colors">
+                    {'Fürsətləri Kəşf Et'} <ArrowRight size={16} />
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -90,7 +90,7 @@ module.exports = {
     const staticPages = [
       { url: '/', priority: 1.0, changefreq: 'daily' },
       { url: '/resources', priority: 0.9, changefreq: 'daily' },
-      { url: '/o', priority: 0.8, changefreq: 'weekly' },
+      { url: '/resources/organizations', priority: 0.8, changefreq: 'weekly' },
       { url: '/blogs', priority: 0.8, changefreq: 'daily' },
       { url: '/about', priority: 0.7, changefreq: 'weekly' },
     ]

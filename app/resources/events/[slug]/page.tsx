@@ -18,7 +18,9 @@ import { eventQueryKeys, fetchEventById } from '@/lib/eventQueries'
 import { DetailPageLayout } from '@/components/layout'
 
 interface Event { _id: string
+  id: string
   slug: string
+  status: string
   title: string
   description: string
   category: string
@@ -37,6 +39,7 @@ interface Event { _id: string
   imageUrl?: string
   createdBy: { _id: string
     slug: string
+    urlHandle?: string | null
     name: string
     email?: string }
   createdByOrganization?: { _id?: string
@@ -172,7 +175,11 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
     ) }
 
   return (
-    <DetailPageLayout
+    <>
+      {event.status === 'approved' && (
+        <ViewTracker itemType="event" itemId={event.slug} minTimeMs={10000} selector="#event-content" />
+      )}
+      <DetailPageLayout
       backHref={localePath('/resources/events')}
       backLabel={'Tədbirlərə qayıt'}
       breadcrumbItems={[
@@ -250,7 +257,7 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
                   </div>
                   <div className="flex items-center gap-2">
                     <SaveItemButtonContainer
-                      itemId={event._id}
+                      itemId={event.id}
                       itemType="event"
                       itemTitle={event.title}
                       size="lg"
@@ -287,9 +294,9 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
                   </div>
                   <h1 className="mb-4 text-3xl font-black text-gray-900 sm:text-4xl">{event.title}</h1>
                 </div>
-                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2">
                   <SaveItemButtonContainer
-                    itemId={event._id}
+                    itemId={event.id}
                     itemType="event"
                     itemTitle={event.title}
                     size="lg"
@@ -302,7 +309,7 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
           )}
             </Card>
             {/* About Section */}
-            <Card className="border border-gray-200 shadow-sm">
+            <Card id="event-content" className="border border-gray-200 shadow-sm">
               <CardContent className="p-8">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
@@ -370,7 +377,7 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
                         Birbaşa müraciət linki hazırda mövcud deyil. Tədbiri saxlayın və təşkilatçını izləyin.
                       </p>
                       <SaveItemButtonContainer
-                        itemId={event._id}
+                        itemId={event.id}
                         itemType="event"
                         itemTitle={event.title}
                         size="lg"
@@ -422,7 +429,6 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
               </div>
               <div className="space-y-5">
                 <div className="flex items-start gap-4 rounded-xl border border-blue-100 bg-blue-50 p-4">
-                  <ViewTracker itemId={event._id} itemType="event" initialViews={event.views || 0} showCount={true} className="w-full" />
                 </div>
                 <div className="flex items-start gap-4 rounded-xl border border-gray-200 bg-slate-50 p-4">
                   <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-100">
@@ -518,4 +524,6 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
         </>
       }
     />
-  ) }
+    </>
+  )
+}

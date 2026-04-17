@@ -67,8 +67,8 @@ export default function PublicOrgProfilePage() {
       <ErrorState
         title="Təşkilat tapılmadı"
         message={error || 'Axtardığınız təşkilat profili mövcud deyil.'}
-        actionText="Ana səhifəyə qayıt"
-        onAction={() => router.push(localePath('/'))}
+        onRetry={() => router.push(localePath('/'))}
+        retryText="Ana səhifəyə qayıt"
       />
     )
   }

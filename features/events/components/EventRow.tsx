@@ -6,6 +6,7 @@ import {
   Calendar,
   MapPin,
   Users,
+  Bookmark,
   Eye,
   Edit,
   Trash2,
@@ -105,7 +106,7 @@ export default function EventRow({ event, onRequestDelete }: EventRowProps) {
               </div>
             )}
 
-            <div className="grid grid-cols-1 gap-3 text-sm text-gray-500 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 text-sm text-gray-500 sm:grid-cols-2 lg:grid-cols-4">
               <div className="flex items-center gap-1.5">
                 <Calendar className="h-4 w-4 text-blue-500" />
                 <span>{new Date(event.eventDate).toLocaleDateString()}</span>
@@ -129,6 +130,18 @@ export default function EventRow({ event, onRequestDelete }: EventRowProps) {
                   </span>
                 </div>
               )}
+              {typeof event.views === 'number' && event.views > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <Eye className="h-4 w-4 text-violet-500" />
+                  <span>
+                    {event.views.toLocaleString()} baxış
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center gap-1.5">
+                <Bookmark className="h-4 w-4 text-amber-500" />
+                <span>{(event.saves || 0).toLocaleString()} saxlama</span>
+              </div>
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">

@@ -13,44 +13,15 @@ export async function getBlogStats(
   userId?: string | null,
 ): Promise<BlogStatsResult> {
   try {
-    const [viewsRes, likesRes, dislikesRes, userReactionRes, uniqueSessionRes] = await Promise.all([
-      supabase
-        .from('blog_views')
-        .select('*', { count: 'exact', head: true })
-        .eq('blog_id', blogId),
-      supabase
-        .from('blog_reactions')
-        .select('*', { count: 'exact', head: true })
-        .eq('blog_id', blogId)
-        .eq('reaction_type', 'like'),
-      supabase
-        .from('blog_reactions')
-        .select('*', { count: 'exact', head: true })
-        .eq('blog_id', blogId)
-        .eq('reaction_type', 'dislike'),
-      userId
-        ? supabase
-            .from('blog_reactions')
-            .select('reaction_type')
-            .eq('blog_id', blogId)
-            .eq('user_id', userId)
-            .maybeSingle()
-        : Promise.resolve({ data: null, error: null }),
-      supabase
-        .from('blog_views')
-        .select('session_id')
-        .eq('blog_id', blogId),
-    ])
+    console.log(`[getBlogStats] Fetching stats: blogId="${blogId}", userId="${userId || 'anonymous'}"`)
+    
+    const { data, error } = await supabase.rpc('get_blog_stats_v2', {
+      p_blog_id: blogId,
+      p_user_id: userId || null,
+    })
 
-    if (viewsRes.error || likesRes.error || dislikesRes.error || userReactionRes.error || uniqueSessionRes.error) {
-      console.warn('blogStats fallback: failed to read from event tables', {
-        blogId,
-        viewsError: viewsRes.error?.message,
-        likesError: likesRes.error?.message,
-        dislikesError: dislikesRes.error?.message,
-        reactionError: userReactionRes.error?.message,
-        uniqueViewsError: uniqueSessionRes.error?.message,
-      })
+    if (error) {
+      console.warn('blogStats: RPC failed', { blogId, error })
       return {
         views: 0,
         likes: 0,
@@ -61,22 +32,17 @@ export async function getBlogStats(
       }
     }
 
-    const views = viewsRes.count || 0
-    const likes = likesRes.count || 0
-    const dislikes = dislikesRes.count || 0
-    const uniqueViews = new Set((uniqueSessionRes.data || []).map((row: any) => row.session_id)).size
-    const engagementScore = Math.max(0, views + likes * 3 - dislikes)
-
+    console.log('[getBlogStats] RPC success:', data)
     return {
-      views,
-      likes,
-      dislikes,
-      uniqueViews,
-      engagementScore,
-      userReaction: (userReactionRes.data?.reaction_type as 'like' | 'dislike' | null) || null,
+      views: Number(data.views),
+      likes: Number(data.likes),
+      dislikes: Number(data.dislikes),
+      uniqueViews: Number(data.unique_views),
+      engagementScore: Number(data.engagement_score),
+      userReaction: data.user_reaction || null,
     }
   } catch (error) {
-    console.warn('blogStats fallback: unexpected error while reading event tables', { blogId, error })
+    console.warn('blogStats: unexpected error', { blogId, error })
     return {
       views: 0,
       likes: 0,
@@ -87,3 +53,4 @@ export async function getBlogStats(
     }
   }
 }
+

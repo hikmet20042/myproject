@@ -8,13 +8,14 @@ import { EmptyState } from '@/components/shared'
 import { ListPageLayout } from '@/components/layout'
 import { BookOpen, Sparkles, RefreshCw, Heart, ArrowRight, Users } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { useSession } from '@/lib/auth/client'
 import { blogQueryKeys, fetchBlogs } from '@/lib/blogQueries'
 import { ApiError } from '@/lib/apiClient'
 import { getUserErrorMessage } from '@/lib/errorMessages'
 import { logError } from '@/lib/logger'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 
-interface CommunityBlog { id: number;
+interface CommunityBlog { id: string | number;
   slug: string;
   title: string;
   authorName: string;
@@ -24,7 +25,11 @@ interface CommunityBlog { id: number;
   excerpt: string;
   content: any; // Can be string or BlockNote array
   status: string;
-  type: 'community-blog'; }
+  type: 'community-blog';
+  likes?: number;
+  dislikes?: number;
+  views?: number;
+  saves?: number; }
 
 const generateExcerpt = (content: any): string => { let textContent = '';
   
@@ -43,6 +48,8 @@ const generateExcerpt = (content: any): string => { let textContent = '';
 
 export default function CommunityBlogs() {
   const localePath = useLocalizedPath();
+  const { data: session } = useSession()
+  const isOrganizationUser = session?.user?.accountType === 'organization'
   const { showError } = useGlobalFeedback()
   const [searchQuery, setSearchQuery] = useState<string>('')
   const blogsLimit = 50
@@ -82,7 +89,11 @@ export default function CommunityBlogs() {
       excerpt: blog.excerpt || generateExcerpt(blog.content),
       content: blog.content,
       status: blog.status,
-      type: 'community-blog'
+      type: 'community-blog',
+      likes: blog.likes || 0,
+      dislikes: blog.dislikes || 0,
+      views: blog.views || 0,
+      saves: blog.saves || 0,
     }))
 
   const filteredBlogs = allBlogs.filter(blog => { const matchesSearch = !searchQuery || 
@@ -99,14 +110,28 @@ export default function CommunityBlogs() {
       description="İcma üzvlərimizin real təcrübələri, çətinlikləri və uğurları. Dəyişikliyə ilham verən və anlaşmanı genişləndirən həqiqi hekayələr."
       icon={Sparkles}
       headerActions={
-        <>
-          <ButtonLink href={localePath('/submit/blog')} variant="secondary" size="lg" hoverEffect="scale">
-            {'Bloq Paylaş'}
-          </ButtonLink>
-          <ButtonLink href={localePath('/resources')} variant="outline" size="lg" hoverEffect="scale">
-            {'Fürsətləri Kəşf Et'}
-          </ButtonLink>
-        </>
+        isOrganizationUser ? (
+          <>
+            <ButtonLink href={localePath('/dashboard/events/create')} variant="secondary" size="lg" hoverEffect="scale">
+              {'Tədbir Paylaş'}
+            </ButtonLink>
+            <ButtonLink href={localePath('/dashboard/vacancies/create')} variant="outline" size="lg" hoverEffect="scale">
+              {'Vakansiya Paylaş'}
+            </ButtonLink>
+            <ButtonLink href={localePath('/dashboard/profile')} variant="outline" size="lg" hoverEffect="scale">
+              {'Təşkilat Paneli'}
+            </ButtonLink>
+          </>
+        ) : (
+          <>
+            <ButtonLink href={localePath('/submit/blog')} variant="secondary" size="lg" hoverEffect="scale">
+              {'Bloq Paylaş'}
+            </ButtonLink>
+            <ButtonLink href={localePath('/resources')} variant="outline" size="lg" hoverEffect="scale">
+              {'Fürsətləri Kəşf Et'}
+            </ButtonLink>
+          </>
+        )
       }
       isLoading={blogsQuery.isLoading}
       isError={blogsQuery.isError}
@@ -200,14 +225,28 @@ export default function CommunityBlogs() {
             <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
               <BookOpen className="w-7 h-7 text-primary" />
             </div>
-            <h3 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900">{'Öz Bloqunu Paylaş'}</h3>
-            <p className="mt-4 text-gray-600 max-w-2xl mx-auto">{'Sənin şəxsi təcrübələrin vacibdir. Öz yolunu, çətinliklərini və uğurlarını paylaşaraq başqalarına ilham ver və icmamızda mənalı dəyişikliklər yarat.'}</p>
+            <h3 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900">
+              {isOrganizationUser ? 'Tədbir və Vakansiyanı Paylaş' : 'Öz Bloqunu Paylaş'}
+            </h3>
+            <p className="mt-4 text-gray-600 max-w-2xl mx-auto">
+              {isOrganizationUser
+                ? 'Təşkilat olaraq yeni tədbir və vakansiyalarını paneldən paylaş, daha çox gəncə çat.'
+                : 'Sənin şəxsi təcrübələrin vacibdir. Öz yolunu, çətinliklərini və uğurlarını paylaşaraq başqalarına ilham ver və icmamızda mənalı dəyişikliklər yarat.'}
+            </p>
 
             <div className="mt-6 flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4">
               {[
-                { icon: Heart, text: 'Hekayəni Paylaş' },
-                { icon: Users, text: 'Başqalarına İlham Ver' },
-                { icon: Sparkles, text: 'Dəyişiklik Yarat' }
+                ...(isOrganizationUser
+                  ? [
+                      { icon: Sparkles, text: 'Tədbir Əlavə Et' },
+                      { icon: Users, text: 'Vakansiya Paylaş' },
+                      { icon: ArrowRight, text: 'Paneldən İdarə Et' },
+                    ]
+                  : [
+                      { icon: Heart, text: 'Hekayəni Paylaş' },
+                      { icon: Users, text: 'Başqalarına İlham Ver' },
+                      { icon: Sparkles, text: 'Dəyişiklik Yarat' },
+                    ]),
               ].map((item, idx) => (
                 <div key={idx} className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-slate-50 px-4 py-2">
                   <item.icon className="w-4 h-4 text-primary" />
@@ -217,17 +256,32 @@ export default function CommunityBlogs() {
             </div>
 
             <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <ButtonLink
-                href={localePath('/submit/blog')}
-                variant="secondary"
-                size="lg"
-                icon={Sparkles}
-                iconPosition="left"
-                hoverEffect="scale"
-              >
-                {'Bloqunu Göndər'}
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </ButtonLink>
+              {isOrganizationUser ? (
+                <>
+                  <ButtonLink href={localePath('/dashboard/events/create')} variant="secondary" size="lg" icon={Sparkles} iconPosition="left" hoverEffect="scale">
+                    {'Tədbir Paylaş'}
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </ButtonLink>
+                  <ButtonLink href={localePath('/dashboard/vacancies/create')} variant="outline" size="lg" icon={Sparkles} iconPosition="left" hoverEffect="scale">
+                    {'Vakansiya Paylaş'}
+                  </ButtonLink>
+                  <ButtonLink href={localePath('/dashboard/profile')} variant="outline" size="lg" hoverEffect="scale">
+                    {'Təşkilat Paneli'}
+                  </ButtonLink>
+                </>
+              ) : (
+                <ButtonLink
+                  href={localePath('/submit/blog')}
+                  variant="secondary"
+                  size="lg"
+                  icon={Sparkles}
+                  iconPosition="left"
+                  hoverEffect="scale"
+                >
+                  {'Bloqunu Göndər'}
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </ButtonLink>
+              )}
             </div>
           </div>
       }

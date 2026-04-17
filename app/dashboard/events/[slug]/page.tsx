@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Image from 'next/image'
 import * as Dialog from '@radix-ui/react-dialog'
-import { Calendar, Clock, MapPin, Users, Link as LinkIcon, Tag, Edit, Trash2, CheckCircle, XCircle, AlertCircle, ExternalLink } from 'lucide-react'
+import { Calendar, Clock, MapPin, Users, Link as LinkIcon, Tag, Edit, Trash2, CheckCircle, XCircle, AlertCircle, ExternalLink, Eye, TrendingUp, Bookmark } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { PageStateGuard } from '@/components/shared'
@@ -40,6 +40,9 @@ interface Event { _id: string
   isFeatured: boolean
   createdAt: string
   updatedAt: string
+  views?: number
+  uniqueViews?: number
+  saves?: number
   createdBy: { name: string
     organizationName?: string } }
 
@@ -125,6 +128,26 @@ export default function EventDetail() {
                 <h1 className="text-3xl font-black text-gray-900">{event.title}</h1>
                 {getStatusBadge()}
               </div>
+              {/* View Stats */}
+              {(event.views > 0 || event.uniqueViews > 0 || (event.saves || 0) > 0) && (
+                <div className="mb-4 flex items-center gap-4">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-100">
+                    <Eye className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-700">
+                      {event.views?.toLocaleString() || 0} baxış
+                    </span>
+                    <span className="text-xs text-blue-500">
+                      ({event.uniqueViews?.toLocaleString() || 0} unikal)
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-100">
+                    <Bookmark className="w-4 h-4 text-amber-600" />
+                    <span className="text-sm font-medium text-amber-700">
+                      {(event.saves || 0).toLocaleString()} saxlama
+                    </span>
+                  </div>
+                </div>
+              )}
               <p className="text-gray-600">{event.category}</p>
             </div>
             

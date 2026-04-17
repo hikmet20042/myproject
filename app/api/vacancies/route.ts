@@ -8,6 +8,7 @@ import { successResponse, errorResponse } from '@/lib/apiResponse'
 const mapVacancy = (row: any) => ({
   _id: row.id,
   id: row.id,
+  slug: row.slug,
   title: row.title,
   description: row.description,
   type: row.type,
@@ -45,8 +46,9 @@ const mapVacancy = (row: any) => ({
   isFeatured: row.is_featured,
   isUrgent: row.is_urgent,
   applicationCount: row.application_count,
-  views: row.views,
-  uniqueViews: row.unique_views,
+  views: row.real_views ?? row.views,
+  uniqueViews: row.real_unique_views ?? row.unique_views,
+  saves: row.real_saves ?? row.saves ?? 0,
   viewedBy: row.viewed_by || [],
   engagementScore: row.engagement_score,
   createdAt: row.created_at,
@@ -168,7 +170,7 @@ export async function GET(request: NextRequest) {
     const ascending = sortOrder === 'asc'
 
     let query = supabase
-      .from('vacancies')
+      .from('vacancies_with_stats')
       .select(
         '*, created_by (id, name, email), created_by_organization (id), approved_by (id, name)',
         { count: 'exact' }

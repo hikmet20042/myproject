@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Edit3, Eye, History, Trash2 } from "lucide-react";
+import { Edit3, Eye, History, Trash2, ThumbsDown, ThumbsUp, Bookmark } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { EmptyState } from "@/components/shared";
 import { Button } from "@/components/ui/Button";
@@ -121,6 +121,7 @@ export default function ProfileBlogsPage() {
   const router = useRouter();
   const localePath = useLocalizedPath();
   const { data: session } = useSession();
+  const isOrganizationUser = session?.user?.accountType === "organization";
   const queryClient = useQueryClient();
   const { showError, showSuccess, showInfo } = useGlobalFeedback();
   const [navigatingEditId, setNavigatingEditId] = useState<string | null>(null);
@@ -185,7 +186,14 @@ export default function ProfileBlogsPage() {
         description="Yazdığın bloqları idarə et, statusunu izlə və lazım olduqda yenilə."
         actions={
           session?.user?.emailVerified ? (
-            <Button onClick={() => router.push(localePath("/submit/blog"))}>Yeni bloq yaz</Button>
+            isOrganizationUser ? (
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => router.push(localePath("/dashboard/events/create"))}>Tədbir paylaş</Button>
+                <Button variant="outline" onClick={() => router.push(localePath("/dashboard/vacancies/create"))}>Vakansiya paylaş</Button>
+              </div>
+            ) : (
+              <Button onClick={() => router.push(localePath("/submit/blog"))}>Yeni bloq yaz</Button>
+            )
           ) : undefined
         }
       />
@@ -266,9 +274,13 @@ export default function ProfileBlogsPage() {
         ) : blogs.length === 0 ? (
           <EmptyState
             title="Hələ bloq yazmamısan"
-            message="İlk bloqunu yazaraq məzmununu idarə etməyə başla."
-            actionText={session?.user?.emailVerified ? "İlk bloqunu yaz" : undefined}
-            onAction={session?.user?.emailVerified ? () => router.push(localePath("/submit/blog")) : undefined}
+            message={isOrganizationUser ? "Təşkilat hesabı ilə tədbir və vakansiya paylaşaraq aktivliyə başla." : "İlk bloqunu yazaraq məzmununu idarə etməyə başla."}
+            actionText={session?.user?.emailVerified ? (isOrganizationUser ? "Tədbir paylaş" : "İlk bloqunu yaz") : undefined}
+            onAction={
+              session?.user?.emailVerified
+                ? () => router.push(localePath(isOrganizationUser ? "/dashboard/events/create" : "/submit/blog"))
+                : undefined
+            }
           />
         ) : filteredBlogs.length === 0 ? (
           <EmptyState
@@ -281,6 +293,7 @@ export default function ProfileBlogsPage() {
               const blogId = getBlogId(blog);
               const timeline = buildModerationTimeline(blog);
               const statusView = resolveStatusPresentation(blog);
+              const isApproved = blog.status === "approved";
 
               return (
                 <article key={blogId} className="rounded-xl border border-gray-200 bg-white p-4 transition-all duration-200 hover:border-gray-300 hover:shadow-sm sm:p-5">
@@ -290,10 +303,30 @@ export default function ProfileBlogsPage() {
                         <span className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-xs font-semibold ${statusView.style}`}>
                           {statusView.label}
                         </span>
-                        <span className="inline-flex items-center gap-1 text-xs text-gray-500">
-                          <Eye className="w-3.5 h-3.5" />
-                          {blog.views || 0}
-                        </span>
+                        {isApproved ? (
+                          <>
+                            <span className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-2 py-1 text-xs text-gray-600">
+                              <Eye className="w-3.5 h-3.5" />
+                              {blog.views || 0}
+                            </span>
+                            <span className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2 py-1 text-xs text-blue-700">
+                              <ThumbsUp className="w-3.5 h-3.5" />
+                              {blog.likes || 0}
+                            </span>
+                            <span className="inline-flex items-center gap-1 rounded-lg bg-rose-50 px-2 py-1 text-xs text-rose-700">
+                              <ThumbsDown className="w-3.5 h-3.5" />
+                              {blog.dislikes || 0}
+                            </span>
+                            <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-1 text-xs text-amber-700">
+                              <Bookmark className="w-3.5 h-3.5" />
+                              {blog.saves || 0}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="inline-flex items-center rounded-lg bg-gray-100 px-2 py-1 text-xs text-gray-600">
+                            Statistika təsdiqdən sonra görünəcək
+                          </span>
+                        )}
                       </div>
 
                       <h3 className="text-lg font-semibold text-gray-900">{blog.title}</h3>

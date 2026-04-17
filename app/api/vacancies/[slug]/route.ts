@@ -4,10 +4,12 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { NotificationService } from '@/features/notifications/services/notificationService'
 import { isAdmin, isAdminOrOwner, isOwner } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { resolveEntityBySlugOrId } from '@/lib/identifier'
 
 const mapVacancy = (row: any) => ({
   _id: row.id,
   id: row.id,
+  slug: row.slug,
   title: row.title,
   description: row.description,
   type: row.type,
@@ -45,13 +47,16 @@ const mapVacancy = (row: any) => ({
   isFeatured: row.is_featured,
   isUrgent: row.is_urgent,
   applicationCount: row.application_count,
-  views: row.views,
-  uniqueViews: row.unique_views,
+  views: row.real_views ?? row.views,
+  uniqueViews: row.real_unique_views ?? row.unique_views,
+  saves: row.real_saves ?? row.saves ?? 0,
   viewedBy: row.viewed_by || [],
   engagementScore: row.engagement_score,
   createdAt: row.created_at,
   updatedAt: row.updated_at
 });
+
+import { getContentViewCounts } from '@/lib/viewTracking'
 
 // GET /api/vacancies/[slug] - Get single vacancy
 export async function GET(
@@ -61,17 +66,40 @@ export async function GET(
   try {
     const supabase = createSupabaseAdminClient()
 
+    const { data: resolvedVacancy, error: resolveError } = await resolveEntityBySlugOrId(
+      supabase,
+      'vacancies',
+      params.slug,
+      'id'
+    )
+
+    if (resolveError || !resolvedVacancy?.id) {
+      return errorResponse('Vacancy not found', "API_ERROR", {}, 404)
+    }
+
     const { data: vacancyRow, error } = await supabase
       .from('vacancies')
       .select('*, created_by (id, name, email), created_by_organization (id, organization_name, email)')
-      .eq('slug', params.slug)
+      .eq('id', resolvedVacancy.id)
       .single()
 
     if (error || !vacancyRow) {
       return errorResponse('Vacancy not found', "API_ERROR", {}, 404)
     }
 
-    const vacancy = mapVacancy(vacancyRow)
+    const stats = await getContentViewCounts(supabase, 'vacancy', vacancyRow.id)
+    const { count: savesCount } = await supabase
+      .from('content_saves')
+      .select('*', { count: 'exact', head: true })
+      .eq('content_type', 'vacancy')
+      .eq('content_id', vacancyRow.id)
+
+    const vacancy = { 
+      ...mapVacancy(vacancyRow),
+      views: stats.views,
+      uniqueViews: stats.uniqueViews,
+      saves: savesCount || 0,
+    }
 
     // Restrict unpublished or non-approved vacancies
     if (vacancy.status !== 'approved' || vacancy.isPublished === false) {
@@ -105,10 +133,21 @@ export async function PUT(
 
     const supabase = createSupabaseAdminClient()
 
+    const { data: resolvedVacancy, error: resolveError } = await resolveEntityBySlugOrId(
+      supabase,
+      'vacancies',
+      params.slug,
+      'id'
+    )
+
+    if (resolveError || !resolvedVacancy?.id) {
+      return errorResponse('Vacancy not found', "API_ERROR", {}, 404)
+    }
+
     const { data: vacancyRow, error: vacancyError } = await supabase
       .from('vacancies')
       .select('*')
-      .eq('slug', params.slug)
+      .eq('id', resolvedVacancy.id)
       .single()
     if (vacancyError || !vacancyRow) {
       return errorResponse('Vacancy not found', "API_ERROR", {}, 404)
@@ -225,7 +264,7 @@ export async function PUT(
     const { data: updatedRow, error: updateError } = await supabase
       .from('vacancies')
       .update(updateData)
-      .eq('slug', params.slug)
+      .eq('id', resolvedVacancy.id)
       .select('*, created_by (id, name, email), created_by_organization (id, organization_name, email)')
       .single()
 
@@ -259,6 +298,17 @@ export async function PATCH(
 
     const supabase = createSupabaseAdminClient()
 
+    const { data: resolvedVacancy, error: resolveError } = await resolveEntityBySlugOrId(
+      supabase,
+      'vacancies',
+      params.slug,
+      'id'
+    )
+
+    if (resolveError || !resolvedVacancy?.id) {
+      return errorResponse('Vacancy not found', "API_ERROR", {}, 404)
+    }
+
     if (!isAdmin(session)) {
       return errorResponse('Admin access required', "API_ERROR", {}, 403)
     }
@@ -266,7 +316,7 @@ export async function PATCH(
     const { data: vacancyRow, error: vacancyError } = await supabase
       .from('vacancies')
       .select('*')
-      .eq('slug', params.slug)
+      .eq('id', resolvedVacancy.id)
       .single()
 
     if (vacancyError || !vacancyRow) {
@@ -305,7 +355,7 @@ export async function PATCH(
     const { data: updatedRow, error: updateError } = await supabase
       .from('vacancies')
       .update(updateData)
-      .eq('slug', params.slug)
+      .eq('id', resolvedVacancy.id)
       .select('*, created_by (id, name, email), created_by_organization (id, organization_name, email), approved_by (id, name)')
       .single()
 
@@ -334,7 +384,7 @@ export async function PATCH(
         message: notificationMessage,
         type: action === 'approve' ? 'vacancy_approved' : 'vacancy_rejected',
         data: {
-          relatedId: params.slug,
+          relatedId: resolvedVacancy.id,
           relatedModel: 'Vacancy',
           vacancyTitle: vacancyRow.title,
           action,
@@ -369,10 +419,21 @@ export async function DELETE(
 
     const supabase = createSupabaseAdminClient()
 
+    const { data: resolvedVacancy, error: resolveError } = await resolveEntityBySlugOrId(
+      supabase,
+      'vacancies',
+      params.slug,
+      'id'
+    )
+
+    if (resolveError || !resolvedVacancy?.id) {
+      return errorResponse('Vacancy not found', "API_ERROR", {}, 404)
+    }
+
     const { data: vacancyRow, error: vacancyError } = await supabase
       .from('vacancies')
       .select('id, created_by, created_by_organization')
-      .eq('slug', params.slug)
+      .eq('id', resolvedVacancy.id)
       .single()
     if (vacancyError || !vacancyRow) {
       return errorResponse('Vacancy not found', "API_ERROR", {}, 404)
@@ -385,7 +446,7 @@ export async function DELETE(
     const { error: deleteError } = await supabase
       .from('vacancies')
       .delete()
-      .eq('slug', params.slug)
+      .eq('id', resolvedVacancy.id)
 
     if (deleteError) {
       return errorResponse('Failed to delete vacancy', "API_ERROR", {}, 500)

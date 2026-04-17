@@ -38,7 +38,7 @@ export default function SaveItemButtonContainer({
       if (!response.ok) return { hasSaved: false, totalSaves: 0 }
       const data = await response.json()
       return {
-        hasSaved: Boolean(data?.data?.saved),
+        hasSaved: Boolean(data?.data?.hasSaved),
         totalSaves: Number(data?.data?.totalSaves || 0),
       }
     },
@@ -70,7 +70,7 @@ export default function SaveItemButtonContainer({
     },
     onSuccess: (data) => {
       queryClient.setQueryData(keyFor(itemType, itemId), {
-        hasSaved: Boolean(data?.saved),
+        hasSaved: Boolean(data?.hasSaved),
         totalSaves: Number(data?.totalSaves || 0),
       })
       queryClient.invalidateQueries({ queryKey: ['saved-list'] })

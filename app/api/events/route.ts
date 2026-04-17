@@ -65,8 +65,8 @@ export async function GET(request: NextRequest) {
     const ascending = sortOrder !== -1;
 
     let query = supabase
-      .from("events")
-      .select("*, created_by (id, name, email), created_by_organization (id, organization_name, url_handle), approved_by (id, name)", {
+      .from("events_with_stats")
+      .select("*", {
         count: "exact",
       })
       .order(orderField, { ascending })
@@ -136,35 +136,62 @@ export async function GET(request: NextRequest) {
       return errorResponse("Failed to fetch events", 500);
     }
 
-    const events = (eventRows || []).map(mapEventToResponse);
-    
-    // Fetch organization names for events created by organizations
-    const orgIds = eventRows
-      .filter((e: any) => e.created_by_organization)
-      .map((e: any) => e.created_by_organization.id)
-    
-    let orgNames: any[] = []
-    if (orgIds.length > 0) {
-      const { data: orgData } = await supabase
-        .from('organization_profiles')
-        .select('account_id, organization_name, email')
-        .in('account_id', orgIds)
-      orgNames = orgData || []
-    }
-    
-    // Merge organization names into events
-    const eventsWithOrgNames = events.map((event: any) => {
-      if (!event.createdByOrganization) return event
-      const orgProfile = orgNames.find((o: any) => o.account_id === event.createdByOrganization.id)
+    const rows = eventRows || []
+
+    const creatorUserIds = Array.from(
+      new Set(rows.map((e: any) => e.created_by).filter(Boolean))
+    )
+    const organizationIds = Array.from(
+      new Set(rows.map((e: any) => e.created_by_organization).filter(Boolean))
+    )
+    const approverIds = Array.from(
+      new Set(rows.map((e: any) => e.approved_by).filter(Boolean))
+    )
+
+    const [creatorsResult, approversResult, organizationsResult] = await Promise.all([
+      creatorUserIds.length > 0
+        ? supabase.from('users').select('id, name, email').in('id', creatorUserIds)
+        : Promise.resolve({ data: [], error: null } as any),
+      approverIds.length > 0
+        ? supabase.from('users').select('id, name').in('id', approverIds)
+        : Promise.resolve({ data: [], error: null } as any),
+      organizationIds.length > 0
+        ? supabase
+            .from('organization_profiles')
+            .select('account_id, organization_name, email')
+            .in('account_id', organizationIds)
+        : Promise.resolve({ data: [], error: null } as any),
+    ])
+
+    const creatorsById = new Map((creatorsResult.data || []).map((u: any) => [String(u.id), u]))
+    const approversById = new Map((approversResult.data || []).map((u: any) => [String(u.id), u]))
+    const orgsByAccountId = new Map((organizationsResult.data || []).map((o: any) => [String(o.account_id), o]))
+
+    const hydratedRows = rows.map((row: any) => {
+      const createdById = row.created_by ? String(row.created_by) : null
+      const organizationId = row.created_by_organization ? String(row.created_by_organization) : null
+      const approvedById = row.approved_by ? String(row.approved_by) : null
+
       return {
-        ...event,
-        createdByOrganization: {
-          ...event.createdByOrganization,
-          organizationName: orgProfile?.organization_name || 'Unknown organization',
-          email: orgProfile?.email || event.createdByOrganization.email || null,
-        }
+        ...row,
+        created_by: createdById ? creatorsById.get(createdById) || null : null,
+        created_by_organization: organizationId
+          ? {
+              id: organizationId,
+              organization_name: orgsByAccountId.get(organizationId)?.organization_name || row.organization_name || 'Unknown organization',
+              email: orgsByAccountId.get(organizationId)?.email || null,
+            }
+          : null,
+        approved_by: approvedById
+          ? {
+              id: approvedById,
+              name: approversById.get(approvedById)?.name || null,
+            }
+          : null,
       }
     })
+
+    const eventsWithOrgNames = hydratedRows.map(mapEventToResponse)
     
     const total = count || 0;
     const payload: Record<string, any> = {

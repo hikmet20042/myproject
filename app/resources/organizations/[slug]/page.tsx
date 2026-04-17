@@ -73,7 +73,7 @@ export default function OrganizationDetailPage() { const localePath = useLocaliz
         title={'Təşkilat tapılmadı'}
         message={error || 'Axtardığın təşkilat tapılmadı.'}
         retryText={'Təşkilatlara qayıt'}
-        onRetry={() => router.replace(localePath("/o"))}
+        onRetry={() => router.replace(localePath("/resources/organizations"))}
       />
     ) }
         
@@ -92,13 +92,13 @@ export default function OrganizationDetailPage() { const localePath = useLocaliz
               items={[
                 { label: 'Ana səhifə', href: localePath('/') },
                 { label: 'Resurslar', href: localePath('/resources') },
-                { label: 'Təşkilatlar', href: localePath('/o') },
+                { label: 'Təşkilatlar', href: localePath('/resources/organizations') },
                 { label: organization.organizationName, current: true }
               ]}
             />
 
             {/* Back Button */}
-            <Link href={localePath("/o")} className="inline-block mb-8">
+            <Link href={localePath("/resources/organizations")} className="inline-block mb-8">
               <Button 
                 variant="outline" 
                 className="bg-white border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-primary"

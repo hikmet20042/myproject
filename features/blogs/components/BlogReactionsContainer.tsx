@@ -10,12 +10,12 @@ import { ButtonLink } from '@/components/ui'
 import { blogQueryKeys, dislikeBlog, fetchBlogReactions, likeBlog } from '@/lib/blogQueries'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 
-interface BlogReactionsContainerProps { blogId: string
+interface BlogReactionsContainerProps { blogSlug: string
   initialLikes?: number
   initialDislikes?: number
   className?: string }
 
-export default function BlogReactionsContainer({ blogId,
+export default function BlogReactionsContainer({ blogSlug,
   initialLikes = 0,
   initialDislikes = 0,
   className = '' }: BlogReactionsContainerProps) { const { data: session, status } = useSession()
@@ -31,16 +31,16 @@ export default function BlogReactionsContainer({ blogId,
   }), [initialLikes, initialDislikes])
 
   const reactionsQuery = useQuery({
-    queryKey: blogQueryKeys.reactions(blogId),
-    queryFn: () => fetchBlogReactions(blogId),
+    queryKey: blogQueryKeys.reactions(blogSlug),
+    queryFn: () => fetchBlogReactions(blogSlug),
     enabled: !!session?.user?.id,
     initialData: defaultReactionState
   })
 
   const likeMutation = useMutation({
-    mutationFn: () => likeBlog(blogId),
+    mutationFn: () => likeBlog(blogSlug),
     onMutate: async () => {
-      const queryKey = blogQueryKeys.reactions(blogId)
+      const queryKey = blogQueryKeys.reactions(blogSlug)
       await queryClient.cancelQueries({ queryKey })
       const previous = queryClient.getQueryData<typeof defaultReactionState>(queryKey) || defaultReactionState
       const next = previous.hasLiked
@@ -61,11 +61,11 @@ export default function BlogReactionsContainer({ blogId,
     },
     onError: (_error, _vars, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(blogQueryKeys.reactions(blogId), context.previous)
+        queryClient.setQueryData(blogQueryKeys.reactions(blogSlug), context.previous)
       }
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(blogQueryKeys.reactions(blogId), {
+      queryClient.setQueryData(blogQueryKeys.reactions(blogSlug), {
         likes: data.likes || 0,
         dislikes: data.dislikes || 0,
         hasLiked: !!data.hasLiked,
@@ -73,16 +73,16 @@ export default function BlogReactionsContainer({ blogId,
       })
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: blogQueryKeys.reactions(blogId) })
-      queryClient.invalidateQueries({ queryKey: blogQueryKeys.detail(blogId) })
+      queryClient.invalidateQueries({ queryKey: blogQueryKeys.reactions(blogSlug) })
+      queryClient.invalidateQueries({ queryKey: blogQueryKeys.detail(blogSlug) })
       queryClient.invalidateQueries({ queryKey: blogQueryKeys.all })
     }
   })
 
   const dislikeMutation = useMutation({
-    mutationFn: () => dislikeBlog(blogId),
+    mutationFn: () => dislikeBlog(blogSlug),
     onMutate: async () => {
-      const queryKey = blogQueryKeys.reactions(blogId)
+      const queryKey = blogQueryKeys.reactions(blogSlug)
       await queryClient.cancelQueries({ queryKey })
       const previous = queryClient.getQueryData<typeof defaultReactionState>(queryKey) || defaultReactionState
       const next = previous.hasDisliked
@@ -103,11 +103,11 @@ export default function BlogReactionsContainer({ blogId,
     },
     onError: (_error, _vars, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(blogQueryKeys.reactions(blogId), context.previous)
+        queryClient.setQueryData(blogQueryKeys.reactions(blogSlug), context.previous)
       }
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(blogQueryKeys.reactions(blogId), {
+      queryClient.setQueryData(blogQueryKeys.reactions(blogSlug), {
         likes: data.likes || 0,
         dislikes: data.dislikes || 0,
         hasLiked: !!data.hasLiked,
@@ -115,8 +115,8 @@ export default function BlogReactionsContainer({ blogId,
       })
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: blogQueryKeys.reactions(blogId) })
-      queryClient.invalidateQueries({ queryKey: blogQueryKeys.detail(blogId) })
+      queryClient.invalidateQueries({ queryKey: blogQueryKeys.reactions(blogSlug) })
+      queryClient.invalidateQueries({ queryKey: blogQueryKeys.detail(blogSlug) })
       queryClient.invalidateQueries({ queryKey: blogQueryKeys.all })
     }
   })

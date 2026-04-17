@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { getBlogStats } from '@/lib/blogStats'
 import { NotificationService } from '@/features/notifications/services/notificationService'
+import { resolveEntityBySlugOrId } from '@/lib/identifier'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,16 +21,27 @@ export async function POST(
       return errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401)
     }
 
-    const blogSlug = params.slug
+    const blogIdentifier = params.slug
 
-    if (!blogSlug) {
-      return errorResponse('Blog slug is required', 'VALIDATION_ERROR', {}, 400)
+    if (!blogIdentifier) {
+      return errorResponse('Blog identifier is required', 'VALIDATION_ERROR', {}, 400)
+    }
+
+    const { data: resolvedBlog, error: resolveError } = await resolveEntityBySlugOrId(
+      supabase,
+      'blogs',
+      blogIdentifier,
+      'id'
+    )
+
+    if (resolveError || !resolvedBlog?.id) {
+      return errorResponse('Blog not found', 'BLOG_NOT_FOUND', {}, 404)
     }
 
     const { data: blog, error: blogError } = await supabase
       .from('blogs')
       .select('id, author_id, title')
-      .eq('slug', blogSlug)
+      .eq('id', resolvedBlog.id)
       .single()
 
     if (blogError || !blog) {
@@ -141,17 +153,18 @@ export async function GET(
   try {
     const supabase = createSupabaseAdminClient()
     const session = await getServerSession()
-    const blogSlug = params.slug
+    const blogIdentifier = params.slug
 
-    if (!blogSlug) {
-      return errorResponse('Blog slug is required', 'VALIDATION_ERROR', {}, 400)
+    if (!blogIdentifier) {
+      return errorResponse('Blog identifier is required', 'VALIDATION_ERROR', {}, 400)
     }
 
-    const { data: blog, error: blogError } = await supabase
-      .from('blogs')
-      .select('id')
-      .eq('slug', blogSlug)
-      .single()
+    const { data: blog, error: blogError } = await resolveEntityBySlugOrId(
+      supabase,
+      'blogs',
+      blogIdentifier,
+      'id'
+    )
 
     if (blogError || !blog) {
       return errorResponse('Blog not found', 'BLOG_NOT_FOUND', {}, 404)

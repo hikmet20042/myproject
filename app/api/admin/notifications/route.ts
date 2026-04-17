@@ -4,6 +4,22 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { canAccessAdmin } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 
+const MASS_NOTIFICATION_RATE_LIMIT = 50 // Max 50 notifications per request
+const MASS_NOTIFICATION_COOLDOWN = 60000 // 1 minute cooldown between mass sends
+
+let lastMassNotificationTime = 0
+
+function sanitizeInput(input: string | undefined | null): string {
+  if (!input) return ''
+  return input
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .slice(0, 500)
+}
+
 export const dynamic = 'force-dynamic'
 
 // Get all notifications for admin management
@@ -91,6 +107,11 @@ export async function POST(request: NextRequest) {
       return errorResponse('Unauthorized', "API_ERROR", {}, 401)
     }
 
+    const now = Date.now()
+    if (now - lastMassNotificationTime < MASS_NOTIFICATION_COOLDOWN) {
+      return errorResponse('Please wait before sending another mass notification', "API_ERROR", {}, 429)
+    }
+
     const supabase = createSupabaseAdminClient()
     const body = await request.json()
     const { type, title, message, targetUsers, data } = body
@@ -98,6 +119,9 @@ export async function POST(request: NextRequest) {
     if (!type || !title || !message) {
       return errorResponse('Type, title and message are required', "API_ERROR", {}, 400)
     }
+
+    const sanitizedTitle = sanitizeInput(title)
+    const sanitizedMessage = sanitizeInput(message)
 
     let userIds: string[] = []
 
@@ -108,18 +132,23 @@ export async function POST(request: NextRequest) {
       const { data } = await supabase.auth.admin.listUsers()
       userIds = (data?.users || []).filter(user => !!user.email_confirmed_at).map(user => user.id)
     } else if (Array.isArray(targetUsers)) {
-      // Send to specific users
       userIds = targetUsers
     } else {
       return errorResponse('Invalid target users', "API_ERROR", {}, 400)
     }
 
+    if (userIds.length > MASS_NOTIFICATION_RATE_LIMIT) {
+      userIds = userIds.slice(0, MASS_NOTIFICATION_RATE_LIMIT)
+    }
+
+    lastMassNotificationTime = now
+
     // Create notifications for all target users
     const notifications = userIds.map(userId => ({
       user_id: userId,
       type,
-      title,
-      message,
+      title: sanitizedTitle,
+      message: sanitizedMessage,
       data: data || {},
       is_read: false
     }))
@@ -222,11 +251,14 @@ export async function PUT(request: NextRequest) {
         return errorResponse('Title and message are required', "API_ERROR", {}, 400)
       }
 
+      const sanitizedTitle = sanitizeInput(title)
+      const sanitizedMessage = sanitizeInput(message)
+
       const { data: updated, error } = await supabase
         .from('notifications')
         .update({
-          title: title.trim(),
-          message: message.trim(),
+          title: sanitizedTitle,
+          message: sanitizedMessage,
           updated_at: new Date().toISOString()
         })
         .eq('id', notificationId)

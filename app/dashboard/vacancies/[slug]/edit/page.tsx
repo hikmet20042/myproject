@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { Bookmark, Eye } from 'lucide-react'
 import { ErrorState } from '@/components/shared'
 import { SectionLoading } from '@/features/ui-state'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
@@ -17,6 +18,9 @@ type VacancyResponse = VacancyFormInitialData & {
   _id: string
   createdBy?: { _id?: string } | string
   createdByOrganization?: { _id?: string } | string
+  views?: number
+  uniqueViews?: number
+  saves?: number
 }
 
 export default function EditVacancyPage() {
@@ -150,10 +154,32 @@ export default function EditVacancyPage() {
   }
 
   return (
-    <VacancyForm
-      isEditMode
-      initialData={vacancy}
-      onSubmit={handleUpdate}
-    />
+    <div className="space-y-4">
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-1.5">
+            <Eye className="h-4 w-4 text-blue-600" />
+            <span className="text-sm font-medium text-blue-700">
+              {(vacancy.views || 0).toLocaleString()} baxış
+            </span>
+            <span className="text-xs text-blue-500">
+              ({(vacancy.uniqueViews || 0).toLocaleString()} unikal)
+            </span>
+          </div>
+          <div className="flex items-center gap-2 rounded-lg border border-amber-100 bg-amber-50 px-3 py-1.5">
+            <Bookmark className="h-4 w-4 text-amber-600" />
+            <span className="text-sm font-medium text-amber-700">
+              {(vacancy.saves || 0).toLocaleString()} saxlama
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <VacancyForm
+        isEditMode
+        initialData={vacancy}
+        onSubmit={handleUpdate}
+      />
+    </div>
   )
 }

@@ -69,14 +69,6 @@ export function getPostLoginRedirect(session: ClientSession, callbackUrl?: strin
     return '/auth/signin'
   }
 
-  const safeCallbackUrl = normalizeInternalCallbackUrl(callbackUrl)
-  if (safeCallbackUrl && !safeCallbackUrl.startsWith('/auth/signin') && !safeCallbackUrl.startsWith('/auth/callback')) {
-    if (!isAllowedProtectedPath(session, safeCallbackUrl)) {
-      return getDefaultAuthenticatedRedirect(session)
-    }
-
-    return safeCallbackUrl
-  }
-
-  return getDefaultAuthenticatedRedirect(session)
+  // Always redirect to home page after sign in
+  return '/'
 }

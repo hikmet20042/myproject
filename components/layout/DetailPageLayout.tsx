@@ -13,6 +13,7 @@ type DetailPageLayoutProps = {
   mainContent: ReactNode
   actionSection?: ReactNode
   sidebar?: ReactNode
+  contentMaxWidthClass?: string
 }
 
 export default function DetailPageLayout({
@@ -24,6 +25,7 @@ export default function DetailPageLayout({
   mainContent,
   actionSection,
   sidebar,
+  contentMaxWidthClass = 'max-w-4xl',
 }: DetailPageLayoutProps) {
   const hasSidebar = Boolean(sidebar)
 
@@ -68,7 +70,7 @@ export default function DetailPageLayout({
               <div className="space-y-8">{sidebar}</div>
             </div>
           ) : (
-            <div className="mx-auto max-w-4xl space-y-8">
+            <div className={`mx-auto ${contentMaxWidthClass} space-y-8`}>
               {mainContent}
               {actionSection}
             </div>

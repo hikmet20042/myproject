@@ -1,56 +1,125 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { isBot, getClientIp, getSessionId, setSessionCookie, recordBlogView, getBlogViewCounts } from '@/lib/viewTracking'
+import { resolveEntityBySlugOrId } from '@/lib/identifier'
+import { checkRateLimit } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
 
-// POST /api/blogs/[slug]/view - Record a blog view
+const VIEW_RATE_LIMIT_MAX = 60 // Max 60 view requests
+const VIEW_RATE_LIMIT_WINDOW_MS = 60000 // Per minute
+
+// POST /api/blogs/[slug]/view - Record a blog view with server-side dedup
 export async function POST(
   request: NextRequest,
   { params }: { params: { slug: string } }
 ) {
   try {
-    const supabase = createSupabaseAdminClient()
-    const blogSlug = params.slug
-
-    if (!blogSlug) {
-      return errorResponse('Blog slug is required', 'VALIDATION_ERROR', {}, 400)
+    const clientIp = getClientIp(request) || 'unknown'
+    const { id: sessionId, isNew: isNewSession } = getSessionId(request, 'blog_session_id')
+    const session = await getServerSession()
+    const userId = session?.user?.id || null
+    
+    // More robust rate limit key: include session/user to prevent single IP from affecting all users
+    // Also add content type to separate rate limits for different content types
+    const identifier = userId || sessionId || clientIp
+    const rateLimitKey = `view:blog:${identifier}:${params.slug}`
+    
+    const rateLimitResult = checkRateLimit({
+      key: rateLimitKey,
+      maxRequests: VIEW_RATE_LIMIT_MAX,
+      windowMs: VIEW_RATE_LIMIT_WINDOW_MS
+    })
+    
+    if (!rateLimitResult.allowed) {
+      console.warn(`[POST /api/blogs/[slug]/view] Rate limit exceeded for identifier: ${identifier}`)
+      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     }
 
-    const { data: blog, error: blogError } = await supabase
-      .from('blogs')
-      .select('id')
-      .eq('slug', blogSlug)
-      .single()
+    const supabase = createSupabaseAdminClient()
+    const blogIdentifier = params.slug
 
-    if (blogError || !blog) {
+    if (!blogIdentifier) {
+      console.warn('[POST /api/blogs/[slug]/view] Missing blog identifier')
+      return errorResponse('Blog identifier is required', 'VALIDATION_ERROR', {}, 400)
+    }
+
+    const { data: resolvedBlog, error: resolveError } = await resolveEntityBySlugOrId(
+      supabase,
+      'blogs',
+      blogIdentifier,
+      'id'
+    )
+
+    if (resolveError || !resolvedBlog?.id) {
       return errorResponse('Blog not found', 'BLOG_NOT_FOUND', {}, 404)
     }
 
-    // Get session ID from cookies or generate one
-    const sessionId = request.cookies.get('blog_session_id')?.value || crypto.randomUUID()
+    // Find the blog
+    const { data: blog, error: blogError } = await supabase
+      .from('blogs')
+      .select('id, status')
+      .eq('id', resolvedBlog.id)
+      .single()
 
-    // Insert view record
-    const { error: viewError } = await supabase
-      .from('blog_views')
-      .insert({
-        blog_id: blog.id,
-        session_id: sessionId,
-      })
-
-    if (viewError) {
-      console.error('Failed to record blog view:', viewError)
-      return errorResponse('Failed to record view', 'RECORD_VIEW_FAILED', {}, 500)
+    if (blogError || !blog) {
+      console.warn(`[POST /api/blogs/[slug]/view] Blog not found: identifier="${blogIdentifier}", error=${blogError?.message}`)
+      return errorResponse('Blog not found', 'BLOG_NOT_FOUND', {}, 404)
     }
 
-    const response = successResponse({ message: 'View recorded' })
-    // Set session cookie if it didn't exist
-    if (!request.cookies.has('blog_session_id')) {
-      response.cookies.set('blog_session_id', sessionId, {
-        maxAge: 60 * 60 * 24 * 365, // 1 year
-        path: '/',
-        sameSite: 'lax',
-      })
+    // Only track views for approved blogs
+    if (blog.status !== 'approved') {
+      console.warn(`[POST /api/blogs/[slug]/view] Blog not approved: identifier="${blogIdentifier}", status="${blog.status}"`)
+      return errorResponse('Blog not found', 'BLOG_NOT_FOUND', {}, 404)
+    }
+
+    // Bot filtering
+    const userAgent = request.headers.get('user-agent')
+    if (isBot(userAgent)) {
+      console.log(`[POST /api/blogs/[slug]/view] Bot filtered: user-agent="${userAgent}"`)
+      return errorResponse('Bot views not tracked', 'BOT_FILTERED', {}, 200)
+    }
+
+    // Server-side time verification - prevent direct API calls bypassing client-side timer
+    // Accept requests with timestamp from legitimate ViewTracker component
+    const viewTime = parseInt(request.headers.get('x-view-start-time') || '0', 10)
+    const now = Date.now()
+    const MIN_VIEW_TIME_MS = 10000 // 10 seconds minimum
+    
+    if (viewTime > 0) {
+      const timeOnPage = now - viewTime
+      if (timeOnPage < MIN_VIEW_TIME_MS) {
+        console.warn(`[POST /api/blogs/[slug]/view] View time too short: ${timeOnPage}ms < ${MIN_VIEW_TIME_MS}ms`)
+        return errorResponse('View time too short', 'VIEW_TIME_INVALID', {}, 400)
+      }
+    } else {
+      // No timestamp header = suspicious request (could be direct API call)
+      console.warn(`[POST /api/blogs/[slug]/view] No view start timestamp - possible direct API call`)
+      return errorResponse('Invalid view request', 'VIEW_REQUEST_INVALID', {}, 400)
+    }
+
+    // Get session and user identity (already fetched above)
+    console.log(`[POST /api/blogs/[slug]/view] Recording view: blog="${blogIdentifier}" (id=${blog.id}), sessionId="${sessionId}", userId="${userId}", ip="${clientIp}", timeOnPage=${now - viewTime}ms`)
+
+    // Record the view with 24h dedup
+    const stats = await recordBlogView(supabase, blog.id, sessionId, userId)
+
+    console.log(`[POST /api/blogs/[slug]/view] View recorded: views=${stats.views}, uniqueViews=${stats.uniqueViews}, incremented=${stats.viewIncremented}`)
+
+    const response = NextResponse.json({
+      data: {
+        views: stats.views,
+        uniqueViews: stats.uniqueViews,
+        viewIncremented: stats.viewIncremented,
+      },
+    })
+
+    // Set session cookie for anonymous users
+    if (isNewSession && !userId) {
+      setSessionCookie(response, 'blog_session_id', sessionId)
+      console.log(`[POST /api/blogs/[slug]/view] Session cookie set for sessionId="${sessionId}"`)
     }
 
     return response
@@ -60,39 +129,36 @@ export async function POST(
   }
 }
 
-// GET /api/blogs/[slug]/view - Get blog view count
+// GET /api/blogs/[slug]/view - Get blog view counts (total + unique)
 export async function GET(
   request: NextRequest,
   { params }: { params: { slug: string } }
 ) {
   try {
     const supabase = createSupabaseAdminClient()
-    const blogSlug = params.slug
+    const blogIdentifier = params.slug
 
-    if (!blogSlug) {
-      return errorResponse('Blog slug is required', 'VALIDATION_ERROR', {}, 400)
+    if (!blogIdentifier) {
+      return errorResponse('Blog identifier is required', 'VALIDATION_ERROR', {}, 400)
     }
 
-    const { data: blog, error: blogError } = await supabase
-      .from('blogs')
-      .select('id')
-      .eq('slug', blogSlug)
-      .single()
+    const { data: blog, error: blogError } = await resolveEntityBySlugOrId(
+      supabase,
+      'blogs',
+      blogIdentifier,
+      'id'
+    )
 
     if (blogError || !blog) {
       return errorResponse('Blog not found', 'BLOG_NOT_FOUND', {}, 404)
     }
 
-    const { count, error: countError } = await supabase
-      .from('blog_views')
-      .select('*', { count: 'exact', head: true })
-      .eq('blog_id', blog.id)
+    const stats = await getBlogViewCounts(supabase, blog.id)
 
-    if (countError) {
-      return errorResponse('Failed to get view count', 'GET_VIEW_COUNT_FAILED', {}, 500)
-    }
-
-    return successResponse({ views: count || 0 })
+    return successResponse({
+      views: stats.views,
+      uniqueViews: stats.uniqueViews,
+    })
   } catch (error) {
     console.error('GET /api/blogs/[slug]/view error:', error)
     return errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500)

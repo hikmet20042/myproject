@@ -79,7 +79,7 @@ const internalPages: ContentPage[] = [
   
   // Organizations
   {
-    url: '/o',
+    url: '/resources/organizations',
     title: 'Təşkilatlar Kataloqu',
     keywords: ['təşkilat', 'ictimai təşkilat', 'QHT', 'tərəfdaşlar'],
     category: 'organizations',

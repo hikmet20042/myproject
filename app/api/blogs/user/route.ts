@@ -30,7 +30,14 @@ export async function GET(request: NextRequest) {
     const itemsWithStats = await Promise.all(
       rows.map(async (blog: any) => {
         const stats = await getBlogStats(supabase, blog.id, session.user.id)
-        return { ...blog, ...stats }
+        
+        const { count: savesCount } = await supabase
+          .from('content_saves')
+          .select('*', { count: 'exact', head: true })
+          .eq('content_type', 'blog')
+          .eq('content_id', blog.id)
+          
+        return { ...blog, ...stats, saves: savesCount || 0 }
       })
     )
     return successResponse({ items: itemsWithStats });

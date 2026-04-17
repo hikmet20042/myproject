@@ -11,6 +11,8 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        background: 'var(--background)',
+        foreground: 'var(--foreground)',
         primary: '#2563EB',
         accent: '#22C55E',
         textColor: '#111111',

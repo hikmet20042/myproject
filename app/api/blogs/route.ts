@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       cacheKey,
       async () => {
         let queryBuilder = supabase
-          .from('blogs')
+          .from('blogs_with_stats')
           .select('*', { count: 'exact' })
           .eq('status', status)
           .order('created_at', { ascending: false })
@@ -61,10 +61,22 @@ export async function GET(request: NextRequest) {
     
     const { blogs, total } = cachedResult as { blogs: any[], total: number };
 
+    // Post-process to map count names and include author handle if needed
+    // (Note: views_count/likes_count/etc are from the view)
     const blogsWithStats = await Promise.all(
       blogs.map(async (blog: any) => {
-        const stats = await getBlogStats(supabase, blog.id, null)
-        // Include author handle
+        // Map view columns to expected names
+        const mappedBlog = {
+          ...blog,
+          views: Number(blog.real_views),
+          uniqueViews: Number(blog.real_unique_views),
+          likes: Number(blog.real_likes),
+          saves: Number(blog.real_saves || 0),
+          dislikes: Number(blog.real_dislikes),
+          engagementScore: Math.max(0, Number(blog.real_views) + Number(blog.real_likes) * 3 - Number(blog.real_dislikes))
+        }
+
+        // Include author handle (still N+1, but we can optimize this later if needed)
         let authorUrlHandle = null
         if (blog.author_id) {
           const { data: account } = await supabase
@@ -74,7 +86,7 @@ export async function GET(request: NextRequest) {
             .single()
           authorUrlHandle = account?.url_handle || null
         }
-        return { ...blog, ...stats, authorUrlHandle }
+        return { ...mappedBlog, authorUrlHandle }
       })
     )
 

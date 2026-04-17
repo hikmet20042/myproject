@@ -33,6 +33,7 @@ type ProfileStats = {
   totalBlogs: number;
   totalViews: number;
   totalLikes: number;
+  totalDislikes: number;
   totalSaves: number;
   joinedDate: string;
 };
@@ -41,6 +42,7 @@ const DEFAULT_STATS: ProfileStats = {
   totalBlogs: 0,
   totalViews: 0,
   totalLikes: 0,
+  totalDislikes: 0,
   totalSaves: 0,
   joinedDate: new Date().toISOString(),
 };
@@ -98,6 +100,7 @@ function ProfileOverviewContent() {
       totalBlogs: stats.totalBlogs || 0,
       totalViews: stats.totalViews || 0,
       totalLikes: stats.totalLikes || 0,
+      totalDislikes: stats.totalDislikes || 0,
       totalSaves: stats.totalSaves || 0,
       joinedDate: stats.joinedDate || DEFAULT_STATS.joinedDate,
     });
@@ -198,10 +201,11 @@ function ProfileOverviewContent() {
         </div>
       )}
 
-      <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <section className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <ProfileStatCard label="Bloqlar" value={profileStats.totalBlogs} />
         <ProfileStatCard label="Baxışlar" value={profileStats.totalViews} />
         <ProfileStatCard label="Bəyənmələr" value={profileStats.totalLikes} />
+        <ProfileStatCard label="Bəyənməmələr" value={profileStats.totalDislikes} />
         <ProfileStatCard label="Saxlanılanlar" value={profileStats.totalSaves} />
       </section>
 

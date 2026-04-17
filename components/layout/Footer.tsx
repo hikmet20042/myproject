@@ -2,10 +2,13 @@
 
 import Link from 'next/link'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { useSession } from '@/lib/auth/client'
 import Logo from '@/components/Logo'
 
 export default function Footer() {
   const localePath = useLocalizedPath();
+  const { data: session } = useSession()
+  const isOrganizationUser = session?.user?.accountType === 'organization'
   const currentYear = new Date().getFullYear()
 
   return (
@@ -70,14 +73,35 @@ export default function Footer() {
                   {'Bloq'}
                 </Link>
               </li>
-              <li>
-                <Link 
-                  href={localePath('/submit/blog')} 
-                  className="text-sm font-medium text-gray-600 transition-colors duration-200 hover:text-blue-700"
-                >
-                  {'Təcrübə Paylaş'}
-                </Link>
-              </li>
+              {!isOrganizationUser ? (
+                <li>
+                  <Link 
+                    href={localePath('/submit/blog')} 
+                    className="text-sm font-medium text-gray-600 transition-colors duration-200 hover:text-blue-700"
+                  >
+                    {'Təcrübə Paylaş'}
+                  </Link>
+                </li>
+              ) : (
+                <>
+                  <li>
+                    <Link
+                      href={localePath('/dashboard/events/create')}
+                      className="text-sm font-medium text-gray-600 transition-colors duration-200 hover:text-blue-700"
+                    >
+                      {'Tədbir Paylaş'}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href={localePath('/dashboard/vacancies/create')}
+                      className="text-sm font-medium text-gray-600 transition-colors duration-200 hover:text-blue-700"
+                    >
+                      {'Vakansiya Paylaş'}
+                    </Link>
+                  </li>
+                </>
+              )}
               <li>
                 <Link 
                   href={localePath('/resources')} 

@@ -9,6 +9,7 @@ import { Select } from '@/components/ui/Select';
 import SaveItemButtonContainer from '@/components/containers/SaveItemButtonContainer';
 import { useLocalizedPath } from '@/hooks/useLocalizedPath';
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback';
+import { useSession } from '@/lib/auth/client';
 import { ResourceFilterContainer, ActiveFilterBadges, EmptyState, ResourceCard } from '@/components/shared';
 import { ListPageLayout } from '@/components/layout';
 import { ApiError } from '@/lib/apiClient';
@@ -17,6 +18,8 @@ import { getUserErrorMessage } from '@/lib/errorMessages';
 export default function VacanciesPage() {
   const localePath = useLocalizedPath();
   const { showError } = useGlobalFeedback();
+  const { data: session } = useSession();
+  const isOrganizationUser = session?.user?.accountType === 'organization';
 
   const locale = 'az-AZ';
 
@@ -108,7 +111,8 @@ export default function VacanciesPage() {
         applicationEmail,
         postedDate: vacancy.createdAt,
         verified: vacancy.status === 'approved',
-        views: vacancy.views || 0, }; }); }, [rawVacancies, locale]);
+        views: vacancy.views || 0,
+        saves: vacancy.saves || 0, }; }); }, [rawVacancies, locale]);
 
 
   const formatDate = (dateString?: string, fallbackKey?: string) => { if (!dateString) { return fallbackKey ? 'Naməlum' : 'Naməlum'; }
@@ -271,14 +275,28 @@ export default function VacanciesPage() {
       description="Gənclərlə iş üzrə ixtisaslaşmış Təşkilat və təşəbbüslərdə könüllülük, təcrübə və vakansiyalar tapın."
       icon={Sparkles}
       headerActions={
-        <>
-          <ButtonLink href={localePath('/submit')} variant="secondary" size="lg" hoverEffect="scale">
-            {'Bloq Paylaş'}
-          </ButtonLink>
-          <ButtonLink href={localePath('/resources')} variant="outline" size="lg" hoverEffect="scale">
-            {'Fürsətləri Kəşf Et'}
-          </ButtonLink>
-        </>
+        isOrganizationUser ? (
+          <>
+            <ButtonLink href={localePath('/dashboard/events/create')} variant="secondary" size="lg" hoverEffect="scale">
+              {'Tədbir Paylaş'}
+            </ButtonLink>
+            <ButtonLink href={localePath('/dashboard/vacancies/create')} variant="outline" size="lg" hoverEffect="scale">
+              {'Vakansiya Paylaş'}
+            </ButtonLink>
+            <ButtonLink href={localePath('/dashboard/profile')} variant="outline" size="lg" hoverEffect="scale">
+              {'Təşkilat Paneli'}
+            </ButtonLink>
+          </>
+        ) : (
+          <>
+            <ButtonLink href={localePath('/submit')} variant="secondary" size="lg" hoverEffect="scale">
+              {'Bloq Paylaş'}
+            </ButtonLink>
+            <ButtonLink href={localePath('/resources')} variant="outline" size="lg" hoverEffect="scale">
+              {'Fürsətləri Kəşf Et'}
+            </ButtonLink>
+          </>
+        )
       }
       isLoading={loading}
       isError={Boolean(errorMessage) && rawVacancies.length === 0}
@@ -397,6 +415,8 @@ export default function VacanciesPage() {
                     type="vacancy"
                     title={vacancy.title}
                     description={vacancy.description}
+                    views={vacancy.views}
+                    saves={vacancy.saves}
                     wrapperClassName="animate-fade-in"
                     style={{ animationDelay: `${idx * 0.05}s` }}
                     className={deadlinePassed ? 'opacity-60' : ''}

@@ -7,6 +7,7 @@ import { isAdminOrOwner } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { getBlogStats } from '@/lib/blogStats'
 import { NotificationService } from '@/features/notifications/services/notificationService'
+import { resolveEntityBySlugOrId } from '@/lib/identifier'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,10 +29,21 @@ export async function GET(
   try {
     const supabase = createSupabaseAdminClient()
 
+    const { data: resolvedBlog, error: resolveError } = await resolveEntityBySlugOrId(
+      supabase,
+      'blogs',
+      params.slug,
+      'id'
+    )
+
+    if (resolveError || !resolvedBlog?.id) {
+      return errorResponse('Story not found', 'BLOG_NOT_FOUND', {}, 404)
+    }
+
     const { data: blog, error } = await supabase
       .from('blogs')
       .select('*')
-      .eq('slug', params.slug)
+      .eq('id', resolvedBlog.id)
       .single()
     if (error || !blog) {
       return errorResponse('Story not found', 'BLOG_NOT_FOUND', {}, 404)
@@ -84,6 +96,17 @@ export async function PATCH(
       return errorResponse('Story slug is required', 'VALIDATION_ERROR', {}, 400)
     }
 
+    const { data: resolvedBlog, error: resolveError } = await resolveEntityBySlugOrId(
+      supabase,
+      'blogs',
+      slug,
+      'id'
+    )
+
+    if (resolveError || !resolvedBlog?.id) {
+      return errorResponse('Story not found or you do not have permission to edit it', 'BLOG_NOT_FOUND', {}, 404)
+    }
+
     let body: any
     try {
       body = await request.json()
@@ -95,7 +118,7 @@ export async function PATCH(
     const { data: existingStory } = await supabase
       .from('blogs')
       .select('id, status, author_id')
-      .eq('slug', slug)
+      .eq('id', resolvedBlog.id)
       .eq('author_id', session.user.id)
       .single()
 
@@ -178,7 +201,7 @@ export async function PATCH(
       const { data: originalBlog, error: originalBlogError } = await supabase
         .from('blogs')
         .select('*')
-        .eq('slug', slug)
+        .eq('id', resolvedBlog.id)
         .eq('author_id', session.user.id)
         .single()
 
@@ -307,10 +330,21 @@ export async function DELETE(
     }
 
     const supabase = createSupabaseAdminClient()
+    const { data: resolvedBlog, error: resolveError } = await resolveEntityBySlugOrId(
+      supabase,
+      'blogs',
+      slug,
+      'id'
+    )
+
+    if (resolveError || !resolvedBlog?.id) {
+      return errorResponse('Story not found', 'BLOG_NOT_FOUND', {}, 404)
+    }
+
     const { data: blog, error } = await supabase
       .from('blogs')
       .select('id, author_id')
-      .eq('slug', slug)
+      .eq('id', resolvedBlog.id)
       .single()
     if (error || !blog) {
       return errorResponse('Story not found', 'BLOG_NOT_FOUND', {}, 404)

@@ -3,6 +3,7 @@ import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { NotificationService } from '@/features/notifications/services/notificationService'
+import { resolveEntityBySlugOrId } from '@/lib/identifier'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,12 +16,31 @@ const getFollowerCount = async (organizationId: string) => {
   return count || 0
 }
 
-const ensurePublicOrganizationExists = async (slug: string) => {
+const resolveOrganizationAccountId = async (identifier: string) => {
   const supabase = createSupabaseAdminClient()
+  const { data, error } = await resolveEntityBySlugOrId(
+    supabase,
+    'organization_profiles',
+    identifier,
+    'account_id'
+  )
+
+  if (error || !data?.account_id) {
+    return null
+  }
+
+  return data.account_id as string
+}
+
+const ensurePublicOrganizationExists = async (identifier: string) => {
+  const supabase = createSupabaseAdminClient()
+  const organizationId = await resolveOrganizationAccountId(identifier)
+  if (!organizationId) return false
+
   const { data } = await supabase
     .from('organization_profiles')
     .select('account_id, moderation_status')
-    .eq('slug', slug)
+    .eq('account_id', organizationId)
     .maybeSingle()
 
   if (!data || data.moderation_status !== 'approved') {
@@ -30,12 +50,15 @@ const ensurePublicOrganizationExists = async (slug: string) => {
   return true
 }
 
-const getOrganizationName = async (slug: string) => {
+const getOrganizationName = async (identifier: string) => {
   const supabase = createSupabaseAdminClient()
+  const organizationId = await resolveOrganizationAccountId(identifier)
+  if (!organizationId) return null
+
   const { data } = await supabase
     .from('organization_profiles')
     .select('organization_name')
-    .eq('slug', slug)
+    .eq('account_id', organizationId)
     .maybeSingle()
 
   return data?.organization_name || null
@@ -46,24 +69,18 @@ export async function GET(
   { params }: { params: { slug: string } }
 ) {
   try {
-    const slug = params.slug
-    const exists = await ensurePublicOrganizationExists(slug)
+    const identifier = params.slug
+    const exists = await ensurePublicOrganizationExists(identifier)
     if (!exists) {
       return errorResponse('Organization not found', "API_ERROR", {}, 404)
     }
 
-    const supabase = createSupabaseAdminClient()
-    const { data: profile } = await supabase
-      .from('organization_profiles')
-      .select('account_id')
-      .eq('slug', slug)
-      .maybeSingle()
-
-    if (!profile) {
+    const organizationId = await resolveOrganizationAccountId(identifier)
+    if (!organizationId) {
       return errorResponse('Organization not found', "API_ERROR", {}, 404)
     }
 
-    const organizationId = profile.account_id
+    const supabase = createSupabaseAdminClient()
     const session = await getServerSession()
     const followerCount = await getFollowerCount(organizationId)
     let isFollowing = false
@@ -103,25 +120,19 @@ export async function POST(
       return errorResponse('Organization accounts cannot follow organizations', "API_ERROR", {}, 403)
     }
 
-    const slug = params.slug
-    const exists = await ensurePublicOrganizationExists(slug)
+    const identifier = params.slug
+    const exists = await ensurePublicOrganizationExists(identifier)
     if (!exists) {
       return errorResponse('Organization not found', "API_ERROR", {}, 404)
     }
 
     const supabase = createSupabaseAdminClient()
 
-    const { data: profile } = await supabase
-      .from('organization_profiles')
-      .select('account_id')
-      .eq('slug', slug)
-      .maybeSingle()
-
-    if (!profile) {
+    const organizationId = await resolveOrganizationAccountId(identifier)
+    if (!organizationId) {
       return errorResponse('Organization not found', "API_ERROR", {}, 404)
     }
 
-    const organizationId = profile.account_id
     const body = await request.json().catch(() => ({}))
     const requestedAction = body?.action === 'follow' || body?.action === 'unfollow' ? body.action : 'toggle'
 
@@ -156,7 +167,7 @@ export async function POST(
 
     // Notify organization owner account about follow state changes
     try {
-      const organizationName = await getOrganizationName(slug)
+      const organizationName = await getOrganizationName(identifier)
       await NotificationService.notifyOrganizationFollow({
         organizationId,
         organizationName,

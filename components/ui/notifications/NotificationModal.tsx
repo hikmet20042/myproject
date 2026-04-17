@@ -37,7 +37,7 @@ export default function NotificationModal({ open, onClose, title, message, creat
                 className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 onClick={onMarkRead}
               >
-                Mark as Read
+                Oxunmuş kimi işarələ
               </button>
             )}
             {onMarkUnread && isRead && (
@@ -45,7 +45,7 @@ export default function NotificationModal({ open, onClose, title, message, creat
                 className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 onClick={onMarkUnread}
               >
-                Mark as Unread
+                Oxunmamış kimi işarələ
               </button>
             )}
           </div>

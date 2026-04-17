@@ -29,6 +29,9 @@ export interface EventItem {
   createdAt: string;
   updatedAt: string;
   createdBy: { _id: string; name: string; organizationName?: string };
+  views?: number;
+  uniqueViews?: number;
+  saves?: number;
 }
 
 export const eventCategories = [

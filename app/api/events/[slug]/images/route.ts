@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import cloudinaryService from '@/lib/services/cloudinaryService';
 import { canCreateEvent, isAdminOrOwner } from '@/lib/auth/permissions';
 import { successResponse, errorResponse } from '@/lib/apiResponse';
+import { resolveEntityBySlugOrId } from '@/lib/identifier';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,11 +27,23 @@ export async function POST(
       return errorResponse('Only approved organizations can upload event images', 'FORBIDDEN', {}, 403);
     }
 
-    const eventId = params.slug;
+    const eventIdentifier = params.slug;
+    const { data: resolvedEvent, error: resolveError } = await resolveEntityBySlugOrId(
+      supabase,
+      'events',
+      eventIdentifier,
+      'id'
+    )
+
+    if (resolveError || !resolvedEvent?.id) {
+      return errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404);
+    }
+
+    const eventId = String(resolvedEvent.id)
     const { data: event, error: eventError } = await supabase
       .from('events')
       .select('id, title, images, image_url, created_by, created_by_organization')
-      .eq('slug', eventId)
+      .eq('id', eventId)
       .single();
 
     if (eventError || !event) {
@@ -107,7 +120,7 @@ export async function POST(
       await supabase
         .from('events')
         .update({ images: updatedImages, image_url: updatedImageUrl, updated_at: new Date().toISOString() })
-        .eq('slug', eventId);
+        .eq('id', eventId);
     }
 
     return successResponse({
@@ -144,11 +157,23 @@ export async function DELETE(
       return errorResponse('Only approved organizations can manage event images', 'FORBIDDEN', {}, 403);
     }
 
-    const eventId = params.slug;
+    const eventIdentifier = params.slug;
+    const { data: resolvedEvent, error: resolveError } = await resolveEntityBySlugOrId(
+      supabase,
+      'events',
+      eventIdentifier,
+      'id'
+    )
+
+    if (resolveError || !resolvedEvent?.id) {
+      return errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404);
+    }
+
+    const eventId = String(resolvedEvent.id)
     const { data: event, error: eventError } = await supabase
       .from('events')
       .select('id, images, image_url, created_by, created_by_organization')
-      .eq('slug', eventId)
+      .eq('id', eventId)
       .single();
 
     if (eventError || !event) {
@@ -187,7 +212,7 @@ export async function DELETE(
     await supabase
       .from('events')
       .update({ images: updatedImages, image_url: updatedImageUrl, updated_at: new Date().toISOString() })
-      .eq('slug', eventId);
+      .eq('id', eventId);
 
     return successResponse({
       deletedCount: deleteResults.deletedCount,
@@ -223,11 +248,23 @@ export async function PATCH(
       return errorResponse('Only approved organizations can manage event images', 'FORBIDDEN', {}, 403);
     }
 
-    const eventId = params.slug;
+    const eventIdentifier = params.slug;
+    const { data: resolvedEvent, error: resolveError } = await resolveEntityBySlugOrId(
+      supabase,
+      'events',
+      eventIdentifier,
+      'id'
+    )
+
+    if (resolveError || !resolvedEvent?.id) {
+      return errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404);
+    }
+
+    const eventId = String(resolvedEvent.id)
     const { data: event, error: eventError } = await supabase
       .from('events')
       .select('id, images, image_url, created_by, created_by_organization')
-      .eq('slug', eventId)
+      .eq('id', eventId)
       .single();
 
     if (eventError || !event) {
@@ -273,7 +310,7 @@ export async function PATCH(
       await supabase
         .from('events')
         .update({ images: updatedImages, image_url: updatedImageUrl, updated_at: new Date().toISOString() })
-        .eq('slug', eventId);
+        .eq('id', eventId);
     }
 
     return successResponse({

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useSession, signOut } from '@/lib/auth/client'
@@ -16,6 +17,7 @@ interface NavigationItem { name: string
   dropdown?: { name: string; href: string }[] }
 
 export default function Header() {
+  const router = useRouter()
   const localePath = useLocalizedPath();
   const { data: session, status } = useSession()
   const isAuthLoading = status === 'loading'
@@ -56,7 +58,7 @@ export default function Header() {
       href: localePath('/resources'),
       dropdown: [
         { name: 'Bütün Resurslar', href: localePath('/resources') },
-        { name: 'Təşkilatlar', href: localePath('/o'), },
+        { name: 'Təşkilatlar', href: localePath('/resources/organizations') },
         { name: 'Tədbirlər', href: localePath('/resources/events') },
         { name: 'Vakansiyalar', href: localePath('/resources/vacancies') },
         { name: 'Materiallar', href: localePath('/resources/materials') }
@@ -203,7 +205,7 @@ export default function Header() {
                         {'Təşkilat Paneli'}
                       </Link>
                     )}
-                    {!isOrganizationUser && (
+                    {!isOrganizationUser ? (
                       <Link
                         href={localePath('/submit/blog')}
                         className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors duration-150 font-medium"
@@ -211,11 +213,30 @@ export default function Header() {
                       >
                         {'Bloq Paylaş'}
                       </Link>
+                    ) : (
+                      <>
+                        <Link
+                          href={localePath('/dashboard/events/create')}
+                          className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors duration-150 font-medium"
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          {'Tədbir Paylaş'}
+                        </Link>
+                        <Link
+                          href={localePath('/dashboard/vacancies/create')}
+                          className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors duration-150 font-medium"
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          {'Vakansiya Paylaş'}
+                        </Link>
+                      </>
                     )}
                     <div className="border-t border-blue-100">
                       <button
-                        onClick={() => { signOut()
-                          setUserMenuOpen(false) }}
+                        onClick={() => {
+                          signOut((path) => router.replace(path))
+                          setUserMenuOpen(false)
+                        }}
                         className="block w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150 font-medium"
                       >
                         {'Çıxış'}
@@ -356,14 +377,14 @@ export default function Header() {
                       )}
                       {canAccessDashboard(session) && (
                         <Link
-                          href={localePath('/dashboard/profile')}
+                          href={localePath('/dashboard')}
                           className="-mx-3 block rounded-lg px-4 py-3 text-base font-semibold leading-7 text-gray-900 hover:bg-slate-100 transition-colors"
                           onClick={() => setMobileMenuOpen(false)}
                         >
                           {'Təşkilat Paneli'}
                         </Link>
                       )}
-                      {!isOrganizationUser && (
+                      {!isOrganizationUser ? (
                         <Link
                           href={localePath('/submit/blog')}
                           className="-mx-3 block rounded-lg px-4 py-3 text-base font-semibold leading-7 text-gray-900 hover:bg-slate-100 transition-colors"
@@ -371,10 +392,29 @@ export default function Header() {
                         >
                           {'Bloq Paylaş'}
                         </Link>
+                      ) : (
+                        <>
+                          <Link
+                            href={localePath('/dashboard/events/create')}
+                            className="-mx-3 block rounded-lg px-4 py-3 text-base font-semibold leading-7 text-gray-900 hover:bg-slate-100 transition-colors"
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            {'Tədbir Paylaş'}
+                          </Link>
+                          <Link
+                            href={localePath('/dashboard/vacancies/create')}
+                            className="-mx-3 block rounded-lg px-4 py-3 text-base font-semibold leading-7 text-gray-900 hover:bg-slate-100 transition-colors"
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            {'Vakansiya Paylaş'}
+                          </Link>
+                        </>
                       )}
                       <button
-                        onClick={() => { signOut()
-                          setMobileMenuOpen(false) }}
+                        onClick={() => {
+                          signOut((path) => router.replace(path))
+                          setMobileMenuOpen(false)
+                        }}
                         className="-mx-3 block w-full text-left rounded-lg px-4 py-3 text-base font-semibold leading-7 text-red-600 hover:bg-red-50 transition-colors mt-2"
                       >
                         {'Çıxış'}

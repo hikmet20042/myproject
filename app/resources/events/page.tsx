@@ -16,8 +16,10 @@ import { ApiError } from '@/lib/apiClient';
 import { getUserErrorMessage } from '@/lib/errorMessages';
 import { logError } from '@/lib/logger';
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback';
+import { useSession } from '@/lib/auth/client';
 
 interface Event { _id: string
+  id: string
   slug: string
   title: string
   description: string
@@ -41,6 +43,7 @@ interface Event { _id: string
   createdByOrganization?: { _id?: string
     id?: string
     slug?: string
+    urlHandle?: string | null
     organizationName?: string }
   organizationName?: string
   isApproved: boolean
@@ -48,6 +51,7 @@ interface Event { _id: string
   createdAt: string
   updatedAt: string
   views?: number
+  saves?: number
   // Training-specific fields
   duration?: string
   schedule?: { startTime: string
@@ -71,6 +75,8 @@ export default function EventsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLocation, setSelectedLocation] = useState('all');
+  const { data: session } = useSession();
+  const isOrganizationUser = session?.user?.accountType === 'organization';
   const [selectedMonth, setSelectedMonth] = useState('all');
   const [selectedEventType, setSelectedEventType] = useState('all');
   const { showError } = useGlobalFeedback();
@@ -194,14 +200,28 @@ export default function EventsPage() {
       description="Gender bərabərliyini və sağ qalanlara dəstəyi gücləndirən icma tədbirlərini, təlimləri və proqramları kəşf et."
       icon={Sparkles}
       headerActions={
-        <>
-          <ButtonLink href={localePath('/submit')} variant="secondary" size="lg" hoverEffect="scale">
-            {'Bloq Paylaş'}
-          </ButtonLink>
-          <ButtonLink href={localePath('/resources')} variant="outline" size="lg" hoverEffect="scale">
-            {'Fürsətləri Kəşf Et'}
-          </ButtonLink>
-        </>
+        isOrganizationUser ? (
+          <>
+            <ButtonLink href={localePath('/dashboard/events/create')} variant="secondary" size="lg" hoverEffect="scale">
+              {'Tədbir Paylaş'}
+            </ButtonLink>
+            <ButtonLink href={localePath('/dashboard/vacancies/create')} variant="outline" size="lg" hoverEffect="scale">
+              {'Vakansiya Paylaş'}
+            </ButtonLink>
+            <ButtonLink href={localePath('/dashboard/profile')} variant="outline" size="lg" hoverEffect="scale">
+              {'Təşkilat Paneli'}
+            </ButtonLink>
+          </>
+        ) : (
+          <>
+            <ButtonLink href={localePath('/submit')} variant="secondary" size="lg" hoverEffect="scale">
+              {'Bloq Paylaş'}
+            </ButtonLink>
+            <ButtonLink href={localePath('/resources')} variant="outline" size="lg" hoverEffect="scale">
+              {'Fürsətləri Kəşf Et'}
+            </ButtonLink>
+          </>
+        )
       }
       isLoading={eventsQuery.isLoading}
       isError={eventsQuery.isError}
@@ -345,6 +365,8 @@ export default function EventsPage() {
                         title={event.title}
                         description={event.description}
                         imageUrl={event.imageUrl}
+                        views={event.views}
+                        saves={event.saves}
                         icon={
                           <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
                             <Calendar className="w-7 h-7 text-white" />
@@ -405,7 +427,7 @@ export default function EventsPage() {
                         actions={
                           <div className="space-y-3">
                             <div className="flex flex-wrap gap-2">
-                              <SaveItemButtonContainer itemId={event._id} itemType="event" itemTitle={event.title} size="sm" showText={true} />
+                              <SaveItemButtonContainer itemId={event.id} itemType="event" itemTitle={event.title} size="sm" showText={true} />
                               {event.applicationLink && !deadlinePassed && (
                                 <ButtonLink href={event.applicationLink} variant="outline" size="sm" icon={ExternalLink} iconPosition="right" hoverEffect="scale" external>
                                   Müraciət et

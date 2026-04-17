@@ -2,6 +2,7 @@
 
 import { ButtonLink } from '@/components/ui'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { useSession } from '@/lib/auth/client'
 import { Shield,
   AlertTriangle,
   Lightbulb,
@@ -17,6 +18,8 @@ import { Shield,
   Users } from 'lucide-react'
 
 export default function About() { const localePath = useLocalizedPath()
+  const { data: session } = useSession()
+  const isOrganizationUser = session?.user?.accountType === 'organization'
   const dataLimitations = [
     'Paylaşılan hər hekayə birgə inkişafa töhfə verir',
     'Tapılan hər fürsət yeni imkanlar açır',
@@ -58,12 +61,28 @@ export default function About() { const localePath = useLocalizedPath()
             </p>
 
             <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <ButtonLink href={localePath('/submit')} variant="secondary" size="lg" hoverEffect="scale">
-                {'Bloq Paylaş'}
-              </ButtonLink>
-              <ButtonLink href={localePath('/resources')} variant="outline" size="lg" hoverEffect="scale">
-                {'Fürsətləri Kəşf Et'}
-              </ButtonLink>
+              {isOrganizationUser ? (
+                <>
+                  <ButtonLink href={localePath('/dashboard/events/create')} variant="secondary" size="lg" hoverEffect="scale">
+                    {'Tədbir Paylaş'}
+                  </ButtonLink>
+                  <ButtonLink href={localePath('/dashboard/vacancies/create')} variant="outline" size="lg" hoverEffect="scale">
+                    {'Vakansiya Paylaş'}
+                  </ButtonLink>
+                  <ButtonLink href={localePath('/dashboard/profile')} variant="outline" size="lg" hoverEffect="scale">
+                    {'Təşkilat Paneli'}
+                  </ButtonLink>
+                </>
+              ) : (
+                <>
+                  <ButtonLink href={localePath('/submit')} variant="secondary" size="lg" hoverEffect="scale">
+                    {'Bloq Paylaş'}
+                  </ButtonLink>
+                  <ButtonLink href={localePath('/resources')} variant="outline" size="lg" hoverEffect="scale">
+                    {'Fürsətləri Kəşf Et'}
+                  </ButtonLink>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -294,12 +313,28 @@ export default function About() { const localePath = useLocalizedPath()
             </div>
 
             <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <ButtonLink href={localePath('/submit')} variant="secondary" size="lg" hoverEffect="scale">
-                {'Bloq Paylaş'}
-              </ButtonLink>
-              <ButtonLink href={localePath('/resources')} variant="outline" size="lg" hoverEffect="scale">
-                {'Fürsətləri Kəşf Et'}
-              </ButtonLink>
+              {isOrganizationUser ? (
+                <>
+                  <ButtonLink href={localePath('/dashboard/events/create')} variant="secondary" size="lg" hoverEffect="scale">
+                    {'Tədbir Paylaş'}
+                  </ButtonLink>
+                  <ButtonLink href={localePath('/dashboard/vacancies/create')} variant="outline" size="lg" hoverEffect="scale">
+                    {'Vakansiya Paylaş'}
+                  </ButtonLink>
+                  <ButtonLink href={localePath('/dashboard/profile')} variant="outline" size="lg" hoverEffect="scale">
+                    {'Təşkilat Paneli'}
+                  </ButtonLink>
+                </>
+              ) : (
+                <>
+                  <ButtonLink href={localePath('/submit')} variant="secondary" size="lg" hoverEffect="scale">
+                    {'Bloq Paylaş'}
+                  </ButtonLink>
+                  <ButtonLink href={localePath('/resources')} variant="outline" size="lg" hoverEffect="scale">
+                    {'Fürsətləri Kəşf Et'}
+                  </ButtonLink>
+                </>
+              )}
               <a href="#top" className="inline-flex items-center gap-2 text-primary font-semibold hover:text-blue-700 transition-colors">
                 {'İndi Kəşf Et'}
                 <ArrowRight size={16} />

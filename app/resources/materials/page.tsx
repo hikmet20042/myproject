@@ -12,6 +12,7 @@ import { ApiError } from '@/lib/apiClient';
 import { getUserErrorMessage } from '@/lib/errorMessages';
 import { ListPageLayout } from '@/components/layout';
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback';
+import { useSession } from '@/lib/auth/client';
 
 interface Material { _id: string;
   title: string;
@@ -58,6 +59,8 @@ const extractMaterials = (payload: any): Material[] => {
 
 export default function Resources() {
   const localePath = useLocalizedPath();
+  const { data: session } = useSession();
+  const isOrganizationUser = session?.user?.accountType === 'organization';
   const { showError } = useGlobalFeedback();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,14 +153,28 @@ export default function Resources() {
       description="Gender bərabərliyi və icma rifahına fokuslanan təlimatlar, kurslar, videolar və endirilə bilən bələdçilərə daxil olun."
       icon={Sparkles}
       headerActions={
-        <>
-          <ButtonLink href={localePath('/submit')} variant="secondary" size="lg" hoverEffect="scale">
-            {'Bloq Paylaş'}
-          </ButtonLink>
-          <ButtonLink href={localePath('/resources')} variant="outline" size="lg" hoverEffect="scale">
-            {'Fürsətləri Kəşf Et'}
-          </ButtonLink>
-        </>
+        isOrganizationUser ? (
+          <>
+            <ButtonLink href={localePath('/dashboard/events/create')} variant="secondary" size="lg" hoverEffect="scale">
+              {'Tədbir Paylaş'}
+            </ButtonLink>
+            <ButtonLink href={localePath('/dashboard/vacancies/create')} variant="outline" size="lg" hoverEffect="scale">
+              {'Vakansiya Paylaş'}
+            </ButtonLink>
+            <ButtonLink href={localePath('/dashboard/profile')} variant="outline" size="lg" hoverEffect="scale">
+              {'Təşkilat Paneli'}
+            </ButtonLink>
+          </>
+        ) : (
+          <>
+            <ButtonLink href={localePath('/submit')} variant="secondary" size="lg" hoverEffect="scale">
+              {'Bloq Paylaş'}
+            </ButtonLink>
+            <ButtonLink href={localePath('/resources')} variant="outline" size="lg" hoverEffect="scale">
+              {'Fürsətləri Kəşf Et'}
+            </ButtonLink>
+          </>
+        )
       }
       isLoading={loading}
       isError={Boolean(error)}

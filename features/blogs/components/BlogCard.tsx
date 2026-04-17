@@ -1,7 +1,7 @@
 "use client"
 
 import Link from 'next/link'
-import { BookOpen, User, Calendar } from 'lucide-react'
+import { BookOpen, Calendar, Eye, ThumbsUp, ThumbsDown, Bookmark } from 'lucide-react'
 import Image from 'next/image'
 import { ResourceCard } from '@/components/shared'
 import SaveItemButtonContainer from '@/components/containers/SaveItemButtonContainer'
@@ -11,13 +11,17 @@ interface Blog { id: string | number;
   slug: string;
   title: string;
   authorName: string;
-  authorId?: string;
+  authorId?: string | null;
   authorUrlHandle?: string | null;
   authorAvatar?: string;
   date: string;
   excerpt: string;
   content: string;
-  status: string; }
+  status: string;
+  views?: number;
+  likes?: number;
+  dislikes?: number;
+  saves?: number; }
 
 interface BlogCardProps { blog: Blog; }
 
@@ -32,6 +36,10 @@ export default function BlogCard({ blog }: BlogCardProps) {
 
   const authorLink = blog.authorUrlHandle ? localePath(`/u/${blog.authorUrlHandle}`) : (blog.authorId ? localePath(`/u/${blog.authorId}`) : null);
   const initial = blog.authorName?.charAt(0)?.toUpperCase() || '?';
+  const views = Number(blog.views || 0)
+  const likes = Number(blog.likes || 0)
+  const dislikes = Number(blog.dislikes || 0)
+  const saves = Number(blog.saves || 0)
 
   return (
     <ResourceCard
@@ -79,6 +87,26 @@ export default function BlogCard({ blog }: BlogCardProps) {
             <time dateTime={blog.date} className="text-xs">{formatDate(blog.date)}</time>
           </div>
         </>
+      }
+      footer={
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium text-gray-500">
+          <div className="flex items-center gap-1.5">
+            <Eye className="h-3.5 w-3.5" />
+            <span>{views.toLocaleString()} baxış</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-blue-600">
+            <ThumbsUp className="h-3.5 w-3.5" />
+            <span>{likes.toLocaleString()}</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-rose-600">
+            <ThumbsDown className="h-3.5 w-3.5" />
+            <span>{dislikes.toLocaleString()}</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-amber-700">
+            <Bookmark className="h-3.5 w-3.5" />
+            <span>{saves.toLocaleString()} saxlama</span>
+          </div>
+        </div>
       }
       actionText={'Bloqu Oxu'}
       hoverBorderColor="hover:border-blue-500"

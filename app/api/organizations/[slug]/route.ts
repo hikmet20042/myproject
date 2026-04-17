@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { canAccessAdmin, isAdmin } from '@/lib/auth/permissions'
 import { normalizeOrganizationProfile, validateOrganizationUpdatePayload } from '@/lib/organizationProfile'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { resolveEntityBySlugOrId } from '@/lib/identifier'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,10 +16,21 @@ export async function GET(
   try {
     const { slug } = params
     const supabase = createSupabaseAdminClient()
+    const { data: resolvedOrg, error: resolveError } = await resolveEntityBySlugOrId(
+      supabase,
+      'organization_profiles',
+      slug,
+      'account_id'
+    )
+
+    if (resolveError || !resolvedOrg?.account_id) {
+      return errorResponse('Organization not found', "API_ERROR", {}, 404)
+    }
+
     const { data: profile, error: profileError } = await supabase
       .from('organization_profiles')
       .select('*')
-      .eq('slug', slug)
+      .eq('account_id', resolvedOrg.account_id)
       .eq('moderation_status', 'approved')
       .maybeSingle()
 
@@ -92,10 +104,21 @@ export async function PUT(
   try {
     const { slug } = params
     const supabase = createSupabaseAdminClient()
+    const { data: resolvedOrg, error: resolveError } = await resolveEntityBySlugOrId(
+      supabase,
+      'organization_profiles',
+      slug,
+      'account_id'
+    )
+
+    if (resolveError || !resolvedOrg?.account_id) {
+      return errorResponse('Organization not found', "API_ERROR", {}, 404)
+    }
+
     const { data: organization, error: fetchError } = await supabase
       .from('organization_profiles')
       .select('*')
-      .eq('slug', slug)
+      .eq('account_id', resolvedOrg.account_id)
       .maybeSingle()
 
     if (fetchError || !organization) {
@@ -165,7 +188,7 @@ export async function PUT(
     const { data: updatedOrganization, error: updateError } = await supabase
       .from('organization_profiles')
       .update(profileUpdateData)
-      .eq('slug', slug)
+      .eq('account_id', resolvedOrg.account_id)
       .select('*')
       .single()
 
@@ -201,17 +224,28 @@ export async function DELETE(
     const { slug } = params
     const supabase = createSupabaseAdminClient()
 
+    const { data: resolvedOrg, error: resolveError } = await resolveEntityBySlugOrId(
+      supabase,
+      'organization_profiles',
+      slug,
+      'account_id'
+    )
+
+    if (resolveError || !resolvedOrg?.account_id) {
+      return successResponse({ message: 'Organization deleted successfully' })
+    }
+
     const { data: organization } = await supabase
       .from('organization_profiles')
       .select('account_id')
-      .eq('slug', slug)
+      .eq('account_id', resolvedOrg.account_id)
       .maybeSingle()
 
     if (organization) {
       await supabase
         .from('organization_profiles')
         .delete()
-        .eq('slug', slug)
+        .eq('account_id', resolvedOrg.account_id)
 
       await supabase.auth.admin.deleteUser(organization.account_id)
     }

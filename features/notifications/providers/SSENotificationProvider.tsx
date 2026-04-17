@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { useSession } from '@/lib/auth/client'
 
 const DEBUG_REALTIME = process.env.NEXT_PUBLIC_DEBUG_LOGS === 'true'
+const NOTIFICATION_PERMISSION_KEY = 'icma360_notification_permission_asked'
 
 interface SSENotification {
   _id: string
@@ -28,12 +29,13 @@ const SSEContext = createContext<SSEContextValue>({
 export const useSSENotifications = () => useContext(SSEContext)
 
 export function SSENotificationProvider({ children }: { children: React.ReactNode }) {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const [enabled, setEnabled] = useState(false)
   const [isConnected, setIsConnected] = useState(false)
   const [lastNotification, setLastNotification] = useState<SSENotification | null>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
+  const prevSessionIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -44,8 +46,21 @@ export function SSENotificationProvider({ children }: { children: React.ReactNod
   }, [])
 
   useEffect(() => {
-    if (!enabled || !session?.user?.id) {
-      // Cleanup if user logs out
+    if (!enabled) return
+
+    const currentSessionId = session?.user?.id
+
+    // Handle session changes (login, logout, token refresh)
+    if (prevSessionIdRef.current && prevSessionIdRef.current !== currentSessionId) {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close()
+        eventSourceRef.current = null
+      }
+      setIsConnected(false)
+    }
+    prevSessionIdRef.current = currentSessionId || null
+
+    if (!currentSessionId) {
       if (eventSourceRef.current) {
         eventSourceRef.current.close()
         eventSourceRef.current = null
@@ -54,7 +69,14 @@ export function SSENotificationProvider({ children }: { children: React.ReactNod
       return
     }
 
-    // Create SSE connection
+    // Request notification permission only once
+    const hasAskedBefore = localStorage.getItem(NOTIFICATION_PERMISSION_KEY)
+    if (!hasAskedBefore && Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        localStorage.setItem(NOTIFICATION_PERMISSION_KEY, permission)
+      })
+    }
+
     const connectSSE = () => {
       try {
         const eventSource = new EventSource('/api/notifications/stream')
@@ -81,7 +103,6 @@ export function SSENotificationProvider({ children }: { children: React.ReactNod
               }
               setLastNotification(data.notification)
               
-              // Show browser notification
               if (Notification.permission === 'granted') {
                 new Notification(data.notification.title, {
                   body: data.notification.message,
@@ -104,7 +125,6 @@ export function SSENotificationProvider({ children }: { children: React.ReactNod
           setIsConnected(false)
           eventSource.close()
           
-          // Attempt to reconnect after 5 seconds
           reconnectTimeoutRef.current = setTimeout(() => {
             if (DEBUG_REALTIME) {
               console.log('Attempting to reconnect SSE...')
@@ -119,15 +139,8 @@ export function SSENotificationProvider({ children }: { children: React.ReactNod
       }
     }
 
-    // Request notification permission
-    if (Notification.permission === 'default') {
-      Notification.requestPermission()
-    }
-
-    // Initial connection
     connectSSE()
 
-    // Cleanup on unmount
     return () => {
       if (eventSourceRef.current) {
         eventSourceRef.current.close()

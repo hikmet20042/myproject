@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { TextArea } from "@/components/ui/Textarea";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader, SectionCard } from "@/features/profile/components/ui";
+import { NotificationsSettingsSection } from "@/features/profile/components/NotificationsSettingsSection";
 import { getUserErrorMessage } from "@/lib/errorMessages";
 import { signInWithOAuth, signOut } from "@/lib/auth/client";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
@@ -903,6 +904,8 @@ export default function ProfileSettingsPage() {
           )}
         </div>
       </SectionCard>
+
+      <NotificationsSettingsSection />
 
       <SectionCard title="Risk zonası" description="Bu əməliyyatlar geri qaytarıla bilməz.">
         <div className="space-y-4 rounded-xl border border-red-200 bg-red-50 p-4">

@@ -1,112 +1,123 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useSession } from '@/lib/auth/client'
-import { Eye } from 'lucide-react'
-import { eventQueryKeys, fetchEventViews, trackView } from '@/lib/eventQueries'
+import { useEffect, useRef, useState } from 'react'
 
-interface ViewTrackerProps { itemId: string
-  itemType: 'event' | 'vacancy' | 'blog'
-  initialViews?: number
-  showCount?: boolean
-  className?: string }
+type ViewTrackerProps = {
+  itemType: 'blog' | 'event' | 'vacancy'
+  itemId: string
+  /** Minimum time on page (ms) before a view is counted. Default: 10000 (10s) */
+  minTimeMs?: number
+  /** Whether to track only once per session (tab). Default: true */
+  oncePerSession?: boolean
+  /** CSS selector for the element to observe. Defaults to observing the body. */
+  selector?: string
+}
 
-export default function ViewTracker({ itemId,
+/**
+ * Unified view tracker for blogs, events, and vacancies.
+ */
+export default function ViewTracker({
   itemType,
-  initialViews = 0,
-  showCount = true,
-  className = '' }: ViewTrackerProps) { const { data: session } = useSession()
-  const queryClient = useQueryClient()
-  const [views, setViews] = useState(initialViews)
-  const [hasTracked, setHasTracked] = useState(false)
+  itemId,
+  minTimeMs = 10_000,
+  oncePerSession = true,
+  selector,
+}: ViewTrackerProps) {
   const hasTrackedRef = useRef(false)
-  const isEvent = itemType === 'event'
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const eventViewsQuery = useQuery({
-    queryKey: eventQueryKeys.view(itemId),
-    queryFn: () => fetchEventViews(itemId),
-    enabled: isEvent,
-    initialData: { views: initialViews }
-  })
+  useEffect(() => {
+    if (hasTrackedRef.current) return
 
-  const trackEventMutation = useMutation({
-    mutationFn: (isFirstView: boolean) => trackView(itemId, { isFirstView }),
-    onSuccess: (data) => {
-      queryClient.setQueryData(eventQueryKeys.view(itemId), {
-        views: data.views || 0
-      })
-      queryClient.setQueryData(eventQueryKeys.detail(itemId), (previous: any) =>
-        previous ? { ...previous, views: data.views || 0 } : previous
-      )
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: eventQueryKeys.view(itemId) })
-      queryClient.invalidateQueries({ queryKey: eventQueryKeys.detail(itemId) })
+    // Client-side: skip if already tracked in this tab
+    const storageKey = `view_tracked_${itemType}_${itemId}`
+    if (oncePerSession && sessionStorage.getItem(storageKey)) {
+      console.log(`[ViewTracker] Already tracked ${itemType} ${itemId} in this session`)
+      hasTrackedRef.current = true
+      return
     }
-  })
 
-  useEffect(() => { if (hasTracked || hasTrackedRef.current) return
-    hasTrackedRef.current = true
+    const target = selector ? document.querySelector(selector) : document.body
+    if (!target) {
+      console.warn(`[ViewTracker] Target element not found for ${itemType} ${itemId}, selector: "${selector}"`)
+      return
+    }
+    console.log(`[ViewTracker] Initialized observer for ${itemType} ${itemId}, selector: "${selector}"`)
 
-    const trackView = async () => { try {
-        const viewedKey = `viewed_${itemType}_${itemId}`
+    // IntersectionObserver: only count when content is actually visible
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          // Prevent multiple timers from being scheduled
+          if (hasTrackedRef.current || timerRef.current) return
+          
+          if (entry.isIntersecting) {
+            console.log(`[ViewTracker] Content intersecting for ${itemType} ${itemId}, starting ${minTimeMs}ms timer`)
+            // Start the minimum time-on-page timer
+            const viewStartTime = Date.now()
+            timerRef.current = setTimeout(() => {
+              if (hasTrackedRef.current) return
+              hasTrackedRef.current = true
 
-        let isFirstView = true
-        if (!session?.user?.id) {
-          if (sessionStorage.getItem(viewedKey)) { isFirstView = false } }
+              if (oncePerSession) {
+                sessionStorage.setItem(storageKey, '1')
+              }
 
-        if (isEvent) {
-          const data = await trackEventMutation.mutateAsync(isFirstView)
-          setViews(data.views || 0)
-          setHasTracked(true)
-          if (!session?.user?.id && data.viewIncremented) { sessionStorage.setItem(viewedKey, 'true') }
-          return
+              // View tracking call
+              const endpoint = `/api/${
+                itemType === 'blog' ? 'blogs' : itemType === 'event' ? 'events' : 'vacancies'
+              }/${itemId}/view`
+
+              console.log(`[ViewTracker] Sending POST to ${endpoint}`)
+              fetch(endpoint, {
+                method: 'POST',
+                headers: { 
+                  'Content-Type': 'application/json',
+                  'X-View-Start-Time': viewStartTime.toString()
+                },
+                credentials: 'include',
+              })
+                .then((res) => {
+                  console.log(`[ViewTracker] POST ${endpoint} response: ${res.status} ${res.statusText}`)
+                  if (!res.ok) {
+                    return res.text().then((text) => {
+                      console.error(`[ViewTracker] POST error response: ${text}`)
+                    })
+                  }
+                  return res.json().then((data) => {
+                    console.log(`[ViewTracker] POST success:`, data)
+                  })
+                })
+                .catch((err) => {
+                  console.error(`[ViewTracker] POST failed:`, err)
+                })
+            }, minTimeMs)
+          } else {
+            // Reset timer if content goes out of view
+            console.log(`[ViewTracker] Content out of view for ${itemType} ${itemId}, resetting timer`)
+            if (timerRef.current) {
+              clearTimeout(timerRef.current)
+              timerRef.current = null
+            }
+          }
         }
+      },
+      { threshold: 0.1 } // 10% visibility is enough to start the timer
+    )
 
-        const endpoint = itemType === 'vacancy'
-            ? `/api/vacancies/${itemId}/view`
-            : `/api/blogs/${itemId}/view`
+    observer.observe(target)
+    console.log(`[ViewTracker] Observer attached for ${itemType} ${itemId}`)
 
-        const response = await fetch(endpoint, { method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ isFirstView }) })
+    return () => {
+      observer.disconnect()
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+        timerRef.current = null
+      }
+      console.log(`[ViewTracker] Cleanup for ${itemType} ${itemId}`)
+    }
+  }, [itemType, itemId, minTimeMs, oncePerSession, selector])
 
-        if (response.ok) { const data = await response.json()
-          setViews(data.views)
-          setHasTracked(true)
+  return null
+}
 
-          if (!session?.user?.id && data.viewIncremented) { sessionStorage.setItem(viewedKey, 'true') } } } catch (error) { console.error('Error tracking view:', error) } }
-
-    const timer = setTimeout(() => { trackView() }, 1000)
-
-    return () => clearTimeout(timer) }, [itemId, itemType, session, hasTracked, isEvent, trackEventMutation])
-
-  useEffect(() => { if (initialViews > 0) return
-    if (isEvent) return
-
-    const fetchViews = async () => { try { const endpoint = itemType === 'vacancy'
-            ? `/api/vacancies/${itemId}/view`
-            : `/api/blogs/${itemId}/view`
-
-        const response = await fetch(endpoint)
-        if (response.ok) { const data = await response.json()
-          setViews(data.views) } } catch (error) { console.error('Error fetching views:', error) } }
-
-    fetchViews() }, [itemId, itemType, initialViews, isEvent])
-
-  if (!showCount) return null
-
-  const currentViews = isEvent ? (eventViewsQuery.data?.views ?? views) : views
-  const locale = 'az-AZ'
-  const formattedViews = currentViews.toLocaleString(locale)
-  const viewLabel = `${formattedViews} baxış`
-
-  return (
-    <div className={`inline-flex items-center gap-1.5 text-gray-600 ${className}`}>
-      <Eye className="w-4 h-4" />
-      <span className="text-sm font-medium">
-        {viewLabel}
-      </span>
-    </div>
-  ) }

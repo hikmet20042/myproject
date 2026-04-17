@@ -43,7 +43,7 @@ export function SaveItemButton({
       variant={isSaved ? 'primary' : 'outline'}
       size={size}
       disabled={isLoading}
-      className={`inline-flex items-center gap-2 transition-all ${isSaved ? 'bg-blue-600 text-white' : 'hover:bg-blue-50'} ${className}`}
+      className={`inline-flex items-center gap-2 transition-all ${isSaved ? 'bg-blue-600 text-white' : 'text-blue-600 hover:bg-blue-100 hover:text-blue-700'} ${className}`}
       title={
         !isAuthenticated
           ? `${itemTypeLabel} saxlamaq ucun daxil olun`

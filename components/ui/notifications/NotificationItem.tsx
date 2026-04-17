@@ -139,13 +139,22 @@ const NotificationItemComponent = memo(function NotificationItemComponent({
       ]
         .filter(Boolean)
         .join(" ")}
+      role="article"
+      aria-label={`Bildiriş: ${notification.title}`}
     >
       <div className={compact ? "group px-4 py-3" : "group p-4"}>
         <div className="flex justify-between items-start gap-3">
           <button
             type="button"
             onClick={() => onOpen(notification)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                onOpen(notification)
+              }
+            }}
             className="flex-1 min-w-0 text-left rounded-md outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+            aria-describedby={`notif-time-${notification._id}`}
           >
             <div className="flex items-start gap-2">
               {!notification.isRead && (
@@ -162,17 +171,26 @@ const NotificationItemComponent = memo(function NotificationItemComponent({
                   <span className={`text-xs font-semibold ${getNotificationTypeColor(notification.type)}`}>
                     {getNotificationTypeLabel(notification.type)}
                   </span>
-                  <span className="text-xs text-slate-400">{formatRelativeTime(notification.createdAt)}</span>
+                  <span className="text-xs text-slate-400" id={`notif-time-${notification._id}`}>
+                    {formatRelativeTime(notification.createdAt)}
+                  </span>
                 </div>
               </div>
             </div>
           </button>
 
-          <div className="flex items-center gap-1.5 flex-shrink-0 pl-1">
+          <div className="flex items-center gap-1.5 flex-shrink-0 pl-1" role="group" aria-label="Bildiriş actions">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleRead(notification._id, !notification.isRead);
+              }}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onToggleRead(notification._id, !notification.isRead);
+                }
               }}
               disabled={isActionLoading}
               className={[
@@ -198,6 +216,13 @@ const NotificationItemComponent = memo(function NotificationItemComponent({
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete(notification._id);
+                }}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onDelete(notification._id);
+                  }
                 }}
                 disabled={isDeleting}
                 className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"

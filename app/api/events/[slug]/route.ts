@@ -12,6 +12,9 @@ import {
   validateLifecycleState,
   validateEventInput,
 } from "@/app/api/events/helpers";
+import { resolveEntityBySlugOrId } from '@/lib/identifier'
+
+import { getContentViewCounts } from "@/lib/viewTracking";
 
 export async function GET(
   request: NextRequest,
@@ -20,10 +23,21 @@ export async function GET(
   try {
     const supabase = createSupabaseAdminClient();
 
+    const { data: resolvedEvent, error: resolveError } = await resolveEntityBySlugOrId(
+      supabase,
+      'events',
+      params.slug,
+      'id'
+    )
+
+    if (resolveError || !resolvedEvent?.id) {
+      return errorResponse('Event not found', 404)
+    }
+
     const { data: eventRow, error } = await supabase
       .from("events")
       .select("*, created_by (id, name, email), created_by_organization (id, organization_name, email), approved_by (id, name)")
-      .eq("slug", params.slug)
+      .eq("id", resolvedEvent.id)
       .single();
 
     if (error || !eventRow) {
@@ -35,8 +49,30 @@ export async function GET(
       return errorResponse("Unauthorized", 403);
     }
 
-    return successResponse({ event: mapEventToResponse(eventRow) });
+    const stats = await getContentViewCounts(supabase, 'event', eventRow.id);
+    const { count: savesCount } = await supabase
+      .from('content_saves')
+      .select('*', { count: 'exact', head: true })
+      .eq('content_type', 'event')
+      .eq('content_id', eventRow.id)
+
+    const event = mapEventToResponse(eventRow);
+
+    return successResponse({ 
+      event: { 
+        ...event, 
+        views: stats.views,
+        uniqueViews: stats.uniqueViews,
+        saves: savesCount || 0,
+        analytics: {
+          ...event.analytics,
+          views: stats.views,
+          uniqueViews: stats.uniqueViews
+        }
+      } 
+    });
   } catch (error) {
+    console.error('GET /api/events/[slug] error:', error);
     return errorResponse("Failed to fetch event", 500);
   }
 }
@@ -53,10 +89,21 @@ export async function PUT(
 
     const supabase = createSupabaseAdminClient();
 
+    const { data: resolvedEvent, error: resolveError } = await resolveEntityBySlugOrId(
+      supabase,
+      'events',
+      params.slug,
+      'id'
+    )
+
+    if (resolveError || !resolvedEvent?.id) {
+      return errorResponse('Event not found', 404)
+    }
+
     const { data: eventRow, error: eventError } = await supabase
       .from("events")
       .select("*")
-      .eq("slug", params.slug)
+      .eq("id", resolvedEvent.id)
       .single();
 
     if (eventError || !eventRow) {
@@ -95,7 +142,7 @@ export async function PUT(
     const { data: updatedRow, error: updateError } = await supabase
       .from("events")
       .update(updateData)
-      .eq("slug", params.slug)
+      .eq("id", resolvedEvent.id)
       .select("*, created_by (id, name, email), created_by_organization (id, organization_name, email), approved_by (id, name)")
       .single();
 
@@ -123,10 +170,21 @@ export async function DELETE(
     }
 
     const supabase = createSupabaseAdminClient();
+    const { data: resolvedEvent, error: resolveError } = await resolveEntityBySlugOrId(
+      supabase,
+      'events',
+      params.slug,
+      'id'
+    )
+
+    if (resolveError || !resolvedEvent?.id) {
+      return errorResponse('Event not found', 404)
+    }
+
     const { data: eventRow, error: eventError } = await supabase
       .from("events")
       .select("id, created_by, created_by_organization")
-      .eq("slug", params.slug)
+      .eq("id", resolvedEvent.id)
       .single();
 
     if (eventError || !eventRow) {
@@ -140,14 +198,14 @@ export async function DELETE(
     const { error: deleteError } = await supabase
       .from("events")
       .delete()
-      .eq("slug", params.slug);
+      .eq("id", resolvedEvent.id);
 
     if (deleteError) {
       return errorResponse("Failed to delete event", 500);
     }
 
     return successResponse(
-      { id: params.slug },
+      { id: resolvedEvent.id },
       { message: "Event deleted successfully" }
     );
   } catch (error) {
