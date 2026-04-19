@@ -18,6 +18,33 @@ import { useLocalizedPath } from "@/hooks/useLocalizedPath";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import AdminListLayout from "@/components/admin/AdminListLayout";
 
+const getTypeLabel = (type?: string) => {
+  if (type === "full_time") return "Tam ştat";
+  if (type === "part_time") return "Yarım ştat";
+  if (type === "volunteer") return "Könüllü";
+  if (type === "intern") return "Intern";
+  return "Naməlum";
+};
+
+const getLocationLabel = (vacancy: any) => {
+  const city = vacancy?.city;
+  const address = vacancy?.address;
+  if (city && address) return `${city}, ${address}`;
+  if (city) return city;
+  return "Məkan dəqiqləşdiriləcək";
+};
+
+const getPaymentLabel = (vacancy: any) => {
+  if (!vacancy?.isPaid) return "Ödənişsiz";
+  if (vacancy?.paymentMode === "fixed") {
+    return `${vacancy?.paymentAmount || 0} AZN`;
+  }
+  if (vacancy?.paymentMode === "range") {
+    return `${vacancy?.paymentMin || 0} - ${vacancy?.paymentMax || 0} AZN`;
+  }
+  return "Ödənişli";
+};
+
 export default function VacanciesAdminPage() {
   const localePath = useLocalizedPath();
   const { showError, showSuccess } = useGlobalFeedback();
@@ -114,7 +141,7 @@ export default function VacanciesAdminPage() {
       const body: any = { action: vacancyAction };
 
       if (vacancyAction === "reject" && vacancyRejectionReason.trim()) {
-        body.adminComment = vacancyRejectionReason.trim();
+        body.rejectionReason = vacancyRejectionReason.trim();
       }
 
       const response = await fetch(`/api/vacancies/${selectedVacancy._id}`, {
@@ -344,7 +371,7 @@ export default function VacanciesAdminPage() {
                             {status.charAt(0).toUpperCase() + status.slice(1)}
                           </span>
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-                            {vacancy.category}
+                            {getTypeLabel(vacancy.type)}
                           </span>
                         </div>
                         <h4 className="text-lg font-semibold text-gray-900 mb-1">
@@ -367,18 +394,10 @@ export default function VacanciesAdminPage() {
                           </span>
                           <span>•</span>
                           <span>
-                            {vacancy.location?.isRemote
-                              ? "Uzaqdan"
-                              : `${vacancy.location?.city || ""} ${vacancy.location?.country || ""}`.trim() ||
-                                "Məkan dəqiqləşdiriləcək"}
+                            {getLocationLabel(vacancy)}
                           </span>
                           <span>•</span>
-                          <span>
-                            {vacancy.compensation?.type}:{" "}
-                            {vacancy.compensation?.amount
-                              ? `${vacancy.compensation.amount} ${vacancy.compensation.currency || ""}`
-                              : "Göstərilməyib"}
-                          </span>
+                          <span>{getPaymentLabel(vacancy)}</span>
                         </div>
                         {vacancy.adminComment && status === "rejected" && (
                           <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded">
@@ -523,10 +542,10 @@ export default function VacanciesAdminPage() {
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="font-medium text-gray-700">
-                        {"Kateqoriya"}:
+                        {"Növ"}:
                       </span>
                       <span className="ml-2 text-gray-600">
-                        {selectedVacancy.category}
+                        {getTypeLabel(selectedVacancy.type)}
                       </span>
                     </div>
                     <div>
@@ -552,11 +571,7 @@ export default function VacanciesAdminPage() {
                         {"Yer"}:
                       </span>
                       <span className="ml-2 text-gray-600">
-                        {selectedVacancy.location?.isRemote
-                          ? "Uzaqdan"
-                          : selectedVacancy.location?.city ||
-                            selectedVacancy.location?.country ||
-                            "Naməlum"}
+                        {getLocationLabel(selectedVacancy)}
                       </span>
                     </div>
                   </div>

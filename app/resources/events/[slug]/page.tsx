@@ -250,19 +250,25 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
                       {event.title}
                     </h1>
                     <div className="flex flex-wrap items-center gap-3 text-sm text-white/90">
+                      {(() => {
+                        const organizationHandle = event.createdByOrganization?.urlHandle || event.createdByOrganization?.slug
+                        const organizationLabel = event.organizationName || event.createdByOrganization?.organizationName || event.createdBy?.name || 'Naməlum'
+                        return (
                       <span className="flex items-center gap-2 rounded-xl border border-white/30 bg-white/20 px-4 py-2 font-semibold backdrop-blur-md">
                         <Users className="w-4 h-4" />
-                        {'Təşkilatçı'} {event.createdBy?.slug ? (
+                        {'Təşkilatçı'} {organizationHandle ? (
                           <Link
-                            href={localePath(`/o/${event.createdBy.urlHandle}`)}
+                            href={localePath(`/o/${organizationHandle}`)}
                             className="text-white hover:text-yellow-300 transition-colors duration-200 hover:underline font-bold"
                           >
-                            {event.organizationName || event.createdBy?.name || 'Naməlum'}
+                            {organizationLabel}
                           </Link>
                         ) : (
-                          <span className="font-bold">{event.organizationName || event.createdBy?.name || 'Naməlum'}</span>
+                          <span className="font-bold">{organizationLabel}</span>
                         )}
                       </span>
+                        )
+                      })()}
                       <span className="flex items-center gap-2 rounded-xl border border-white/30 bg-white/20 px-4 py-2 font-semibold backdrop-blur-md">
                         <TrendingUp className="w-4 h-4" />
                         {event.views || 0} {'baxış'}
@@ -292,19 +298,25 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
                     <Badge variant="primary" className="border border-blue-200 bg-blue-50 text-sm font-bold text-blue-700">
                       {getCategoryLabel(event.category)}
                     </Badge>
+                    {(() => {
+                      const organizationHandle = event.createdByOrganization?.urlHandle || event.createdByOrganization?.slug
+                      const organizationLabel = event.organizationName || event.createdByOrganization?.organizationName || event.createdBy?.name || 'Naməlum'
+                      return (
                     <span className="flex items-center gap-2 text-sm text-gray-700">
                       <Users className="w-4 h-4 text-primary" />
-                      {'Təşkilatçı'} {event.createdBy?.slug ? (
+                      {'Təşkilatçı'} {organizationHandle ? (
                         <Link
-                          href={localePath(`/o/${event.createdBy.urlHandle}`)}
+                          href={localePath(`/o/${organizationHandle}`)}
                           className="font-bold text-primary transition-colors duration-200 hover:text-blue-700 hover:underline"
                         >
-                          {event.organizationName || event.createdBy?.name || 'Naməlum'}
+                          {organizationLabel}
                         </Link>
                       ) : (
-                        <span className="font-bold">{event.organizationName || event.createdBy?.name || 'Naməlum'}</span>
+                        <span className="font-bold">{organizationLabel}</span>
                       )}
                     </span>
+                      )
+                    })()}
                   </div>
                   <h1 className="mb-4 text-3xl font-black text-gray-900 sm:text-4xl">{event.title}</h1>
                 </div>
@@ -543,9 +555,9 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
                     </p>
                     <p className="text-sm text-gray-600 font-medium mt-1">Əlaqə: {event.createdBy?.name}</p>
                   </div>
-                  {event.createdBy?.urlHandle && (
+                  {(event.createdByOrganization?.urlHandle || event.createdByOrganization?.slug) && (
                     <ButtonLink
-                      href={`/o/${event.createdBy.urlHandle}`}
+                      href={localePath(`/o/${event.createdByOrganization?.urlHandle || event.createdByOrganization?.slug}`)}
                       variant="outline"
                       size="sm"
                       className="w-full"

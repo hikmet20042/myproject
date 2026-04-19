@@ -22,8 +22,6 @@ import {
 } from "@/features/ui-state";
 import {
   statusOptions,
-  categoryOptions,
-  compensationOptions,
 } from "@/features/vacancies/types/items";
 
 const VACANCIES_STALE_MS = 30_000;
@@ -40,8 +38,6 @@ export default function VacanciesPageContainer() {
   } = useDashboardVacancyData();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [compensationFilter, setCompensationFilter] = useState("all");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [vacancyToDelete, setVacancyToDelete] = useState<VacancyItem | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -93,15 +89,7 @@ export default function VacanciesPageContainer() {
     const vacancyStatus = vacancy.status || "pending";
     const matchesStatus = statusFilter === "all" || vacancyStatus === statusFilter;
 
-    const matchesCategory =
-      categoryFilter === "all" || vacancy.category === categoryFilter;
-    const matchesCompensation =
-      compensationFilter === "all" ||
-      vacancy.compensation.type === compensationFilter;
-
-    return (
-      matchesSearch && matchesStatus && matchesCategory && matchesCompensation
-    );
+    return matchesSearch && matchesStatus;
   });
 
   const sectionState = resolveSectionState({
@@ -110,9 +98,7 @@ export default function VacanciesPageContainer() {
         ? "loading"
         : filteredVacancies.length === 0
           ? searchTerm.trim().length > 0 ||
-            statusFilter !== "all" ||
-            categoryFilter !== "all" ||
-            compensationFilter !== "all"
+            statusFilter !== "all"
             ? "filtered-empty"
             : "empty"
           : "success",
@@ -205,7 +191,7 @@ export default function VacanciesPageContainer() {
               Filters
             </h2>
           </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-blue-400" />
               <Input
@@ -222,24 +208,6 @@ export default function VacanciesPageContainer() {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               placeholder={"Statusa görə filtr"}
-              variant="indigo"
-              className="h-12 border-blue-100 bg-white"
-              disabled={sectionState === "loading-initial"}
-            />
-            <Select
-              options={categoryOptions}
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              placeholder={"Kateqoriyaya görə filtr"}
-              variant="indigo"
-              className="h-12 border-blue-100 bg-white"
-              disabled={sectionState === "loading-initial"}
-            />
-            <Select
-              options={compensationOptions}
-              value={compensationFilter}
-              onChange={(e) => setCompensationFilter(e.target.value)}
-              placeholder={"Ödənişə görə filtr"}
               variant="indigo"
               className="h-12 border-blue-100 bg-white"
               disabled={sectionState === "loading-initial"}

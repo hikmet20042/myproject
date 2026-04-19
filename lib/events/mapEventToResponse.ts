@@ -33,12 +33,19 @@ export const mapEventToResponse = (row: any) => {
       id: createdBy?.id ?? null,
       name: createdBy?.name ?? null,
       email: createdBy?.email ?? null,
+      slug: createdBy?.slug ?? null,
+      urlHandle: createdBy?.url_handle ?? createdBy?.urlHandle ?? null,
     },
     createdByOrganization: {
       _id: createdByOrganization?.id ?? null,
       id: createdByOrganization?.id ?? null,
       organizationName: createdByOrganization?.organization_name ?? null,
       email: createdByOrganization?.email ?? null,
+      slug: createdByOrganization?.slug ?? null,
+      urlHandle:
+        createdByOrganization?.url_handle ??
+        createdByOrganization?.urlHandle ??
+        null,
     },
     status: row?.status ?? null,
     isPublished: row?.is_published ?? null,

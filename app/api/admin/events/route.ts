@@ -3,105 +3,59 @@ import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { mapEventToResponse } from '@/lib/events/mapEventToResponse'
 
-type EventPersonRef = {
-  id?: string
-  name?: string
-  email?: string
-} | null
+const hydrateEventRowsWithOrganizationHandles = async (supabase: any, rows: any[]) => {
+  const organizationIds = Array.from(
+    new Set(
+      rows
+        .map((row: any) => row?.created_by_organization?.id || row?.created_by_organization)
+        .filter(Boolean)
+        .map((id: any) => String(id))
+    )
+  )
 
-type EventOrganizationRef = {
-  id?: string
-  organization_name?: string
-  email?: string
-} | null
+  if (organizationIds.length === 0) {
+    return rows
+  }
 
-type EventDbRow = {
-  id: string
-  title?: string | null
-  description?: string | null
-  category?: string | null
-  event_type?: string | null
-  event_date?: string | null
-  end_date?: string | null
-  sessions?: unknown
-  certification?: string | null
-  audience_age_min?: number | null
-  audience_age_max?: number | null
-  requirements?: string[] | null
-  participant_benefits?: string[] | null
-  location?: unknown
-  application_link?: string | null
-  application_deadline?: string | null
-  max_participants?: number | null
-  tags?: string[] | null
-  image_url?: string | null
-  images?: unknown
-  created_by?: EventPersonRef
-  created_by_organization?: EventOrganizationRef
-  organization_name?: string | null
-  status?: string | null
-  approved_at?: string | null
-  approved_by?: EventPersonRef
-  rejected_at?: string | null
-  rejection_reason?: string | null
-  admin_comment?: string | null
-  is_published?: boolean | null
-  is_featured?: boolean | null
-  views?: number | null
-  unique_views?: number | null
-  viewed_by?: string[] | null
-  engagement_score?: number | null
-  created_at?: string | null
-  updated_at?: string | null
+  const { data: profiles } = await supabase
+    .from('organization_profiles')
+    .select('account_id, organization_name, email, slug, url_handle')
+    .in('account_id', organizationIds)
+
+  const profileByAccountId = new Map(
+    (profiles || []).map((profile: any) => [String(profile.account_id), profile])
+  )
+
+  return rows.map((row: any) => {
+    const organizationId = row?.created_by_organization?.id || row?.created_by_organization
+    if (!organizationId) {
+      return row
+    }
+
+    const key = String(organizationId)
+    const profile = profileByAccountId.get(key)
+    if (!profile) {
+      return row
+    }
+
+    return {
+      ...row,
+      created_by_organization: {
+        id: key,
+        organization_name:
+          profile.organization_name ||
+          row?.organization_name ||
+          row?.created_by_organization?.organization_name ||
+          null,
+        email: profile.email || row?.created_by_organization?.email || null,
+        slug: profile.slug || null,
+        url_handle: profile.url_handle || null,
+      },
+    }
+  })
 }
-
-const mapEvent = (row: EventDbRow) => ({
-  _id: row.id,
-  id: row.id,
-  title: row.title,
-  description: row.description,
-  category: row.category,
-  eventType: row.event_type,
-  eventDate: row.event_date,
-  endDate: row.end_date,
-  sessions: row.sessions,
-  certification: row.certification,
-  audienceAgeMin: row.audience_age_min,
-  audienceAgeMax: row.audience_age_max,
-  requirements: row.requirements || [],
-  participantBenefits: row.participant_benefits || [],
-  location: row.location,
-  applicationLink: row.application_link,
-  applicationDeadline: row.application_deadline,
-  maxParticipants: row.max_participants,
-  tags: row.tags || [],
-  imageUrl: row.image_url,
-  images: row.images,
-  createdBy: row.created_by
-    ? { _id: row.created_by.id, name: row.created_by.name, email: row.created_by.email }
-    : row.created_by,
-  createdByOrganization: row.created_by_organization
-    ? { _id: row.created_by_organization.id, organizationName: row.created_by_organization.organization_name, email: row.created_by_organization.email }
-    : row.created_by_organization,
-  organizationName: row.organization_name,
-  status: row.status,
-  approvedAt: row.approved_at,
-  approvedBy: row.approved_by
-    ? { _id: row.approved_by.id, name: row.approved_by.name }
-    : row.approved_by,
-  rejectedAt: row.rejected_at,
-  rejectionReason: row.rejection_reason,
-  adminComment: row.admin_comment,
-  isPublished: row.is_published,
-  isFeatured: row.is_featured,
-  views: row.views,
-  uniqueViews: row.unique_views,
-  viewedBy: row.viewed_by || [],
-  engagementScore: row.engagement_score,
-  createdAt: row.created_at,
-  updatedAt: row.updated_at
-});
 
 export const dynamic = 'force-dynamic'
 
@@ -244,7 +198,8 @@ export async function GET(request: NextRequest) {
       return errorResponse('Failed to fetch events', 'FETCH_EVENTS_FAILED', {}, 500)
     }
 
-    const events = (eventRows || []).map(mapEvent)
+    const hydratedRows = await hydrateEventRowsWithOrganizationHandles(supabase, eventRows || [])
+    const events = hydratedRows.map(mapEventToResponse)
     const total = count || 0
     
     // Get statistics

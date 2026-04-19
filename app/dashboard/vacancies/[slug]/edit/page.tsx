@@ -12,7 +12,7 @@ import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import VacancyForm, {
   type VacancyFormInitialData,
   type VacancyFormSubmitPayload,
-} from '@/features/vacancies/components/VacancyForm'
+} from '@/features/vacancies/components/VacancyFormContainer'
 
 type VacancyResponse = VacancyFormInitialData & {
   _id: string
@@ -93,24 +93,10 @@ export default function EditVacancyPage() {
   }, [vacancyId])
 
   const handleUpdate = async (payload: VacancyFormSubmitPayload) => {
-    const updatePayload = {
-      title: payload.title,
-      description: payload.description,
-      type: payload.type,
-      location: payload.location,
-      requirements: payload.requirements,
-      responsibilities: payload.responsibilities,
-      benefits: payload.compensation.benefits,
-      deadline: payload.applicationDeadline.toISOString(),
-      contactEmail: payload.applicationProcess.email,
-      applicationInstructions: payload.applicationProcess.instructions,
-      tags: payload.tags,
-    }
-
     const response = await fetch(`/api/vacancies/${vacancyId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatePayload),
+      body: JSON.stringify(payload),
     })
 
     if (!response.ok) {

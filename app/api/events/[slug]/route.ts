@@ -16,6 +16,48 @@ import { resolveEntityBySlugOrId } from '@/lib/identifier'
 
 import { getContentViewCounts } from "@/lib/viewTracking";
 
+const hydrateEventRowWithOrganizationHandles = async (supabase: any, eventRow: any) => {
+  const orgId = eventRow?.created_by_organization
+    ? String(
+        typeof eventRow.created_by_organization === 'object'
+          ? eventRow.created_by_organization.id
+          : eventRow.created_by_organization
+      )
+    : null
+
+  if (!orgId) {
+    return eventRow
+  }
+
+  const { data: orgProfile } = await supabase
+    .from('organization_profiles')
+    .select('account_id, organization_name, email, slug, url_handle')
+    .eq('account_id', orgId)
+    .maybeSingle()
+
+  if (!orgProfile) {
+    return eventRow
+  }
+
+  return {
+    ...eventRow,
+    created_by_organization: {
+      id: orgId,
+      organization_name:
+        orgProfile.organization_name ||
+        eventRow?.organization_name ||
+        eventRow?.created_by_organization?.organization_name ||
+        null,
+      email:
+        orgProfile.email ||
+        eventRow?.created_by_organization?.email ||
+        null,
+      slug: orgProfile.slug || null,
+      url_handle: orgProfile.url_handle || null,
+    },
+  }
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { slug: string } }
@@ -56,7 +98,8 @@ export async function GET(
       .eq('content_type', 'event')
       .eq('content_id', eventRow.id)
 
-    const event = mapEventToResponse(eventRow);
+    const hydratedEventRow = await hydrateEventRowWithOrganizationHandles(supabase, eventRow)
+    const event = mapEventToResponse(hydratedEventRow);
 
     return successResponse({ 
       event: { 
@@ -154,8 +197,10 @@ export async function PUT(
       return errorResponse("Failed to update event", 500);
     }
 
+    const hydratedUpdatedRow = await hydrateEventRowWithOrganizationHandles(supabase, updatedRow)
+
     return successResponse(
-      { event: mapEventToResponse(updatedRow) },
+      { event: mapEventToResponse(hydratedUpdatedRow) },
       { message: "Event updated successfully" }
     );
   } catch (error) {

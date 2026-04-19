@@ -150,14 +150,20 @@ export async function GET(request: NextRequest) {
       organizationIds.length > 0
         ? supabase
             .from('organization_profiles')
-            .select('account_id, organization_name, email')
+            .select('account_id, organization_name, email, slug, url_handle')
             .in('account_id', organizationIds)
         : Promise.resolve({ data: [], error: null } as any),
     ])
 
     type CreatorUser = { id: string; name: string | null; email: string | null }
     type ApproverUser = { id: string; name: string | null }
-    type OrganizationProfile = { account_id: string; organization_name: string | null; email: string | null }
+    type OrganizationProfile = {
+      account_id: string
+      organization_name: string | null
+      email: string | null
+      slug: string | null
+      url_handle: string | null
+    }
 
     const creatorsById = new Map<string, CreatorUser>(
       (creatorsResult.data || []).map((u: any) => [String(u.id), u as CreatorUser])
@@ -174,7 +180,12 @@ export async function GET(request: NextRequest) {
       const organizationId = row.created_by_organization ? String(row.created_by_organization) : null
       const approvedById = row.approved_by ? String(row.approved_by) : null
       const organizationProfile = organizationId
-        ? (orgsByAccountId.get(organizationId) as { organization_name?: string | null; email?: string | null } | undefined)
+        ? (orgsByAccountId.get(organizationId) as {
+            organization_name?: string | null
+            email?: string | null
+            slug?: string | null
+            url_handle?: string | null
+          } | undefined)
         : undefined
 
       return {
@@ -185,6 +196,8 @@ export async function GET(request: NextRequest) {
               id: organizationId,
               organization_name: organizationProfile?.organization_name || row.organization_name || 'Unknown organization',
               email: organizationProfile?.email || null,
+              slug: organizationProfile?.slug || null,
+              url_handle: organizationProfile?.url_handle || null,
             }
           : null,
         approved_by: approvedById

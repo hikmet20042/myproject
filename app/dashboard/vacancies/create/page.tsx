@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import VacancyForm, { type VacancyFormSubmitPayload } from '@/features/vacancies/components/VacancyForm'
+import VacancyForm, { type VacancyFormSubmitPayload } from '@/features/vacancies/components/VacancyFormContainer'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useDashboardVacancyData } from '@/components/containers/DashboardVacancyDataContainer'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'

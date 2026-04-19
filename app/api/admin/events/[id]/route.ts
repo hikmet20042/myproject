@@ -9,6 +9,38 @@ import {
   validateLifecycleState,
 } from '@/app/api/events/helpers'
 
+const hydrateEventRowWithOrganizationHandles = async (supabase: any, row: any) => {
+  const orgId = row?.created_by_organization?.id || row?.created_by_organization
+  if (!orgId) {
+    return row
+  }
+
+  const { data: profile } = await supabase
+    .from('organization_profiles')
+    .select('account_id, organization_name, email, slug, url_handle')
+    .eq('account_id', String(orgId))
+    .maybeSingle()
+
+  if (!profile) {
+    return row
+  }
+
+  return {
+    ...row,
+    created_by_organization: {
+      id: String(orgId),
+      organization_name:
+        profile.organization_name ||
+        row?.organization_name ||
+        row?.created_by_organization?.organization_name ||
+        null,
+      email: profile.email || row?.created_by_organization?.email || null,
+      slug: profile.slug || null,
+      url_handle: profile.url_handle || null,
+    },
+  }
+}
+
 // PATCH /api/admin/events/[id] - Admin approve/reject event
 export async function PATCH(
   request: NextRequest,
@@ -73,7 +105,8 @@ export async function PATCH(
       return errorResponse('Failed to update event', 'UPDATE_EVENT_FAILED', {}, 500)
     }
 
-    const updatedEvent = mapEventToResponse(updatedRow)
+    const hydratedUpdatedRow = await hydrateEventRowWithOrganizationHandles(supabase, updatedRow)
+    const updatedEvent = mapEventToResponse(hydratedUpdatedRow)
 
     return successResponse(
       { event: updatedEvent },
@@ -109,7 +142,8 @@ export async function GET(
       return errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404)
     }
     
-    return successResponse({ event: mapEventToResponse(eventRow) })
+    const hydratedEventRow = await hydrateEventRowWithOrganizationHandles(supabase, eventRow)
+    return successResponse({ event: mapEventToResponse(hydratedEventRow) })
   } catch (error) {
     console.error('Error fetching event for admin:', error)
     return errorResponse('Failed to fetch event', 'FETCH_EVENT_FAILED', {}, 500)

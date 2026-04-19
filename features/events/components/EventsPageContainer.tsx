@@ -88,9 +88,7 @@ export default function EventsPageContainer() {
     if (statusFilter === "approved") {
       matchesStatus = event.status === "approved" && event.isPublished;
     } else if (statusFilter === "pending") {
-      matchesStatus =
-        event.status === "pending" ||
-        (event.status === "approved" && !event.isPublished);
+      matchesStatus = event.status === "pending";
     } else if (statusFilter === "rejected") {
       matchesStatus = event.status === "rejected";
     }

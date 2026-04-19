@@ -38,6 +38,13 @@ interface Event { _id: string
   imageUrl?: string
   createdBy: { _id: string
     name: string }
+  createdByOrganization?: {
+    _id?: string
+    id?: string
+    slug?: string
+    urlHandle?: string | null
+    organizationName?: string
+  }
   organizationName?: string
   status: 'pending' | 'approved' | 'rejected'
   adminComment?: string
@@ -65,7 +72,7 @@ interface Event { _id: string
       setLoading(false)
       return }
 
-    try { const response = await fetch(`/api/events/${params.id}`)
+    try { const response = await fetch(`/api/admin/events/${params.id}`)
       if (response.ok) { const data = await response.json()
         const payload = data?.data || data
         setEvent(payload.event) } else { setError('Yükləmək alınmadı') } } catch (error) { setError('Yükləmə xətası') } finally { setLoading(false) } }, [params?.id])
@@ -94,7 +101,7 @@ interface Event { _id: string
     try { const response = await fetch(`/api/admin/events/${params.id}`, { method: 'PATCH',
         headers: { 'Content-Type': 'application/json', },
         body: JSON.stringify({ action: 'reject',
-          adminComment }) })
+          rejectionReason: adminComment }) })
 
       if (response.ok) { router.push(localePath("/admin/events")) } else { setError('Rədd etmək alınmadı') } } catch (error) { setError('Rədd xətası') } finally { setActionLoading(false)
       setShowRejectModal(false) } }

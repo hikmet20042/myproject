@@ -5,56 +5,7 @@ import { NotificationService } from '@/features/notifications/services/notificat
 import { isAdmin, isAdminOrOwner, isOwner } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { resolveEntityBySlugOrId } from '@/lib/identifier'
-
-const mapVacancy = (row: any) => ({
-  _id: row.id,
-  id: row.id,
-  slug: row.slug,
-  title: row.title,
-  description: row.description,
-  type: row.type,
-  category: row.category,
-  workType: row.work_type,
-  location: row.location,
-  requirements: row.requirements || [],
-  responsibilities: row.responsibilities || [],
-  qualifications: row.qualifications || [],
-  experienceLevel: row.experience_level,
-  duration: row.duration,
-  compensation: row.compensation,
-  applicationProcess: row.application_process,
-  applicationDeadline: row.application_deadline,
-  startDate: row.start_date,
-  skills: row.skills || [],
-  languages: row.languages || [],
-  tags: row.tags || [],
-  imageUrl: row.image_url,
-  createdBy: row.created_by
-    ? { _id: row.created_by.id, name: row.created_by.name, email: row.created_by.email }
-    : row.created_by,
-  createdByOrganization: row.created_by_organization
-    ? { _id: row.created_by_organization.id, organizationName: row.created_by_organization.organization_name, email: row.created_by_organization.email }
-    : row.created_by_organization,
-  status: row.status,
-  approvedAt: row.approved_at,
-  approvedBy: row.approved_by
-    ? { _id: row.approved_by.id, name: row.approved_by.name }
-    : row.approved_by,
-  rejectedAt: row.rejected_at,
-  rejectionReason: row.rejection_reason,
-  adminComment: row.admin_comment,
-  isPublished: row.is_published,
-  isFeatured: row.is_featured,
-  isUrgent: row.is_urgent,
-  applicationCount: row.application_count,
-  views: row.real_views ?? row.views,
-  uniqueViews: row.real_unique_views ?? row.unique_views,
-  saves: row.real_saves ?? row.saves ?? 0,
-  viewedBy: row.viewed_by || [],
-  engagementScore: row.engagement_score,
-  createdAt: row.created_at,
-  updatedAt: row.updated_at
-});
+import { buildVacancyDbPayload, mapVacancyRow, validateVacancyPayload } from '@/app/api/vacancies/helpers'
 
 import { getContentViewCounts } from '@/lib/viewTracking'
 
@@ -95,7 +46,7 @@ export async function GET(
       .eq('content_id', vacancyRow.id)
 
     const vacancy = { 
-      ...mapVacancy(vacancyRow),
+      ...mapVacancyRow(vacancyRow),
       views: stats.views,
       uniqueViews: stats.uniqueViews,
       saves: savesCount || 0,
@@ -162,92 +113,12 @@ export async function PUT(
 
     const body = await request.json()
 
-    // Validate required fields
-    const requiredFields = ['title', 'description', 'type', 'location']
-
-    for (const field of requiredFields) {
-      if (!body[field]) {
-        return errorResponse(`${field} is required`, "API_ERROR", {}, 400)
-      }
-    }
-    if (body.description !== undefined) {
-      const descText = typeof body.description === 'string'
-        ? body.description.replace(/<[^>]*>/g, '').trim()
-        : ''
-      if (!descText || descText.length < 50) {
-        return errorResponse('Description must be at least 50 characters long', "API_ERROR", {}, 400)
-      }
-    }
-    if (body.applicationInstructions !== undefined && typeof body.applicationInstructions === 'string') {
-      const instr = body.applicationInstructions.trim()
-      if (instr.length < 30) {
-        return errorResponse('Application instructions must be at least 30 characters long', "API_ERROR", {}, 400)
-      }
+    const validation = validateVacancyPayload(body)
+    if (!validation.valid) {
+      return errorResponse(validation.error, "API_ERROR", {}, 400)
     }
 
-    // Validate deadline if provided
-    if (body.deadline) {
-      const deadline = new Date(body.deadline)
-      if (deadline <= new Date()) {
-        return errorResponse('Deadline must be in the future', "API_ERROR", {}, 400)
-      }
-    }
-
-    // Update allowed fields
-    const allowedFields = [
-      'title', 'description', 'type', 'location', 'requirements',
-      'responsibilities', 'benefits', 'deadline', 'contactEmail',
-      'contactPhone', 'applicationInstructions', 'tags'
-    ]
-
-    const updateData: any = {}
-    allowedFields.forEach(field => {
-      if (body[field] !== undefined) {
-        updateData[field] = body[field]
-      }
-    })
-
-    if (updateData.workType !== undefined) {
-      updateData.work_type = updateData.workType
-      delete updateData.workType
-    }
-
-    if (updateData.deadline !== undefined) {
-      updateData.application_deadline = updateData.deadline
-      delete updateData.deadline
-    }
-
-    if (updateData.applicationInstructions !== undefined) {
-      updateData.application_process = {
-        ...(vacancyRow.application_process || {}),
-        instructions: updateData.applicationInstructions
-      }
-      delete updateData.applicationInstructions
-    }
-
-    if (updateData.contactEmail !== undefined) {
-      updateData.application_process = {
-        ...(updateData.application_process || vacancyRow.application_process || {}),
-        email: updateData.contactEmail
-      }
-      delete updateData.contactEmail
-    }
-
-    if (updateData.contactPhone !== undefined) {
-      updateData.application_process = {
-        ...(updateData.application_process || vacancyRow.application_process || {}),
-        contactPhone: updateData.contactPhone
-      }
-      delete updateData.contactPhone
-    }
-
-    if (updateData.benefits !== undefined) {
-      updateData.compensation = {
-        ...(vacancyRow.compensation || {}),
-        benefits: updateData.benefits
-      }
-      delete updateData.benefits
-    }
+    const updateData: any = buildVacancyDbPayload(body)
 
     // Reset approval status if content changed (except for admins)
     if (!admin && owner) {
@@ -272,7 +143,7 @@ export async function PUT(
       return errorResponse('Failed to update vacancy', "API_ERROR", {}, 500)
     }
 
-    const updatedVacancy = mapVacancy(updatedRow)
+    const updatedVacancy = mapVacancyRow(updatedRow)
 
     return successResponse({
       message: 'Vacancy updated successfully',
@@ -393,7 +264,7 @@ export async function PATCH(
       })
     }
 
-    const updatedVacancy = mapVacancy(updatedRow)
+    const updatedVacancy = mapVacancyRow(updatedRow)
 
     return successResponse({
       message: `Vacancy ${action}d successfully`,

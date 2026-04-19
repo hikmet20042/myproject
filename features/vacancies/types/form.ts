@@ -1,134 +1,123 @@
+import type {
+  VacancyApplicationMethodValue,
+  VacancyPaymentModeValue,
+  VacancyTypeValue,
+} from '@/lib/vacancies/vacancyConfig'
+
 export type VacancyFormData = {
   title: string
-  type: 'job' | 'volunteer' | 'internship'
+  type: VacancyTypeValue
   description: string
-  category: string
-  workType: 'remote' | 'onsite' | 'hybrid'
   city: string
-  country: string
-  applicationMethod: 'link' | 'email'
-  applicationLink: string
-  applicationEmail: string
-  applicationInstructions: string
-  applicationDeadline: string
+  address: string
+  isPaid: boolean
+  paymentMode: VacancyPaymentModeValue
+  paymentAmount: string
+  paymentMin: string
+  paymentMax: string
+  ageMin: string
+  ageMax: string
   requirements: string[]
   responsibilities: string[]
-  qualifications: string[]
   benefits: string[]
-  tags: string[]
-  experienceLevel: string
-  compensationType: string
-  compensationAmount: string
-  durationType: string
-  contractLength: string
-  contractUnit: string
+  applicationMethod: VacancyApplicationMethodValue
+  applicationValue: string
+  applicationDeadline: string
+  periodFromMonth: string
+  periodFromYear: string
+  periodToMonth: string
+  periodToYear: string
+  imageUrl: string
 }
 
 export type VacancyFormSubmitPayload = {
   title: string
   description: string
-  type: 'job' | 'volunteer' | 'internship'
-  category: string
-  workType: 'remote' | 'onsite' | 'hybrid'
-  location: {
-    city?: string
-    country?: string
-    isRemote: boolean
+  type: VacancyTypeValue
+  city: string
+  address?: string
+  programPeriod?: {
+    fromMonth: number
+    fromYear: number
+    toMonth: number
+    toYear: number
   }
-  duration: {
-    type: string
-    contractLength?: {
-      value: number
-      unit: string
-    }
-  }
-  compensation: {
-    type: string
+  payment: {
+    isPaid: boolean
+    mode?: VacancyPaymentModeValue
     amount?: number
-    currency?: string
-    period?: string
-    benefits: string[]
+    min?: number
+    max?: number
+    currency: 'AZN'
   }
-  applicationProcess: {
-    applicationLink?: string
-    email?: string
-    instructions: string
-    requiredDocuments: string[]
+  ageRange: {
+    min: number
+    max: number
   }
-  applicationDeadline: Date
-  experienceLevel: string
+  application: {
+    method: VacancyApplicationMethodValue
+    value: string
+  }
+  applicationDeadline: string
   requirements: string[]
   responsibilities: string[]
-  qualifications: string[]
-  skills: string[]
-  tags: string[]
+  benefits: string[]
+  imageUrl?: string
 }
 
 export type VacancyFormInitialData = {
   title?: string
-  type?: 'job' | 'volunteer' | 'internship'
+  type?: VacancyTypeValue
   description?: string
-  category?: string
-  workType?: 'remote' | 'onsite' | 'hybrid'
-  location?: {
-    city?: string
-    country?: string
-    isRemote?: boolean
-  }
-  applicationProcess?: {
-    applicationLink?: string
-    email?: string
-    instructions?: string
-  }
+  city?: string
+  address?: string
+  applicationMethod?: VacancyApplicationMethodValue
+  applicationValue?: string
   applicationDeadline?: string
   requirements?: string[]
   responsibilities?: string[]
-  qualifications?: string[]
-  tags?: string[]
-  experienceLevel?: string
-  compensation?: {
-    type?: string
-    amount?: number
-    benefits?: string[]
-  }
-  duration?: {
-    type?: string
-    contractLength?: {
-      value?: number
-      unit?: string
-    }
-  }
+  benefits?: string[]
+  isPaid?: boolean
+  paymentMode?: VacancyPaymentModeValue
+  paymentAmount?: number
+  paymentMin?: number
+  paymentMax?: number
+  ageMin?: number
+  ageMax?: number
+  periodFromMonth?: number
+  periodFromYear?: number
+  periodToMonth?: number
+  periodToYear?: number
+  imageUrl?: string
 }
 
 export type VacancyArrayField =
   | 'requirements'
   | 'responsibilities'
-  | 'qualifications'
   | 'benefits'
-  | 'tags'
 
 export const INITIAL_VACANCY_FORM_DATA: VacancyFormData = {
   title: '',
-  type: 'job',
+  type: 'full_time',
   description: '',
-  category: '',
-  workType: 'onsite',
   city: '',
-  country: '',
+  address: '',
+  isPaid: false,
+  paymentMode: 'fixed',
+  paymentAmount: '',
+  paymentMin: '',
+  paymentMax: '',
+  ageMin: '',
+  ageMax: '',
+  requirements: [],
+  responsibilities: [],
+  benefits: [],
   applicationMethod: 'link',
-  applicationLink: '',
-  applicationEmail: '',
-  applicationInstructions: '',
+  applicationValue: '',
   applicationDeadline: '',
-  requirements: [''],
-  responsibilities: [''],
-  qualifications: [''],
-  benefits: [''],
-  tags: [''],
-  experienceLevel: '',
-  compensationType: '',
-  compensationAmount: '',
-  durationType: '',
-  contractLength: '',
-  contractUnit: 'months',
+  periodFromMonth: '',
+  periodFromYear: '',
+  periodToMonth: '',
+  periodToYear: '',
+  imageUrl: '',
 }

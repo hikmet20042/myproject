@@ -14,22 +14,22 @@ interface Vacancy { _id: string
   title: string
   description: string
   status: 'pending' | 'approved' | 'rejected'
-  category?: string
   type?: string
-  workType?: string
+  city?: string
+  address?: string
   organizationName?: string
   createdBy?: { _id: string; name?: string; email?: string }
   createdByOrganization?: { _id: string; organizationName?: string; email?: string }
   applicationDeadline?: string
-  location?: { isRemote?: boolean
-    city?: string
-    country?: string
-    address?: string }
-  compensation?: { type?: string
-    amount?: number
-    currency?: string }
+  isPaid?: boolean
+  paymentMode?: 'fixed' | 'range'
+  paymentAmount?: number
+  paymentMin?: number
+  paymentMax?: number
+  benefits?: string[]
   requirements?: string[]
   responsibilities?: string[]
+  rejectionReason?: string
   adminComment?: string
 }
 
@@ -118,6 +118,12 @@ export default function AdminVacancyPreview() {
   const organizationName =
     vacancy.organizationName || vacancy.createdByOrganization?.organizationName || vacancy.createdBy?.name || 'Naməlum'
 
+  const paymentLabel = !vacancy.isPaid
+    ? 'Ödənişsiz'
+    : vacancy.paymentMode === 'fixed'
+      ? `${vacancy.paymentAmount || 0} AZN`
+      : `${vacancy.paymentMin || 0} - ${vacancy.paymentMax || 0} AZN`
+
   return (
     <AdminListLayout title="Vakansiya Önizləmə" description="Moderasiya üçün vakansiya önizləməsi." className="space-y-0">
     <div className="relative min-h-screen overflow-hidden bg-background py-8">
@@ -187,11 +193,16 @@ export default function AdminVacancyPreview() {
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-gray-400" />
               <span>
-                {vacancy.location?.isRemote
-                  ? 'Uzaqdan'
-                  : `${vacancy.location?.city || ''} ${vacancy.location?.country || ''}`.trim() ||
-                    'Məkan dəqiqləşdiriləcək'}
+                {vacancy.city
+                  ? vacancy.address
+                    ? `${vacancy.city}, ${vacancy.address}`
+                    : vacancy.city
+                  : 'Məkan dəqiqləşdiriləcək'}
               </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Briefcase className="w-4 h-4 text-gray-400" />
+              <span>{paymentLabel}</span>
             </div>
           </div>
 
@@ -211,9 +222,20 @@ export default function AdminVacancyPreview() {
             </div>
           )}
 
-          {vacancy.adminComment && vacancy.status === 'rejected' && (
+          {vacancy.responsibilities && vacancy.responsibilities.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">{'Məsuliyyətlər'}</h3>
+              <ul className="list-disc list-inside text-gray-700 space-y-1">
+                {vacancy.responsibilities.map((item, idx) => (
+                  <li key={idx}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {(vacancy.rejectionReason || vacancy.adminComment) && vacancy.status === 'rejected' && (
             <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-700">
-              <strong>{'İdarəçi şərhi'}:</strong> {vacancy.adminComment}
+              <strong>{'Rədd səbəbi'}:</strong> {vacancy.rejectionReason || vacancy.adminComment}
             </div>
           )}
         </div>

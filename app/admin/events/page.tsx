@@ -143,7 +143,6 @@ export default function EventsAdminPage() {
       const body: Record<string, any> = { action };
       if (action === "reject" && rejectionReason?.trim()) {
         body.rejectionReason = rejectionReason.trim();
-        body.adminComment = rejectionReason.trim();
       }
       const response = await fetch(`/api/admin/events/${eventId}`, {
         method: "PATCH",

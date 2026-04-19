@@ -25,8 +25,6 @@ export default function VacanciesPage() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('all');
-  const [selectedLocation, setSelectedLocation] = useState('all');
-  const [selectedExperience, setSelectedExperience] = useState('all');
   const [rawVacancies, setRawVacancies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorKey, setErrorKey] = useState('');
@@ -76,22 +74,12 @@ export default function VacanciesPage() {
   }, [errorKey, showError])
 
   const vacancies = useMemo(() => { const source = Array.isArray(rawVacancies) ? rawVacancies : [];
-    return source.map((vacancy: any) => { const locationValue = vacancy?.location?.isRemote
-      ? 'Uzaqdan'
-      : vacancy?.location?.city || vacancy?.location?.address || 'Naməlum';
-
-      const compensation = vacancy?.compensation;
-      let salary: string | undefined = undefined;
-
-      if (compensation) { if (compensation.type === 'paid' && compensation.amount && compensation.currency) { const rawAmount = compensation.amount;
-          const amount = typeof rawAmount === 'number'
-            ? rawAmount.toLocaleString(locale)
-            : rawAmount;
-          salary = `${amount} ${compensation.currency}`; } else if (compensation.type === 'stipend') { salary = 'Məvacib'; } else if (compensation.type === 'unpaid') { salary = 'Könüllü'; } }
-
-      const applicationProcess = vacancy?.applicationProcess ?? undefined;
-      const applicationLink = applicationProcess?.applicationLink || vacancy?.applicationLink;
-      const applicationEmail = applicationProcess?.email || vacancy?.applicationEmail;
+    return source.map((vacancy: any) => {
+      const salary = vacancy?.isPaid
+        ? vacancy?.paymentMode === 'fixed'
+          ? `${vacancy?.paymentAmount || 0} AZN`
+          : `${vacancy?.paymentMin || 0} - ${vacancy?.paymentMax || 0} AZN`
+        : 'Ödənişsiz';
 
       return { id: vacancy._id,
         slug: vacancy.slug,
@@ -100,15 +88,15 @@ export default function VacanciesPage() {
         organizationId: vacancy?.createdByOrganization?.id || vacancy?.createdByOrganization?._id || null,
         organizationSlug: vacancy?.createdByOrganization?.urlHandle || vacancy?.createdByOrganization?.slug || null,
         type: vacancy.type,
-        location: locationValue,
-        experience: vacancy.experienceLevel,
+        city: vacancy.city,
+        address: vacancy.address,
         salary,
         deadline: vacancy.applicationDeadline,
         description: vacancy.description || '',
         requirements: vacancy.requirements,
-        applicationProcess,
-        applicationLink,
-        applicationEmail,
+        responsibilities: vacancy.responsibilities,
+        applicationMethod: vacancy.applicationMethod,
+        applicationValue: vacancy.applicationValue,
         postedDate: vacancy.createdAt,
         verified: vacancy.status === 'approved',
         views: vacancy.views || 0,
@@ -128,125 +116,25 @@ export default function VacanciesPage() {
 
   const typesOptions = [
     { value: 'all', label: 'Bütün növlər' },
-    { value: 'job', label: 'Tam iş günü' },
+    { value: 'full_time', label: 'Full-time' },
+    { value: 'part_time', label: 'Part-time' },
     { value: 'volunteer', label: 'Könüllü' },
-    { value: 'internship', label: 'Təcrübə' },
-  ];
-
-  const locationsOptions = [
-    { value: 'all', label: 'Bütün Yerlər' },
-    // Cities
-    { value: 'Baku', label: 'Bakı' },
-    { value: 'Ganja', label: 'Gəncə' },
-    { value: 'Nakhchivan', label: 'Naxçıvan' },
-    { value: 'Sumgayit', label: 'Sumqayıt' },
-    { value: 'Lankaran', label: 'Lənkəran' },
-    { value: 'Mingachevir', label: 'Mingəçevir' },
-    { value: 'Naftalan', label: 'Naftalan' },
-    { value: 'Khankendi', label: 'Xankəndi' },
-    { value: 'Shaki', label: 'Şəki' },
-    { value: 'Shirvan', label: 'Şirvan' },
-    { value: 'Yevlakh', label: 'Yevlax' },
-    // Districts (Rayons)
-    { value: 'Absheron', label: 'Abşeron rayonu' },
-    { value: 'Aghjabadi', label: 'Ağcabədi rayonu' },
-    { value: 'Agdam', label: 'Ağdam rayonu' },
-    { value: 'Agdash', label: 'Ağdaş rayonu' },
-    { value: 'Agdere', label: 'Ağdərə rayonu' },
-    { value: 'Agstafa', label: 'Ağstafa rayonu' },
-    { value: 'Agsu', label: 'Ağsu rayonu' },
-    { value: 'Astara', label: 'Astara rayonu' },
-    { value: 'Babek', label: 'Babək rayonu' },
-    { value: 'Balakan', label: 'Balakən rayonu' },
-    { value: 'Beylagan', label: 'Beyləqan rayonu' },
-    { value: 'Barda', label: 'Bərdə rayonu' },
-    { value: 'Bilasuvar', label: 'Biləsuvar rayonu' },
-    { value: 'Jabrayil', label: 'Cəbrayıl rayonu' },
-    { value: 'Jalilabad', label: 'Cəlilabad rayonu' },
-    { value: 'Julfa', label: 'Culfa rayonu' },
-    { value: 'Dashkasan', label: 'Daşkəsən rayonu' },
-    { value: 'Fuzuli', label: 'Füzuli rayonu' },
-    { value: 'Gadabay', label: 'Gədəbəy rayonu' },
-    { value: 'Goranboy', label: 'Goranboy rayonu' },
-    { value: 'Goychay', label: 'Göyçay rayonu' },
-    { value: 'Goygol', label: 'Göygöl rayonu' },
-    { value: 'Hajigabul', label: 'Hacıqabul rayonu' },
-    { value: 'Khachmaz', label: 'Xaçmaz rayonu' },
-    { value: 'Khizi', label: 'Xızı rayonu' },
-    { value: 'Khojaly', label: 'Xocalı rayonu' },
-    { value: 'Khojavend', label: 'Xocavənd rayonu' },
-    { value: 'Imishli', label: 'İmişli rayonu' },
-    { value: 'Ismayilli', label: 'İsmayıllı rayonu' },
-    { value: 'Kalbajar', label: 'Kəlbəcər rayonu' },
-    { value: 'Kangarli', label: 'Kəngərli rayonu' },
-    { value: 'Kurdamir', label: 'Kürdəmir rayonu' },
-    { value: 'Gakh', label: 'Qax rayonu' },
-    { value: 'Gazakh', label: 'Qazax rayonu' },
-    { value: 'Gabala', label: 'Qəbələ rayonu' },
-    { value: 'Gobustan', label: 'Qobustan rayonu' },
-    { value: 'Guba', label: 'Quba rayonu' },
-    { value: 'Gubadli', label: 'Qubadlı rayonu' },
-    { value: 'Gusar', label: 'Qusar rayonu' },
-    { value: 'Lachin', label: 'Laçın rayonu' },
-    { value: 'Lerik', label: 'Lerik rayonu' },
-    { value: 'Masalli', label: 'Masallı rayonu' },
-    { value: 'Neftchala', label: 'Neftçala rayonu' },
-    { value: 'Oghuz', label: 'Oğuz rayonu' },
-    { value: 'Ordubad', label: 'Ordubad rayonu' },
-    { value: 'Saatli', label: 'Saatlı rayonu' },
-    { value: 'Sabirabad', label: 'Sabirabad rayonu' },
-    { value: 'Salyan', label: 'Salyan rayonu' },
-    { value: 'Samukh', label: 'Samux rayonu' },
-    { value: 'Sadarak', label: 'Sədərək rayonu' },
-    { value: 'Siyazan', label: 'Siyəzən rayonu' },
-    { value: 'Shabran', label: 'Şabran rayonu' },
-    { value: 'Shahbuz', label: 'Şahbuz rayonu' },
-    { value: 'Shamakhi', label: 'Şamaxı rayonu' },
-    { value: 'Shamkir', label: 'Şəmkir rayonu' },
-    { value: 'Sharur', label: 'Şərur rayonu' },
-    { value: 'Shusha', label: 'Şuşa rayonu' },
-    { value: 'Tartar', label: 'Tərtər rayonu' },
-    { value: 'Tovuz', label: 'Tovuz rayonu' },
-    { value: 'Ujar', label: 'Ucar rayonu' },
-    { value: 'Yardimli', label: 'Yardımlı rayonu' },
-    { value: 'Zaqatala', label: 'Zaqatala rayonu' },
-    { value: 'Zangilan', label: 'Zəngilan rayonu' },
-    { value: 'Zardab', label: 'Zərdab rayonu' },
-    { value: 'Uzaqdan', label: 'Uzaqdan' },
-    { value: 'Other', label: 'Digər' },
-  ];
-
-  const experienceOptions = [
-    { value: 'all', label: 'Bütün səviyyələr' },
-    { value: 'Entry level', label: 'Başlanğıc səviyyə' },
-    { value: '1-2 years', label: '1-2 il təcrübə' },
-    { value: '2-5 years', label: '2-5 il təcrübə' },
-    { value: '5+ years', label: '5+ il təcrübə' },
+    { value: 'intern', label: 'Intern' },
   ];
 
   const getTypeLabel = (val: string) => { const found = typesOptions.find(o => o.value === val);
-    return found ? found.label : val; };
-
-  const getLocationLabel = (val: string) => { const found = locationsOptions.find(o => o.value === val);
-    if (found) return found.label;
-    if (val === 'Unknown') return 'Naməlum';
-    return val; };
-
-  const getExperienceLabel = (val: string) => { const found = experienceOptions.find(o => o.value === val);
     return found ? found.label : val; };
 
   const normalizedSearch = searchTerm.trim().toLowerCase();
 
   const filteredVacancies = vacancies.filter(vacancy => { const matchesSearch =
       normalizedSearch === '' ||
-      [vacancy.title, vacancy.organization, vacancy.description].some(field =>
+      [vacancy.title, vacancy.organization, vacancy.description, vacancy.city, vacancy.address].some(field =>
         typeof field === 'string' && field.toLowerCase().includes(normalizedSearch)
       );
     const matchesType = selectedType === 'all' || vacancy.type === selectedType;
-    const matchesLocation = selectedLocation === 'all' || vacancy.location === selectedLocation;
-    const matchesExperience = selectedExperience === 'all' || vacancy.experience === selectedExperience;
     
-    return matchesSearch && matchesType && matchesLocation && matchesExperience; });
+    return matchesSearch && matchesType; });
 
   const isDeadlineNear = (deadline?: string) => { if (!isValidDate(deadline)) return false;
     const deadlineDate = new Date(deadline as string);
@@ -260,14 +148,9 @@ export default function VacanciesPage() {
     const today = new Date();
     return deadlineDate < today; };
 
-  const hasActiveFilters =
-    searchTerm.trim() !== '' || selectedType !== 'all' || selectedLocation !== 'all' || selectedExperience !== 'all';
+  const hasActiveFilters = searchTerm.trim() !== '' || selectedType !== 'all';
 
   const errorMessage = errorKey;
-
-  const hasApplicationProcess = (applicationProcess: any) => { if (!applicationProcess) return false;
-    if (typeof applicationProcess !== 'object') return false;
-    return Object.keys(applicationProcess).length > 0; };
 
   return (
     <ListPageLayout
@@ -324,7 +207,7 @@ export default function VacanciesPage() {
                 inputSize="md"
                 aria-label={'Vakansiyaları axtar'}
               /> }
-            filterControls={ <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            filterControls={ <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mt-4">
                 {/* Type Filter */}
                 <div>
                   <Select
@@ -337,29 +220,6 @@ export default function VacanciesPage() {
                   />
                 </div>
 
-                {/* Location Filter */}
-                <div>
-                  <Select
-                    label={'Yer'}
-                    value={selectedLocation}
-                    onChange={(e) => setSelectedLocation(e.target.value)}
-                    options={locationsOptions}
-                    placeholder={'Bütün Yerlər'}
-                    selectSize="md"
-                  />
-                </div>
-
-                {/* Experience Filter */}
-                <div>
-                  <Select
-                    label={'Təcrübə'}
-                    value={selectedExperience}
-                    onChange={(e) => setSelectedExperience(e.target.value)}
-                    options={experienceOptions}
-                    placeholder={'Bütün səviyyələr'}
-                    selectSize="md"
-                  />
-                </div>
               </div> }
             activeFilters={ hasActiveFilters ? (
                 <ActiveFilterBadges
@@ -369,21 +229,9 @@ export default function VacanciesPage() {
                       value: getTypeLabel(selectedType),
                       onRemove: () => setSelectedType('all'),
                       colorScheme: 'teal' as const, }] : []),
-                    ...(selectedLocation !== 'all' ? [{ id: 'location',
-                      label: 'Yer',
-                      value: getLocationLabel(selectedLocation),
-                      onRemove: () => setSelectedLocation('all'),
-                      colorScheme: 'blue' as const, }] : []),
-                    ...(selectedExperience !== 'all' ? [{ id: 'experience',
-                      label: 'Təcrübə',
-                      value: getExperienceLabel(selectedExperience),
-                      onRemove: () => setSelectedExperience('all'),
-                      colorScheme: 'blue' as const, }] : []),
                   ]}
                   onClearAll={() => { setSearchTerm('');
-                    setSelectedType('all');
-                    setSelectedLocation('all');
-                    setSelectedExperience('all'); }}
+                    setSelectedType('all'); }}
                 />
               ) : undefined }
           />
@@ -397,16 +245,13 @@ export default function VacanciesPage() {
                 message="Axtarış və ya filtrləri dəyişməyi sına."
                 actionText="Filtrləri sıfırla"
                 onAction={hasActiveFilters ? () => { setSearchTerm('');
-                  setSelectedType('all');
-                  setSelectedLocation('all');
-                  setSelectedExperience('all'); } : undefined}
+                  setSelectedType('all'); } : undefined}
               />
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {!loading && !errorMessage && filteredVacancies.map((vacancy, idx) => { const deadlineNear = isDeadlineNear(vacancy.deadline);
                 const deadlinePassed = isDeadlinePassed(vacancy.deadline);
-                const structuredProcess = hasApplicationProcess(vacancy.applicationProcess);
                 const formattedDeadline = formatDate(vacancy.deadline, 'vacancies.dateTBD');
 
                 return (
@@ -438,9 +283,9 @@ export default function VacanciesPage() {
                             <span className="text-gray-700 font-medium truncate">{vacancy.organization}</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 text-sm">
+                        <div className="flex items-center gap-2 text-sm text-gray-700">
                           <MapPin className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                          <span className="text-gray-700 font-medium">{getLocationLabel(vacancy.location)}</span>
+                          <span>{vacancy.city}{vacancy.address ? `, ${vacancy.address}` : ''}</span>
                         </div>
                         {vacancy.salary && (
                           <p className="text-sm text-gray-700 font-medium">{vacancy.salary}</p>
@@ -464,9 +309,9 @@ export default function VacanciesPage() {
                             size="sm"
                             showText={true}
                           />
-                          {(!vacancy.deadline || !deadlinePassed) && structuredProcess && vacancy.applicationProcess?.applicationLink && (
+                          {(!vacancy.deadline || !deadlinePassed) && vacancy.applicationMethod === 'link' && vacancy.applicationValue && (
                             <ButtonLink
-                              href={vacancy.applicationProcess.applicationLink}
+                              href={vacancy.applicationValue}
                               external
                               variant="outline"
                               size="sm"
@@ -477,9 +322,22 @@ export default function VacanciesPage() {
                               {'Müraciət et'}
                             </ButtonLink>
                           )}
-                          {(!vacancy.deadline || !deadlinePassed) && !structuredProcess && vacancy.applicationLink && (
+                          {(!vacancy.deadline || !deadlinePassed) && vacancy.applicationMethod === 'email' && vacancy.applicationValue && (
                             <ButtonLink
-                              href={vacancy.applicationLink}
+                              href={`mailto:${vacancy.applicationValue}`}
+                              external
+                              variant="outline"
+                              size="sm"
+                              icon={ExternalLink}
+                              iconPosition="right"
+                              hoverEffect="scale"
+                            >
+                              {'Müraciət et'}
+                            </ButtonLink>
+                          )}
+                          {(!vacancy.deadline || !deadlinePassed) && vacancy.applicationMethod === 'phone' && vacancy.applicationValue && (
+                            <ButtonLink
+                              href={`tel:${vacancy.applicationValue.replace(/\s+/g, '')}`}
                               external
                               variant="outline"
                               size="sm"

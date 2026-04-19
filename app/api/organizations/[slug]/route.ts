@@ -55,7 +55,7 @@ export async function GET(
         .maybeSingle(),
       supabase
         .from('vacancies')
-        .select('id, title, application_deadline, application_process, created_at')
+        .select('id, title, application_deadline, application_method, application_value, created_at')
         .eq('created_by_organization', profile.account_id)
         .eq('status', 'approved')
         .eq('is_published', true)
@@ -84,7 +84,8 @@ export async function GET(
             id: featuredVacancyResult.data.id,
             title: featuredVacancyResult.data.title,
             applicationDeadline: featuredVacancyResult.data.application_deadline,
-            applicationProcess: featuredVacancyResult.data.application_process,
+            applicationMethod: featuredVacancyResult.data.application_method,
+            applicationValue: featuredVacancyResult.data.application_value,
             createdAt: featuredVacancyResult.data.created_at,
           }
         : null,

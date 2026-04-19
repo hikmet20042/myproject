@@ -51,10 +51,8 @@ type VacancyItem = {
   title: string
   type?: string
   applicationDeadline?: string
-  location?: {
-    city?: string
-    country?: string
-  }
+  city?: string
+  address?: string
   createdBy?: {
     _id?: string
     name?: string
@@ -221,13 +219,8 @@ export default function HomePage() {
             const title = typeof item.title === 'string' ? item.title : ''
             if (!id || !slug || !title) return
 
-            const location = isRecord(item.location)
-              ? {
-                  city: typeof item.location.city === 'string' ? item.location.city : undefined,
-                  country:
-                    typeof item.location.country === 'string' ? item.location.country : undefined,
-                }
-              : undefined
+            const city = typeof item.city === 'string' ? item.city : undefined
+            const address = typeof item.address === 'string' ? item.address : undefined
 
             const createdBy = isRecord(item.createdBy)
               ? {
@@ -259,7 +252,8 @@ export default function HomePage() {
                 typeof item.applicationDeadline === 'string'
                   ? item.applicationDeadline
                   : undefined,
-              location,
+              city,
+              address,
               createdBy,
               createdByOrganization,
             })
@@ -369,7 +363,11 @@ export default function HomePage() {
         href: localePath(`/resources/vacancies/${vacancy.slug}`),
         badge: vacancy.type || 'Vakansiya',
         dateLabel: formatDate(vacancy.applicationDeadline),
-        locationLabel: vacancy.location?.city || vacancy.location?.country || 'Məkan qeyd olunmayıb',
+        locationLabel: vacancy.city
+          ? vacancy.address
+            ? `${vacancy.city}, ${vacancy.address}`
+            : vacancy.city
+          : 'Məkan qeyd olunmayıb',
         ownerLabel:
           vacancy.createdByOrganization?.organizationName ||
           vacancy.createdBy?.name ||

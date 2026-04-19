@@ -4,7 +4,6 @@ import Link from "next/link";
 import {
   MapPin,
   DollarSign,
-  Clock,
   Users,
   Bookmark,
   Eye,
@@ -71,71 +70,12 @@ export default function VacancyRow({ vacancy, onRequestDelete }: VacancyRowProps
     }
   };
 
-  const getCompensationBadge = (type: string, amount?: string) => {
-    switch (type) {
-      case "paid":
-        return (
-          <Badge
-            variant="success"
-            className="border border-emerald-200 bg-emerald-50 text-emerald-700"
-          >
-            {amount ? `$${amount}` : "Ödənişli"}
-          </Badge>
-        );
-      case "stipend":
-        return (
-          <Badge
-            variant="secondary"
-            className="border border-blue-200 bg-blue-50 text-blue-700"
-          >
-            {amount ? `$${amount} ${"Məvacib"}` : "Məvacib"}
-          </Badge>
-        );
-      default:
-        return (
-          <Badge
-            variant="secondary"
-            className="border border-slate-200 bg-slate-100 text-slate-700"
-          >
-            {"Ödənişsiz"}
-          </Badge>
-        );
-    }
-  };
-
-  const getLocationBadge = (locationType: string) => {
-    switch (locationType) {
-      case "remote":
-        return (
-          <Badge
-            variant="primary"
-            className="border border-blue-200 bg-blue-50 text-blue-700"
-          >
-            {"Uzaqdan"}
-          </Badge>
-        );
-      case "hybrid":
-        return (
-          <Badge
-            variant="secondary"
-            className="border border-cyan-200 bg-cyan-50 text-cyan-700"
-          >
-            {"Hibrid"}
-          </Badge>
-        );
-      default:
-        return (
-          <Badge
-            variant="secondary"
-            className="border border-slate-200 bg-slate-100 text-slate-700"
-          >
-            {"Ofisdə"}
-          </Badge>
-        );
-    }
-  };
-
   const status = vacancy.status || "pending";
+  const paymentLabel = !vacancy.isPaid
+    ? "Ödənişsiz"
+    : vacancy.paymentMode === "fixed"
+      ? `${vacancy.paymentAmount || 0} AZN`
+      : `${vacancy.paymentMin || 0} - ${vacancy.paymentMax || 0} AZN`;
 
   return (
     <Card className="border border-slate-200 bg-white shadow-sm">
@@ -150,34 +90,14 @@ export default function VacancyRow({ vacancy, onRequestDelete }: VacancyRowProps
 
             <p className="mb-3 line-clamp-2 text-gray-600">{vacancy.description}</p>
 
-            <div className="mb-3 grid grid-cols-1 gap-3 text-sm text-gray-500 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="mb-3 grid grid-cols-1 gap-3 text-sm text-gray-500 sm:grid-cols-2 lg:grid-cols-4">
               <div className="flex items-center gap-1.5">
                 <MapPin className="h-4 w-4 text-cyan-500" />
-                <span className="truncate">
-                  {vacancy.location.city && vacancy.location.country
-                    ? `${vacancy.location.city}, ${vacancy.location.country}`
-                    : vacancy.location.city ||
-                      vacancy.location.country ||
-                      "Məkan dəqiqləşdiriləcək"}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-4 w-4 text-blue-500" />
-                <span>{vacancy.duration.type}</span>
+                <span>{vacancy.city}{vacancy.address ? `, ${vacancy.address}` : ""}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <DollarSign className="h-4 w-4 text-emerald-500" />
-                <span>
-                  {
-                    (
-                      {
-                        paid: "Ödənişli",
-                        unpaid: "Ödənişsiz",
-                        stipend: "Məvacibli",
-                      } as Record<string, string>
-                    )[vacancy.compensation.type] || vacancy.compensation.type
-                  }
-                </span>
+                <span>{paymentLabel}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Users className="h-4 w-4 text-indigo-500" />
@@ -204,30 +124,8 @@ export default function VacancyRow({ vacancy, onRequestDelete }: VacancyRowProps
                 variant="secondary"
                 className="border border-blue-200 bg-blue-50 text-blue-700"
               >
-                {vacancy.category}
+                {vacancy.type}
               </Badge>
-              {getLocationBadge(vacancy.workType)}
-              {getCompensationBadge(
-                vacancy.compensation.type,
-                vacancy.compensation.amount?.toString(),
-              )}
-              {vacancy.tags.slice(0, 2).map((tag, index) => (
-                <Badge
-                  key={index}
-                  variant="secondary"
-                  className="border border-cyan-200 bg-cyan-50 text-cyan-700"
-                >
-                  {tag}
-                </Badge>
-              ))}
-              {vacancy.tags.length > 2 && (
-                <Badge
-                  variant="secondary"
-                  className="border border-blue-100 bg-slate-100 text-gray-700"
-                >
-                  +{vacancy.tags.length - 2} {"daha"}
-                </Badge>
-              )}
             </div>
           </div>
 

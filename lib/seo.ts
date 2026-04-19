@@ -259,13 +259,29 @@ export function generateLocalBusinessSchema() {
  */
 export function generateJobPostingSchema(vacancy: any) {
   const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'
+
+  const employmentType = vacancy.type === 'part_time'
+    ? 'PART_TIME'
+    : vacancy.type === 'intern'
+      ? 'INTERN'
+      : vacancy.type === 'volunteer'
+        ? 'VOLUNTEER'
+        : 'FULL_TIME'
+
+  const salaryValue = vacancy.isPaid
+    ? vacancy.paymentMode === 'fixed'
+      ? vacancy.paymentAmount
+      : vacancy.paymentMode === 'range'
+        ? `${vacancy.paymentMin || 0}-${vacancy.paymentMax || 0}`
+        : undefined
+    : undefined
   
   return generateStructuredData('JobPosting', {
     title: vacancy.title,
     description: vacancy.description,
     datePosted: vacancy.createdAt || vacancy.submittedAt,
     validThrough: vacancy.applicationDeadline,
-    employmentType: vacancy.employmentType?.toUpperCase() || 'FULL_TIME',
+    employmentType,
     hiringOrganization: {
       '@type': 'Organization',
       name: vacancy.organization || vacancy.organizationName,
@@ -275,16 +291,17 @@ export function generateJobPostingSchema(vacancy: any) {
       '@type': 'Place',
       address: {
         '@type': 'PostalAddress',
-        addressLocality: vacancy.location?.city,
-        addressCountry: vacancy.location?.country || 'AZ',
+        streetAddress: vacancy.address,
+        addressLocality: vacancy.city,
+        addressCountry: 'AZ',
       },
     },
-    baseSalary: vacancy.salary ? {
+    baseSalary: salaryValue ? {
       '@type': 'MonetaryAmount',
       currency: 'AZN',
       value: {
         '@type': 'QuantitativeValue',
-        value: vacancy.salary,
+        value: salaryValue,
         unitText: 'MONTH',
       },
     } : undefined,
