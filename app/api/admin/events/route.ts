@@ -35,7 +35,14 @@ const hydrateEventRowsWithOrganizationHandles = async (supabase: any, rows: any[
     }
 
     const key = String(organizationId)
-    const profile = profileByAccountId.get(key)
+    const profile = profileByAccountId.get(key) as
+      | {
+          organization_name?: string | null
+          email?: string | null
+          slug?: string | null
+          url_handle?: string | null
+        }
+      | undefined
     if (!profile) {
       return row
     }

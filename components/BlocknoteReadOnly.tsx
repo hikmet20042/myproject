@@ -13,12 +13,29 @@ type Props = {
   textSize?: 'normal' | 'large'
 }
 
+const normalizeInitialContent = (value: any) => {
+  if (Array.isArray(value)) {
+    return value.length > 0 ? value : undefined
+  }
+
+  if (value && typeof value === 'object' && Array.isArray(value.blocks)) {
+    return value.blocks.length > 0 ? value.blocks : undefined
+  }
+
+  return undefined
+}
+
 export default function BlocknoteReadOnly({ initialJSON, className, context = 'general', textSize = 'normal' }: Props) {
+  const normalizedInitialContent = React.useMemo(
+    () => normalizeInitialContent(initialJSON),
+    [initialJSON],
+  )
+
   const editor = useCreateBlockNote({
-    initialContent: initialJSON ?? undefined,
+    initialContent: normalizedInitialContent,
   })
 
-  if (!initialJSON) return <div className="text-gray-400 italic">Məzmun yoxdur</div>
+  if (!normalizedInitialContent) return <div className="text-gray-400 italic">Məzmun yoxdur</div>
 
   return (
     <div className={`${className ?? ''} relative`} data-text-size={textSize}>
