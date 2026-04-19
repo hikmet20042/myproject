@@ -4,6 +4,7 @@ import { memo } from "react";
 import { Check, CheckCheck, Loader2, Trash2 } from "lucide-react";
 
 type NotificationItem = {
+  id: string;
   _id: string;
   title: string;
   message: string;
@@ -162,7 +163,7 @@ const NotificationItemComponent = memo(function NotificationItemComponent({
               }
             }}
             className="flex-1 min-w-0 text-left rounded-md outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
-            aria-describedby={`notif-time-${notification._id}`}
+            aria-describedby={`notif-time-${notification.id}`}
           >
             <div className="flex items-start gap-2">
               {!notification.isRead && (
@@ -179,7 +180,7 @@ const NotificationItemComponent = memo(function NotificationItemComponent({
                   <span className={`text-xs font-semibold ${getNotificationTypeColor(notification.type)}`}>
                     {getNotificationTypeLabel(notification.type)}
                   </span>
-                  <span className="text-xs text-slate-400" id={`notif-time-${notification._id}`}>
+                  <span className="text-xs text-slate-400" id={`notif-time-${notification.id}`}>
                     {formatRelativeTime(notification.createdAt)}
                   </span>
                 </div>
@@ -191,13 +192,13 @@ const NotificationItemComponent = memo(function NotificationItemComponent({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onToggleRead(notification._id, !notification.isRead);
+                onToggleRead(notification.id, !notification.isRead);
               }}
               onKeyDown={(e) => {
                 e.stopPropagation();
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  onToggleRead(notification._id, !notification.isRead);
+                  onToggleRead(notification.id, !notification.isRead);
                 }
               }}
               disabled={isActionLoading}
@@ -223,13 +224,13 @@ const NotificationItemComponent = memo(function NotificationItemComponent({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onDelete(notification._id);
+                  onDelete(notification.id);
                 }}
                 onKeyDown={(e) => {
                   e.stopPropagation();
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    onDelete(notification._id);
+                    onDelete(notification.id);
                   }
                 }}
                 disabled={isDeleting}

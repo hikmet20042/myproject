@@ -8,7 +8,10 @@ import { useSession } from '@/lib/auth/client'
 import { type NotificationItem, useNotificationContext } from '@/features/notifications/context/NotificationContext'
 import { useSSENotifications } from '@/features/notifications/providers/SSENotificationProvider'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+
+// Patch NotificationItem type to match NotificationContext
 import NotificationItemRow from '@/components/ui/notifications/NotificationItem'
+import type { NotificationItem as NotificationItemType } from '@/features/notifications/context/NotificationContext'
 
 interface NotificationBellContainerProps {
   className?: string
@@ -151,7 +154,7 @@ export default function NotificationBellContainer({ className = '' }: Notificati
   }, [notificationsOpen, ensureFreshNotifications])
 
   const handleNotificationClick = useCallback(
-    (notification: NotificationItem) => {
+    (notification: NotificationItemType) => {
       if (!notification.isRead) {
         void toggleNotificationRead(notification._id, true)
       }

@@ -50,12 +50,11 @@ export default function BlocknoteEditor({ initialJSON, onChange, className, cont
 
         setUploadError(null)
         return uploadedUrl
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('File upload failed:', error)
-        if (!setUploadError) {
-          setUploadError(error.message || 'Şəkil yüklənmədi')
+        const message = error instanceof Error ? error.message : 'Şəkil yüklənmədi'
+          setUploadError(message)
           setTimeout(() => setUploadError(null), 5000)
-        }
         throw error
       }
     },

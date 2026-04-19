@@ -71,6 +71,8 @@ export type EventFormInitialData = Partial<EventFormData> & {
   adminComment?: string
   eventDate?: string
   endDate?: string
+  certification?: { provided?: boolean }
+  certificationProvided?: boolean
 }
 
 export type EventFormSubmitPayload = {

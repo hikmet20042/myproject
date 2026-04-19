@@ -155,9 +155,19 @@ export async function GET(request: NextRequest) {
         : Promise.resolve({ data: [], error: null } as any),
     ])
 
-    const creatorsById = new Map((creatorsResult.data || []).map((u: any) => [String(u.id), u]))
-    const approversById = new Map((approversResult.data || []).map((u: any) => [String(u.id), u]))
-    const orgsByAccountId = new Map((organizationsResult.data || []).map((o: any) => [String(o.account_id), o]))
+    type CreatorUser = { id: string; name: string | null; email: string | null }
+    type ApproverUser = { id: string; name: string | null }
+    type OrganizationProfile = { account_id: string; organization_name: string | null; email: string | null }
+
+    const creatorsById = new Map<string, CreatorUser>(
+      (creatorsResult.data || []).map((u: any) => [String(u.id), u as CreatorUser])
+    )
+    const approversById = new Map<string, ApproverUser>(
+      (approversResult.data || []).map((u: any) => [String(u.id), u as ApproverUser])
+    )
+    const orgsByAccountId = new Map<string, OrganizationProfile>(
+      (organizationsResult.data || []).map((o: any) => [String(o.account_id), o as OrganizationProfile])
+    )
 
     const hydratedRows = rows.map((row: any) => {
       const createdById = row.created_by ? String(row.created_by) : null

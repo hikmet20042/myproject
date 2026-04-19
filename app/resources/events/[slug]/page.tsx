@@ -34,6 +34,8 @@ interface Event { _id: string
     onlineLink?: string }
   applicationLink?: string
   applicationDeadline?: string
+  eventType: string
+  maxParticipants: number
   sessions?: Array<{
     date: string
     startTime: string

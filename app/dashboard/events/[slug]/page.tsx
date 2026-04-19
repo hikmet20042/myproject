@@ -139,7 +139,7 @@ export default function EventDetail() {
                 {getStatusBadge()}
               </div>
               {/* View Stats */}
-              {(event.views > 0 || event.uniqueViews > 0 || (event.saves || 0) > 0) && (
+              {((event.views ?? 0) > 0 || (event.uniqueViews ?? 0) > 0 || (event.saves ?? 0) > 0) && (
                 <div className="mb-4 flex items-center gap-4">
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-100">
                     <Eye className="w-4 h-4 text-blue-600" />

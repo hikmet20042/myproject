@@ -181,8 +181,7 @@ export default function ImageCropper({
     <Modal
       isOpen={true}
       onClose={onCancel}
-      title="Profil şəklini kəs"
-      description="Şəkli kvadrat şəklində kəsin"
+      title="Profil şəkilini kəs"
       size="lg"
     >
       <div className="space-y-4">
@@ -204,7 +203,6 @@ export default function ImageCropper({
             cropShape="rect"
             showGrid={false}
             restrictPosition={true}
-            zoomStep={0.1}
             minZoom={0.5}
             maxZoom={3}
           />
