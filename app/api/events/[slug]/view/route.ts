@@ -143,13 +143,11 @@ export async function POST(
       }
     }
 
-    const response = NextResponse.json({
-      data: {
-        views: stats.views,
-        uniqueViews: stats.uniqueViews,
-        viewIncremented: stats.viewIncremented,
-      },
-    })
+    const response = successResponse({
+      views: stats.views,
+      uniqueViews: stats.uniqueViews,
+      viewIncremented: stats.viewIncremented,
+    }) as NextResponse
 
     // Set session cookie for anonymous users
     if (isNewSession && !userId) {

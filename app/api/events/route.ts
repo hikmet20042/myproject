@@ -163,6 +163,9 @@ export async function GET(request: NextRequest) {
       const createdById = row.created_by ? String(row.created_by) : null
       const organizationId = row.created_by_organization ? String(row.created_by_organization) : null
       const approvedById = row.approved_by ? String(row.approved_by) : null
+      const organizationProfile = organizationId
+        ? (orgsByAccountId.get(organizationId) as { organization_name?: string | null; email?: string | null } | undefined)
+        : undefined
 
       return {
         ...row,
@@ -170,8 +173,8 @@ export async function GET(request: NextRequest) {
         created_by_organization: organizationId
           ? {
               id: organizationId,
-              organization_name: orgsByAccountId.get(organizationId)?.organization_name || row.organization_name || 'Unknown organization',
-              email: orgsByAccountId.get(organizationId)?.email || null,
+              organization_name: organizationProfile?.organization_name || row.organization_name || 'Unknown organization',
+              email: organizationProfile?.email || null,
             }
           : null,
         approved_by: approvedById

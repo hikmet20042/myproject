@@ -2,7 +2,15 @@
 
 import { memo } from "react";
 import { Check, CheckCheck, Loader2, Trash2 } from "lucide-react";
-import { type NotificationItem } from "@/features/notifications/context/NotificationContext";
+
+type NotificationItem = {
+  _id: string;
+  title: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  createdAt: string;
+};
 
 interface NotificationItemProps {
   notification: NotificationItem;
