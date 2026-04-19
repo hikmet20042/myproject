@@ -14,7 +14,10 @@
     "lint:system": "npm run lint && npm run check:ui-patterns && npm run lint:architecture",
     "hooks:install": "node scripts/install-git-hooks.mjs",
     "precommit": "npm run lint:system",
-    "postbuild": "next-sitemap"
+    "postbuild": "if [ -f .next/build-manifest.json ]; then next-sitemap; else echo 'Skipping next-sitemap: .next/build-manifest.json not found'; fi"
+  },
+  "engines": {
+    "node": "20.x"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.876.0",
@@ -65,7 +68,6 @@
     "next": "^14.0.0",
     "next-intl": "^4.4.0",
     "next-sitemap": "^4.2.3",
-    "node": "^22.22.1",
     "nodemailer": "^6.10.1",
     "pg": "^8.12.0",
     "postcss": "^8.0.0",
