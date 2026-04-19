@@ -505,6 +505,7 @@ export async function POST(request: NextRequest) {
         organizationName: organizationProfile.data.organization_name,
         contentType: 'vacancy',
         contentId: populatedVacancy.id,
+        contentSlug: populatedVacancy.slug || populatedVacancy.id,
         contentTitle: populatedVacancy.title,
       })
     }

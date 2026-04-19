@@ -36,7 +36,6 @@ type EventDbRow = {
   application_link?: string | null
   application_deadline?: string | null
   max_participants?: number | null
-  current_participants?: number | null
   tags?: string[] | null
   image_url?: string | null
   images?: unknown
@@ -80,7 +79,6 @@ const mapEvent = (row: EventDbRow) => ({
   applicationLink: row.application_link,
   applicationDeadline: row.application_deadline,
   maxParticipants: row.max_participants,
-  currentParticipants: row.current_participants,
   tags: row.tags || [],
   imageUrl: row.image_url,
   images: row.images,

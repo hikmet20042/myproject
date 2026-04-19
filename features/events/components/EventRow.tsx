@@ -5,7 +5,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   Calendar,
   MapPin,
-  Users,
   Bookmark,
   Eye,
   Edit,
@@ -122,14 +121,6 @@ export default function EventRow({ event, onRequestDelete }: EventRowProps) {
                         "Fiziki"}
                 </span>
               </div>
-              {event.maxParticipants && (
-                <div className="flex items-center gap-1.5">
-                  <Users className="h-4 w-4 text-emerald-500" />
-                  <span>
-                    {"Maks"} {event.maxParticipants}
-                  </span>
-                </div>
-              )}
               {typeof event.views === 'number' && event.views > 0 && (
                 <div className="flex items-center gap-1.5">
                   <Eye className="h-4 w-4 text-violet-500" />

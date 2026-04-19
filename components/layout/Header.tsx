@@ -51,7 +51,6 @@ export default function Header() {
 
   // Navigation items with translations
   const navigation: NavigationItem[] = [
-    { name: 'Ana Səhifə', href: localePath('/') },
     { name: 'Haqqımızda', href: localePath('/about') },
     { name: 'Bloqlar', href: localePath('/blogs') },
     { name: 'Resurslar', 
@@ -198,7 +197,7 @@ export default function Header() {
                     )}
                     {canAccessDashboard(session) && (
                       <Link
-                        href={localePath('/dashboard/profile')}
+                        href={localePath('/dashboard')}
                         className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors duration-150 font-medium"
                         onClick={() => setUserMenuOpen(false)}
                       >

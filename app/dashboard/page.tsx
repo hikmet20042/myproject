@@ -43,15 +43,17 @@ function DashboardOverviewContent() {
       setError('')
 
       // Fetch stats from API endpoints
-      const [eventsRes, vacanciesRes, blogsRes] = await Promise.allSettled([
+      const [eventsRes, vacanciesRes, blogsRes, organizationRes] = await Promise.allSettled([
         fetch('/api/events?author=me&limit=1'),
         fetch('/api/vacancies?author=me&limit=1'),
         fetch('/api/blogs?author=me&limit=1'),
+        fetch('/api/organizations/me'),
       ])
 
       let totalEvents = 0
       let totalVacancies = 0
       let totalViews = 0
+      let totalOrganizationFollowers = 0
 
       if (eventsRes.status === 'fulfilled' && eventsRes.value.ok) {
         const data = await eventsRes.value.json()
@@ -76,10 +78,21 @@ function DashboardOverviewContent() {
         totalViews += blogs.reduce((sum: number, blog: any) => sum + (blog.views || 0), 0)
       }
 
+      if (organizationRes.status === 'fulfilled' && organizationRes.value.ok) {
+        const data = await organizationRes.value.json()
+        totalOrganizationFollowers = Number(
+          data?.data?.organization?.follower_count ||
+            data?.organization?.follower_count ||
+            data?.data?.organization?.followerCount ||
+            data?.organization?.followerCount ||
+            0,
+        )
+      }
+
       setStats({
         totalEvents: totalEvents || 0,
         totalVacancies: totalVacancies || 0,
-        totalOrganizationFollowers: 0,
+        totalOrganizationFollowers,
         totalViews: totalViews || 0,
       })
     } catch (err) {

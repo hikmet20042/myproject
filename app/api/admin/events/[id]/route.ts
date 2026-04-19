@@ -1,7 +1,6 @@
 import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { NotificationService } from '@/features/notifications/services/notificationService'
 import { canAccessAdmin } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import {
@@ -75,23 +74,6 @@ export async function PATCH(
     }
 
     const updatedEvent = mapEventToResponse(updatedRow)
-
-    // Send notification to event creator
-    const creatorId = updatedEvent?.createdBy?._id || updatedEvent?.createdByOrganization?._id
-    if (updatedEvent && creatorId) {
-      try {
-        await NotificationService.notifyEventStatus(
-          String(creatorId),
-          updatedEvent._id.toString(),
-          updatedEvent.title,
-          action,
-          adminComment || rejectionReason
-        )
-      } catch (notifError) {
-        console.error('Failed to send notification:', notifError)
-        // Don't fail the request if notification fails
-      }
-    }
 
     return successResponse(
       { event: updatedEvent },

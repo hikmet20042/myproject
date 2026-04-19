@@ -12,6 +12,7 @@ import { fetchOrganizations } from '@/lib/organizationQueries';
 import { logError } from '@/lib/logger';
 import { ListPageLayout } from '@/components/layout';
 import { useSession } from '@/lib/auth/client';
+import OrganizationFollowButtonContainer from '@/components/containers/OrganizationFollowButtonContainer';
 
 interface Organization { _id: string
   slug: string
@@ -343,6 +344,13 @@ export default function OrganizationsPage() { const localePath = useLocalizedPat
                         )}
                       </div>
                       <div className="flex gap-2">
+                      <OrganizationFollowButtonContainer
+                        organizationId={organization._id}
+                        organizationName={organization.organizationName}
+                        size="sm"
+                        showFollowerCount={false}
+                        className="flex-1"
+                      />
                       <ButtonLink
                         href={localePath(`/o/${organization.slug}`)}
                         variant="secondary"

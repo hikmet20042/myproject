@@ -7,6 +7,7 @@
 import { AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 
+
 interface ErrorStateProps {
   title: string
   message: string
@@ -37,6 +38,7 @@ export default function ErrorState({
   return (
     <div className={`${containerClassName} ${className}`}>
       <div className="w-full max-w-md rounded-2xl border border-rose-200 bg-white p-8 text-center shadow-sm">
+        
         <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-rose-50 text-rose-600">
           <AlertCircle className="h-8 w-8" />
         </div>

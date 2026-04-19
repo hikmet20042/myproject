@@ -1,5 +1,4 @@
 import { getServerSession } from '@/lib/auth/server'
-import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import cloudinaryService from '@/lib/services/cloudinaryService'
 import sharp from 'sharp'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
@@ -21,6 +20,13 @@ const MAX_WIDTH_BLOG = 1200
 const MAX_HEIGHT_BLOG = 1200
 const MAX_WIDTH_GENERAL = 1920
 const MAX_HEIGHT_GENERAL = 1080
+
+function resolveUploadFolder(context: string): string {
+  if (context === 'blog') return 'blogs'
+  if (context === 'event') return 'events'
+  if (context === 'vacancy') return 'vacancies'
+  return 'content'
+}
 
 async function optimizeImage(buffer: Buffer, mimeType: string, context: string): Promise<{ buffer: Buffer; mimeType: string; compressed: boolean; width?: number; height?: number }> {
   try {
@@ -106,7 +112,6 @@ export async function POST(request: Request) {
       return errorResponse('Invalid file type. Only image files are allowed.', 'API_ERROR', {}, 400)
     }
 
-    const isBlog = context === 'blog'
     const maxFileSize = isBlog ? MAX_FILE_SIZE_BLOG : MAX_FILE_SIZE_GENERAL
 
     if (file.size > maxFileSize) {
@@ -117,62 +122,7 @@ export async function POST(request: Request) {
     const originalBytes = await file.arrayBuffer()
     const originalBuffer = Buffer.from(originalBytes)
     const optimized = await optimizeImage(originalBuffer, file.type, context)
-
-    // For blog context, use Cloudinary instead of Supabase database
-    if (isBlog && cloudinaryService.isConfigured()) {
-      try {
-        const uploadResult = await cloudinaryService.uploadImage(optimized.buffer, {
-          folder: 'blogs',
-          transformation: [
-            { width: MAX_WIDTH_BLOG, height: MAX_HEIGHT_BLOG, crop: 'limit' },
-            { quality: 80 },
-            { fetch_format: 'auto' },
-          ],
-          tags: ['blog', 'content', session.user.id],
-        })
-
-        if (uploadResult.success && uploadResult.secureUrl) {
-          return successResponse({
-            id: uploadResult.publicId,
-            filename: file.name,
-            originalName: file.name,
-            mimetype: uploadResult.format ? `image/${uploadResult.format}` : optimized.mimeType,
-            size: uploadResult.bytes || optimized.buffer.length,
-            url: uploadResult.secureUrl,
-            width: uploadResult.width,
-            height: uploadResult.height,
-            description: description || undefined,
-            alt: alt || undefined,
-            tags: ['blog', 'content'],
-            uploadedAt: new Date().toISOString(),
-            isCompressed: true,
-            originalSize: file.size,
-            storage: 'cloudinary',
-            thumbnailUrl: cloudinaryService.getThumbnailUrl(uploadResult.publicId!, 400),
-            metadata: {
-              context: 'blog',
-              storage: 'cloudinary',
-              publicId: uploadResult.publicId,
-              optimization: {
-                originalSize: file.size,
-                optimizedSize: uploadResult.bytes || optimized.buffer.length,
-                reducedBytes: Math.max(0, file.size - (uploadResult.bytes || optimized.buffer.length)),
-              },
-            },
-          })
-        } else {
-          console.error('Cloudinary upload failed:', uploadResult.error)
-          // Fall through to Supabase storage as fallback
-        }
-      } catch (cloudinaryError) {
-        console.error('Cloudinary upload error:', cloudinaryError)
-        // Fall through to Supabase storage as fallback
-      }
-    }
-
-    // For non-blog contexts or if Cloudinary fails, use Supabase database
-    const supabase = createSupabaseAdminClient()
-
+    const folder = resolveUploadFolder(context)
     const tagArray = tags
       ? tags
           .split(',')
@@ -180,62 +130,52 @@ export async function POST(request: Request) {
           .filter((tag) => tag.length > 0)
       : []
 
-    const { data: imageBlob, error } = await supabase
-      .from('image_blobs')
-      .insert({
-        filename: file.name,
-        original_name: file.name,
-        mimetype: optimized.mimeType,
-        content_type: optimized.mimeType,
-        size: optimized.buffer.length,
-        data: optimized.buffer,
-        uploaded_by: session.user.id,
-        uploaded_at: new Date().toISOString(),
-        description: description || undefined,
-        alt: alt || undefined,
-        tags: tagArray.length > 0 ? tagArray : [],
-        width: optimized.width,
-        height: optimized.height,
-        is_compressed: optimized.compressed,
-        original_size: file.size,
-        metadata: {
-          context,
-          storage: 'supabase_db',
-          optimization: {
-            originalSize: file.size,
-            optimizedSize: optimized.buffer.length,
-            reducedBytes: Math.max(0, file.size - optimized.buffer.length),
-          },
-        },
-      })
-      .select('*')
-      .single()
+    if (!cloudinaryService.isConfigured()) {
+      return errorResponse('Cloudinary is not configured for content uploads', 'API_ERROR', {}, 503)
+    }
 
-    if (error || !imageBlob) {
-      console.error('Image blob save error:', error)
+    const uploadResult = await cloudinaryService.uploadImage(optimized.buffer, {
+      folder,
+      transformation: [
+        { width: isBlog ? MAX_WIDTH_BLOG : MAX_WIDTH_GENERAL, height: isBlog ? MAX_HEIGHT_BLOG : MAX_HEIGHT_GENERAL, crop: 'limit' },
+        { quality: isBlog ? 80 : 82 },
+        { fetch_format: 'auto' },
+      ],
+      tags: [...tagArray, context, 'content', session.user.id],
+    })
+
+    if (!uploadResult.success || !uploadResult.secureUrl || !uploadResult.publicId) {
+      console.error('Cloudinary upload failed:', uploadResult.error)
       return errorResponse('Failed to save image', 'API_ERROR', {}, 500)
     }
 
-    const imageUrl = `/api/images/${imageBlob.id}`
-
     return successResponse({
-      id: imageBlob.id,
-      filename: imageBlob.filename,
-      originalName: imageBlob.original_name,
-      mimetype: imageBlob.mimetype || imageBlob.content_type,
-      size: imageBlob.size,
-      url: imageUrl,
-      width: imageBlob.width,
-      height: imageBlob.height,
-      description: imageBlob.description,
-      alt: imageBlob.alt,
-      tags: imageBlob.tags,
-      uploadedAt: imageBlob.uploaded_at,
-      isCompressed: imageBlob.is_compressed,
-      originalSize: imageBlob.original_size,
-      storage: 'supabase_db',
-      thumbnailUrl: imageUrl,
-      metadata: imageBlob.metadata,
+      id: uploadResult.publicId,
+      filename: file.name,
+      originalName: file.name,
+      mimetype: uploadResult.format ? `image/${uploadResult.format}` : optimized.mimeType,
+      size: uploadResult.bytes || optimized.buffer.length,
+      url: uploadResult.secureUrl,
+      width: uploadResult.width,
+      height: uploadResult.height,
+      description: description || undefined,
+      alt: alt || undefined,
+      tags: tagArray,
+      uploadedAt: new Date().toISOString(),
+      isCompressed: true,
+      originalSize: file.size,
+      storage: 'cloudinary',
+      thumbnailUrl: cloudinaryService.getThumbnailUrl(uploadResult.publicId, 400),
+      metadata: {
+        context,
+        storage: 'cloudinary',
+        publicId: uploadResult.publicId,
+        optimization: {
+          originalSize: file.size,
+          optimizedSize: uploadResult.bytes || optimized.buffer.length,
+          reducedBytes: Math.max(0, file.size - (uploadResult.bytes || optimized.buffer.length)),
+        },
+      },
     })
   } catch (error) {
     console.error('Upload error:', error)

@@ -1,7 +1,5 @@
-import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-
 /**
- * Utility functions for handling image storage (both Supabase blobs and Cloudinary)
+ * Utility functions for handling image URLs after blob storage deprecation.
  */
 
 /**
@@ -12,7 +10,7 @@ export function isCloudinaryUrl(url: string): boolean {
 }
 
 /**
- * Extract blob ID from a blob URL
+ * Extract legacy blob ID from a deprecated blob URL.
  */
 export function extractBlobIdFromUrl(url: string): string | null {
   if (!url || !url.startsWith('/api/images/')) {
@@ -25,7 +23,7 @@ export function extractBlobIdFromUrl(url: string): string | null {
 }
 
 /**
- * Convert blob ID to URL
+ * Convert legacy blob ID to URL (deprecated).
  */
 export function blobIdToUrl(blobId: string): string {
   return `/api/images/${blobId}`;
@@ -115,8 +113,8 @@ export function getFeaturedImageBlobId(featuredImageUrl?: string): string | unde
 }
 
 /**
- * Validate that all blob IDs in content exist and belong to the user
- * Skips validation for Cloudinary URLs (they are validated by Cloudinary)
+ * Validate image references in content.
+ * Blocks legacy /api/images URLs after migration away from image_blobs.
  */
 export async function validateContentImages(
   content: any,
@@ -126,97 +124,37 @@ export async function validateContentImages(
   invalidImages: string[];
   missingImages: string[];
 }> {
+  void userId;
   const { imageReferences } = processContentImages(content);
-  
-  // Only validate Supabase blob images, skip Cloudinary URLs
-  const blobIds = imageReferences
-    .filter(ref => !ref.isCloudinary && ref.blobId)
-    .map(ref => ref.blobId!) as string[];
+  const hasLegacyBlobUrl = imageReferences.some((ref) => ref.url.startsWith('/api/images/'));
 
-  if (blobIds.length === 0) {
+  if (!hasLegacyBlobUrl) {
     return { isValid: true, invalidImages: [], missingImages: [] };
   }
 
-  try {
-    const supabase = createSupabaseAdminClient();
+  const invalidImages = imageReferences
+    .filter((ref) => ref.url.startsWith('/api/images/'))
+    .map((ref) => ref.url);
 
-    const { data: existingImages, error } = await supabase
-      .from('image_blobs')
-      .select('id')
-      .in('id', blobIds)
-      .eq('uploaded_by', userId);
-
-    if (error) {
-      throw error;
-    }
-
-    const existingIds = (existingImages || []).map(img => img.id);
-    const missingImages = blobIds.filter(id => !existingIds.includes(id));
-
-    return {
-      isValid: missingImages.length === 0,
-      invalidImages: [], // For now, we only check ownership, not validity
-      missingImages
-    };
-  } catch (error) {
-    console.error('Error validating content images:', error);
-    return {
-      isValid: false,
-      invalidImages: blobIds,
-      missingImages: []
-    };
-  }
+  return {
+    isValid: false,
+    invalidImages,
+    missingImages: [],
+  };
 }
 
 /**
- * Clean up unused images
- * This should be called periodically to remove images that are no longer referenced
+ * Legacy no-op kept for compatibility with old callers.
  */
 export async function cleanupUnusedImages(daysOld: number = 30): Promise<number> {
-  try {
-    const supabase = createSupabaseAdminClient();
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - daysOld);
-
-    const { count } = await supabase
-      .from('image_blobs')
-      .delete({ count: 'exact' })
-      .eq('usage_count', 0)
-      .lt('uploaded_at', cutoffDate.toISOString());
-
-    return count || 0;
-  } catch (error) {
-    console.error('Error cleaning up unused images:', error);
-    return 0;
-  }
+  void daysOld;
+  return 0;
 }
 
 /**
- * Get image metadata for display
+ * Legacy no-op kept for compatibility with old callers.
  */
 export async function getImageMetadata(blobId: string): Promise<any | null> {
-  try {
-    const supabase = createSupabaseAdminClient();
-    const { data: image } = await supabase
-      .from('image_blobs')
-      .select('id, filename, original_name, mimetype, content_type, size, width, height, alt, description, uploaded_at')
-      .eq('id', blobId)
-      .single();
-    return image ? {
-      id: image.id,
-      filename: image.filename,
-      originalName: image.original_name,
-      mimetype: image.mimetype || image.content_type,
-      size: image.size,
-      width: image.width,
-      height: image.height,
-      alt: image.alt,
-      description: image.description,
-      uploadedAt: image.uploaded_at,
-      url: blobIdToUrl(image.id)
-    } : null;
-  } catch (error) {
-    console.error('Error getting image metadata:', error);
-    return null;
-  }
+  void blobId;
+  return null;
 }

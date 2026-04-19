@@ -30,7 +30,7 @@ export default function EventsSection({
             </p>
             {events.length === 0 && (
               <p className="mx-auto max-w-md text-sm text-slate-500">
-                Events help your audience discover your activities and register on time.
+                Events help your audience discover your activities and apply through your external links.
                 Use the Create Event button above to publish your first one.
               </p>
             )}

@@ -3,6 +3,7 @@ import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { isApprovedOrganization } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { getOrganizationImagePath, getUserAvatarPath, resolveProfileImageUrl } from '@/lib/profileImageUrls'
 
 // Force dynamic rendering due to session usage
 export const dynamic = 'force-dynamic'
@@ -29,6 +30,13 @@ export async function GET(request: NextRequest) {
         return errorResponse('Organization not found', "API_ERROR", {}, 404)
       }
 
+      const profileImagePath = getOrganizationImagePath(organizationProfile.profile_image)
+      const profileImageFallback =
+        typeof organizationProfile.profile_image === 'string'
+          ? organizationProfile.profile_image
+          : (organizationProfile.profile_image as any)?.url || null
+      const profileImageUrl = await resolveProfileImageUrl(supabase, profileImagePath, profileImageFallback)
+
       return successResponse({
         user: {
           _id: organizationProfile.account_id,
@@ -37,8 +45,8 @@ export async function GET(request: NextRequest) {
           role: undefined, // Organizations don't have role in User collection
           organizationStatus: organizationProfile.moderation_status,
           createdAt: organizationProfile.created_at,
-          profileImage: organizationProfile.profile_image,
-          image: (organizationProfile.profile_image as any)?.url || undefined
+          profileImage: profileImageUrl ? { url: profileImageUrl, path: profileImagePath, storage: 'supabase_storage' } : null,
+          image: profileImageUrl || undefined
         }
       })
     }
@@ -56,9 +64,12 @@ export async function GET(request: NextRequest) {
 
     const { data: userProfile } = await supabase
       .from('user_profiles')
-      .select('avatar, avatar_blob_id')
+      .select('avatar, avatar_metadata')
       .eq('user_id', session.user.id)
       .single()
+
+    const avatarPath = getUserAvatarPath((userProfile as any)?.avatar_metadata)
+    const avatarUrl = await resolveProfileImageUrl(supabase, avatarPath, userProfile?.avatar || null)
 
     return successResponse({
       user: {
@@ -67,10 +78,10 @@ export async function GET(request: NextRequest) {
         email: user.email,
         role: user.role,
         createdAt: user.created_at,
-        profileImage: userProfile?.avatar
-          ? { url: userProfile.avatar, publicId: userProfile.avatar_blob_id }
+        profileImage: avatarUrl
+          ? { url: avatarUrl, path: avatarPath, storage: (userProfile as any)?.avatar_metadata?.storage || 'supabase_storage' }
           : null,
-        image: userProfile?.avatar || null
+        image: avatarUrl || null
       }
     })
 

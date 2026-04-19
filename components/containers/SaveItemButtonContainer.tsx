@@ -1,9 +1,11 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/auth/client'
 import { SaveItemButton } from '@/components/ui/SaveItemButton'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 
 interface SaveItemButtonContainerProps {
   itemId: string
@@ -24,15 +26,19 @@ export default function SaveItemButtonContainer({
   size = 'sm',
   showText = true,
 }: SaveItemButtonContainerProps) {
+  const router = useRouter()
+  const localePath = useLocalizedPath()
   const { data: session, status } = useSession()
   const { showSuccess, showError, showInfo } = useGlobalFeedback()
   const queryClient = useQueryClient()
   const isAuthLoading = status === 'loading'
+  const isOrgAccount = session?.user?.accountType === 'organization'
+  const isRegularUser = session?.user?.accountType === 'user'
   const itemTypeLabel = itemType === 'event' ? 'tədbiri' : itemType === 'vacancy' ? 'vakansiyanı' : 'bloqu'
 
   const saveStatusQuery = useQuery({
     queryKey: keyFor(itemType, itemId),
-    enabled: Boolean(itemId && itemType),
+    enabled: Boolean(itemId && itemType && isRegularUser),
     queryFn: async () => {
       const response = await fetch(`/api/content/${encodeURIComponent(itemType)}/${encodeURIComponent(itemId)}/save`)
       if (!response.ok) return { hasSaved: false, totalSaves: 0 }
@@ -88,7 +94,12 @@ export default function SaveItemButtonContainer({
 
   const handleSave = async () => {
     if (!session?.user?.id) {
-      showInfo(`${itemTypeLabel} yadda saxlamaq üçün daxil olun`)
+      router.push(localePath('/auth/signin'))
+      return
+    }
+
+    if (!isRegularUser) {
+      showInfo('Yalnız fərdi hesablar yadda saxlaya bilər')
       return
     }
     if (loadingState) return
@@ -97,6 +108,10 @@ export default function SaveItemButtonContainer({
     } catch {
       return
     }
+  }
+
+  if (status !== 'loading' && isOrgAccount) {
+    return null
   }
 
   return (

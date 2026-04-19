@@ -7,40 +7,47 @@ import sharp from 'sharp';
 
 export const dynamic = 'force-dynamic';
 
-const IMAGE_ID_REGEX = /\/api\/images\/([0-9a-f-]{36})$/i;
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']);
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
-// Profile pictures are displayed small, optimize for 400x400 max
-const MAX_IMAGE_WIDTH = 400;
-const MAX_IMAGE_HEIGHT = 400;
+const PROFILE_BUCKET = process.env.SUPABASE_PROFILE_IMAGES_BUCKET || 'profile-images';
+const PROFILE_AVATAR_SIZE = 256;
 
-const extractBlobIdFromUrl = (url?: string | null): string | null => {
-  if (!url) return null;
-  const match = url.match(IMAGE_ID_REGEX);
-  return match?.[1] || null;
+const sanitizeFileName = (name: string): string => {
+  return name.replace(/[^a-zA-Z0-9._-]/g, '_');
 };
 
-const extractBlobIdFromProfileImage = (value: any): string | null => {
+const buildStoragePath = (userId: string, originalName: string): string => {
+  void originalName;
+  const timestamp = Date.now();
+  return `profiles/${userId}/${timestamp}.webp`;
+};
+
+const extractStoragePathFromOrganizationImage = (value: any): string | null => {
   if (!value) return null;
-  if (typeof value === 'string') return extractBlobIdFromUrl(value);
+  if (typeof value === 'string') {
+    return null;
+  }
   if (typeof value === 'object') {
-    if (typeof value.blobId === 'string') return value.blobId;
-    if (typeof value.url === 'string') return extractBlobIdFromUrl(value.url);
+    if (typeof value.path === 'string') return value.path;
+    if (typeof value.storagePath === 'string') return value.storagePath;
   }
   return null;
 };
 
-const normalizeOrganizationImage = (value: any): { url: string | null; blobId: string | null } => {
-  if (!value) return { url: null, blobId: null };
-  if (typeof value === 'string') {
-    return { url: value, blobId: extractBlobIdFromUrl(value) };
+const extractStoragePathFromUserMetadata = (value: any): string | null => {
+  if (!value || typeof value !== 'object') return null;
+  if (typeof value.path === 'string') return value.path;
+  if (typeof value.storagePath === 'string') return value.storagePath;
+  return null;
+};
+
+const getSignedUrl = async (supabase: ReturnType<typeof createSupabaseAdminClient>, path: string): Promise<string | null> => {
+  const { data, error } = await supabase.storage.from(PROFILE_BUCKET).createSignedUrl(path, 60 * 60);
+  if (error || !data?.signedUrl) {
+    const { data: publicData } = supabase.storage.from(PROFILE_BUCKET).getPublicUrl(path);
+    return publicData?.publicUrl || null;
   }
-  if (typeof value === 'object') {
-    const url = typeof value.url === 'string' ? value.url : null;
-    const blobId = typeof value.blobId === 'string' ? value.blobId : extractBlobIdFromUrl(url);
-    return { url, blobId };
-  }
-  return { url: null, blobId: null };
+  return data.signedUrl;
 };
 
 const validateImage = (file: File): string | null => {
@@ -55,38 +62,26 @@ const validateImage = (file: File): string | null => {
 
 const optimizeProfileImage = async (buffer: Buffer, mimeType: string) => {
   try {
-    // GIF is kept as-is to avoid breaking animation frames.
-    if (mimeType.toLowerCase() === 'image/gif') {
-      return {
-        buffer,
-        mimeType: 'image/gif',
-      };
-    }
+    void mimeType;
 
-    let pipeline = sharp(buffer, { failOn: 'none' }).rotate();
-    const metadata = await pipeline.metadata();
-    const width = metadata.width || 0;
-    const height = metadata.height || 0;
+    // Always normalize avatars to a lightweight square for consistent small UI rendering.
+    const optimized = await sharp(buffer, { failOn: 'none' })
+      .rotate()
+      .resize(PROFILE_AVATAR_SIZE, PROFILE_AVATAR_SIZE, {
+        fit: 'cover',
+        position: 'centre',
+        withoutEnlargement: false,
+      })
+      .webp({ quality: 72, effort: 6 })
+      .toBuffer();
 
-    if (width > MAX_IMAGE_WIDTH || height > MAX_IMAGE_HEIGHT) {
-      pipeline = pipeline.resize(MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT, {
-        fit: 'inside',
-        withoutEnlargement: true,
-      });
-    }
-
-    // Convert to webp at quality 75 to reduce DB footprint while maintaining good visual quality.
-    const optimized = await pipeline.webp({ quality: 75, effort: 6 }).toBuffer();
     return {
       buffer: optimized,
       mimeType: 'image/webp',
     };
   } catch (error) {
-    console.error('Image optimization failed, using original upload:', error);
-    return {
-      buffer,
-      mimeType,
-    };
+    console.error('Image optimization failed:', error);
+    throw new Error('Profile image optimization failed');
   }
 };
 
@@ -116,38 +111,26 @@ export async function POST(request: NextRequest) {
     const optimizedImage = await optimizeProfileImage(originalBuffer, file.type);
     const buffer = optimizedImage.buffer;
     const isOrganization = isApprovedOrganization(session);
+    const storagePath = buildStoragePath(session.user.id, file.name || 'profile.webp');
 
-    const { data: insertedBlob, error: insertError } = await supabase
-      .from('image_blobs')
-      .insert({
-        filename: file.name,
-        original_name: file.name,
-        mimetype: optimizedImage.mimeType,
-        content_type: optimizedImage.mimeType,
-        size: buffer.length,
-        data: buffer,
-        uploaded_by: session.user.id,
-        uploaded_at: new Date().toISOString(),
-        tags: ['profile'],
-        metadata: {
-          context: 'profile',
-          storage: 'supabase_db',
-          optimization: {
-            originalSize: file.size,
-            optimizedSize: buffer.length,
-            reducedBytes: Math.max(0, file.size - buffer.length),
-          },
-        },
-      })
-      .select('id')
-      .single();
+    const { error: uploadError } = await supabase.storage
+      .from(PROFILE_BUCKET)
+      .upload(storagePath, buffer, {
+        contentType: optimizedImage.mimeType,
+        cacheControl: '3600',
+        upsert: false,
+      });
 
-    if (insertError || !insertedBlob?.id) {
+    if (uploadError) {
       return errorResponse('Failed to upload profile image', 'API_ERROR', {}, 500);
     }
 
-    const imageUrl = `/api/images/${insertedBlob.id}`;
-    let oldBlobId: string | null = null;
+    const imageUrl = await getSignedUrl(supabase, storagePath);
+    if (!imageUrl) {
+      return errorResponse('Failed to generate profile image URL', 'API_ERROR', {}, 500);
+    }
+
+    let oldStoragePath: string | null = null;
 
     if (isOrganization) {
       const { data: orgProfile } = await supabase
@@ -156,14 +139,16 @@ export async function POST(request: NextRequest) {
         .eq('account_id', session.user.id)
         .maybeSingle();
 
-      oldBlobId = extractBlobIdFromProfileImage(orgProfile?.profile_image);
+      oldStoragePath = extractStoragePathFromOrganizationImage(orgProfile?.profile_image);
 
       await supabase
         .from('organization_profiles')
         .update({
           profile_image: {
             url: imageUrl,
-            blobId: insertedBlob.id,
+            path: storagePath,
+            bucket: PROFILE_BUCKET,
+            storage: 'supabase_storage',
           },
           updated_at: new Date().toISOString(),
         })
@@ -171,22 +156,18 @@ export async function POST(request: NextRequest) {
     } else {
       const { data: userProfile } = await supabase
         .from('user_profiles')
-        .select('id, avatar, avatar_blob_id')
+        .select('id, avatar_metadata')
         .eq('user_id', session.user.id)
         .maybeSingle();
 
-      oldBlobId =
-        (typeof userProfile?.avatar_blob_id === 'string' && userProfile.avatar_blob_id) ||
-        extractBlobIdFromUrl(userProfile?.avatar) ||
-        null;
+      oldStoragePath = extractStoragePathFromUserMetadata(userProfile?.avatar_metadata);
 
       if (userProfile?.id) {
         await supabase
           .from('user_profiles')
           .update({
             avatar: imageUrl,
-            avatar_blob_id: insertedBlob.id,
-            avatar_metadata: { blobId: insertedBlob.id, storage: 'supabase_db' },
+            avatar_metadata: { path: storagePath, bucket: PROFILE_BUCKET, storage: 'supabase_storage' },
             updated_at: new Date().toISOString(),
           })
           .eq('id', userProfile.id);
@@ -196,14 +177,13 @@ export async function POST(request: NextRequest) {
           .insert({
             user_id: session.user.id,
             avatar: imageUrl,
-            avatar_blob_id: insertedBlob.id,
-            avatar_metadata: { blobId: insertedBlob.id, storage: 'supabase_db' },
+            avatar_metadata: { path: storagePath, bucket: PROFILE_BUCKET, storage: 'supabase_storage' },
           });
       }
     }
 
-    if (oldBlobId && oldBlobId !== insertedBlob.id) {
-      await supabase.from('image_blobs').delete().eq('id', oldBlobId);
+    if (oldStoragePath && oldStoragePath !== storagePath) {
+      await supabase.storage.from(PROFILE_BUCKET).remove([oldStoragePath]);
     }
 
     return successResponse({
@@ -211,7 +191,8 @@ export async function POST(request: NextRequest) {
       message: 'Profile image updated successfully',
       profileImage: {
         url: imageUrl,
-        blobId: insertedBlob.id,
+        path: storagePath,
+        storage: 'supabase_storage',
       },
       url: imageUrl,
       thumbnailUrl: imageUrl,
@@ -232,7 +213,7 @@ export async function DELETE(request: NextRequest) {
 
     const supabase = createSupabaseAdminClient();
     const isOrganization = isApprovedOrganization(session);
-    let oldBlobId: string | null = null;
+    let oldStoragePath: string | null = null;
 
     if (isOrganization) {
       const { data: orgProfile } = await supabase
@@ -241,7 +222,7 @@ export async function DELETE(request: NextRequest) {
         .eq('account_id', session.user.id)
         .maybeSingle();
 
-      oldBlobId = extractBlobIdFromProfileImage(orgProfile?.profile_image);
+      oldStoragePath = extractStoragePathFromOrganizationImage(orgProfile?.profile_image);
 
       await supabase
         .from('organization_profiles')
@@ -250,23 +231,20 @@ export async function DELETE(request: NextRequest) {
     } else {
       const { data: userProfile } = await supabase
         .from('user_profiles')
-        .select('avatar, avatar_blob_id')
+        .select('avatar_metadata')
         .eq('user_id', session.user.id)
         .maybeSingle();
 
-      oldBlobId =
-        (typeof userProfile?.avatar_blob_id === 'string' && userProfile.avatar_blob_id) ||
-        extractBlobIdFromUrl(userProfile?.avatar) ||
-        null;
+      oldStoragePath = extractStoragePathFromUserMetadata(userProfile?.avatar_metadata);
 
       await supabase
         .from('user_profiles')
-        .update({ avatar: null, avatar_blob_id: null, avatar_metadata: null, updated_at: new Date().toISOString() })
+        .update({ avatar: null, avatar_metadata: null, updated_at: new Date().toISOString() })
         .eq('user_id', session.user.id);
     }
 
-    if (oldBlobId) {
-      await supabase.from('image_blobs').delete().eq('id', oldBlobId);
+    if (oldStoragePath) {
+      await supabase.storage.from(PROFILE_BUCKET).remove([oldStoragePath]);
     }
 
     return successResponse({
@@ -301,22 +279,28 @@ export async function GET(request: NextRequest) {
         return errorResponse('User not found', 'API_ERROR', {}, 404);
       }
 
-      const normalized = normalizeOrganizationImage(orgProfile.profile_image);
-      if (!normalized.url) {
+      const storagePath = extractStoragePathFromOrganizationImage(orgProfile.profile_image);
+      const currentUrl = typeof (orgProfile.profile_image as any)?.url === 'string'
+        ? (orgProfile.profile_image as any).url
+        : null;
+
+      if (!storagePath && !currentUrl) {
         return successResponse({ hasImage: false, url: null });
       }
 
+      const signedUrl = storagePath ? await getSignedUrl(supabase, storagePath) : currentUrl;
+
       return successResponse({
         hasImage: true,
-        url: normalized.url,
-        blobId: normalized.blobId,
-        thumbnailUrl: normalized.url,
+        url: signedUrl,
+        path: storagePath,
+        thumbnailUrl: signedUrl,
       });
     }
 
     const { data: userProfile } = await supabase
       .from('user_profiles')
-      .select('avatar, avatar_blob_id')
+      .select('avatar, avatar_metadata')
       .eq('user_id', session.user.id)
       .maybeSingle();
 
@@ -324,15 +308,19 @@ export async function GET(request: NextRequest) {
       return errorResponse('User not found', 'API_ERROR', {}, 404);
     }
 
-    if (!userProfile.avatar) {
+    const storagePath = extractStoragePathFromUserMetadata(userProfile.avatar_metadata);
+
+    if (!userProfile.avatar && !storagePath) {
       return successResponse({ hasImage: false, url: null });
     }
 
+    const signedUrl = storagePath ? await getSignedUrl(supabase, storagePath) : userProfile.avatar;
+
     return successResponse({
       hasImage: true,
-      url: userProfile.avatar,
-      blobId: userProfile.avatar_blob_id || extractBlobIdFromUrl(userProfile.avatar),
-      thumbnailUrl: userProfile.avatar,
+      url: signedUrl,
+      path: storagePath,
+      thumbnailUrl: signedUrl,
     });
   } catch (error) {
     console.error('Error fetching profile image:', error);

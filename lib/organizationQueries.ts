@@ -12,6 +12,12 @@ type OrganizationListParams = {
   status?: string;
 };
 
+type FollowedOrganizationsParams = {
+  page?: number;
+  limit?: number;
+  search?: string;
+};
+
 const toQueryString = (params: OrganizationListParams = {}) => {
   const searchParams = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => {
@@ -96,5 +102,55 @@ export const updateMyOrganization = async (payload: Record<string, any>) => {
   return {
     organization: withLegacyId(assertOrganization(data, endpoint)),
     message: data?.message || "",
+  };
+};
+
+export const fetchOrganizationFollowState = async (organizationIdentifier: string) => {
+  const endpoint = `/api/organizations/${organizationIdentifier}/follow`;
+  const { data } = await apiFetch<{
+    organizationId: string;
+    isFollowing: boolean;
+    followerCount: number;
+  }>(endpoint);
+
+  return {
+    organizationId: data.organizationId,
+    isFollowing: Boolean(data.isFollowing),
+    followerCount: Number(data.followerCount || 0),
+  };
+};
+
+export const toggleOrganizationFollow = async (
+  organizationIdentifier: string,
+  action: 'follow' | 'unfollow' | 'toggle' = 'toggle'
+) => {
+  const endpoint = `/api/organizations/${organizationIdentifier}/follow`;
+  const { data } = await apiFetch<{
+    organizationId: string;
+    isFollowing: boolean;
+    followerCount: number;
+  }>(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action }),
+  });
+
+  return {
+    organizationId: data.organizationId,
+    isFollowing: Boolean(data.isFollowing),
+    followerCount: Number(data.followerCount || 0),
+  };
+};
+
+export const fetchFollowedOrganizations = async (params: FollowedOrganizationsParams = {}) => {
+  const query = toQueryString(params);
+  const endpoint = `/api/users/organizations/followed${query ? `?${query}` : ''}`;
+
+  const { data, meta } = await apiFetch<{ items: any[] }>(endpoint);
+  const rawItems = assertItems(data, endpoint);
+
+  return {
+    items: rawItems.map((item: any) => withLegacyId(item)),
+    meta: meta || {},
   };
 };

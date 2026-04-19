@@ -2,7 +2,6 @@ import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
-import { NotificationService } from '@/features/notifications/services/notificationService'
 import { resolveEntityBySlugOrId } from '@/lib/identifier'
 
 export const dynamic = 'force-dynamic'
@@ -85,36 +84,6 @@ export async function POST(
 
       if (insertError) {
         return errorResponse('Failed to add like', 'INSERT_LIKE_FAILED', {}, 500)
-      }
-
-      // Notify organization/creator about the like (no user name exposed)
-      try {
-        if (event.created_by_organization) {
-          await NotificationService.notifyContentLiked({
-            recipientOrganizationId: event.created_by_organization,
-            contentType: 'event',
-            contentId: event.id,
-            contentTitle: event.title || 'Untitled Event',
-          }).catch((err) => {
-            console.error('Failed to notify organization about event like:', err)
-          })
-        } else if (event.created_by && event.created_by !== session.user.id) {
-          await NotificationService.createNotification({
-            userId: event.created_by,
-            type: 'event_liked',
-            title: 'Tədbir bəyənildi',
-            message: `Kimsə "${event.title}" tədbirini bəyəndi`,
-            actionUrl: `/resources/events/${event.id}`,
-            data: {
-              eventId: event.id,
-              eventTitle: event.title,
-            },
-          }).catch((err) => {
-            console.error('Failed to notify user about event like:', err)
-          })
-        }
-      } catch (notifError) {
-        console.error('Error processing like notification:', notifError)
       }
 
       return successResponse({

@@ -34,9 +34,17 @@ export async function GET(request: NextRequest) {
       return errorResponse('Unauthorized', "API_ERROR", {}, 403)
     }
 
+    const { count: followerCount } = await supabase
+      .from('organization_followers')
+      .select('id', { count: 'exact', head: true })
+      .eq('organization_id', session.user.id)
+
     return successResponse({
       organization: {
-        ...normalizeOrganizationProfile(organizationProfile),
+        ...normalizeOrganizationProfile({
+          ...organizationProfile,
+          follower_count: followerCount || 0,
+        }),
         urlHandle: organizationProfile.url_handle || null,
       },
     })

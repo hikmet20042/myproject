@@ -24,8 +24,6 @@ interface Event { _id: string
     onlineLink?: string }
   applicationLink?: string
   applicationDeadline?: string
-  maxParticipants?: number
-  currentParticipants: number
   tags: string[]
   imageUrl?: string
   createdBy: { _id: string
@@ -344,30 +342,18 @@ interface Event { _id: string
                   </div>
                 )}
                 
-                {event.maxParticipants && (
-                  <div className="flex items-start">
-                    <Users className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-gray-900">{'Tutum'}</p>
-                      <p className="text-gray-600 text-sm">
-                        {event.currentParticipants} / {event.maxParticipants} iştirakçı
-                      </p>
-                    </div>
-                  </div>
-                )}
-                
                 {event.applicationLink && (
                   <div className="flex items-start">
                     <LinkIcon className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                     <div>
-                      <p className="font-medium text-gray-900">{'Qeydiyyat'}</p>
+                      <p className="font-medium text-gray-900">{'Xarici müraciət'}</p>
                       <a
                         href={event.applicationLink}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:text-blue-800 text-sm inline-flex items-center"
                       >
-                        Qeydiyyat linki
+                        Müraciət linki
                         <ExternalLink className="w-3 h-3 ml-1" />
                       </a>
                     </div>

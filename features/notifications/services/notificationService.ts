@@ -7,11 +7,7 @@ const ALLOWED_NOTIFICATION_TYPES = new Set([
   'blog_rejected',
   'blog_like',
   'blog_saved',
-  'event_approved',
-  'event_rejected',
   'event_deadline',
-  'event_like',
-  'event_saved',
   'vacancy_approved',
   'vacancy_rejected',
   'vacancy_deadline',
@@ -19,7 +15,6 @@ const ALLOWED_NOTIFICATION_TYPES = new Set([
   'vacancy_saved',
   'organization_followed',
   'organization_unfollowed',
-  'organization_new_event',
   'organization_new_vacancy',
   'content_view_milestone',
   'email_confirmed',
@@ -69,8 +64,6 @@ function validateNotificationType(type: string): boolean {
 const GROUPABLE_NOTIFICATION_TYPES = new Set([
   'blog_like',
   'blog_saved',
-  'event_like',
-  'event_saved',
   'vacancy_like',
   'vacancy_saved',
   'organization_followed',
@@ -152,8 +145,6 @@ export class NotificationService {
       'password_changed',
       'blog_approved',
       'blog_rejected',
-      'event_approved',
-      'event_rejected',
       'vacancy_approved',
       'vacancy_rejected',
       'admin_action_required',
@@ -472,40 +463,6 @@ export class NotificationService {
   }
 
   /**
-   * Notify user about event approval/rejection
-   */
-  static async notifyEventStatus(
-    userId: string,
-    eventId: string,
-    eventTitle: string,
-    action: 'approve' | 'reject',
-    rejectionReason?: string
-  ) {
-    const isApproved = action === 'approve'
-    const title = isApproved
-      ? '✅ Your Event Was Approved!'
-      : '⚠️ Your Event Was Not Approved'
-    
-    const message = isApproved
-      ? `Great news! Your event "${eventTitle}" has been approved and is now published.`
-      : `Your event "${eventTitle}" was not approved. ${rejectionReason ? `Reason: ${rejectionReason}` : ''}`
-    
-    return this.createNotification({
-      userId,
-      type: isApproved ? 'event_approved' : 'event_rejected',
-      title,
-      message,
-      actionUrl: `/resources/events`,
-      data: {
-        eventId,
-        eventTitle,
-        action,
-        rejectionReason
-      }
-    })
-  }
-
-  /**
    * Notify user about vacancy approval/rejection
    */
   static async notifyVacancyStatus(
@@ -678,7 +635,7 @@ export class NotificationService {
   static async checkEventDeadlinesAndNotify() {
     try {
       const now = new Date();
-      const sevenDaysFromNow = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
+      const threeDaysFromNow = new Date(now.getTime() + (3 * 24 * 60 * 60 * 1000));
       const supabase = createSupabaseAdminClient()
 
       // Check events
@@ -704,7 +661,7 @@ export class NotificationService {
           .in('id', savedEvents)
           .eq('status', 'approved')
           .gte('application_deadline', now.toISOString())
-          .lte('application_deadline', sevenDaysFromNow.toISOString())
+          .lte('application_deadline', threeDaysFromNow.toISOString())
 
         if (!upcomingEvents || upcomingEvents.length === 0) {
           continue
@@ -734,6 +691,10 @@ export class NotificationService {
             ? Math.ceil((deadlineDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000))
             : 0
 
+          if (daysUntilDeadline !== 2) {
+            continue
+          }
+
           await this.createNotification({
             userId: userId,
             type: 'event_deadline',
@@ -750,78 +711,9 @@ export class NotificationService {
         }
       }
 
-      // Check vacancies
-      const { data: vacancySaveRows } = await supabase
-        .from('content_saves')
-        .select('user_id, content_id')
-        .eq('content_type', 'vacancy')
-
-      const vacancySavesByUser = new Map<string, string[]>()
-      for (const row of vacancySaveRows || []) {
-        const userId = row.user_id as string | undefined
-        const vacancyId = row.content_id as string | undefined
-        if (!userId || !vacancyId) continue
-        const list = vacancySavesByUser.get(userId) || []
-        list.push(vacancyId)
-        vacancySavesByUser.set(userId, list)
-      }
-
-      for (const [userId, savedVacancies] of Array.from(vacancySavesByUser.entries())) {
-        const { data: upcomingVacancies } = await supabase
-          .from('vacancies')
-          .select('id, title, application_deadline')
-          .in('id', savedVacancies)
-          .eq('status', 'approved')
-          .gte('application_deadline', now.toISOString())
-          .lte('application_deadline', sevenDaysFromNow.toISOString())
-
-        if (!upcomingVacancies || upcomingVacancies.length === 0) {
-          continue
-        }
-
-        const since = new Date(now.getTime() - (24 * 60 * 60 * 1000)).toISOString()
-        const { data: recentNotifications } = await supabase
-          .from('notifications')
-          .select('data')
-          .eq('user_id', userId)
-          .eq('type', 'vacancy_deadline')
-          .gte('created_at', since)
-
-        const notifiedVacancyIds = new Set(
-          (recentNotifications || [])
-            .map(notification => (notification.data as any)?.vacancyId)
-            .filter(Boolean)
-        )
-
-        for (const vacancy of upcomingVacancies) {
-          if (notifiedVacancyIds.has(vacancy.id)) {
-            continue
-          }
-
-          const deadlineDate = vacancy.application_deadline ? new Date(vacancy.application_deadline) : null
-          const daysUntilDeadline = deadlineDate
-            ? Math.ceil((deadlineDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000))
-            : 0
-
-          await this.createNotification({
-            userId: userId,
-            type: 'vacancy_deadline',
-            title: 'Vakansiya müraciət son tarixi yaxınlaşır',
-            message: `"${vacancy.title}" vakansiyası üçün müraciət son tarixi ${daysUntilDeadline} gün içərisindədir`,
-            actionUrl: `/resources/vacancies/${vacancy.id}`,
-            data: {
-              vacancyId: vacancy.id,
-              vacancyTitle: vacancy.title,
-              deadline: vacancy.application_deadline,
-              daysUntilDeadline
-            }
-          });
-        }
-      }
-
       return {
         success: true,
-        usersChecked: savesByUser.size + vacancySavesByUser.size
+        usersChecked: savesByUser.size
       };
     } catch (error) {
       console.error('Error checking event deadlines:', error);
@@ -832,8 +724,9 @@ export class NotificationService {
   static async notifyOrganizationFollowersAboutNewContent(params: {
     organizationId: string
     organizationName: string
-    contentType: 'event' | 'vacancy'
+    contentType: 'vacancy'
     contentId: string
+    contentSlug?: string
     contentTitle: string
   }) {
     try {
@@ -851,10 +744,11 @@ export class NotificationService {
         return
       }
 
-      const type = params.contentType === 'event' ? 'organization_new_event' : 'organization_new_vacancy'
-      const title = params.contentType === 'event' ? 'New Event from Followed Organization' : 'New Vacancy from Followed Organization'
+      const type = 'organization_new_vacancy'
+      const title = 'New Vacancy from Followed Organization'
       const message = `${params.organizationName} posted: "${params.contentTitle}"`
-      const actionUrl = `/o/${params.organizationId}`
+      const routeKey = params.contentSlug || params.contentId
+      const actionUrl = `/resources/vacancies/${routeKey}`
 
       // Use the central createNotification method for each follower to ensure:
       // 1. Single point of control for notification sending
@@ -874,6 +768,7 @@ export class NotificationService {
               organizationName: params.organizationName,
               contentType: params.contentType,
               contentId: params.contentId,
+              contentSlug: params.contentSlug,
               contentTitle: params.contentTitle,
             },
           }).catch((err) => {
@@ -1029,7 +924,7 @@ export class NotificationService {
   static async notifyContentSaved(params: {
     recipientUserId?: string
     recipientOrganizationId?: string
-    contentType: 'blog' | 'event' | 'vacancy'
+    contentType: 'blog' | 'vacancy'
     contentId: string
     contentSlug?: string
     contentTitle: string
@@ -1039,13 +934,10 @@ export class NotificationService {
     const actionUrl =
       params.contentType === 'blog'
         ? `/blogs/${routeKey}`
-        : params.contentType === 'event'
-          ? `/resources/events/${routeKey}`
-          : `/resources/vacancies/${routeKey}`
+        : `/resources/vacancies/${routeKey}`
 
     const typeLabels = {
       blog: 'bloqunu',
-      event: 'tədbirini',
       vacancy: 'vakansiyasını',
     }
 

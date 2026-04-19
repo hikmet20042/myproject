@@ -1,12 +1,11 @@
 'use client'
 
 import { useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSession } from '@/lib/auth/client'
 import { ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react'
-import Link from 'next/link'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
-import { ButtonLink } from '@/components/ui'
 import { blogQueryKeys, dislikeBlog, fetchBlogReactions, likeBlog } from '@/lib/blogQueries'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 
@@ -19,9 +18,12 @@ export default function BlogReactionsContainer({ blogSlug,
   initialLikes = 0,
   initialDislikes = 0,
   className = '' }: BlogReactionsContainerProps) { const { data: session, status } = useSession()
+  const router = useRouter()
   const localePath = useLocalizedPath()
   const { showError } = useGlobalFeedback()
   const queryClient = useQueryClient()
+  const isOrgAccount = session?.user?.accountType === 'organization'
+  const isRegularUser = session?.user?.accountType === 'user'
 
   const defaultReactionState = useMemo(() => ({
     likes: initialLikes,
@@ -33,7 +35,7 @@ export default function BlogReactionsContainer({ blogSlug,
   const reactionsQuery = useQuery({
     queryKey: blogQueryKeys.reactions(blogSlug),
     queryFn: () => fetchBlogReactions(blogSlug),
-    enabled: !!session?.user?.id,
+    enabled: !!session?.user?.id && isRegularUser,
     initialData: defaultReactionState
   })
 
@@ -125,12 +127,20 @@ export default function BlogReactionsContainer({ blogSlug,
   const isLoading = likeMutation.isPending || dislikeMutation.isPending
 
   const handleLike = () => { if (!session?.user?.id) { showError('Bəyənmək üçün daxil olun')
+      router.push(localePath('/auth/signin'))
+      return }
+    if (!isRegularUser) { showError('Yalnız fərdi hesablar reaksiya verə bilər')
       return }
     likeMutation.mutate() }
 
   const handleDislike = () => { if (!session?.user?.id) { showError('Bəyənməmək üçün daxil olun')
+      router.push(localePath('/auth/signin'))
+      return }
+    if (!isRegularUser) { showError('Yalnız fərdi hesablar reaksiya verə bilər')
       return }
     dislikeMutation.mutate() }
+
+  if (status !== 'loading' && isOrgAccount) { return null }
 
   if (status === 'loading') { return (
       <div className={`flex items-center gap-3 ${className}`}>
@@ -145,31 +155,6 @@ export default function BlogReactionsContainer({ blogSlug,
             <span className="text-sm font-semibold">—</span>
           </div>
         </div>
-      </div>
-    ) }
-
-  if (!session?.user?.id) { return (
-      <div className={`flex items-center gap-3 ${className}`}>
-        <div className="flex items-center gap-4 px-4 py-2 bg-white border-2 border-blue-100 rounded-xl">
-          <div className="flex items-center gap-2 text-gray-400">
-            <ThumbsUp className="w-5 h-5" />
-            <span className="text-sm font-semibold">{reactionState.likes}</span>
-          </div>
-          <div className="w-px h-6 bg-slate-300"></div>
-          <div className="flex items-center gap-2 text-gray-400">
-            <ThumbsDown className="w-5 h-5" />
-            <span className="text-sm font-semibold">{reactionState.dislikes}</span>
-          </div>
-        </div>
-        <ButtonLink
-          href={localePath('/auth/signin')}
-          variant="primary"
-          size="sm"
-          shadow="md"
-          hoverEffect="lift"
-        >
-          Reaksiya vermək üçün daxil olun
-        </ButtonLink>
       </div>
     ) }
 

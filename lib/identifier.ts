@@ -18,8 +18,32 @@ export async function resolveEntityBySlugOrId(
       .select(selectFields)
       .eq('id', trimmed)
       .maybeSingle()
-    if (byId.data || byId.error) {
+    if (byId.data) {
       return byId
+    }
+
+    if (table === 'organization_profiles') {
+      const byAccountId = await supabase
+        .from(table)
+        .select(selectFields)
+        .eq('account_id', trimmed)
+        .maybeSingle()
+
+      if (byAccountId.data) {
+        return byAccountId
+      }
+    }
+  }
+
+  if (table === 'organization_profiles') {
+    const byHandle = await supabase
+      .from(table)
+      .select(selectFields)
+      .eq('url_handle', trimmed)
+      .maybeSingle()
+
+    if (byHandle.data) {
+      return byHandle
     }
   }
 

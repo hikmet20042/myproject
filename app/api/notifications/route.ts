@@ -8,9 +8,9 @@ export const dynamic = 'force-dynamic'
 
 const ALLOWED_TYPES = [
   'blog_approved', 'blog_rejected', 'blog_like', 'blog_saved',
-  'event_approved', 'event_rejected', 'event_deadline', 'event_like', 'event_saved',
+  'event_deadline',
   'vacancy_approved', 'vacancy_rejected', 'vacancy_deadline', 'vacancy_like', 'vacancy_saved',
-  'organization_followed', 'organization_unfollowed', 'organization_new_event', 'organization_new_vacancy',
+  'organization_followed', 'organization_unfollowed', 'organization_new_vacancy',
   'content_view_milestone', 'email_confirmed', 'email_change_initiated', 'password_changed',
   'admin_action_required', 'welcome', 'NEW_RELEVANT_ITEM', 'announcement'
 ]

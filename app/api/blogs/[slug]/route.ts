@@ -1,13 +1,13 @@
 import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { getFeaturedImageBlobId } from '@/lib/utils/imageUtils'
 import { cache } from '@/lib/cache'
 import { isAdminOrOwner } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { getBlogStats } from '@/lib/blogStats'
 import { NotificationService } from '@/features/notifications/services/notificationService'
 import { resolveEntityBySlugOrId } from '@/lib/identifier'
+import { processContentImages, isCloudinaryUrl } from '@/lib/utils/imageUtils'
 
 export const dynamic = 'force-dynamic'
 
@@ -152,6 +152,14 @@ export async function PATCH(
       if (!textContent || textContent.trim().length < 100) {
         return errorResponse('Story content must be at least 100 characters long', 'VALIDATION_ERROR', {}, 400)
       }
+
+      if (content !== undefined) {
+        const { imageReferences } = processContentImages(content)
+        const hasNonCloudinaryImage = imageReferences.some((ref) => ref.url && !isCloudinaryUrl(ref.url))
+        if (hasNonCloudinaryImage) {
+          return errorResponse('Blog content images must be Cloudinary URLs.', 'VALIDATION_ERROR', {}, 400)
+        }
+      }
     }
 
     if (tags !== undefined && !Array.isArray(tags)) {
@@ -185,10 +193,23 @@ export async function PATCH(
         updateData.author_name = 'Anonim'
       }
     }
-    if (media !== undefined) updateData.media = media
+    if (media !== undefined) {
+      if (!Array.isArray(media)) {
+        return errorResponse('Media must be an array.', 'VALIDATION_ERROR', {}, 400)
+      }
+
+      const hasInvalidMediaUrl = media.some((item: any) => !item?.url || !isCloudinaryUrl(String(item.url)))
+      if (hasInvalidMediaUrl) {
+        return errorResponse('Blog media URLs must be Cloudinary URLs.', 'VALIDATION_ERROR', {}, 400)
+      }
+
+      updateData.media = media
+    }
     if (featuredImage !== undefined) {
+      if (featuredImage && !isCloudinaryUrl(String(featuredImage))) {
+        return errorResponse('Featured image must be a Cloudinary URL.', 'VALIDATION_ERROR', {}, 400)
+      }
       updateData.featured_image = featuredImage
-      updateData.featured_image_blob_id = getFeaturedImageBlobId(featuredImage) ?? null
     }
     if (reqStatus !== undefined) {
       if (reqStatus !== 'pending') {
@@ -225,10 +246,6 @@ export async function PATCH(
         author_name: updateData.author_name || originalBlog.author_name,
         media: mergedMedia,
         featured_image: featuredImage !== undefined ? featuredImage : originalBlog.featured_image,
-        featured_image_blob_id:
-          featuredImage !== undefined
-            ? getFeaturedImageBlobId(featuredImage) ?? null
-            : (originalBlog.featured_image_blob_id ?? null),
         status: 'pending',
         updated_at: new Date().toISOString(),
       }

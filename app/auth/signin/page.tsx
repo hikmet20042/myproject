@@ -15,6 +15,7 @@ import { Input, Button } from "@/components/ui";
 import { useLocalizedPath } from "@/hooks/useLocalizedPath";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import Logo from "@/components/Logo";
+import IllustrationAsset from "@/components/shared/IllustrationAsset";
 
 function SignInContent() {
   const localePath = useLocalizedPath();
@@ -112,8 +113,23 @@ function SignInContent() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-background text-foreground px-4 py-10">
+      <div className="mx-auto grid w-full max-w-6xl items-center gap-8 lg:grid-cols-2">
+        <div className="hidden lg:block">
+          <div className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50 via-cyan-50 to-white p-8 shadow-sm">
+            <IllustrationAsset
+              illustrationKey="auth-signin"
+              className="mx-auto h-80 w-full max-w-lg"
+              imageClassName="drop-shadow-sm"
+            />
+            <h2 className="mt-4 text-2xl font-black text-gray-900">Yenidən xoş gəldin</h2>
+            <p className="mt-2 text-sm text-gray-600">
+              Hesabına daxil ol və sənə uyğun imkanlara bir addım daha yaxın ol.
+            </p>
+          </div>
+        </div>
+
+        <div className="w-full max-w-md justify-self-center">
         <div className="mb-6 text-center">
           <div className="flex justify-center">
             <Logo
@@ -287,6 +303,7 @@ function SignInContent() {
 
             
         </div>
+      </div>
       </div>
     </div>
   );

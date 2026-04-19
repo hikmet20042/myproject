@@ -8,14 +8,16 @@ import { Button } from '@/components/ui/Button'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Breadcrumb, ContactCard, SocialLink } from '@/components/ui'
-import { ArrowLeft, MapPin, Globe, Mail, Phone, ExternalLink, CheckCircle } from 'lucide-react'
+import { ArrowLeft, MapPin, Globe, Mail, Phone, ExternalLink, CheckCircle, Users } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { LoadingState, ErrorState } from '@/components/shared';
 import { ORGANIZATION_TYPE_LABELS } from '@/lib/organizationTypes'
 import { fetchOrganizationBySlug, fetchOrganizationById } from '@/lib/organizationQueries'
 import { logError } from '@/lib/logger'
+import OrganizationFollowButtonContainer from '@/components/containers/OrganizationFollowButtonContainer'
 
 interface Organization { _id: string
+  id?: string
   organizationName: string
   profileImage?: string
   organizationType?: string
@@ -41,6 +43,7 @@ interface Organization { _id: string
     email: string }
   createdAt: string
   updatedAt: string
+  followerCount?: number
 }
 
 export default function OrganizationDetailPage() { const localePath = useLocalizedPath();
@@ -164,6 +167,10 @@ export default function OrganizationDetailPage() { const localePath = useLocaliz
                       {'Təsdiqlənmiş'}
                     </Badge>
                   )}
+                  <Badge className="bg-blue-50 text-blue-700 border-blue-200">
+                    <Users className="w-4 h-4 mr-2" />
+                    {`${Number(organization.followerCount || 0).toLocaleString('az-AZ')} izləyici`}
+                  </Badge>
                 </div>
                 
                 <p className="text-gray-600 text-lg leading-relaxed mb-6 max-w-3xl">
@@ -171,6 +178,12 @@ export default function OrganizationDetailPage() { const localePath = useLocaliz
                 </p>
                 
                 <div className="flex flex-wrap gap-3">
+                  <OrganizationFollowButtonContainer
+                    organizationId={organization._id}
+                    organizationName={organization.organizationName}
+                    size="md"
+                    showFollowerCount={false}
+                  />
                   {organization.contactPerson?.email && (
                     <a href={`mailto:${organization.contactPerson.email}`}>
                       <Button 

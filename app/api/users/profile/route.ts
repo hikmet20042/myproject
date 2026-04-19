@@ -3,6 +3,7 @@ import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { isAdmin, isApprovedOrganization } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { getUserAvatarPath, resolveProfileImageUrl } from '@/lib/profileImageUrls'
 
 export const dynamic = 'force-dynamic'
 
@@ -91,6 +92,9 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
       .single();
 
+    const avatarPath = getUserAvatarPath((profile as any)?.avatar_metadata)
+    const avatarUrl = await resolveProfileImageUrl(supabase, avatarPath, profile?.avatar || null)
+
     // Get url_handle from accounts
     const { data: account } = await supabase
       .from('accounts')
@@ -103,13 +107,18 @@ export async function GET(request: NextRequest) {
         id: user.id,
         email: user.email,
         name: user.name,
-        image: profile?.avatar || null,
+        image: avatarUrl,
         role: user.role,
         emailVerified: Boolean(session.user.emailVerified),
         createdAt: user.created_at,
         urlHandle: account?.url_handle || null,
       },
-      profile: profile || null,
+      profile: profile
+        ? {
+            ...profile,
+            avatar: avatarUrl,
+          }
+        : null,
       isOrganization: false,
     });
   } catch (error) {
@@ -160,22 +169,6 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // Handle avatar - extract blob ID if it's a blob URL
-    let avatarBlobId: string | undefined = undefined;
-    let avatarPath = avatar;
-
-    const isUuid = (value: string) =>
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-
-    if (avatar && avatar.startsWith('/api/images/')) {
-      // Extract blob ID from URL
-      const blobId = avatar.replace('/api/images/', '');
-      if (isUuid(blobId)) {
-        avatarBlobId = blobId;
-        avatarPath = undefined; // Clear legacy path when using blob
-      }
-    }
-
     // Upsert profile - use the user's _id as userId
     const updateData: any = {
       bio,
@@ -191,12 +184,11 @@ export async function PUT(request: NextRequest) {
       social_media: socialMedia || {},
     };
 
-    // Only update avatar fields if provided
-    if (avatarBlobId) {
-      updateData.avatar_blob_id = avatarBlobId;
-      updateData.avatar = null; // Clear legacy field
-    } else if (avatarPath) {
-      updateData.avatar = avatarPath;
+    if (avatar !== undefined) {
+      if (typeof avatar === 'string' && avatar.startsWith('/api/images/')) {
+        return errorResponse('Legacy blob image URLs are no longer supported. Upload profile image again.', 'VALIDATION_ERROR', {}, 400)
+      }
+      updateData.avatar = avatar || null;
     }
 
     const { data: existingProfile } = await supabase

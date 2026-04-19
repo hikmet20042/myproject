@@ -7,6 +7,7 @@ import { isApprovedOrganization } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 
 const RECENT_REAUTH_WINDOW_MS = 5 * 60 * 1000
+const PROFILE_BUCKET = process.env.SUPABASE_PROFILE_IMAGES_BUCKET || 'profile-images'
 
 function getAuthProviderInfo(user: any) {
   const identities = Array.isArray(user?.identities) ? user.identities : []
@@ -147,8 +148,21 @@ export async function DELETE(request: NextRequest) {
     // 4. Delete user's notifications
     await supabase.from('notifications').delete().eq('user_id', userId)
 
-    // 5. Delete user's uploaded images (and their blob data)
-    await supabase.from('image_blobs').delete().eq('uploaded_by', userId)
+    // 5. Delete user's profile image object from Supabase Storage (if any)
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('avatar_metadata')
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    const profilePath =
+      userProfile?.avatar_metadata && typeof userProfile.avatar_metadata === 'object'
+        ? (userProfile.avatar_metadata as any).path
+        : null
+
+    if (typeof profilePath === 'string' && profilePath.length > 0) {
+      await supabase.storage.from(PROFILE_BUCKET).remove([profilePath])
+    }
 
     // 6. Delete user's blogs and their related data
     const { data: userBlogs } = await supabase

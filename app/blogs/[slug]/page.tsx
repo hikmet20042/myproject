@@ -24,6 +24,7 @@ import { LoadingState, ErrorState } from '@/components/shared'
 import { DetailPageLayout } from '@/components/layout'
 import SaveItemButtonContainer from '@/components/containers/SaveItemButtonContainer'
 import ViewTracker from '@/components/ViewTracker'
+import { useSession } from '@/lib/auth/client'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { blogQueryKeys, fetchBlogById } from '@/lib/blogQueries'
@@ -103,6 +104,7 @@ type Blog = {
 
 export default function BlogDetailPage({ params }: { params: { slug: string } }) {
   const localePath = useLocalizedPath()
+  const { data: session } = useSession()
   const { showError } = useGlobalFeedback()
   const contentRef = useRef<HTMLDivElement>(null)
   const [readingProgress, setReadingProgress] = useState(0)
@@ -147,6 +149,7 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
 
   const publishedDate = blog?.submittedAt || blog?.date || ''
   const formattedDate = formatDate(publishedDate)
+  const canAccessReactions = session?.user?.accountType !== 'organization'
 
   const safeHtml = blog?.contentHtml ? DOMPurify.sanitize(blog.contentHtml) : ''
 
@@ -301,7 +304,7 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
   const actionSection = (
     <>
       {/* Reactions */}
-      {blog.status === 'approved' && (
+      {blog.status === 'approved' && canAccessReactions && (
         <section className="rounded-2xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">

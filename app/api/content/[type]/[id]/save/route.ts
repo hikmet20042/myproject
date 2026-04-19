@@ -132,26 +132,28 @@ export async function POST(
         })
       if (insertError) return errorResponse(insertError.message, 'API_ERROR', {}, 500)
 
-      try {
-        const ownerData = await getContentOwnerAndTitle(supabase, contentType, canonicalContentId)
-        const ownerUserId = ownerData.ownerUserId ? String(ownerData.ownerUserId) : null
-        const ownerOrganizationId = ownerData.ownerOrganizationId ? String(ownerData.ownerOrganizationId) : null
-        const actorId = session.user.id
-        const shouldNotifyUser = Boolean(ownerUserId && ownerUserId !== actorId)
-        const shouldNotifyOrganization = Boolean(ownerOrganizationId && ownerOrganizationId !== actorId)
+      if (contentType !== 'event') {
+        try {
+          const ownerData = await getContentOwnerAndTitle(supabase, contentType, canonicalContentId)
+          const ownerUserId = ownerData.ownerUserId ? String(ownerData.ownerUserId) : null
+          const ownerOrganizationId = ownerData.ownerOrganizationId ? String(ownerData.ownerOrganizationId) : null
+          const actorId = session.user.id
+          const shouldNotifyUser = Boolean(ownerUserId && ownerUserId !== actorId)
+          const shouldNotifyOrganization = Boolean(ownerOrganizationId && ownerOrganizationId !== actorId)
 
-        if (shouldNotifyUser || shouldNotifyOrganization) {
-          await NotificationService.notifyContentSaved({
-            recipientUserId: shouldNotifyUser ? ownerUserId || undefined : undefined,
-            recipientOrganizationId: shouldNotifyOrganization ? ownerOrganizationId || undefined : undefined,
-            contentType,
-            contentId: canonicalContentId,
-            contentSlug: ownerData.slug,
-            contentTitle: ownerData.title,
-          })
+          if (shouldNotifyUser || shouldNotifyOrganization) {
+            await NotificationService.notifyContentSaved({
+              recipientUserId: shouldNotifyUser ? ownerUserId || undefined : undefined,
+              recipientOrganizationId: shouldNotifyOrganization ? ownerOrganizationId || undefined : undefined,
+              contentType,
+              contentId: canonicalContentId,
+              contentSlug: ownerData.slug,
+              contentTitle: ownerData.title,
+            })
+          }
+        } catch (notificationError) {
+          console.error('Failed to notify content save owner:', notificationError)
         }
-      } catch (notificationError) {
-        console.error('Failed to notify content save owner:', notificationError)
       }
     }
 

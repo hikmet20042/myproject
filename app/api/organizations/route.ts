@@ -5,6 +5,7 @@ import { isOrganizationType } from '@/lib/organizationTypes'
 import { canAccessAdmin } from '@/lib/auth/permissions'
 import { normalizeOrganizationProfile } from '@/lib/organizationProfile'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { getOrganizationImagePath, resolveProfileImageUrl } from '@/lib/profileImageUrls'
 
 // Force dynamic rendering due to request.url usage
 export const dynamic = 'force-dynamic'
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
     // Category filter
     let query = supabase
       .from('organization_profiles')
-      .select('account_id, organization_name, profile_image, organization_type, description, focus_areas, address, website, contact_phone, contact_person, social_links, registration_number, moderation_status, created_at, updated_at, reviewed_by, reviewed_at', { count: 'exact' })
+      .select('account_id, url_handle, organization_name, profile_image, organization_type, description, focus_areas, address, website, contact_phone, contact_person, social_links, registration_number, moderation_status, created_at, updated_at, reviewed_by, reviewed_at', { count: 'exact' })
       .eq('moderation_status', effectiveStatus)
     
     // Location filter
@@ -89,13 +90,20 @@ export async function GET(request: NextRequest) {
     const organizationRows = organizations || []
     
     // Transform data for frontend
-    const transformedOrganizations = organizationRows.map((organization: any) => {
+    const transformedOrganizations = await Promise.all(organizationRows.map(async (organization: any) => {
+      const profileImagePath = getOrganizationImagePath(organization.profile_image)
+      const profileImageFallback = organization.profile_image?.url || organization.profile_image || null
+      const profileImageUrl = await resolveProfileImageUrl(supabase, profileImagePath, profileImageFallback)
+
       const normalized = normalizeOrganizationProfile(organization)
       return {
         ...normalized,
+        profileImage: profileImageUrl || normalized.profileImage,
         _id: normalized.id,
+        slug: organization.url_handle || normalized.id,
+        urlHandle: organization.url_handle || null,
       }
-    })
+    }))
 
     return successResponse(
       {

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { getOrganizationImagePath, resolveProfileImageUrl } from '@/lib/profileImageUrls'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,6 +25,10 @@ export async function GET(
       return errorResponse('Organization not found', 'ORG_NOT_FOUND', {}, 404)
     }
 
+    const profileImagePath = getOrganizationImagePath(orgProfile.profile_image)
+    const profileImageFallback = orgProfile.profile_image?.url || null
+    const profileImageUrl = await resolveProfileImageUrl(supabase, profileImagePath, profileImageFallback)
+
     // Count events
     const { count: eventCount } = await supabase
       .from('events')
@@ -40,6 +45,11 @@ export async function GET(
       .eq('status', 'approved')
       .eq('is_published', true)
 
+    const { count: followerCount } = await supabase
+      .from('organization_followers')
+      .select('id', { count: 'exact', head: true })
+      .eq('organization_id', orgProfile.account_id)
+
     return successResponse({
       organization: {
         id: orgProfile.account_id,
@@ -50,12 +60,13 @@ export async function GET(
         website: orgProfile.website || null,
         contactPhone: orgProfile.contact_phone || null,
         address: orgProfile.address || null,
-        profileImage: orgProfile.profile_image?.url || null,
+        profileImage: profileImageUrl,
         isVerified: orgProfile.is_verified || false,
         focusAreas: orgProfile.focus_areas || [],
         socialLinks: orgProfile.social_links || null,
         eventCount: eventCount || 0,
         vacancyCount: vacancyCount || 0,
+        followerCount: followerCount || 0,
       },
     })
   } catch (error) {

@@ -26,7 +26,6 @@ export const mapEventToResponse = (row: any) => {
     applicationLink: row?.application_link ?? null,
     applicationDeadline: row?.application_deadline ?? null,
     maxParticipants: row?.max_participants ?? null,
-    currentParticipants: row?.current_participants ?? null,
     createdBy: {
       _id: createdBy?.id ?? null,
       id: createdBy?.id ?? null,

@@ -89,7 +89,7 @@ export type EventFormSubmitPayload = {
   eventDate: string
   endDate?: string
   location: EventFormData['location']
-  applicationLink?: string
+  applicationLink: string
   applicationDeadline?: string
   maxParticipants?: number
   tags: string[]
@@ -333,6 +333,9 @@ export default function EventForm({
     ) {
       nextErrors['location.address'] = 'Fiziki ünvan tələb olunur.'
     }
+    if (!formData.applicationLink.trim()) {
+      nextErrors.applicationLink = 'Müraciət linki tələb olunur.'
+    }
     setFieldErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) {
       showError('Zəhmət olmasa məcburi sahələri düzgün doldurun.')
@@ -350,6 +353,7 @@ export default function EventForm({
     if (text.includes('location')) setInlineError('location.type', message)
     if (text.includes('online')) setInlineError('location.onlineLink', message)
     if (text.includes('address')) setInlineError('location.address', message)
+    if (text.includes('applicationlink') || text.includes('application link')) setInlineError('applicationLink', message)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -359,6 +363,7 @@ export default function EventForm({
     try {
       const payload: EventFormSubmitPayload = {
         ...formData,
+        applicationLink: formData.applicationLink.trim(),
         maxParticipants: formData.maxParticipants ? parseInt(formData.maxParticipants, 10) : undefined,
         tags: formData.tags.split(',').map((tag) => tag.trim()).filter((tag) => tag),
         eventDate: new Date(formData.eventDate).toISOString(),
@@ -562,7 +567,7 @@ export default function EventForm({
                 {fieldErrors.category && <p className="mt-1 text-sm text-red-600">{fieldErrors.category}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{'Maks. iştirakçı sayı'}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{'Maksimum iştirakçı sayı (statik)'}</label>
                 <Input
                   type="number"
                   name="maxParticipants"
@@ -572,6 +577,7 @@ export default function EventForm({
                   placeholder={'məs., 30'}
                   {...commonInputProps}
                 />
+                <p className="mt-1 text-xs text-gray-500">{'Bu dəyər yalnız məlumat məqsədlidir və platformada qeydiyyat/tutum davranışını idarə etmir.'}</p>
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">{'Teglər'}</label>
@@ -781,15 +787,18 @@ export default function EventForm({
           <FormSection title={'Əlavə məlumatlar'} icon={Tag} gradient={false} contentPadding="md" spacing="md">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{'Müraciət / Qeydiyyat linki'}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{'Xarici müraciət linki *'}</label>
                 <Input
                   type="url"
                   name="applicationLink"
                   value={formData.applicationLink}
                   onChange={handleInputChange}
+                  required
                   placeholder={'https://...'}
                   {...commonInputProps}
                 />
+                {fieldErrors.applicationLink && <p className="mt-1 text-sm text-red-600">{fieldErrors.applicationLink}</p>}
+                <p className="mt-1 text-xs text-gray-500">{'İstifadəçilər bu linkə yönləndirilir, müraciət platformadan kənarda aparılır.'}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{'Tədbir şəkil linki'}</label>

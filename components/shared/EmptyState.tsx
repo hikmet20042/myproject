@@ -2,12 +2,15 @@ import { Inbox } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 
+
 interface EmptyStateProps {
   title: string
   message: string
   actionText?: string
   onAction?: () => void
   icon?: LucideIcon
+  
+  
   fullPage?: boolean
   className?: string
 }
@@ -18,6 +21,8 @@ export default function EmptyState({
   actionText,
   onAction,
   icon: Icon = Inbox,
+  
+  
   fullPage = false,
   className = ''
 }: EmptyStateProps) {
@@ -28,6 +33,7 @@ export default function EmptyState({
   return (
     <div className={`${containerClassName} ${className}`}>
       <div className="mx-auto w-full max-w-lg text-center">
+        
         <div className="brand-icon-chip mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl shadow-sm">
           <Icon className="h-8 w-8" />
         </div>

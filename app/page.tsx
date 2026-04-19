@@ -1,641 +1,741 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Briefcase,
-  Calendar,
-  Users,
-  BookOpen,
-  MapPin,
-  Clock,
+import { useEffect, useMemo, useState } from 'react'
+import {
   ArrowRight,
+  Briefcase,
   Building2,
+  Calendar,
+  ChevronRight,
+  Clock3,
+  Compass,
+  Filter,
+  MapPin,
   Sparkles,
-  MessageSquare,
   Target,
-  Award } from 'lucide-react'
-import { useLocalizedPath } from '@/hooks/useLocalizedPath'
-import { useSession } from '@/lib/auth/client'
-import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
-import { blogQueryKeys, fetchBlogs } from '@/lib/blogQueries'
+  Users,
+} from 'lucide-react'
+import { Button } from '@/components/ui/Button'
+import { LoadingState, EmptyState } from '@/components/shared'
+import OrganizationFollowButtonContainer from '@/components/containers/OrganizationFollowButtonContainer'
+import SaveItemButtonContainer from '@/components/containers/SaveItemButtonContainer'
 import { fetchOrganizations } from '@/lib/organizationQueries'
-import { LoadingState, ErrorState, EmptyState, ResourceCard } from '@/components/shared'
-import BlogCard from '@/features/blogs/components/BlogCard'
-import { HomeSectionLayout } from '@/components/layout'
+import { FOCUS_AREA_LABELS_AZ } from '@/lib/organizationTypes'
+import { useSession } from '@/lib/auth/client'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { logError } from '@/lib/logger'
 
+type TabKey = 'all' | 'events' | 'vacancies'
 
-
-
-
-interface Event { _id: string
+type EventItem = {
+  _id: string
   slug: string
   title: string
-  eventType: string
-  eventDate: string
-  location: { type: string
-    city?: string }
-  organizationName?: string }
+  eventType?: string
+  eventDate?: string
+  location?: {
+    type?: string
+    city?: string
+  }
+  organizationName?: string
+  createdByOrganization?: {
+    organizationName?: string
+  }
+}
 
-interface Vacancy { _id: string
+type VacancyItem = {
+  _id: string
   slug: string
   title: string
-  createdBy?: { _id: string
-    name: string
-    email: string }
-  location: { city?: string
-    country?: string }
-  type: string
-  applicationDeadline: string }
+  type?: string
+  applicationDeadline?: string
+  location?: {
+    city?: string
+    country?: string
+  }
+  createdBy?: {
+    _id?: string
+    name?: string
+    email?: string
+  }
+  createdByOrganization?: {
+    _id?: string
+    organizationName?: string
+  }
+}
 
-interface Blog { _id: string
-  slug: string
-  title: string
-  authorName: string
-  createdAt: string
-  tags: string[]
-  content: any
-  excerpt?: string
-  status?: string }
-
-interface Organization { _id: string
+type OrganizationItem = {
+  _id: string
   slug: string
   organizationName: string
   focusAreas: string[]
-  location?: { city?: string } }
+  location?: {
+    city?: string
+  }
+}
 
-type RecommendedItem = {
+type FeedCard = {
   id: string
-  type: 'vacancy' | 'event'
+  kind: 'event' | 'vacancy'
   title: string
   href: string
-  metaOne: string
-  metaTwo: string
   badge: string
+  dateLabel: string
+  locationLabel: string
+  ownerLabel: string
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null
+
+const unwrapPayload = (value: unknown): Record<string, unknown> => {
+  if (isRecord(value) && isRecord(value.data)) {
+    return value.data
+  }
+  if (isRecord(value)) {
+    return value
+  }
+  return {}
+}
+
+const normalizeId = (value: unknown): string => {
+  if (typeof value === 'string') return value
+  return ''
+}
+
+const formatDate = (dateValue?: string): string => {
+  if (!dateValue) return 'Tarix qeyd olunmayıb'
+  const date = new Date(dateValue)
+  if (Number.isNaN(date.getTime())) return 'Tarix qeyd olunmayıb'
+  return date.toLocaleDateString('az-AZ', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+
+const focusLabel = (raw: string): string => {
+  const key = raw as keyof typeof FOCUS_AREA_LABELS_AZ
+  return FOCUS_AREA_LABELS_AZ[key] || raw
 }
 
 export default function HomePage() {
   const localePath = useLocalizedPath()
   const { data: session, status } = useSession()
-  const isOrganizationUser = session?.user?.accountType === 'organization'
   const { showError } = useGlobalFeedback()
 
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [events, setEvents] = useState<Event[]>([])
-  const [vacancies, setVacancies] = useState<Vacancy[]>([])
-  const [organizations, setOrganizations] = useState<Organization[]>([])
-  const [organizationsError, setOrganizationsError] = useState('')
-  const [userInterests, setUserInterests] = useState<string[]>([])
-  const [interestsLoading, setInterestsLoading] = useState(false)
-  const [stats, setStats] = useState({ totalBlogs: 0,
+
+  const [activeTab, setActiveTab] = useState<TabKey>('all')
+  const [activeFocus, setActiveFocus] = useState<string>('all')
+
+  const [events, setEvents] = useState<EventItem[]>([])
+  const [vacancies, setVacancies] = useState<VacancyItem[]>([])
+  const [organizations, setOrganizations] = useState<OrganizationItem[]>([])
+
+  const [stats, setStats] = useState({
     totalEvents: 0,
     totalVacancies: 0,
-    totalOrganizations: 0 })
-
-  const homepageBlogsQuery = useQuery({
-    queryKey: blogQueryKeys.list({ page: 1, limit: 6 }),
-    queryFn: () => fetchBlogs({ page: 1, limit: 6 })
+    totalOrganizations: 0,
   })
 
-  const blogs: Blog[] = (homepageBlogsQuery.data?.items as any[] || [])
-    .filter((blog: any) => blog.status === 'approved')
-    .map((blog: any) => ({
-      _id: blog._id || blog.id,
-      slug: blog.slug,
-      title: blog.title,
-      authorName: blog.authorName || blog.author_name || 'Anonim',
-      createdAt: blog.createdAt || blog.created_at || new Date().toISOString(),
-      tags: blog.tags || [],
-      content: blog.content,
-      excerpt: blog.excerpt,
-      status: blog.status
-    }))
-
-  useEffect(() => { setMounted(true)
-    loadAllContent() }, [])
+  const isOrganizationUser = session?.user?.accountType === 'organization'
 
   useEffect(() => {
-    if (organizationsError) showError(organizationsError)
-  }, [organizationsError, showError])
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
-    if (homepageBlogsQuery.isError) {
-      showError('Bloqlar yüklənmədi')
-    }
-  }, [homepageBlogsQuery.isError, showError])
-
-  useEffect(() => {
-    const loadInterests = async () => {
-      if (status !== 'authenticated' || session?.user?.accountType !== 'user') return
+    const loadContent = async () => {
       try {
-        setInterestsLoading(true)
-        const response = await fetch('/api/users/profile')
-        if (!response.ok) return
-        const payload = await response.json()
-        const interests = Array.isArray(payload?.data?.profile?.interests) ? payload.data.profile.interests : []
-        setUserInterests(interests)
-      } catch {
-        return
+        setLoading(true)
+
+        const [eventsRes, vacanciesRes, organizationsRes] = await Promise.all([
+          fetch('/api/events?page=1&limit=8&status=approved'),
+          fetch('/api/vacancies?page=1&limit=8&status=approved'),
+          fetchOrganizations({ page: 1, limit: 8, status: 'approved' }),
+        ])
+
+        const nextEvents: EventItem[] = []
+        const nextVacancies: VacancyItem[] = []
+
+        if (eventsRes.ok) {
+          const rawEvents: unknown = await eventsRes.json()
+          const eventsPayload = unwrapPayload(rawEvents)
+          const list = Array.isArray(eventsPayload.events) ? eventsPayload.events : []
+          list.forEach((item) => {
+            if (!isRecord(item)) return
+            const id = normalizeId(item._id) || normalizeId(item.id)
+            const slug = typeof item.slug === 'string' ? item.slug : ''
+            const title = typeof item.title === 'string' ? item.title : ''
+            if (!id || !slug || !title) return
+
+            const location = isRecord(item.location)
+              ? {
+                  type: typeof item.location.type === 'string' ? item.location.type : undefined,
+                  city: typeof item.location.city === 'string' ? item.location.city : undefined,
+                }
+              : undefined
+
+            const createdByOrganization = isRecord(item.createdByOrganization)
+              ? {
+                  organizationName:
+                    typeof item.createdByOrganization.organizationName === 'string'
+                      ? item.createdByOrganization.organizationName
+                      : undefined,
+                }
+              : undefined
+
+            nextEvents.push({
+              _id: id,
+              slug,
+              title,
+              eventType: typeof item.eventType === 'string' ? item.eventType : undefined,
+              eventDate: typeof item.eventDate === 'string' ? item.eventDate : undefined,
+              organizationName:
+                typeof item.organizationName === 'string' ? item.organizationName : undefined,
+              location,
+              createdByOrganization,
+            })
+          })
+
+          const pagination = isRecord(eventsPayload.pagination) ? eventsPayload.pagination : {}
+          setStats((prev) => ({
+            ...prev,
+            totalEvents:
+              typeof pagination.total === 'number' ? pagination.total : nextEvents.length,
+          }))
+        }
+
+        if (vacanciesRes.ok) {
+          const rawVacancies: unknown = await vacanciesRes.json()
+          const vacanciesPayload = unwrapPayload(rawVacancies)
+          const list = Array.isArray(vacanciesPayload.vacancies) ? vacanciesPayload.vacancies : []
+          list.forEach((item) => {
+            if (!isRecord(item)) return
+            const id = normalizeId(item._id) || normalizeId(item.id)
+            const slug = typeof item.slug === 'string' ? item.slug : ''
+            const title = typeof item.title === 'string' ? item.title : ''
+            if (!id || !slug || !title) return
+
+            const location = isRecord(item.location)
+              ? {
+                  city: typeof item.location.city === 'string' ? item.location.city : undefined,
+                  country:
+                    typeof item.location.country === 'string' ? item.location.country : undefined,
+                }
+              : undefined
+
+            const createdBy = isRecord(item.createdBy)
+              ? {
+                  _id: typeof item.createdBy._id === 'string' ? item.createdBy._id : undefined,
+                  name: typeof item.createdBy.name === 'string' ? item.createdBy.name : undefined,
+                  email: typeof item.createdBy.email === 'string' ? item.createdBy.email : undefined,
+                }
+              : undefined
+
+            const createdByOrganization = isRecord(item.createdByOrganization)
+              ? {
+                  _id:
+                    typeof item.createdByOrganization._id === 'string'
+                      ? item.createdByOrganization._id
+                      : undefined,
+                  organizationName:
+                    typeof item.createdByOrganization.organizationName === 'string'
+                      ? item.createdByOrganization.organizationName
+                      : undefined,
+                }
+              : undefined
+
+            nextVacancies.push({
+              _id: id,
+              slug,
+              title,
+              type: typeof item.type === 'string' ? item.type : undefined,
+              applicationDeadline:
+                typeof item.applicationDeadline === 'string'
+                  ? item.applicationDeadline
+                  : undefined,
+              location,
+              createdBy,
+              createdByOrganization,
+            })
+          })
+
+          const pagination = isRecord(vacanciesPayload.pagination) ? vacanciesPayload.pagination : {}
+          const totalVacancies =
+            typeof pagination.totalVacancies === 'number'
+              ? pagination.totalVacancies
+              : typeof pagination.total === 'number'
+                ? pagination.total
+                : nextVacancies.length
+
+          setStats((prev) => ({
+            ...prev,
+            totalVacancies,
+          }))
+        }
+
+        const rawOrganizations = Array.isArray(organizationsRes.items) ? organizationsRes.items : []
+        const nextOrganizations = rawOrganizations.reduce<OrganizationItem[]>((acc, item: unknown) => {
+          if (!isRecord(item)) return acc
+
+          const id = normalizeId(item._id) || normalizeId(item.id)
+          const slug = typeof item.slug === 'string' ? item.slug : ''
+          const organizationName =
+            typeof item.organizationName === 'string' ? item.organizationName : ''
+          if (!id || !slug || !organizationName) return acc
+
+          const location = isRecord(item.location)
+            ? {
+                city: typeof item.location.city === 'string' ? item.location.city : undefined,
+              }
+            : undefined
+
+          const focusAreas = Array.isArray(item.focusAreas)
+            ? item.focusAreas.filter((area): area is string => typeof area === 'string')
+            : []
+
+          acc.push({
+            _id: id,
+            slug,
+            organizationName,
+            focusAreas,
+            location,
+          })
+
+          return acc
+        }, [])
+
+        setEvents(nextEvents)
+        setVacancies(nextVacancies)
+        setOrganizations(nextOrganizations)
+
+        const totalOrganizations =
+          typeof organizationsRes.meta?.total === 'number'
+            ? organizationsRes.meta.total
+            : nextOrganizations.length
+
+        setStats((prev) => ({
+          ...prev,
+          totalOrganizations,
+        }))
+      } catch (error) {
+        logError('Homepage data fetch error', error)
+        showError('Məlumatları yükləyərkən xəta baş verdi.')
       } finally {
-        setInterestsLoading(false)
+        setLoading(false)
       }
     }
-    void loadInterests()
-  }, [session?.user?.accountType, status])
 
-  const loadAllContent = async () => { try { setLoading(true)
-      const [eventsRes, vacanciesRes, organizationsResult] = await Promise.all([
-        fetch('/api/events?page=1&limit=6&status=approved'),
-        fetch('/api/vacancies?page=1&limit=6&status=approved'),
-        fetchOrganizations({ page: 1, limit: 6, status: 'approved' })
-      ])
+    void loadContent()
+  }, [showError])
 
-      if (eventsRes.ok) { const data = await eventsRes.json()
-        const payload = data?.data || data
-        setEvents(payload.events || [])
-        setStats((prev) => ({ ...prev, totalEvents: payload.pagination?.total || 0 })) }
+  const focusFilters = useMemo(() => {
+    const merged = organizations.flatMap((org) => org.focusAreas || [])
+    return Array.from(new Set(merged)).slice(0, 8)
+  }, [organizations])
 
-      if (vacanciesRes.ok) { const data = await vacanciesRes.json()
-        setVacancies(data.vacancies || [])
-        setStats((prev) => ({ ...prev, totalVacancies: data.total || 0 })) }
+  const filteredOrganizations = useMemo(() => {
+    if (activeFocus === 'all') return organizations
+    return organizations.filter((org) => org.focusAreas.includes(activeFocus))
+  }, [activeFocus, organizations])
 
-      setOrganizations(organizationsResult.items || [])
-      setStats((prev) => ({ ...prev, totalOrganizations: organizationsResult.meta?.total || 0 }))
-      setOrganizationsError('')
-    } catch (error) {
-      logError('Home organizations API error', error)
-      setOrganizationsError('Məlumatları yükləyərkən problem baş verdi')
-    } finally { setLoading(false) } }
+  const eventFeed: FeedCard[] = useMemo(
+    () =>
+      events.map((event) => ({
+        id: event._id,
+        kind: 'event',
+        title: event.title,
+        href: localePath(`/resources/events/${event.slug}`),
+        badge: event.eventType || 'Tədbir',
+        dateLabel: formatDate(event.eventDate),
+        locationLabel:
+          event.location?.type === 'online' ? 'Onlayn' : event.location?.city || 'Məkan qeyd olunmayıb',
+        ownerLabel: event.organizationName || event.createdByOrganization?.organizationName || 'Təşkilat',
+      })),
+    [events, localePath],
+  )
 
-  const formatDate = (dateString: string | undefined | null) => { if (!dateString) return 'Naməlum'
-    const date = new Date(dateString)
-    if (isNaN(date.getTime())) return 'Naməlum'
+  const vacancyFeed: FeedCard[] = useMemo(
+    () =>
+      vacancies.map((vacancy) => ({
+        id: vacancy._id,
+        kind: 'vacancy',
+        title: vacancy.title,
+        href: localePath(`/resources/vacancies/${vacancy.slug}`),
+        badge: vacancy.type || 'Vakansiya',
+        dateLabel: formatDate(vacancy.applicationDeadline),
+        locationLabel: vacancy.location?.city || vacancy.location?.country || 'Məkan qeyd olunmayıb',
+        ownerLabel:
+          vacancy.createdByOrganization?.organizationName ||
+          vacancy.createdBy?.name ||
+          'Təşkilat',
+      })),
+    [vacancies, localePath],
+  )
 
-    const months = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'İyn', 'İyl', 'Avq', 'Sen', 'Okt', 'Noy', 'Dek']
-    return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}` }
+  const feedItems = useMemo(() => {
+    if (activeTab === 'events') return eventFeed
+    if (activeTab === 'vacancies') return vacancyFeed
+    return [...eventFeed, ...vacancyFeed].slice(0, 12)
+  }, [activeTab, eventFeed, vacancyFeed])
 
-  const extractExcerpt = (content: any, maxWords = 20) => { let text = ''
-    if (Array.isArray(content)) { text = content
-        .map((block: any) => { if (block.content && Array.isArray(block.content)) { return block.content.map((item: any) => item.text || '').join('') }
-          return '' })
-        .join(' ')
-        .trim() } else if (typeof content === 'string') { text = content }
-    const words = text.split(' ').slice(0, maxWords)
-    return words.join(' ') + (words.length >= maxWords ? '...' : '') }
+  const howItWorksCards = [
+    {
+      step: '1',
+      title: 'Kəşf et',
+      description: 'Vakansiya və tədbirləri filtr et, fokus sahənə uyğun imkanları seç.',
+    },
+    {
+      step: '2',
+      title: 'Yadda saxla və izlə',
+      description: 'Maraqlı elanları yadda saxla, faydalı təşkilatları izləyərək yenilikləri qaçırma.',
+    },
+    {
+      step: '3',
+      title: 'Hərəkətə keç',
+      description: 'Elanın detalına keç, müraciət et və təşkilatlarla birbaşa əlaqə qur.',
+    },
+  ]
 
-  const translateFocusArea = (area: string) => { if (!area) return area
-    return area }
-
-  const toRecommendedSource = (): RecommendedItem[] => {
-    const vacancyItems: RecommendedItem[] = vacancies.map((item) => ({
-      id: item._id,
-      type: 'vacancy',
-      title: item.title,
-      href: `/resources/vacancies/${item.slug}`,
-      metaOne: item.createdBy?.name || 'Naməlum',
-      metaTwo: item.location?.city || item.location?.country || 'Naməlum',
-      badge: item.type || 'vakansiya',
-    }))
-    const eventItems: RecommendedItem[] = events.map((item) => ({
-      id: item._id,
-      type: 'event',
-      title: item.title,
-      href: `/resources/events/${item.slug}`,
-      metaOne: item.organizationName || 'Naməlum',
-      metaTwo: item.location?.type === 'online' ? 'Onlayn' : item.location?.city || 'Məlumat yoxdur',
-      badge: item.eventType || 'tədbir',
-    }))
-    return [...vacancyItems, ...eventItems]
+  if (!mounted || (loading && status === 'loading')) {
+    return <LoadingState text="Ana səhifə yüklənir..." />
   }
-
-  const scoreItem = (item: RecommendedItem, interests: string[]) => {
-    const haystack = `${item.title} ${item.metaOne} ${item.metaTwo} ${item.badge}`.toLowerCase()
-    const normalizedInterests = interests.map((i) => i.toLowerCase())
-    let score = 0
-    if (normalizedInterests.some((i) => i.includes('it')) && /(it|texnolog|software|developer|data)/.test(haystack)) score += 3
-    if (normalizedInterests.some((i) => i.includes('təhsil')) && /(təhsil|education|training|seminar|workshop)/.test(haystack)) score += 3
-    if (normalizedInterests.some((i) => i.includes('könüllü')) && /(könüllü|volunteer|community)/.test(haystack)) score += 3
-    if (normalizedInterests.some((i) => i.includes('sosial')) && /(social|icma|community|human|rights)/.test(haystack)) score += 2
-    if (normalizedInterests.some((i) => i.includes('digər'))) score += 1
-    return score
-  }
-
-  const recommendedItems = (() => {
-    const source = toRecommendedSource()
-    if (source.length === 0) return []
-
-    if (userInterests.length > 0) {
-      const personalized = source
-        .map((item) => ({ item, score: scoreItem(item, userInterests) }))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 2)
-        .map((entry) => entry.item)
-      if (personalized.length > 0) return personalized
-    }
-
-    // Fallback: latest mixed opportunities when interests are not available.
-    return source.slice(0, 2)
-  })()
-
-  if (!mounted) return <LoadingState text="Yüklənir..." />
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* Hero (community-connect-main style) */}
-      <section className="brand-hero-surface relative overflow-hidden pt-28 pb-20 md:pt-36 md:pb-28">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-40" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[520px] w-[860px] rounded-full bg-primary/10 blur-3xl" />
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <section className="relative overflow-hidden border-b border-slate-200 bg-white">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,#dbeafe,transparent_45%),radial-gradient(circle_at_bottom_right,#cffafe,transparent_45%)]" />
+        <div className="section-padding relative py-14 md:py-20">
+          <div className="mx-auto max-w-7xl">
+            <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr] lg:items-end">
+              <div>
+                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                  <Sparkles className="h-4 w-4" />
+                  İcma dashboard
+                </div>
+                <h1 className="max-w-3xl text-3xl font-black tracking-tight text-slate-900 sm:text-4xl md:text-5xl">
+                  Fürsətləri tap, təşkilatlarla əlaqə qur, təsirini böyüt.
+                </h1>
+                <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
+                  Vakansiyalar, tədbirlər və aktiv təşkilatlar bir səhifədə. Filtrlə, yadda saxla və bir kliklə hərəkətə keç.
+                </p>
 
-        <div className="section-padding relative z-10">
-          <div className="max-w-6xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-1.5 text-sm font-medium text-gray-600 mb-8">
-              <Sparkles size={14} className="text-accent" />
-              {'Platformaya Xoş Gəldin'}
-            </div>
-
-            <h1 className="mx-auto max-w-5xl text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-tight text-gray-900 leading-tight">
-              {'Fürsətlərə'} <span className="text-primary">{'Açılan Qapın'}</span>
-            </h1>
-
-            <p className="mx-auto mt-6 max-w-3xl text-lg sm:text-xl text-gray-600 leading-relaxed">
-              {'İş imkanları, tədbirlər və təlim proqramları kəşf et. Real dəyişiklik yaradan təşkilatlarla əlaqə qur.'}
-            </p>
-
-            <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              {isOrganizationUser ? (
-                <>
-                  <Link
-                    href={localePath('/dashboard/events/create')}
-                    className="brand-primary-btn inline-flex items-center justify-center gap-2 rounded-xl border border-transparent px-6 py-3 text-white font-semibold transition-all duration-200"
-                  >
-                    <Calendar size={18} />
-                    {'Tədbir Paylaş'}
-                    <ArrowRight size={16} />
+                <div className="mt-7 flex flex-wrap gap-3">
+                  <Link href={localePath('/resources')}>
+                    <Button variant="primary" size="md" icon={Compass} iconPosition="left">
+                      İmkanları kəşf et
+                    </Button>
                   </Link>
-                  <Link
-                    href={localePath('/dashboard/vacancies/create')}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-6 py-3 text-gray-800 font-semibold hover:bg-gray-50 transition-colors"
-                  >
-                    <Briefcase size={18} />
-                    {'Vakansiya Paylaş'}
-                  </Link>
-                  <Link
-                    href={localePath('/dashboard/profile')}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-6 py-3 text-gray-800 font-semibold hover:bg-gray-50 transition-colors"
-                  >
-                    {'Təşkilat Paneli'}
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link
-                    href={localePath('/resources')}
-                    className="brand-primary-btn inline-flex items-center justify-center gap-2 rounded-xl border border-transparent px-6 py-3 text-white font-semibold transition-all duration-200"
-                  >
-                    <Target size={18} />
-                    {'İndi Kəşf Et'}
-                    <ArrowRight size={16} />
-                  </Link>
-                  <Link
-                    href={localePath('/submit/blog')}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-6 py-3 text-gray-800 font-semibold hover:bg-gray-50 transition-colors"
-                  >
-                    <MessageSquare size={18} />
-                    {'Bloq Paylaş'}
-                  </Link>
-                </>
-              )}
-            </div>
-
-            <div className="mt-14 flex items-center justify-center gap-8 text-sm text-gray-500">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-gray-900">{stats.totalVacancies}+</p>
-                <p>{'Vakansiyalar'}</p>
+                  {isOrganizationUser ? (
+                    <Link href={localePath('/dashboard')}>
+                      <Button variant="outline" size="md" icon={Building2} iconPosition="left">
+                        Təşkilat paneli
+                      </Button>
+                    </Link>
+                  ) : (
+                    <Link href={localePath('/submit/blog')}>
+                      <Button variant="outline" size="md" icon={Target} iconPosition="left">
+                        Hekayəni paylaş
+                      </Button>
+                    </Link>
+                  )}
+                </div>
               </div>
-              <div className="h-8 w-px bg-gray-200" />
-              <div className="text-center">
-                <p className="text-2xl font-bold text-gray-900">{stats.totalEvents}+</p>
-                <p>{'Tədbirlər'}</p>
-              </div>
-              <div className="h-8 w-px bg-gray-200" />
-              <div className="text-center">
-                <p className="text-2xl font-bold text-gray-900">{stats.totalOrganizations}+</p>
-                <p>{'Tərəfdaşlar'}</p>
+
+              <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm">
+                  <p className="text-xl font-extrabold text-slate-900">{stats.totalVacancies}</p>
+                  <p className="mt-1 text-xs font-medium text-slate-500">Vakansiya</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm">
+                  <p className="text-xl font-extrabold text-slate-900">{stats.totalEvents}</p>
+                  <p className="mt-1 text-xs font-medium text-slate-500">Tədbir</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm">
+                  <p className="text-xl font-extrabold text-slate-900">{stats.totalOrganizations}</p>
+                  <p className="mt-1 text-xs font-medium text-slate-500">Təşkilat</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Guidance */}
-      {!loading && !interestsLoading && recommendedItems.length > 0 && (
-        <section className="py-8 md:py-10">
-          <div className="section-padding">
-            <div className="max-w-7xl mx-auto rounded-2xl border border-blue-200 bg-blue-50/70 p-5 sm:p-6">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Sənin üçün seçilmiş imkanlar</h2>
-              <p className="mt-1 text-sm sm:text-base text-gray-700">
-                {userInterests.length > 0
-                  ? 'Bu imkanları yadda saxla və ya müraciət et'
-                  : 'Sənin üçün seçilmiş imkanlar (ən son əlavə olunanlar)'}
-              </p>
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {recommendedItems.map((item) => (
-                  <ResourceCard
-                    key={`${item.type}-${item.id}`}
-                    type={item.type}
-                    title={item.title}
-                    href={item.href}
-                    badges={[{ label: item.badge, variant: 'info' }]}
-                    metadata={
-                      <>
-                        <p className="text-sm text-gray-600">{item.metaOne}</p>
-                        <p className="text-sm text-gray-500">{item.metaTwo}</p>
-                      </>
-                    }
-                    actionText="Ətraflı bax"
-                    className="ring-1 ring-blue-200 bg-white/90"
-                  />
+      <section className="section-padding py-6">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+          <Filter className="ml-1 h-4 w-4 text-slate-400" />
+          {(['all', 'events', 'vacancies'] as TabKey[]).map((tab) => {
+            const selected = activeTab === tab
+            const label = tab === 'all' ? 'Hamısı' : tab === 'events' ? 'Tədbirlər' : 'Vakansiyalar'
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={[
+                  'rounded-xl px-3 py-2 text-sm font-semibold transition-colors',
+                  selected
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
+                ].join(' ')}
+              >
+                {label}
+              </button>
+            )
+          })}
+        </div>
+      </section>
+
+      <section className="section-padding pb-6">
+        <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[1fr_320px]">
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <h2 className="text-lg font-bold text-slate-900">Seçilmiş imkanlar</h2>
+              <p className="mt-1 text-sm text-slate-600">Sənin üçün ən aktual elanlar</p>
+            </div>
+
+            {loading ? (
+              <LoadingState fullPage={false} text="İmkanlar yüklənir..." />
+            ) : feedItems.length === 0 ? (
+              <EmptyState
+                title="Hazırda uyğun elan tapılmadı"
+                message="Filtrləri dəyişib yenidən yoxla."
+                fullPage={false}
+              />
+            ) : (
+              <div className="space-y-3">
+                {feedItems.map((item) => (
+                  <article
+                    key={`${item.kind}-${item.id}`}
+                    className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                          {item.badge}
+                        </span>
+                        <Link href={item.href} className="mt-2 block">
+                          <h3 className="line-clamp-2 text-base font-bold text-slate-900 hover:text-blue-700">
+                            {item.title}
+                          </h3>
+                        </Link>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+                          <span className="inline-flex items-center gap-1">
+                            <Building2 className="h-3.5 w-3.5" />
+                            {item.ownerLabel}
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <MapPin className="h-3.5 w-3.5" />
+                            {item.locationLabel}
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <Clock3 className="h-3.5 w-3.5" />
+                            {item.dateLabel}
+                          </span>
+                        </div>
+                      </div>
+                      <Link href={item.href} className="hidden text-slate-400 hover:text-slate-600 sm:block">
+                        <ChevronRight className="h-5 w-5" />
+                      </Link>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <Link href={item.href}>
+                        <Button variant="outline" size="sm" icon={ArrowRight} iconPosition="right">
+                          Ətraflı bax
+                        </Button>
+                      </Link>
+                      {item.kind === 'event' ? (
+                        <SaveItemButtonContainer
+                          itemId={item.id}
+                          itemType="event"
+                          itemTitle={item.title}
+                          size="sm"
+                          showText={true}
+                        />
+                      ) : (
+                        <SaveItemButtonContainer
+                          itemId={item.id}
+                          itemType="vacancy"
+                          itemTitle={item.title}
+                          size="sm"
+                          showText={true}
+                        />
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <aside className="space-y-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <h3 className="text-sm font-bold text-slate-900">Sürətli keçidlər</h3>
+              <div className="mt-3 space-y-2">
+                <Link href={localePath('/resources/events')} className="block">
+                  <Button variant="secondary" size="sm" fullWidth icon={Calendar} iconPosition="left">
+                    Tədbirlər
+                  </Button>
+                </Link>
+                <Link href={localePath('/resources/vacancies')} className="block">
+                  <Button variant="secondary" size="sm" fullWidth icon={Briefcase} iconPosition="left">
+                    Vakansiyalar
+                  </Button>
+                </Link>
+                <Link href={localePath('/resources/organizations')} className="block">
+                  <Button variant="secondary" size="sm" fullWidth icon={Users} iconPosition="left">
+                    Təşkilatlar
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <h3 className="text-sm font-bold text-slate-900">Fokus sahələri</h3>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveFocus('all')}
+                  className={[
+                    'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
+                    activeFocus === 'all'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
+                  ].join(' ')}
+                >
+                  Hamısı
+                </button>
+                {focusFilters.map((focus) => (
+                  <button
+                    key={focus}
+                    type="button"
+                    onClick={() => setActiveFocus(focus)}
+                    className={[
+                      'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
+                      activeFocus === focus
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
+                    ].join(' ')}
+                  >
+                    {focusLabel(focus)}
+                  </button>
                 ))}
               </div>
             </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <h3 className="text-sm font-bold text-slate-900">Aktiv təşkilatlar</h3>
+              <div className="mt-3 space-y-3">
+                {filteredOrganizations.slice(0, 3).map((org) => (
+                  <div key={org._id} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                    <Link href={localePath(`/o/${org.slug}`)}>
+                      <p className="line-clamp-1 text-sm font-semibold text-slate-800 hover:text-blue-700">
+                        {org.organizationName}
+                      </p>
+                    </Link>
+                    <p className="mt-1 line-clamp-1 text-xs text-slate-500">
+                      {org.location?.city || 'Məkan göstərilməyib'}
+                    </p>
+                    <div className="mt-2">
+                      <OrganizationFollowButtonContainer
+                        organizationId={org._id}
+                        organizationName={org.organizationName}
+                        size="xs"
+                        showFollowerCount={false}
+                      />
+                    </div>
+                  </div>
+                ))}
+                {!loading && filteredOrganizations.length === 0 && (
+                  <p className="text-xs text-slate-500">Bu fokus üzrə təşkilat tapılmadı.</p>
+                )}
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section className="section-padding py-10">
+        <div className="mx-auto max-w-7xl rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <h2 className="text-xl font-black text-slate-900">Təşkilatlar zolağı</h2>
+            <Link href={localePath('/resources/organizations')} className="text-sm font-semibold text-blue-700 hover:text-blue-800">
+              Hamısını gör
+            </Link>
           </div>
-        </section>
-      )}
 
-      {/* Vacancies */}
-      <HomeSectionLayout
-        title={<>{'Karyera'} <span className="text-primary">{'Fürsətləri'}</span></>}
-        description={'Hal-hazırda aktiv olan iş imkanlarına müraciət et.'}
-        ctaLabel={'Vakansiyalar'}
-        ctaHref={localePath('/resources/vacancies')}
-        sectionClassName="py-20 md:py-24"
-        emphasis="neutral"
-      >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {!loading && vacancies.length === 0 ? (
-                <div className="col-span-full">
-                  <EmptyState
-                    title={'Hazırda heç bir vakansiya yoxdur'}
-                    message={'Daha sonra yenidən yoxla'}
-                    actionText={'Daha sonra yenidən yoxla'}
-                    onAction={() => loadAllContent()}
-                  />
-                </div>
-              ) : (
-              (loading ? Array.from({ length: 6 }) : vacancies).map((item: any, idx) => (
-                <ResourceCard
-                  key={loading ? idx : item._id}
-                  type="vacancy"
-                  href={loading ? undefined : `/resources/vacancies/${item.slug}`}
-                  title={loading ? 'Yüklənir...' : item.title}
-                  badges={loading ? [] : [{ label: item.type, variant: 'info' }]}
-                  icon={
-                    <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <Briefcase className="w-5 h-5 text-primary" />
-                    </div>
-                  }
-                  metadata={
-                    loading ? (
-                      <div className="space-y-2 animate-pulse">
-                        <div className="h-4 w-24 bg-gray-200 rounded" />
-                        <div className="h-4 w-2/3 bg-gray-200 rounded" />
-                        <div className="h-4 w-1/2 bg-gray-200 rounded" />
-                      </div>
-                    ) : (
-                      <>
-                        <p className="text-sm text-gray-600 flex items-center gap-1.5"><Building2 className="w-4 h-4" />{item.createdBy?.name || 'Naməlum'}</p>
-                        <p className="text-sm text-gray-500 flex items-center gap-1.5"><MapPin className="w-4 h-4" />{item.location?.city || item.location?.country || 'Naməlum'}</p>
-                        <p className="text-sm text-gray-500 flex items-center gap-1.5"><Clock className="w-4 h-4" />{formatDate(item.applicationDeadline)}</p>
-                      </>
-                    )
-                  }
-                  actionText={loading ? undefined : 'Ətraflı bax'}
-                />
-              )))}
-            </div>
-      </HomeSectionLayout>
-
-      {/* Events */}
-      <HomeSectionLayout
-        title={<>{'Təlim və'} <span className="text-primary">{'Tədbirlər'}</span></>}
-        description={'Seminar, təlim və konfranslarda iştirak et, şəbəkəni qur.'}
-        ctaLabel={'Tədbirlər'}
-        ctaHref={localePath('/resources/events')}
-        sectionClassName="py-16 md:py-20 bg-slate-50/60"
-        emphasis="neutral"
-      >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {!loading && events.length === 0 ? (
-                <div className="col-span-full">
-                  <EmptyState
-                    title={'Hazırda heç bir tədbir yoxdur'}
-                    message={'Daha sonra yenidən yoxla'}
-                    actionText={'Daha sonra yenidən yoxla'}
-                    onAction={() => loadAllContent()}
-                  />
-                </div>
-              ) : (
-              (loading ? Array.from({ length: 6 }) : events).map((item: any, idx) => (
-                <ResourceCard
-                  key={loading ? idx : item._id}
-                  type="event"
-                  href={loading ? undefined : `/resources/events/${item.slug}`}
-                  title={loading ? 'Yüklənir...' : item.title}
-                  badges={loading ? [] : [{ label: item.eventType, variant: 'success' }]}
-                  icon={
-                    <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <Calendar className="w-5 h-5 text-primary" />
-                    </div>
-                  }
-                  metadata={
-                    loading ? (
-                      <div className="space-y-2 animate-pulse">
-                        <div className="h-4 w-24 bg-gray-200 rounded" />
-                        <div className="h-4 w-2/3 bg-gray-200 rounded" />
-                        <div className="h-4 w-1/2 bg-gray-200 rounded" />
-                      </div>
-                    ) : (
-                      <>
-                        {item.organizationName && <p className="text-sm text-gray-600">{item.organizationName}</p>}
-                        <p className="text-sm text-gray-500 flex items-center gap-1.5"><MapPin className="w-4 h-4" />{item.location?.type === 'online' ? 'Onlayn' : item.location?.city || 'Məlumat yoxdur'}</p>
-                        <p className="text-sm text-gray-500 flex items-center gap-1.5"><Clock className="w-4 h-4" />{formatDate(item.eventDate)}</p>
-                      </>
-                    )
-                  }
-                  actionText={loading ? undefined : 'Ətraflı bax'}
-                />
-              )))}
-            </div>
-      </HomeSectionLayout>
-
-      {/* Blogs */}
-      <HomeSectionLayout
-        title={<>{'Üzvlərimizdən'} <span className="text-primary">{'Bloqlar'}</span> {''}</>}
-        description={'İcma üzvlərimizin təcrübələrini oxu və ilhamlan.'}
-        ctaLabel={'Bloqlar'}
-        ctaHref={localePath('/blogs')}
-        sectionClassName="py-16 md:py-20"
-        emphasis="neutral"
-      >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {homepageBlogsQuery.isError ? (
-                <div className="col-span-full">
-                  <ErrorState
-                    fullPage={false}
-                    title={'Bloqlar yüklənmədi'}
-                    message={'Ana səhifə üçün bloqlar yüklənərkən problem baş verdi.'}
-                    onRetry={() => homepageBlogsQuery.refetch()}
-                  />
-                </div>
-              ) : !homepageBlogsQuery.isLoading && blogs.length === 0 ? (
-                <div className="col-span-full">
-                  <EmptyState
-                    title={'Hazırda heç bir bloq yoxdur'}
-                    message={'Daha sonra yenidən yoxla'}
-                    actionText={'Daha sonra yenidən yoxla'}
-                    onAction={() => homepageBlogsQuery.refetch()}
-                  />
-                </div>
-              ) : (
-                (homepageBlogsQuery.isLoading ? Array.from({ length: 6 }) : blogs).map((item: any, idx) => {
-                  if (homepageBlogsQuery.isLoading) {
-                    return (
-                      <div key={idx} className="animate-pulse">
-                        <div className="rounded-2xl border border-gray-200 bg-white p-6 h-64">
-                          <div className="flex items-start gap-4 mb-4">
-                            <div className="w-14 h-14 rounded-xl bg-gray-200" />
-                            <div className="flex-1 space-y-2">
-                              <div className="h-5 bg-gray-200 rounded w-3/4" />
-                              <div className="h-4 bg-gray-200 rounded w-1/2" />
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <div className="h-4 bg-gray-200 rounded" />
-                            <div className="h-4 bg-gray-200 rounded w-5/6" />
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  }
-
-                  return (
-                    <BlogCard
-                      key={item._id}
-                      blog={{
-                        id: item._id,
-                        slug: item.slug,
-                        title: item.title,
-                        authorName: item.authorName,
-                        authorAvatar: item.authorAvatar,
-                        date: item.createdAt,
-                        excerpt: item.excerpt || extractExcerpt(item.content),
-                        content: item.content,
-                        status: item.status,
-                        views: item.views,
-                        likes: item.likes,
-                        saves: item.saves,
-                      }}
+          {loading ? (
+            <LoadingState fullPage={false} text="Təşkilatlar yüklənir..." />
+          ) : filteredOrganizations.length === 0 ? (
+            <EmptyState
+              title="Təşkilat tapılmadı"
+              message="Fokus filtrini dəyişərək yenidən bax."
+              fullPage={false}
+            />
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {filteredOrganizations.slice(0, 8).map((org) => (
+                <article
+                  key={org._id}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                >
+                  <Link href={localePath(`/o/${org.slug}`)}>
+                    <h3 className="line-clamp-2 text-sm font-bold text-slate-800 hover:text-blue-700">
+                      {org.organizationName}
+                    </h3>
+                  </Link>
+                  <p className="mt-1 line-clamp-1 text-xs text-slate-500">
+                    {org.location?.city || 'Məkan göstərilməyib'}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {org.focusAreas.slice(0, 2).map((focus) => (
+                      <span
+                        key={`${org._id}-${focus}`}
+                        className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600"
+                      >
+                        {focusLabel(focus)}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="mt-3">
+                    <OrganizationFollowButtonContainer
+                      organizationId={org._id}
+                      organizationName={org.organizationName}
+                      size="xs"
+                      showFollowerCount={false}
                     />
-                  )
-                })
-              )}
-            </div>
-      </HomeSectionLayout>
-
-      {/* Organizations */}
-      <HomeSectionLayout
-        title={<>{'Tərəfdaş'} <span className="text-primary">{'Təşkilatlar'}</span></>}
-        description={'icma360 qeydiyyatında olan təşkilatlarla tanış ol.'}
-        ctaLabel={'Tərəfdaşlar'}
-        ctaHref={localePath('/resources/organizations')}
-        sectionClassName="py-16 md:py-20 bg-slate-50/60"
-        emphasis="neutral"
-      >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {organizationsError ? (
-                <div className="col-span-full rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
-                  <p className="font-semibold text-red-700">{organizationsError}</p>
-                </div>
-              ) : !loading && organizations.length === 0 ? (
-                <div className="col-span-full">
-                  <EmptyState
-                    title={'Hazırda heç bir təşkilat yoxdur'}
-                    message={'Daha sonra yenidən yoxla'}
-                    actionText={'Daha sonra yenidən yoxla'}
-                    onAction={() => loadAllContent()}
-                  />
-                </div>
-              ) : (loading ? Array.from({ length: 6 }) : organizations).map((item: any, idx) => (
-                <ResourceCard
-                  key={loading ? idx : item._id}
-                  type="organization"
-                  href={loading ? undefined : `/o/${item.slug}`}
-                  title={loading ? 'Yüklənir...' : item.organizationName}
-                  badges={loading ? [] : (item.focusAreas || []).slice(0, 3).map((area: string) => ({ label: translateFocusArea(area), variant: 'secondary' as const }))}
-                  icon={
-                    <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <Users className="w-5 h-5 text-primary" />
-                    </div>
-                  }
-                  metadata={
-                    loading ? (
-                      <div className="space-y-2 animate-pulse">
-                        <div className="h-4 w-24 bg-gray-200 rounded" />
-                        <div className="h-4 w-2/3 bg-gray-200 rounded" />
-                      </div>
-                    ) : (
-                      <>
-                        {item.location?.city && <p className="text-sm text-gray-500 flex items-center gap-1.5"><MapPin className="w-4 h-4" />{item.location.city}</p>}
-                      </>
-                    )
-                  }
-                  actionText={loading ? undefined : 'Profili gör'}
-                />
+                  </div>
+                </article>
               ))}
             </div>
-      </HomeSectionLayout>
+          )}
+        </div>
+      </section>
 
-      {/* CTA */}
-      <section id="community" className="py-20 md:py-28">
-        <div className="section-padding">
-          <div className="max-w-4xl mx-auto rounded-2xl border border-gray-200 bg-white p-8 md:p-12 text-center shadow-sm">
-            <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
-              <Award className="w-7 h-7 text-primary" />
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900">
-              {'Böyüyən'} {'İcmamıza Qoşul'}
-            </h2>
-            <p className="mt-4 text-gray-600 max-w-2xl mx-auto">
-              {'Böyük bir şəbəkənin parçası ol! Öz hekayəni paylaş, aktiv fürsətləri ilk sən tap və təşkilatlarla tanış ol.'}
-            </p>
-            <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              {isOrganizationUser ? (
-                <>
-                  <Link href={localePath('/dashboard/events/create')} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-white font-semibold hover:bg-blue-700 transition-colors">
-                    <Calendar size={18} /> {'Tədbir Paylaş'}
-                  </Link>
-                  <Link href={localePath('/dashboard/vacancies/create')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-6 py-3 text-gray-800 font-semibold hover:bg-gray-50 transition-colors">
-                    <Briefcase size={16} /> {'Vakansiya Paylaş'}
-                  </Link>
-                  <Link href={localePath('/dashboard/profile')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-6 py-3 text-gray-800 font-semibold hover:bg-gray-50 transition-colors">
-                    {'Təşkilat Paneli'} <ArrowRight size={16} />
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link href={localePath('/submit/blog')} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-white font-semibold hover:bg-blue-700 transition-colors">
-                    <BookOpen size={18} /> {'Bloqunu Paylaşın'}
-                  </Link>
-                  <Link href={localePath('/resources')} className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 bg-white px-6 py-3 text-gray-800 font-semibold hover:bg-gray-50 transition-colors">
-                    {'Fürsətləri Kəşf Et'} <ArrowRight size={16} />
-                  </Link>
-                </>
-              )}
-            </div>
+      <section className="section-padding pb-14">
+        <div className="mx-auto max-w-7xl rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+          <h2 className="text-2xl font-black text-slate-900">Necə işləyir?</h2>
+          <p className="mt-2 text-sm text-slate-600">3 addımda platformadan maksimum fayda götür.</p>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            {howItWorksCards.map((card) => (
+              <div key={card.step} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div className="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
+                  {card.step}
+                </div>
+                <h3 className="text-sm font-bold text-slate-900">{card.title}</h3>
+                <p className="mt-1 text-xs leading-5 text-slate-600">{card.description}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
     </div>
-  ) }
+  )
+}

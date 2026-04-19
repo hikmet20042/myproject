@@ -283,7 +283,6 @@ export async function POST(request: NextRequest) {
         created_by_organization: isApprovedOrganization(session) ? session.user.id : null,
         organization_name: isApprovedOrganization(session) ? organization.data?.organization_name || "Unknown Organization" : null,
         ...lifecycleResult.updateData,
-        current_participants: 0,
         images: [],
       })
       .select("*")
@@ -340,16 +339,6 @@ export async function POST(request: NextRequest) {
       return errorResponse("Failed to create event", 500);
     }
 
-    if (isApprovedOrganization(session) && organization?.data?.organization_name) {
-      await NotificationService.notifyOrganizationFollowersAboutNewContent({
-        organizationId: session.user.id,
-        organizationName: organization.data.organization_name,
-        contentType: "event",
-        contentId: updatedEventRow.id,
-        contentTitle: updatedEventRow.title,
-      });
-    }
-
     if (updatedEventRow.status === 'pending') {
       await NotificationService.notifyAdminsAboutSubmission(
         'event',
@@ -359,17 +348,6 @@ export async function POST(request: NextRequest) {
           ? organization?.data?.organization_name || 'Unknown organization'
           : session.user.name || 'Unknown submitter'
       )
-    }
-
-    if (updatedEventRow.status === 'approved' && updatedEventRow.is_published) {
-      await NotificationService.notifyUsersAboutRelevantItem({
-        itemType: 'event',
-        itemId: updatedEventRow.id,
-        title: updatedEventRow.title,
-        description: updatedEventRow.description,
-        tags: Array.isArray(updatedEventRow.tags) ? updatedEventRow.tags : [],
-        actionUrl: `/resources/events/${updatedEventRow.id}`,
-      })
     }
 
     return successResponse(

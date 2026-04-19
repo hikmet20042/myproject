@@ -15,6 +15,7 @@ import {
 } from "@/lib/organizationTypes";
 import { updateMyOrganization } from "@/lib/organizationQueries";
 import { logError } from "@/lib/logger";
+import { ImageCropper } from "@/components/shared";
 
 interface ProfileFormContainerProps {
   organizationProfile: any;
@@ -50,6 +51,8 @@ export default function ProfileFormContainer({
   const { showError, showSuccess } = useGlobalFeedback();
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [pendingImage, setPendingImage] = useState<File | null>(null);
   const [saveFeedback, setSaveFeedback] = useState<{
     variant: "success" | "error";
     message: string;
@@ -129,6 +132,22 @@ export default function ProfileFormContainer({
     }
   };
 
+  const handleFileSelect = (file: File) => {
+    setPendingImage(file);
+    setCropModalOpen(true);
+  };
+
+  const handleCropComplete = async (croppedFile: File) => {
+    setCropModalOpen(false);
+    setPendingImage(null);
+    await handleProfileImageUpload(croppedFile);
+  };
+
+  const handleCropCancel = () => {
+    setCropModalOpen(false);
+    setPendingImage(null);
+  };
+
   return (
     <div className="space-y-10">
       {saveFeedback && (
@@ -170,13 +189,13 @@ export default function ProfileFormContainer({
               accept="image/*"
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) void handleProfileImageUpload(file);
+                if (file) handleFileSelect(file);
               }}
               className="block w-full text-sm text-gray-600 file:mr-4 file:rounded-full file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
               disabled={uploadingImage}
             />
             <p className="text-xs text-slate-500">
-              PNG, JPG və WEBP formatları dəstəklənir.
+              Şəkil kvadrat (1:1) kəsilir və yüngülləşdirilir.
             </p>
           </div>
         </div>
@@ -460,6 +479,15 @@ export default function ProfileFormContainer({
           {saving ? "Saxlanılır..." : uploadingImage ? "Şəkil yüklənir..." : "Dəyişiklikləri Saxla"}
         </Button>
       </div>
+
+      {cropModalOpen && pendingImage && (
+        <ImageCropper
+          image={pendingImage}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+          isLoading={uploadingImage}
+        />
+      )}
     </div>
   );
 }

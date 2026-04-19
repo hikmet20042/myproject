@@ -7,6 +7,7 @@
 import { CheckCircle } from 'lucide-react'
 import { ReactNode } from 'react'
 
+
 interface SuccessStateProps {
   title: string
   message: string
@@ -20,13 +21,14 @@ export default function SuccessState({
   title,
   message,
   actions,
-  gradientFrom = 'from-green-50',
+   gradientFrom = 'from-green-50',
   gradientVia = 'via-emerald-50',
   gradientTo = 'to-teal-50'
 }: SuccessStateProps) {
   return (
     <div className={`min-h-screen bg-gradient-to-br ${gradientFrom} ${gradientVia} ${gradientTo} flex items-center justify-center p-4`}>
       <div className="w-full max-w-md rounded-2xl border border-emerald-200 bg-white p-8 text-center shadow-sm">
+        
         <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
           <CheckCircle className="h-8 w-8" />
         </div>

@@ -129,6 +129,10 @@ export async function PUT(
     }
 
     const updateData = mapEventInputToDbPayload(body, { partial: true }) as Record<string, any>;
+    const nextApplicationLink = updateData.application_link ?? eventRow.application_link;
+    if (!nextApplicationLink) {
+      return errorResponse("applicationLink is required", 400);
+    }
     if (eventRow.status === "approved" && eventRow.is_published === true && owner) {
       const lifecycleResult = applyEventLifecycleRules(eventRow, "ownerEditApproved", { role: "owner", id: session.user.id });
       if (!lifecycleResult.ok) {

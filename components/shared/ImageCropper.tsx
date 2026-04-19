@@ -83,8 +83,8 @@ const optimizeImage = async (blob: Blob): Promise<File> => {
         return;
       }
 
-      // Profile pictures should be small squares (400x400 max)
-      const MAX_SIZE = 400;
+      // Profile pictures are displayed small, so keep output lightweight.
+      const MAX_SIZE = 320;
       const scale = Math.min(MAX_SIZE / img.width, MAX_SIZE / img.height, 1);
       const width = Math.round(img.width * scale);
       const height = Math.round(img.height * scale);
@@ -98,7 +98,7 @@ const optimizeImage = async (blob: Blob): Promise<File> => {
 
       ctx.drawImage(img, 0, 0, width, height);
 
-      // Convert to WebP with quality 75 for optimal size
+      // Convert to WebP with balanced quality for small avatar rendering.
       canvas.toBlob(
         (optimizedBlob) => {
           if (optimizedBlob) {
@@ -111,7 +111,7 @@ const optimizeImage = async (blob: Blob): Promise<File> => {
           }
         },
         "image/webp",
-        0.75,
+        0.72,
       );
     };
     img.onerror = () => reject(new Error("Failed to load image"));

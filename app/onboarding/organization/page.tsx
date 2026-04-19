@@ -9,6 +9,7 @@ import { Button, Input, Select, TextArea } from '@/components/ui'
 import { LoadingState } from '@/components/shared'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { ORGANIZATION_TYPE_LABELS, ORGANIZATION_TYPE_VALUES } from '@/lib/organizationTypes'
+import IllustrationAsset from '@/components/shared/IllustrationAsset'
 
 export default function OnboardingOrganizationPage() {
   const router = useRouter()
@@ -76,6 +77,12 @@ export default function OnboardingOrganizationPage() {
       title="Təşkilat qurulumu"
       subtitle="Qısa məlumatı tamamlayın və dashboard istifadəsinə başlayın."
     >
+      <div className="mb-5 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-cyan-50 to-white p-4">
+        <IllustrationAsset
+          illustrationKey="onboarding-organization"
+          className="mx-auto h-40 w-full max-w-sm"
+        />
+      </div>
       <form onSubmit={handleSubmit} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8 space-y-5">
         <Input
           label="Təşkilat adı"

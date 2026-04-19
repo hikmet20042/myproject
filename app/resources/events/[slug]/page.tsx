@@ -33,8 +33,6 @@ interface Event { _id: string
     onlineLink?: string }
   applicationLink?: string
   applicationDeadline?: string
-  maxParticipants?: number
-  currentParticipants: number
   tags: string[]
   imageUrl?: string
   createdBy: { _id: string
@@ -150,11 +148,7 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
 
   const isDeadlinePassed = (deadline: string) => { if (!deadline) return false
     return new Date(deadline) < new Date() }
-  const hasActiveApplicationLink = !!event?.applicationLink && !isDeadlinePassed(event?.applicationDeadline || '')
-  const organizerProfileHref = event?.createdBy?.urlHandle ? localePath(`/o/${event.createdBy.urlHandle}`) : ''
-  const organizerEmail =
-    ((event as any)?.createdBy?.email as string | undefined) ||
-    ((event as any)?.createdByOrganization?.email as string | undefined)
+  const hasActiveApplicationLink = !!event?.applicationLink
 
   if (eventQuery.isLoading) { return (
       <LoadingState
@@ -372,46 +366,10 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
                       Müraciət et
                     </ButtonLink>
                   ) : (
-                    <>
-                      <p className="text-sm text-gray-600">
-                        Birbaşa müraciət linki hazırda mövcud deyil. Tədbiri saxlayın və təşkilatçını izləyin.
-                      </p>
-                      <SaveItemButtonContainer
-                        itemId={event.id}
-                        itemType="event"
-                        itemTitle={event.title}
-                        size="lg"
-                        showText={true}
-                        className="w-full justify-center"
-                      />
-                      {organizerProfileHref && (
-                        <ButtonLink
-                          href={organizerProfileHref}
-                          variant="outline"
-                          size="lg"
-                          className="w-full"
-                          hoverEffect="scale"
-                        >
-                          Təşkilat profilinə bax
-                        </ButtonLink>
-                      )}
-                      {organizerEmail && (
-                        <ButtonLink
-                          href={`mailto:${organizerEmail}?subject=${encodeURIComponent(`Tədbir haqqında sual: ${event.title}`)}`}
-                          variant="outline"
-                          size="lg"
-                          className="w-full"
-                          hoverEffect="scale"
-                        >
-                          Təşkilatçı ilə əlaqə
-                        </ButtonLink>
-                      )}
-                    </>
+                    <p className="text-sm text-red-600">Müraciət linki tapılmadı.</p>
                   )}
                   <p className="text-xs text-gray-500">
-                    {event.currentParticipants > 0
-                      ? `${event.currentParticipants} nəfər artıq bu tədbirə maraq göstərib.`
-                      : `${event.views || 0} nəfər bu tədbirə baxıb.`}
+                    {`${event.views || 0} nəfər bu tədbirə baxıb.`}
                   </p>
                 </div>
               </CardContent>
@@ -462,19 +420,6 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
                     )}
                   </div>
                 </div>
-                {event.maxParticipants && (
-                  <div className="flex items-start gap-4 rounded-xl border border-gray-200 bg-slate-50 p-4">
-                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-100">
-                      <Users className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-gray-900 text-base">{'İştirakçılar'}</p>
-                      <p className="text-sm text-gray-600 font-medium">
-                        {event.currentParticipants} / {event.maxParticipants} {'qeydiyyatdan keçib'}
-                      </p>
-                    </div>
-                  </div>
-                )}
                 {event.applicationDeadline && (
                   <div className="flex items-start gap-4 rounded-xl border border-gray-200 bg-slate-50 p-4">
                     <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${isDeadlinePassed(event.applicationDeadline) ? 'bg-red-100' : 'bg-blue-100'}`}>

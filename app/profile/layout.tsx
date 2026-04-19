@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { FileText, Settings, User } from 'lucide-react';
+import { FileText, Settings, User, Users } from 'lucide-react';
 import { useSession } from '@/lib/auth/client';
 import { useLocalizedPath } from '@/hooks/useLocalizedPath';
 import { LoadingState } from '@/components/shared';
@@ -12,6 +12,7 @@ import { AppContainer } from '@/components/layout';
 const NAV_ITEMS = [
   { key: 'overview', label: 'Ümumi baxış', icon: User, path: '/profile' },
   { key: 'blogs', label: 'Bloqlarım', icon: FileText, path: '/profile/blogs' },
+  { key: 'organizations', label: 'İzlədiklərim', icon: Users, path: '/profile/organizations' },
   { key: 'settings', label: 'Tənzimləmələr', icon: Settings, path: '/profile/settings' },
 ] as const;
 

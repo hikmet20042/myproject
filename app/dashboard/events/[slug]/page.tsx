@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Image from 'next/image'
 import * as Dialog from '@radix-ui/react-dialog'
-import { Calendar, Clock, MapPin, Users, Link as LinkIcon, Tag, Edit, Trash2, CheckCircle, XCircle, AlertCircle, ExternalLink, Eye, TrendingUp, Bookmark } from 'lucide-react'
+import { Calendar, Clock, MapPin, Link as LinkIcon, Tag, Edit, Trash2, CheckCircle, XCircle, AlertCircle, ExternalLink, Eye, TrendingUp, Bookmark } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { PageStateGuard } from '@/components/shared'
@@ -26,8 +26,6 @@ interface Event { _id: string
     onlineLink?: string }
   applicationLink?: string
   applicationDeadline?: string
-  maxParticipants?: number
-  currentParticipants: number
   tags: string[]
   imageUrl?: string
   status: 'pending' | 'approved' | 'rejected'
@@ -328,23 +326,11 @@ export default function EventDetail() {
                   </div>
                 )}
                 
-                {event.maxParticipants && (
-                  <div className="flex items-start">
-                    <Users className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-gray-900">{'Tutum'}</p>
-                      <p className="text-gray-600 text-sm">
-                        {event.currentParticipants} / {event.maxParticipants} {'iştirakçı'}
-                      </p>
-                    </div>
-                  </div>
-                )}
-                
                 {event.applicationLink && (
                   <div className="flex items-start">
                     <LinkIcon className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                     <div>
-                      <p className="font-medium text-gray-900">{'Qeydiyyat'}</p>
+                      <p className="font-medium text-gray-900">{'Xarici müraciət'}</p>
                       <a
                         href={event.applicationLink}
                         target="_blank"

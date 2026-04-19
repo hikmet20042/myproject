@@ -111,7 +111,7 @@ export async function PUT(
 
     const { data: existingBlog, error: existingBlogError } = await supabase
       .from('blogs')
-      .select('id, title, author_id, status, admin_comment, media, content, content_html, tags, abstract, is_anonymous, author_name, featured_image, featured_image_blob_id')
+      .select('id, title, author_id, status, admin_comment, media, content, content_html, tags, abstract, is_anonymous, author_name, featured_image')
       .eq('id', params.id)
       .single()
 
@@ -147,7 +147,6 @@ export async function PUT(
           is_anonymous: existingBlog.is_anonymous,
           author_name: existingBlog.author_name,
           featured_image: existingBlog.featured_image,
-          featured_image_blob_id: existingBlog.featured_image_blob_id,
           updated_at: new Date().toISOString(),
         })
         .eq('id', updateRequestFor)

@@ -7,6 +7,7 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { LoadingState, ErrorState } from '@/components/shared'
 import { Button } from '@/components/ui/Button'
 import { ArrowLeft, CheckCircle, Globe, Mail, MapPin, Phone } from 'lucide-react'
+import OrganizationFollowButtonContainer from '@/components/containers/OrganizationFollowButtonContainer'
 
 type OrgProfile = {
   id: string
@@ -23,6 +24,7 @@ type OrgProfile = {
   socialLinks: Record<string, string> | null
   eventCount: number
   vacancyCount: number
+  followerCount: number
 }
 
 export default function PublicOrgProfilePage() {
@@ -108,6 +110,17 @@ export default function PublicOrgProfilePage() {
             {org.organizationType && (
               <p className="mt-1 text-gray-600">{org.organizationType}</p>
             )}
+            <p className="mt-2 text-sm font-medium text-blue-700">
+              {`${Number(org.followerCount || 0).toLocaleString('az-AZ')} izləyici`}
+            </p>
+            <div className="mt-4">
+              <OrganizationFollowButtonContainer
+                organizationId={org.id}
+                organizationName={org.organizationName}
+                size="sm"
+                showFollowerCount={false}
+              />
+            </div>
           </div>
         </div>
 

@@ -1,13 +1,35 @@
 import { NextRequest } from 'next/server';
 import { getServerSession } from '@/lib/auth/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import { processContentImages, updateMediaWithBlobReferences, getFeaturedImageBlobId, validateContentImages } from '@/lib/utils/imageUtils';
+import { processContentImages, isCloudinaryUrl } from '@/lib/utils/imageUtils';
 import { cache, generateCacheKey, withCache } from '@/lib/cache';
 import { successResponse, errorResponse } from '@/lib/apiResponse';
 import { NotificationService } from '@/features/notifications/services/notificationService';
 import { getBlogStats } from '@/lib/blogStats';
 
 const MAX_PAGE_SIZE = 50;
+
+function containsLegacyBlobUrl(content: any): boolean {
+  const { imageReferences } = processContentImages(content);
+  return imageReferences.some((ref) => ref.url.startsWith('/api/images/'));
+}
+
+function containsNonCloudinaryImages(content: any): boolean {
+  const { imageReferences } = processContentImages(content);
+  return imageReferences.some((ref) => ref.url && !isCloudinaryUrl(ref.url));
+}
+
+function normalizeMediaUrls(media: any): Array<{ type: string; url: string; alt?: string }> {
+  if (!Array.isArray(media)) return [];
+  return media
+    .filter((item) => item && typeof item.url === 'string')
+    .map((item) => ({
+      type: typeof item.type === 'string' ? item.type : 'image',
+      url: String(item.url),
+      alt: typeof item.alt === 'string' ? item.alt : undefined,
+    }))
+    .filter((item) => !item.url.startsWith('/api/images/'));
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -164,22 +186,32 @@ export async function POST(request: NextRequest) {
       return errorResponse('Tags must be an array of strings', 'VALIDATION_ERROR', {}, 400);
     }
 
-    // Process content images and validate blob references
-    const { processedContent, imageReferences } = processContentImages(content);
+    const { processedContent } = processContentImages(content);
 
-    // Validate that all blob images belong to the user
-    if (imageReferences.some(ref => ref.blobId)) {
-      const validation = await validateContentImages(processedContent, session.user.id);
-      if (!validation.isValid) {
-        return errorResponse('Some images in the content are invalid or do not belong to you.', 'VALIDATION_ERROR', {}, 400);
-      }
+    if (containsLegacyBlobUrl(processedContent)) {
+      return errorResponse('Legacy blob image URLs are no longer supported. Please re-upload images.', 'VALIDATION_ERROR', {}, 400);
     }
 
-    // Process media array with blob references
-    const processedMedia = updateMediaWithBlobReferences(media);
+    if (containsNonCloudinaryImages(processedContent)) {
+      return errorResponse('Blog content images must be Cloudinary URLs.', 'VALIDATION_ERROR', {}, 400);
+    }
 
-    // Process featured image
-    const featuredImageBlobId = getFeaturedImageBlobId(featuredImage);
+    if (featuredImage && String(featuredImage).startsWith('/api/images/')) {
+      return errorResponse('Legacy blob featured images are no longer supported. Please upload to Cloudinary.', 'VALIDATION_ERROR', {}, 400);
+    }
+
+    if (featuredImage && !isCloudinaryUrl(String(featuredImage))) {
+      return errorResponse('Featured image must be a Cloudinary URL.', 'VALIDATION_ERROR', {}, 400);
+    }
+
+    const processedMedia = normalizeMediaUrls(media);
+    if (Array.isArray(media) && processedMedia.length !== media.length) {
+      return errorResponse('Legacy blob media URLs are no longer supported. Please re-upload media to Cloudinary.', 'VALIDATION_ERROR', {}, 400);
+    }
+
+    if (processedMedia.some((item) => !isCloudinaryUrl(item.url))) {
+      return errorResponse('Blog media URLs must be Cloudinary URLs.', 'VALIDATION_ERROR', {}, 400);
+    }
 
     // Handle author name assignment securely
     // Users can only publish under their own name or anonymously - never a custom name
@@ -209,7 +241,6 @@ export async function POST(request: NextRequest) {
       isAnonymous: !!isAnonymous,
       media: processedMedia,
       featuredImage: featuredImage || undefined,
-      featuredImageBlobId: featuredImageBlobId || undefined
     };
     const { data: blog, error } = await supabase
       .from('blogs')
@@ -225,7 +256,6 @@ export async function POST(request: NextRequest) {
         is_anonymous: storyData.isAnonymous,
         media: storyData.media,
         featured_image: storyData.featuredImage,
-        featured_image_blob_id: storyData.featuredImageBlobId || null
       })
       .select('*')
       .single();

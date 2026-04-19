@@ -106,18 +106,6 @@ export const trackBlogRead = (blogTitle: string, readTime: number) => {
 }
 
 /**
- * Track event registrations
- */
-export const trackEventRegistration = (eventTitle: string) => {
-  event({
-    action: 'register_event',
-    category: 'conversion',
-    label: eventTitle,
-    value: 1,
-  })
-}
-
-/**
  * Track organization profile views
  */
 export const trackOrganizationView = (organizationName: string) => {

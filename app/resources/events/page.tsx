@@ -35,7 +35,6 @@ interface Event { _id: string
   applicationLink?: string
   applicationDeadline?: string
   maxParticipants?: number
-  currentParticipants: number
   tags: string[]
   imageUrl?: string
   createdBy: { _id: string
@@ -418,9 +417,6 @@ export default function EventsPage() {
                                   <span className="px-2 py-1 bg-gray-100 text-gray-500 text-xs rounded-lg">+{event.tags.length - 3}</span>
                                 )}
                               </div>
-                            )}
-                            {(event.maxParticipants && event.currentParticipants / event.maxParticipants >= 0.7) && (
-                              <p className="text-xs font-semibold text-amber-700">Yerlər sürətlə dolur</p>
                             )}
                           </>
                         }

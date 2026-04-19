@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { getUserAvatarPath, resolveProfileImageUrl } from '@/lib/profileImageUrls'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,6 +43,9 @@ export async function GET(
       .eq('user_id', account.id)
       .single()
 
+    const avatarPath = getUserAvatarPath((profile as any)?.avatar_metadata)
+    const avatarUrl = await resolveProfileImageUrl(supabase, avatarPath, profile?.avatar || null)
+
     // Count blogs
     const { count: blogCount } = await supabase
       .from('blogs')
@@ -53,8 +57,8 @@ export async function GET(
       user: {
         id: user.id,
         name: user.name,
-        avatar: profile?.avatar || profile?.avatar_blob_id ? null : null,
-        avatarUrl: profile?.avatar || (profile?.avatar_blob_id ? `/api/images/${profile.avatar_blob_id}` : null),
+        avatar: null,
+        avatarUrl,
         bio: profile?.bio || null,
         location: profile?.location || null,
         website: profile?.website || null,

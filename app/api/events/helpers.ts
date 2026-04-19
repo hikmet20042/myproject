@@ -165,6 +165,10 @@ export const validateEventInput = (data: any, options: ValidationOptions = {}) =
         return { valid: false, error: `${field} is required` };
       }
     }
+
+    if (!data.applicationLink) {
+      return { valid: false, error: "applicationLink is required" };
+    }
   }
 
   if (data.description !== undefined) {
@@ -192,6 +196,21 @@ export const validateEventInput = (data: any, options: ValidationOptions = {}) =
     const locationType = data.location?.type;
     if (!locationType || !["online", "physical", "hybrid"].includes(locationType)) {
       return { valid: false, error: "Valid location type is required" };
+    }
+  }
+
+  if (data.applicationLink !== undefined) {
+    if (!data.applicationLink || typeof data.applicationLink !== "string") {
+      return { valid: false, error: "applicationLink must be a valid URL" };
+    }
+
+    try {
+      const parsed = new URL(data.applicationLink);
+      if (!parsed.protocol.startsWith("http")) {
+        return { valid: false, error: "applicationLink must start with http or https" };
+      }
+    } catch {
+      return { valid: false, error: "applicationLink must be a valid URL" };
     }
   }
 
