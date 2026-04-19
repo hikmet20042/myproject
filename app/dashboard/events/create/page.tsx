@@ -7,8 +7,7 @@ import EventForm, { type EventFormSubmitPayload } from '@/features/events/compon
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useCreateEvent } from '@/lib/eventQueries'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
-
-type EventTypeValue = 'event' | 'training' | 'workshop' | 'seminar'
+import { EVENT_TYPE_VALUES, type EventTypeValue } from '@/lib/events/eventConfig'
 
 function CreateEventContent() {
   const router = useRouter()
@@ -19,9 +18,9 @@ function CreateEventContent() {
 
   const typeParam = searchParams?.get('type')
   const defaultEventType: EventTypeValue =
-    typeParam === 'training' || typeParam === 'workshop' || typeParam === 'seminar'
-      ? typeParam
-      : 'event'
+    typeParam && EVENT_TYPE_VALUES.includes(typeParam as EventTypeValue)
+      ? (typeParam as EventTypeValue)
+      : 'training_workshop'
 
   const handleCreate = async (payload: EventFormSubmitPayload) => {
     await createEventMutation.mutateAsync(payload)

@@ -24,9 +24,9 @@ export async function GET(request: NextRequest) {
     const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 50) : 20;
     const category = searchParams.get("category");
     const eventType = searchParams.get("eventType");
-    const trainingType = searchParams.get("trainingType");
-    const location = searchParams.get("location");
-    const month = searchParams.get("month");
+    const city = searchParams.get("city");
+    const dateFrom = searchParams.get("dateFrom");
+    const dateTo = searchParams.get("dateTo");
     const search = searchParams.get("search");
     const status = searchParams.get("status");
     const createdBy = searchParams.get("createdBy");
@@ -92,30 +92,22 @@ export async function GET(request: NextRequest) {
       query = query.eq("event_type", eventType);
     }
 
-    if (trainingType && trainingType !== "all") {
-      if (trainingType === "online") {
-        query = query.or("location->>type.eq.online,location->>type.eq.hybrid");
-      } else if (trainingType === "in-person") {
-        query = query.or("location->>type.eq.physical,location->>type.eq.hybrid");
+    if (city && city !== "all") {
+      query = query.ilike("location->>city", `%${city}%`);
+    }
+
+    if (dateFrom) {
+      const start = new Date(dateFrom);
+      if (!Number.isNaN(start.getTime())) {
+        query = query.gte("event_date", start.toISOString());
       }
     }
 
-    if (location && location !== "all") {
-      if (location === "online") {
-        query = query.or("location->>type.eq.online,location->>type.eq.hybrid");
-      } else if (location === "physical") {
-        query = query.or("location->>type.eq.physical,location->>type.eq.hybrid");
-      } else {
-        query = query.or(`location->>city.ilike.%${location}%`);
+    if (dateTo) {
+      const end = new Date(`${dateTo}T23:59:59.999Z`);
+      if (!Number.isNaN(end.getTime())) {
+        query = query.lte("event_date", end.toISOString());
       }
-    }
-
-    if (month && month !== "all") {
-      const year = new Date().getFullYear();
-      const monthNum = parseInt(month);
-      const startDate = new Date(year, monthNum - 1, 1);
-      const endDate = new Date(year, monthNum, 0, 23, 59, 59);
-      query = query.gte("event_date", startDate.toISOString()).lte("event_date", endDate.toISOString());
     }
 
     if (search) {

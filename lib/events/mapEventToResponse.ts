@@ -7,6 +7,7 @@ export const mapEventToResponse = (row: any) => {
   const tags = Array.isArray(row?.tags) ? row.tags : [];
   const images = Array.isArray(row?.images) ? row.images : [];
   const viewedBy = Array.isArray(row?.viewed_by) ? row.viewed_by : [];
+  const sessions = Array.isArray(row?.sessions) ? row.sessions : [];
 
   return {
     _id: row?.id ?? null,
@@ -16,6 +17,7 @@ export const mapEventToResponse = (row: any) => {
     description: row?.description ?? null,
     eventType: row?.event_type ?? null,
     eventDate: row?.event_date ?? null,
+    sessions,
     location: {
       type: location?.type ?? null,
       address: location?.address ?? null,
@@ -50,14 +52,11 @@ export const mapEventToResponse = (row: any) => {
     },
     category: row?.category ?? null,
     endDate: row?.end_date ?? null,
-    duration: row?.duration ?? null,
-    schedule: row?.schedule ?? null,
-    prerequisites: Array.isArray(row?.prerequisites) ? row.prerequisites : [],
-    learningOutcomes: Array.isArray(row?.learning_outcomes) ? row.learning_outcomes : [],
     certification: row?.certification ?? null,
-    cost: row?.cost ?? null,
-    targetAudience: Array.isArray(row?.target_audience) ? row.target_audience : [],
-    syllabus: row?.syllabus ?? null,
+    audienceAgeMin: row?.audience_age_min ?? null,
+    audienceAgeMax: row?.audience_age_max ?? null,
+    requirements: Array.isArray(row?.requirements) ? row.requirements : [],
+    participantBenefits: Array.isArray(row?.participant_benefits) ? row.participant_benefits : [],
     imageUrl: row?.image_url ?? null,
     organizationName: row?.organization_name ?? null,
     approvedAt: row?.approved_at ?? null,

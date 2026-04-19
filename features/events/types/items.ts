@@ -5,6 +5,11 @@ export interface EventItem {
   description: string;
   eventDate: string;
   endDate?: string;
+  sessions?: Array<{
+    date: string;
+    startTime: string;
+    endTime: string;
+  }>;
   location: {
     type: "online" | "physical" | "hybrid";
     address?: string;
@@ -15,6 +20,10 @@ export interface EventItem {
   category: string;
   eventType: string;
   maxParticipants?: number;
+  audienceAgeMin?: number;
+  audienceAgeMax?: number;
+  requirements?: string[];
+  participantBenefits?: string[];
   applicationDeadline?: string;
   contactEmail?: string;
   contactPhone?: string;

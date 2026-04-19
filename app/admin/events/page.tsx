@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -18,6 +18,12 @@ import AdminActionModal from "@/components/admin/AdminActionModal";
 import { useLocalizedPath } from "@/hooks/useLocalizedPath";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import AdminListLayout from "@/components/admin/AdminListLayout";
+import {
+  AZERBAIJAN_CITIES,
+  EVENT_TYPE_LABELS,
+  EVENT_TYPE_VALUES,
+  type EventTypeValue,
+} from "@/lib/events/eventConfig";
 
 type AdminEventsPayload = {
   items: any[];
@@ -33,6 +39,10 @@ export default function EventsAdminPage() {
   const queryClient = useQueryClient();
   const [contentSearch, setContentSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [eventTypeFilter, setEventTypeFilter] = useState("all");
+  const [locationFilter, setLocationFilter] = useState("all");
+  const [dateFromFilter, setDateFromFilter] = useState("");
+  const [dateToFilter, setDateToFilter] = useState("");
   const [eventPage, setEventPage] = useState(1);
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
   const [showEventModal, setShowEventModal] = useState(false);
@@ -42,16 +52,24 @@ export default function EventsAdminPage() {
   const [eventRejectionReason, setEventRejectionReason] = useState("");
   const [deleteConfirmEvent, setDeleteConfirmEvent] = useState<any | null>(null);
 
+  useEffect(() => {
+    setEventPage(1);
+  }, [contentSearch, statusFilter, eventTypeFilter, locationFilter, dateFromFilter, dateToFilter]);
+
   const queryFilters = useMemo(
     () => ({
       page: eventPage,
       limit: 20,
       ...(contentSearch ? { search: contentSearch } : {}),
       ...(statusFilter !== "all" ? { status: statusFilter } : {}),
+      ...(eventTypeFilter !== "all" ? { eventType: eventTypeFilter } : {}),
+      ...(locationFilter !== "all" ? { location: locationFilter } : {}),
+      ...(dateFromFilter ? { dateFrom: dateFromFilter } : {}),
+      ...(dateToFilter ? { dateTo: dateToFilter } : {}),
       sortBy: "createdAt",
       sortOrder: "desc",
     }),
-    [contentSearch, eventPage, statusFilter],
+    [contentSearch, eventPage, eventTypeFilter, locationFilter, dateFromFilter, dateToFilter, statusFilter],
   );
 
   const unwrapPayload = (responseData: any): AdminEventsPayload => {
@@ -338,7 +356,19 @@ export default function EventsAdminPage() {
                 />
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={eventTypeFilter}
+                onChange={(e) => setEventTypeFilter(e.target.value)}
+                className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white text-gray-900"
+              >
+                <option value="all">{"Bütün növlər"}</option>
+                {EVENT_TYPE_VALUES.map((type) => (
+                  <option key={type} value={type}>
+                    {EVENT_TYPE_LABELS[type]}
+                  </option>
+                ))}
+              </select>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -349,6 +379,34 @@ export default function EventsAdminPage() {
                 <option value="approved">{"Təsdiqlənmiş"}</option>
                 <option value="rejected">{"Rədd Edilmiş"}</option>
               </select>
+              <select
+                value={locationFilter}
+                onChange={(e) => setLocationFilter(e.target.value)}
+                className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white text-gray-900"
+              >
+                <option value="all">{"Bütün məkanlar"}</option>
+                <option value="online">{"Onlayn/Hibrid"}</option>
+                <option value="physical">{"Fiziki/Hibrid"}</option>
+                {AZERBAIJAN_CITIES.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="date"
+                value={dateFromFilter}
+                onChange={(e) => setDateFromFilter(e.target.value)}
+                className="px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white text-gray-900"
+                aria-label="Tarixdən"
+              />
+              <input
+                type="date"
+                value={dateToFilter}
+                onChange={(e) => setDateToFilter(e.target.value)}
+                className="px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white text-gray-900"
+                aria-label="Tarixə"
+              />
             </div>
           </div>
         </div>
@@ -404,7 +462,7 @@ export default function EventsAdminPage() {
                                 : "Gözləmədə"}
                           </span>
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 capitalize">
-                            {event.eventType || "Tədbir"}
+                            {EVENT_TYPE_LABELS[event.eventType as EventTypeValue] || event.eventType || "Tədbir"}
                           </span>
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
                             {event.category}

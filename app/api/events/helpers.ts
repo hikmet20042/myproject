@@ -4,6 +4,7 @@ import {
   successResponse as baseSuccessResponse,
   errorResponse as baseErrorResponse,
 } from "@/lib/apiResponse";
+import { EVENT_TYPE_VALUES } from "@/lib/events/eventConfig";
 
 type ValidationOptions = {
   partial?: boolean;
@@ -18,8 +19,20 @@ type LifecycleActor = {
   adminComment?: string | null;
 };
 
-const validEventTypes = ["event", "training", "workshop", "conference", "seminar"];
+const validEventTypes = [...EVENT_TYPE_VALUES];
 const validLifecycleStatuses = ["pending", "approved", "rejected"] as const;
+
+const isValidTime = (value: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+
+const normalizeStringArray = (value: unknown) => {
+  if (!Array.isArray(value)) {
+    return [] as string[];
+  }
+
+  return value
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter(Boolean);
+};
 
 export { mapEventToResponse };
 
@@ -159,7 +172,7 @@ export const validateEventInput = (data: any, options: ValidationOptions = {}) =
   }
 
   if (!partial) {
-    const requiredFields = ["title", "description", "category", "eventDate", "location", "eventType"];
+    const requiredFields = ["title", "description", "category", "location", "eventType"];
     for (const field of requiredFields) {
       if (!data[field]) {
         return { valid: false, error: `${field} is required` };
@@ -182,13 +195,41 @@ export const validateEventInput = (data: any, options: ValidationOptions = {}) =
     return { valid: false, error: "Invalid event type" };
   }
 
-  if (data.eventType === "training") {
-    if (data.duration && (!data.duration.value || !data.duration.unit)) {
-      return { valid: false, error: "Duration must include both value and unit for training events" };
+  if (!partial && (!Array.isArray(data.sessions) || data.sessions.length === 0)) {
+    return { valid: false, error: "At least one session is required" };
+  }
+
+  if (data.sessions !== undefined) {
+    if (!Array.isArray(data.sessions) || data.sessions.length === 0) {
+      return { valid: false, error: "sessions must include at least one item" };
     }
 
-    if (data.cost && !Object.prototype.hasOwnProperty.call(data.cost, "isFree")) {
-      return { valid: false, error: "Cost information must specify if training is free" };
+    for (const session of data.sessions) {
+      if (!session || typeof session !== "object") {
+        return { valid: false, error: "Each session must be an object" };
+      }
+
+      const { date, startTime, endTime } = session as {
+        date?: string;
+        startTime?: string;
+        endTime?: string;
+      };
+
+      if (!date || !startTime || !endTime) {
+        return { valid: false, error: "Each session requires date, startTime, and endTime" };
+      }
+
+      if (Number.isNaN(Date.parse(date))) {
+        return { valid: false, error: "Session date must be a valid date" };
+      }
+
+      if (!isValidTime(startTime) || !isValidTime(endTime)) {
+        return { valid: false, error: "Session startTime and endTime must be in HH:mm format" };
+      }
+
+      if (startTime >= endTime) {
+        return { valid: false, error: "Session startTime must be earlier than endTime" };
+      }
     }
   }
 
@@ -196,6 +237,10 @@ export const validateEventInput = (data: any, options: ValidationOptions = {}) =
     const locationType = data.location?.type;
     if (!locationType || !["online", "physical", "hybrid"].includes(locationType)) {
       return { valid: false, error: "Valid location type is required" };
+    }
+
+    if (["physical", "hybrid"].includes(locationType) && !data.location?.city) {
+      return { valid: false, error: "location.city is required for physical or hybrid events" };
     }
   }
 
@@ -214,6 +259,30 @@ export const validateEventInput = (data: any, options: ValidationOptions = {}) =
     }
   }
 
+  const ageMinProvided = data.audienceAgeMin !== undefined && data.audienceAgeMin !== null && data.audienceAgeMin !== "";
+  const ageMaxProvided = data.audienceAgeMax !== undefined && data.audienceAgeMax !== null && data.audienceAgeMax !== "";
+
+  if (!partial && (!ageMinProvided || !ageMaxProvided)) {
+    return { valid: false, error: "audienceAgeMin and audienceAgeMax are required" };
+  }
+
+  if (ageMinProvided || ageMaxProvided) {
+    const min = Number(data.audienceAgeMin);
+    const max = Number(data.audienceAgeMax);
+
+    if (!Number.isInteger(min) || !Number.isInteger(max)) {
+      return { valid: false, error: "audienceAgeMin and audienceAgeMax must be integers" };
+    }
+
+    if (min < 0 || min > 99 || max < 0 || max > 99) {
+      return { valid: false, error: "Audience age range must be between 0 and 99" };
+    }
+
+    if (min > max) {
+      return { valid: false, error: "audienceAgeMin cannot be greater than audienceAgeMax" };
+    }
+  }
+
   return { valid: true };
 };
 
@@ -226,14 +295,12 @@ export const mapEventInputToDbPayload = (data: any, options: ValidationOptions =
     "eventType",
     "eventDate",
     "endDate",
-    "duration",
-    "schedule",
-    "prerequisites",
-    "learningOutcomes",
+    "sessions",
     "certification",
-    "cost",
-    "targetAudience",
-    "syllabus",
+    "audienceAgeMin",
+    "audienceAgeMax",
+    "requirements",
+    "participantBenefits",
     "location",
     "applicationLink",
     "applicationDeadline",
@@ -253,24 +320,32 @@ export const mapEventInputToDbPayload = (data: any, options: ValidationOptions =
         title: data.title,
         description: data.description,
         category: data.category,
-        eventType: data.eventType || "event",
-        eventDate: data.eventDate,
+        eventType: data.eventType,
+        eventDate: data.eventDate || null,
         endDate: data.endDate || null,
-        duration: data.duration || null,
-        schedule: data.schedule || null,
-        prerequisites: data.prerequisites || [],
-        learningOutcomes: data.learningOutcomes || [],
+        sessions: Array.isArray(data.sessions) ? data.sessions : [],
         certification: data.certification || null,
-        cost: data.cost || null,
-        targetAudience: data.targetAudience || [],
-        syllabus: data.syllabus || null,
+        audienceAgeMin: data.audienceAgeMin ?? null,
+        audienceAgeMax: data.audienceAgeMax ?? null,
+        requirements: normalizeStringArray(data.requirements),
+        participantBenefits: normalizeStringArray(data.participantBenefits),
         location: data.location,
-        applicationLink: data.applicationLink || null,
+        applicationLink: data.applicationLink,
         applicationDeadline: data.applicationDeadline || null,
         maxParticipants: data.maxParticipants || null,
         tags: data.tags || [],
         imageUrl: data.imageUrl || null,
       };
+
+  if (Array.isArray(source.sessions) && source.sessions.length > 0 && !source.eventDate) {
+    const sorted = [...source.sessions].sort((a, b) => {
+      const left = `${a.date}T${a.startTime}:00Z`;
+      const right = `${b.date}T${b.startTime}:00Z`;
+      return new Date(left).getTime() - new Date(right).getTime();
+    });
+    source.eventDate = `${sorted[0].date}T${sorted[0].startTime}:00.000Z`;
+    source.endDate = `${sorted[sorted.length - 1].date}T${sorted[sorted.length - 1].endTime}:00.000Z`;
+  }
 
   const mapped = { ...source } as Record<string, any>;
 
@@ -286,13 +361,20 @@ export const mapEventInputToDbPayload = (data: any, options: ValidationOptions =
     mapped.end_date = mapped.endDate;
     delete mapped.endDate;
   }
-  if (mapped.learningOutcomes !== undefined) {
-    mapped.learning_outcomes = mapped.learningOutcomes;
-    delete mapped.learningOutcomes;
+  if (mapped.sessions !== undefined) {
+    mapped.sessions = mapped.sessions;
   }
-  if (mapped.targetAudience !== undefined) {
-    mapped.target_audience = mapped.targetAudience;
-    delete mapped.targetAudience;
+  if (mapped.audienceAgeMin !== undefined) {
+    mapped.audience_age_min = mapped.audienceAgeMin;
+    delete mapped.audienceAgeMin;
+  }
+  if (mapped.audienceAgeMax !== undefined) {
+    mapped.audience_age_max = mapped.audienceAgeMax;
+    delete mapped.audienceAgeMax;
+  }
+  if (mapped.participantBenefits !== undefined) {
+    mapped.participant_benefits = mapped.participantBenefits;
+    delete mapped.participantBenefits;
   }
   if (mapped.applicationLink !== undefined) {
     mapped.application_link = mapped.applicationLink;

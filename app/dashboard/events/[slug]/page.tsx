@@ -26,6 +26,18 @@ interface Event { _id: string
     onlineLink?: string }
   applicationLink?: string
   applicationDeadline?: string
+  sessions?: Array<{
+    date: string
+    startTime: string
+    endTime: string
+  }>
+  audienceAgeMin?: number
+  audienceAgeMax?: number
+  requirements?: string[]
+  participantBenefits?: string[]
+  certification?: {
+    provided?: boolean
+  }
   tags: string[]
   imageUrl?: string
   status: 'pending' | 'approved' | 'rejected'
@@ -239,6 +251,32 @@ export default function EventDetail() {
               </div>
             )}
 
+            {(event.requirements?.length || event.participantBenefits?.length) && (
+              <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Profil və faydalar</h2>
+                {Array.isArray(event.requirements) && event.requirements.length > 0 && (
+                  <div className="mb-4">
+                    <p className="font-medium text-gray-800">Tələblər</p>
+                    <ul className="mt-2 list-disc list-inside text-gray-600 text-sm">
+                      {event.requirements.map((item, index) => (
+                        <li key={`${item}-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {Array.isArray(event.participantBenefits) && event.participantBenefits.length > 0 && (
+                  <div>
+                    <p className="font-medium text-gray-800">İştirakçı faydaları</p>
+                    <ul className="mt-2 list-disc list-inside text-gray-600 text-sm">
+                      {event.participantBenefits.map((item, index) => (
+                        <li key={`${item}-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Location Details */}
             <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
@@ -305,6 +343,16 @@ export default function EventDetail() {
                     <p className="text-gray-600 text-sm">{formatDate(event.eventDate)}</p>
                   </div>
                 </div>
+
+                {Array.isArray(event.sessions) && event.sessions.length > 0 && (
+                  <div className="pl-8 text-sm text-gray-600 space-y-1">
+                    {event.sessions.map((session, index) => (
+                      <p key={`${session.date}-${session.startTime}-${index}`}>
+                        {session.date}: {session.startTime} - {session.endTime}
+                      </p>
+                    ))}
+                  </div>
+                )}
                 
                 {event.endDate && (
                   <div className="flex items-start">
@@ -340,6 +388,17 @@ export default function EventDetail() {
                         Müraciət linki
                         <ExternalLink className="w-3 h-3 ml-1" />
                       </a>
+                    </div>
+                  </div>
+                )}
+
+                {(event.audienceAgeMin !== undefined && event.audienceAgeMax !== undefined) && (
+                  <div className="flex items-start">
+                    <Users className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-gray-900">İştirakçı profili</p>
+                      <p className="text-gray-600 text-sm">Yaş aralığı: {event.audienceAgeMin} - {event.audienceAgeMax}</p>
+                      {event.certification?.provided && <p className="text-gray-600 text-sm">Sertifikat təqdim olunur</p>}
                     </div>
                   </div>
                 )}

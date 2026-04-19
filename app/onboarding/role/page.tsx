@@ -8,7 +8,6 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { LoadingState } from '@/components/shared'
 import { Button } from '@/components/ui'
 import { FormLayout } from '@/components/forms'
-import IllustrationAsset from '@/components/shared/IllustrationAsset'
 
 export default function OnboardingRolePage() {
   const router = useRouter()
@@ -28,12 +27,7 @@ export default function OnboardingRolePage() {
       title="Rol seçimi"
       subtitle="Davama keçmək üçün hesab tipinizi seçin."
     >
-      <div className="mb-5 rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-cyan-50 to-white p-4">
-        <IllustrationAsset
-          illustrationKey="onboarding-user"
-          className="mx-auto h-40 w-full max-w-sm"
-        />
-      </div>
+      
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
         <div className="grid gap-4 md:grid-cols-2">
           <button

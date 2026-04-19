@@ -137,7 +137,7 @@ export default function SavedItemsPage() {
               <EmptyState
                 title="Heç nə saxlamamısan"
                 message="İmkanları saxla ki, daha sonra asanlıqla qayıda biləsən."
-                illustrationKey="empty-saved"
+                
                 actionText="İmkanları kəşf et"
                 onAction={() => router.push(localePath('/resources'))}
               />

@@ -16,6 +16,7 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { eventQueryKeys, fetchEventById } from '@/lib/eventQueries'
 import { DetailPageLayout } from '@/components/layout'
+import { EVENT_TYPE_LABELS, type EventTypeValue } from '@/lib/events/eventConfig'
 
 interface Event { _id: string
   id: string
@@ -33,6 +34,18 @@ interface Event { _id: string
     onlineLink?: string }
   applicationLink?: string
   applicationDeadline?: string
+  sessions?: Array<{
+    date: string
+    startTime: string
+    endTime: string
+  }>
+  audienceAgeMin?: number
+  audienceAgeMax?: number
+  requirements?: string[]
+  participantBenefits?: string[]
+  certification?: {
+    provided?: boolean
+  }
   tags: string[]
   imageUrl?: string
   createdBy: { _id: string
@@ -128,6 +141,11 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
     if (type === 'physical') return 'Fiziki'
     if (type === 'hybrid') return 'Hibrid'
     return type
+  }
+
+  const getEventTypeLabel = (type: string) => {
+    if (!type) return 'Tədbir'
+    return EVENT_TYPE_LABELS[type as EventTypeValue] || type
   }
 
     const getCategoryColor = (category: string) => { const colors: { [key: string]: string } = { 'Human Rights': 'bg-red-100 text-red-800',
@@ -398,6 +416,15 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
                     {event.endDate && (
                       <p className="text-sm text-gray-600 mt-1">{'tarixinədək'}: {formatDate(event.endDate)} saat {formatTime(event.endDate)}</p>
                     )}
+                    {Array.isArray(event.sessions) && event.sessions.length > 0 && (
+                      <div className="mt-2 space-y-1 text-xs text-gray-600">
+                        {event.sessions.map((session, index) => (
+                          <p key={`${session.date}-${session.startTime}-${index}`}>
+                            {session.date}: {session.startTime} - {session.endTime}
+                          </p>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-start gap-4 rounded-xl border border-gray-200 bg-slate-50 p-4">
@@ -406,7 +433,7 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
                   </div>
                   <div>
                     <p className="font-bold text-gray-900 capitalize text-base">{getLocationTypeLabel(event.location.type)}</p>
-                    {event.location.type === 'physical' && event.location.address && (
+                    {(event.location.type === 'physical' || event.location.type === 'hybrid') && event.location.address && (
                       <p className="text-sm text-gray-600 font-medium">
                         {event.location.address}
                         {event.location.city && `, ${event.location.city}`}
@@ -434,9 +461,71 @@ export default function EventDetailPage() { const localePath = useLocalizedPath(
                     </div>
                   </div>
                 )}
+                {(event.audienceAgeMin !== undefined && event.audienceAgeMax !== undefined) && (
+                  <div className="flex items-start gap-4 rounded-xl border border-gray-200 bg-slate-50 p-4">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-violet-100">
+                      <Users className="h-5 w-5 text-violet-600" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900 text-base">İştirakçı profili</p>
+                      <p className="text-sm text-gray-600 font-medium">Yaş aralığı: {event.audienceAgeMin} - {event.audienceAgeMax}</p>
+                      {event.certification?.provided && (
+                        <p className="text-sm text-gray-600 font-medium">Sertifikat təqdim olunur</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-start gap-4 rounded-xl border border-gray-200 bg-slate-50 p-4">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-indigo-100">
+                    <Tag className="h-5 w-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900 text-base">Növ</p>
+                    <p className="text-sm text-gray-600 font-medium">{getEventTypeLabel(event.eventType)}</p>
+                  </div>
+                </div>
+                {typeof event.maxParticipants === 'number' && event.maxParticipants > 0 && (
+                  <div className="flex items-start gap-4 rounded-xl border border-gray-200 bg-slate-50 p-4">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-amber-100">
+                      <Users className="h-5 w-5 text-amber-700" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900 text-base">Maksimum iştirakçı sayı</p>
+                      <p className="text-sm text-gray-600 font-medium">{event.maxParticipants} (məlumat xarakterlidir)</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
+          {(Array.isArray(event.requirements) && event.requirements.length > 0) ||
+          (Array.isArray(event.participantBenefits) && event.participantBenefits.length > 0) ? (
+            <Card className="border border-gray-200 shadow-sm">
+              <CardContent className="p-6">
+                <h3 className="text-xl font-black text-gray-900">Profil və faydalar</h3>
+                {Array.isArray(event.requirements) && event.requirements.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm font-bold text-gray-800">Tələblər</p>
+                    <ul className="mt-2 list-disc pl-5 text-sm text-gray-600 space-y-1">
+                      {event.requirements.map((item, index) => (
+                        <li key={`${item}-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {Array.isArray(event.participantBenefits) && event.participantBenefits.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm font-bold text-gray-800">İştirakçı faydaları</p>
+                    <ul className="mt-2 list-disc pl-5 text-sm text-gray-600 space-y-1">
+                      {event.participantBenefits.map((item, index) => (
+                        <li key={`${item}-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
           <Card className="border border-gray-200 shadow-sm">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3 mb-6">

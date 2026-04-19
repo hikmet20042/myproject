@@ -17,6 +17,7 @@ import { getUserErrorMessage } from '@/lib/errorMessages';
 import { logError } from '@/lib/logger';
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback';
 import { useSession } from '@/lib/auth/client';
+import { AZERBAIJAN_CITIES, EVENT_TYPE_LABELS, EVENT_TYPE_VALUES, type EventTypeValue } from '@/lib/events/eventConfig';
 
 interface Event { _id: string
   id: string
@@ -24,7 +25,7 @@ interface Event { _id: string
   title: string
   description: string
   category: string
-  eventType: 'event' | 'training' | 'workshop' | 'conference' | 'seminar'
+  eventType: EventTypeValue
   eventDate: string
   endDate?: string
   location: { type: 'online' | 'physical' | 'hybrid'
@@ -50,61 +51,30 @@ interface Event { _id: string
   createdAt: string
   updatedAt: string
   views?: number
-  saves?: number
-  // Training-specific fields
-  duration?: string
-  schedule?: { startTime: string
-    endTime: string
-    timezone?: string }
-  prerequisites?: string[]
-  learningOutcomes?: string[]
-  certification?: { provided: boolean
-    type?: string
-    accreditedBy?: string }
-  cost?: { isFree: boolean
-    amount?: number
-    currency?: string
-    scholarshipAvailable?: boolean }
-  targetAudience?: string[]
-  syllabus?: { modules: Array<{ title: string
-      description: string
-      duration: string }> } }
+  saves?: number }
 
 export default function EventsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedLocation, setSelectedLocation] = useState('all');
+  const [selectedCity, setSelectedCity] = useState('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const { data: session } = useSession();
   const isOrganizationUser = session?.user?.accountType === 'organization';
-  const [selectedMonth, setSelectedMonth] = useState('all');
   const [selectedEventType, setSelectedEventType] = useState('all');
   const { showError } = useGlobalFeedback();
   const localePath = useLocalizedPath()
-  const months = [
-    { value: 'all', label: 'Bütün Aylar' },
-    { value: '1', label: 'January' },
-    { value: '2', label: 'February' },
-    { value: '3', label: 'March' },
-    { value: '4', label: 'April' },
-    { value: '5', label: 'May' },
-    { value: '6', label: 'June' },
-    { value: '7', label: 'July' },
-    { value: '8', label: 'August' },
-    { value: '9', label: 'September' },
-    { value: '10', label: 'October' },
-    { value: '11', label: 'November' },
-    { value: '12', label: 'December' }
-  ]
 
   const queryFilters = useMemo(() => ({
     status: 'approved',
     limit: 50,
     category: selectedCategory !== 'all' ? selectedCategory : undefined,
     eventType: selectedEventType !== 'all' ? selectedEventType : undefined,
-    location: selectedLocation !== 'all' ? selectedLocation : undefined,
-    month: selectedMonth !== 'all' ? selectedMonth : undefined,
+    city: selectedCity !== 'all' ? selectedCity : undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
     search: searchTerm.trim() ? searchTerm.trim() : undefined
-  }), [searchTerm, selectedCategory, selectedEventType, selectedLocation, selectedMonth])
+  }), [searchTerm, selectedCategory, selectedEventType, selectedCity, dateFrom, dateTo])
 
   const eventsQuery = useQuery({
     queryKey: eventQueryKeys.list(queryFilters),
@@ -117,8 +87,8 @@ export default function EventsPage() {
     'Human Rights', 'Legal Aid', 'Networking', 'Policy', 'Research', 'Training',
     'Workshop', 'Youth Development', 'Other'
   ];
-  const locations = ['all', 'Baku', 'Ganja', 'Sumgayit', 'Online', 'Other'];
-  const eventTypes = ['all', 'event', 'training', 'workshop', 'conference', 'seminar'];
+  const cityOptions = ['all', ...AZERBAIJAN_CITIES];
+  const eventTypes = ['all', ...EVENT_TYPE_VALUES];
 
   const slugifyCategory = (s: string) =>
     s
@@ -131,19 +101,12 @@ export default function EventsPage() {
   const getCategoryLabel = (val: string) => { if (val === 'all') return 'Bütün Kateqoriyalar';
     return val; };
 
-  const getLocationLabel = (val: string) => { if (val === 'all') return 'Bütün Yerlər';
-    if (val === 'Online') return 'Onlayn';
-    if (val.toLowerCase() === 'baku') return 'Bakı';
-    if (val.toLowerCase() === 'ganja') return 'Gəncə';
-    if (val.toLowerCase() === 'sumgayit') return 'Sumqayıt';
-    if (val.toLowerCase() === 'other') return 'Digər Regionlar';
-    return val; };
+  const getCityLabel = (val: string) => (val === 'all' ? 'Bütün şəhərlər' : val);
 
-  const getMonthLabel = (val: string) =>
-    months.find((month) => month.value === val)?.label || val;
-
-  const getEventTypeLabel = (val: string) => { if (val === 'all') return 'Bütün növlər';
-    return val.charAt(0).toUpperCase() + val.slice(1); };
+  const getEventTypeLabel = (val: string) => {
+    if (val === 'all') return 'Bütün növlər';
+    return EVENT_TYPE_LABELS[val as EventTypeValue] || val;
+  };
 
   const isDeadlineNear = (deadline: string) => { const deadlineDate = new Date(deadline);
     const today = new Date();
@@ -173,8 +136,9 @@ export default function EventsPage() {
   const hasActiveFilters =
     searchTerm.trim() !== '' ||
     selectedCategory !== 'all' ||
-    selectedLocation !== 'all' ||
-    selectedMonth !== 'all' ||
+    selectedCity !== 'all' ||
+    Boolean(dateFrom) ||
+    Boolean(dateTo) ||
     selectedEventType !== 'all';
 
   if (eventsQuery.isError) {
@@ -248,7 +212,7 @@ export default function EventsPage() {
                 inputSize="md"
                 aria-label={'Tədbirləri axtar'}
               /> }
-            filterControls={ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+            filterControls={ <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
                 {/* Category Filter */}
                 <div>
                   <Select 
@@ -262,28 +226,15 @@ export default function EventsPage() {
                   />
                 </div>
 
-                {/* Location Filter */}
+                {/* City Filter */}
                 <div>
                   <Select 
-                    label={'Yer'}
-                    value={selectedLocation} 
-                    onChange={(e) => setSelectedLocation(e.target.value)}
-                    options={locations.map(location => ({ value: location,
-                      label: getLocationLabel(location) }))}
-                    placeholder={'Bütün Yerlər'}
-                    selectSize="md"
-                  />
-                </div>
-
-                {/* Month Filter */}
-                <div>
-                  <Select 
-                    label={'Ay'}
-                    value={selectedMonth} 
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                    options={months.map(month => ({ value: month.value,
-                      label: getMonthLabel(month.value) }))}
-                    placeholder={'Bütün Aylar'}
+                    label={'Şəhər'}
+                    value={selectedCity} 
+                    onChange={(e) => setSelectedCity(e.target.value)}
+                    options={cityOptions.map(city => ({ value: city,
+                      label: getCityLabel(city) }))}
+                    placeholder={'Bütün şəhərlər'}
                     selectSize="md"
                   />
                 </div>
@@ -300,6 +251,26 @@ export default function EventsPage() {
                     selectSize="md"
                   />
                 </div>
+
+                <div>
+                  <Input
+                    type="date"
+                    label={'Tarixdən'}
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    aria-label={'Tarixdən filteri'}
+                  />
+                </div>
+
+                <div>
+                  <Input
+                    type="date"
+                    label={'Tarixədək'}
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    aria-label={'Tarixədək filteri'}
+                  />
+                </div>
               </div> }
             activeFilters={ hasActiveFilters ? (
                 <ActiveFilterBadges
@@ -309,26 +280,32 @@ export default function EventsPage() {
                       value: getCategoryLabel(selectedCategory),
                       onRemove: () => setSelectedCategory('all'),
                       colorScheme: 'teal' as const, }] : []),
-                    ...(selectedLocation !== 'all' ? [{ id: 'location',
-                      label: 'Yer',
-                      value: getLocationLabel(selectedLocation),
-                      onRemove: () => setSelectedLocation('all'),
+                    ...(selectedCity !== 'all' ? [{ id: 'city',
+                      label: 'Şəhər',
+                      value: getCityLabel(selectedCity),
+                      onRemove: () => setSelectedCity('all'),
                       colorScheme: 'blue' as const, }] : []),
-                    ...(selectedMonth !== 'all' ? [{ id: 'month',
-                      label: 'Ay',
-                      value: getMonthLabel(selectedMonth),
-                      onRemove: () => setSelectedMonth('all'),
-                      colorScheme: 'indigo' as const, }] : []),
                     ...(selectedEventType !== 'all' ? [{ id: 'eventType',
                       label: 'Növ',
                       value: getEventTypeLabel(selectedEventType),
                       onRemove: () => setSelectedEventType('all'),
                       colorScheme: 'blue' as const, }] : []),
+                    ...(dateFrom ? [{ id: 'dateFrom',
+                      label: 'Tarixdən',
+                      value: dateFrom,
+                      onRemove: () => setDateFrom(''),
+                      colorScheme: 'indigo' as const, }] : []),
+                    ...(dateTo ? [{ id: 'dateTo',
+                      label: 'Tarixədək',
+                      value: dateTo,
+                      onRemove: () => setDateTo(''),
+                      colorScheme: 'indigo' as const, }] : []),
                   ]}
                   onClearAll={() => { setSearchTerm('');
                     setSelectedCategory('all');
-                    setSelectedLocation('all');
-                    setSelectedMonth('all');
+                    setSelectedCity('all');
+                    setDateFrom('');
+                    setDateTo('');
                     setSelectedEventType('all'); }}
                 />
               ) : undefined }
@@ -344,8 +321,9 @@ export default function EventsPage() {
                 actionText="Filtrləri sıfırla"
                 onAction={hasActiveFilters ? () => { setSearchTerm('');
                   setSelectedCategory('all');
-                  setSelectedLocation('all');
-                  setSelectedMonth('all');
+                  setSelectedCity('all');
+                  setDateFrom('');
+                  setDateTo('');
                   setSelectedEventType('all'); } : undefined}
               />
             </div>
@@ -373,7 +351,7 @@ export default function EventsPage() {
                         }
                         badges={[
                           { label: getCategoryLabel(event.category), variant: 'info' },
-                          { label: event.eventType ? getEventTypeLabel(event.eventType) : getEventTypeLabel('event'), variant: 'success' },
+                          { label: event.eventType ? getEventTypeLabel(event.eventType) : getEventTypeLabel('training_workshop'), variant: 'success' },
                         ]}
                         metadata={
                           <>

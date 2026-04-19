@@ -9,14 +9,20 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { LoadingState, ErrorState } from '@/components/shared'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import AdminListLayout from '@/components/admin/AdminListLayout'
+import { EVENT_TYPE_LABELS, type EventTypeValue } from '@/lib/events/eventConfig'
 
 interface Event { _id: string
   title: string
   description: string
   category: string
-  eventType: 'event' | 'training' | 'workshop' | 'conference' | 'seminar'
+  eventType: EventTypeValue
   eventDate: string
   endDate?: string
+  sessions?: Array<{
+    date: string
+    startTime: string
+    endTime: string
+  }>
   location: { type: 'online' | 'physical' | 'hybrid'
     address?: string
     city?: string
@@ -24,6 +30,10 @@ interface Event { _id: string
     onlineLink?: string }
   applicationLink?: string
   applicationDeadline?: string
+  audienceAgeMin?: number
+  audienceAgeMax?: number
+  requirements?: string[]
+  participantBenefits?: string[]
   tags: string[]
   imageUrl?: string
   createdBy: { _id: string
@@ -37,23 +47,7 @@ interface Event { _id: string
   isPublished: boolean
   isFeatured: boolean
   createdAt: string
-  updatedAt: string
-  // Training-specific fields
-  duration?: { value: number
-    unit: 'hours' | 'days' | 'weeks' }
-  schedule?: string
-  prerequisites?: string[]
-  learningOutcomes?: string[]
-  certification?: { provided: boolean
-    type?: string
-    accreditedBy?: string }
-  cost?: { amount: number
-    currency: string
-    scholarshipAvailable: boolean }
-  targetAudience?: string[]
-  syllabus?: { modules: Array<{ title: string
-      description: string
-      duration: string }> } }
+  updatedAt: string }
 
     export default function AdminEventPreview() {
   const router = useRouter()
@@ -105,16 +99,7 @@ interface Event { _id: string
       if (response.ok) { router.push(localePath("/admin/events")) } else { setError('Rədd etmək alınmadı') } } catch (error) { setError('Rədd xətası') } finally { setActionLoading(false)
       setShowRejectModal(false) } }
 
-  const formatEventType = (type: string) => {
-    const eventTypeMap: Record<string, string> = {
-      event: 'Tədbir',
-      training: 'Təlim',
-      workshop: 'Seminar',
-      conference: 'Konfrans',
-      seminar: 'Seminar'
-    }
-    return eventTypeMap[type] || 'Tədbir'
-  }
+  const formatEventType = (type: string) => EVENT_TYPE_LABELS[type as EventTypeValue] || type
 
   const formatDate = (dateString: string) => { if (!dateString) return 'Göstərilməyib'
     const date = new Date(dateString)
@@ -321,6 +306,16 @@ interface Event { _id: string
                     <p className="text-gray-600 text-sm">{formatDate(event.eventDate)}</p>
                   </div>
                 </div>
+
+                {Array.isArray(event.sessions) && event.sessions.length > 0 && (
+                  <div className="pl-8 text-sm text-gray-600 space-y-1">
+                    {event.sessions.map((session, index) => (
+                      <p key={`${session.date}-${session.startTime}-${index}`}>
+                        {session.date}: {session.startTime} - {session.endTime}
+                      </p>
+                    ))}
+                  </div>
+                )}
                 
                 {event.endDate && (
                   <div className="flex items-start">
@@ -359,100 +354,48 @@ interface Event { _id: string
                     </div>
                   </div>
                 )}
+
+                {(event.audienceAgeMin !== undefined && event.audienceAgeMax !== undefined) && (
+                  <div className="flex items-start">
+                    <Users className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-gray-900">İştirakçı profili</p>
+                      <p className="text-gray-600 text-sm">Yaş aralığı: {event.audienceAgeMin} - {event.audienceAgeMax}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Training-specific Details */}
-            {(event.eventType === 'training' || event.eventType === 'workshop' || event.eventType === 'seminar') && (
+            {/* Participant profile details */}
+            {(event.requirements?.length || event.participantBenefits?.length) && (
               <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Təlim təfərrüatları</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Profil və faydalar</h3>
                 <div className="space-y-4">
-                  {event.duration && (
-                    <div className="flex items-start">
-                      <Clock className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-gray-900">{'Müddət'}</p>
-                        <p className="text-gray-600 text-sm">{event.duration.value} {event.duration.unit}</p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {event.cost && (
+                  {event.requirements && event.requirements.length > 0 && (
                     <div className="flex items-start">
                       <Tag className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                       <div>
-                        <p className="font-medium text-gray-900">{'Qiymət'}</p>
-                        <p className="text-gray-600 text-sm">
-                          {event.cost.amount > 0 ? `${event.cost.amount} ${event.cost.currency}` : 'Pulsuz'}
-                          {event.cost.scholarshipAvailable && ' (Təqaüd imkanı var)'}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {event.certification?.provided && (
-                    <div className="flex items-start">
-                      <Tag className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-gray-900">{'Sertifikatlaşdırma'}</p>
-                        <p className="text-gray-600 text-sm">
-                          {event.certification.type}
-                          {event.certification.accreditedBy && ` (${event.certification.accreditedBy} tərəfindən)`}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {event.prerequisites && event.prerequisites.length > 0 && (
-                    <div className="flex items-start">
-                      <Tag className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-gray-900">{'İlkin Şərtlər'}</p>
+                        <p className="font-medium text-gray-900">{'Tələblər'}</p>
                         <ul className="text-gray-600 text-sm list-disc list-inside">
-                          {event.prerequisites.map((prereq, index) => (
+                          {event.requirements.map((prereq, index) => (
                             <li key={index}>{prereq}</li>
                           ))}
                         </ul>
                       </div>
                     </div>
                   )}
-                  
-                  {event.learningOutcomes && event.learningOutcomes.length > 0 && (
+
+                  {event.participantBenefits && event.participantBenefits.length > 0 && (
                     <div className="flex items-start">
                       <Tag className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
                       <div>
-                        <p className="font-medium text-gray-900">Öyrənmə nəticələri</p>
+                        <p className="font-medium text-gray-900">İştirakçı faydaları</p>
                         <ul className="text-gray-600 text-sm list-disc list-inside">
-                          {event.learningOutcomes.map((outcome, index) => (
+                          {event.participantBenefits.map((outcome, index) => (
                             <li key={index}>{outcome}</li>
                           ))}
                         </ul>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {event.targetAudience && event.targetAudience.length > 0 && (
-                    <div className="flex items-start">
-                      <Users className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-gray-900">Hədəf auditoriya</p>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {event.targetAudience.map((audience, index) => (
-                            <span key={index} className="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded">
-                              {audience}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {event.schedule && (
-                    <div className="flex items-start">
-                      <Calendar className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-gray-900">{'Cədvəl'}</p>
-                        <p className="text-gray-600 text-sm whitespace-pre-wrap">{event.schedule}</p>
                       </div>
                     </div>
                   )}

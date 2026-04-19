@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, Loader2, Tag } from 'lucide-react'
+import { Calendar, Loader2, Plus, Tag, Trash2 } from 'lucide-react'
 import { Input, Select, Button, TextArea } from '@/components/ui'
 import { FormSection } from '@/components/forms'
 import ContentForm from '@/features/forms/ContentForm'
@@ -12,6 +12,13 @@ import {
 } from '@/features/forms/schema/event.schema'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import {
+  AZERBAIJAN_CITIES,
+  EVENT_TYPE_LABELS,
+  EVENT_TYPE_VALUES,
+  type EventSession,
+  type EventTypeValue,
+} from '@/lib/events/eventConfig'
 
 const eventCategories = [
   'workshop',
@@ -29,7 +36,6 @@ const eventCategories = [
   'other',
 ]
 
-type EventTypeValue = 'event' | 'training' | 'workshop' | 'seminar'
 type LocationType = 'online' | 'physical' | 'hybrid'
 
 type EventFormData = {
@@ -37,8 +43,7 @@ type EventFormData = {
   description: string
   category: string
   eventType: EventTypeValue
-  eventDate: string
-  endDate: string
+  sessions: EventSession[]
   location: {
     type: LocationType
     address: string
@@ -51,26 +56,11 @@ type EventFormData = {
   maxParticipants: string
   tags: string
   imageUrl: string
-  duration: {
-    value: string
-    unit: 'hours' | 'days' | 'weeks'
-  }
-  schedule: string
-  prerequisites: string[]
-  learningOutcomes: string[]
-  targetAudience: string
-  syllabus: string
-  certification: {
-    provided: boolean
-    type: string
-    accreditedBy: string
-  }
-  cost: {
-    isFree: boolean
-    amount: string
-    currency: string
-    scholarshipAvailable: boolean
-  }
+  audienceAgeMin: string
+  audienceAgeMax: string
+  certificationProvided: boolean
+  requirements: string[]
+  participantBenefits: string[]
 }
 
 export type EventFormInitialData = Partial<EventFormData> & {
@@ -79,6 +69,8 @@ export type EventFormInitialData = Partial<EventFormData> & {
   status?: 'pending' | 'approved' | 'rejected'
   rejectionReason?: string
   adminComment?: string
+  eventDate?: string
+  endDate?: string
 }
 
 export type EventFormSubmitPayload = {
@@ -87,26 +79,21 @@ export type EventFormSubmitPayload = {
   category: string
   eventType: EventTypeValue
   eventDate: string
-  endDate?: string
+  endDate: string
+  sessions: EventSession[]
   location: EventFormData['location']
   applicationLink: string
   applicationDeadline?: string
   maxParticipants?: number
   tags: string[]
   imageUrl?: string
-  duration: EventFormData['duration']
-  schedule?: string
-  prerequisites: string[]
-  learningOutcomes: string[]
-  targetAudience?: string
-  syllabus?: string
-  certification: EventFormData['certification']
-  cost: {
-    isFree: boolean
-    amount?: number
-    currency: string
-    scholarshipAvailable: boolean
+  audienceAgeMin: number
+  audienceAgeMax: number
+  certification: {
+    provided: boolean
   }
+  requirements: string[]
+  participantBenefits: string[]
 }
 
 type EventFormProps = {
@@ -120,14 +107,13 @@ const INITIAL_EVENT_FORM_DATA: EventFormData = {
   title: '',
   description: '',
   category: '',
-  eventType: 'event',
-  eventDate: '',
-  endDate: '',
+  eventType: 'training_workshop',
+  sessions: [{ date: '', startTime: '', endTime: '' }],
   location: {
     type: 'physical',
     address: '',
     city: '',
-    country: '',
+    country: 'Azərbaycan',
     onlineLink: '',
   },
   applicationLink: '',
@@ -135,33 +121,11 @@ const INITIAL_EVENT_FORM_DATA: EventFormData = {
   maxParticipants: '',
   tags: '',
   imageUrl: '',
-  duration: {
-    value: '',
-    unit: 'hours',
-  },
-  schedule: '',
-  prerequisites: [],
-  learningOutcomes: [],
-  targetAudience: '',
-  syllabus: '',
-  certification: {
-    provided: false,
-    type: '',
-    accreditedBy: '',
-  },
-  cost: {
-    isFree: false,
-    amount: '',
-    currency: 'USD',
-    scholarshipAvailable: false,
-  },
-}
-
-const toDateInput = (value?: string) => {
-  if (!value) return ''
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
-  return date.toISOString().slice(0, 10)
+  audienceAgeMin: '',
+  audienceAgeMax: '',
+  certificationProvided: false,
+  requirements: [],
+  participantBenefits: [],
 }
 
 const toDateTimeInput = (value?: string) => {
@@ -171,10 +135,40 @@ const toDateTimeInput = (value?: string) => {
   return date.toISOString().slice(0, 16)
 }
 
+const toDateInput = (value?: string) => {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toISOString().slice(0, 10)
+}
+
+const toTimeInput = (value?: string) => {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toISOString().slice(11, 16)
+}
+
+const categoryLabel = (value: string) =>
+  value
+    .split('_')
+    .map((item) => item.charAt(0).toUpperCase() + item.slice(1))
+    .join(' ')
+
+const sessionToIso = (session: EventSession, key: 'startTime' | 'endTime') =>
+  new Date(`${session.date}T${session[key]}:00`).toISOString()
+
+const sortSessions = (sessions: EventSession[]) =>
+  [...sessions].sort((left, right) => {
+    const leftDate = new Date(`${left.date}T${left.startTime}:00`).getTime()
+    const rightDate = new Date(`${right.date}T${right.startTime}:00`).getTime()
+    return leftDate - rightDate
+  })
+
 export default function EventForm({
   isEditMode,
   initialData,
-  defaultEventType = 'event',
+  defaultEventType = 'training_workshop',
   onSubmit,
 }: EventFormProps) {
   const router = useRouter()
@@ -184,7 +178,9 @@ export default function EventForm({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [draftSaveState, setDraftSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [draftSavedAt, setDraftSavedAt] = useState<string>('')
-  const EVENT_DRAFT_KEY = 'event_create_draft_v1'
+  const [requirementInput, setRequirementInput] = useState('')
+  const [benefitInput, setBenefitInput] = useState('')
+  const EVENT_DRAFT_KEY = 'event_create_draft_v2'
   const [formData, setFormData] = useState<EventFormData>({
     ...INITIAL_EVENT_FORM_DATA,
     eventType: defaultEventType,
@@ -197,40 +193,54 @@ export default function EventForm({
   useEffect(() => {
     if (isEditMode) {
       if (!initialData) return
+
+      const initialSessions =
+        Array.isArray(initialData.sessions) && initialData.sessions.length > 0
+          ? initialData.sessions
+          : initialData.eventDate
+            ? [
+                {
+                  date: toDateInput(initialData.eventDate),
+                  startTime: toTimeInput(initialData.eventDate),
+                  endTime: toTimeInput(initialData.endDate || initialData.eventDate),
+                },
+              ]
+            : INITIAL_EVENT_FORM_DATA.sessions
+
+      const safeEventType = EVENT_TYPE_VALUES.includes(initialData.eventType as EventTypeValue)
+        ? (initialData.eventType as EventTypeValue)
+        : 'training_workshop'
+
       setFormData({
         ...INITIAL_EVENT_FORM_DATA,
         ...initialData,
-        eventType: initialData.eventType || 'event',
-        eventDate: toDateInput(initialData.eventDate),
-        endDate: toDateInput(initialData.endDate),
+        eventType: safeEventType,
+        sessions: initialSessions.map((session) => ({
+          date: session.date || '',
+          startTime: session.startTime || '',
+          endTime: session.endTime || '',
+        })),
         applicationDeadline: toDateTimeInput(initialData.applicationDeadline),
         maxParticipants:
           typeof initialData.maxParticipants === 'number'
             ? String(initialData.maxParticipants)
             : (initialData.maxParticipants || ''),
         tags: Array.isArray(initialData.tags) ? initialData.tags.join(', ') : (initialData.tags || ''),
+        audienceAgeMin:
+          typeof initialData.audienceAgeMin === 'number'
+            ? String(initialData.audienceAgeMin)
+            : (initialData.audienceAgeMin || ''),
+        audienceAgeMax:
+          typeof initialData.audienceAgeMax === 'number'
+            ? String(initialData.audienceAgeMax)
+            : (initialData.audienceAgeMax || ''),
+        certificationProvided: Boolean(initialData.certificationProvided || initialData.certification?.provided),
+        requirements: Array.isArray(initialData.requirements) ? initialData.requirements : [],
+        participantBenefits: Array.isArray(initialData.participantBenefits) ? initialData.participantBenefits : [],
         location: {
           ...INITIAL_EVENT_FORM_DATA.location,
           ...(initialData.location || {}),
         },
-        duration: {
-          ...INITIAL_EVENT_FORM_DATA.duration,
-          ...(initialData.duration || {}),
-        },
-        certification: {
-          ...INITIAL_EVENT_FORM_DATA.certification,
-          ...(initialData.certification || {}),
-        },
-        cost: {
-          ...INITIAL_EVENT_FORM_DATA.cost,
-          ...(initialData.cost || {}),
-          amount:
-            typeof initialData.cost?.amount === 'number'
-              ? String(initialData.cost.amount)
-              : (initialData.cost?.amount || ''),
-        },
-        prerequisites: Array.isArray(initialData.prerequisites) ? initialData.prerequisites : [],
-        learningOutcomes: Array.isArray(initialData.learningOutcomes) ? initialData.learningOutcomes : [],
       })
       return
     }
@@ -249,11 +259,8 @@ export default function EventForm({
       setFormData((prev) => ({
         ...prev,
         ...parsed,
-        eventType: parsed.eventType || defaultEventType,
+        eventType: EVENT_TYPE_VALUES.includes(parsed.eventType) ? parsed.eventType : defaultEventType,
         location: { ...prev.location, ...(parsed.location || {}) },
-        duration: { ...prev.duration, ...(parsed.duration || {}) },
-        certification: { ...prev.certification, ...(parsed.certification || {}) },
-        cost: { ...prev.cost, ...(parsed.cost || {}) },
       }))
     } catch {
       return
@@ -288,19 +295,19 @@ export default function EventForm({
 
   const sectionStatus = useMemo(() => {
     const hasBasicInfo = Boolean(formData.title.trim() && formData.description.trim())
+    const hasSessions = formData.sessions.every((session) => session.date && session.startTime && session.endTime)
     const hasLocation =
       formData.location.type === 'online'
         ? Boolean(formData.location.onlineLink)
         : formData.location.type === 'physical'
-          ? Boolean(formData.location.address)
-          : Boolean(formData.location.address && formData.location.onlineLink)
-    const hasLogistics = Boolean(formData.eventDate && hasLocation)
-    const hasRequirements = Boolean(formData.eventType && formData.category)
+          ? Boolean(formData.location.address && formData.location.city)
+          : Boolean(formData.location.address && formData.location.city && formData.location.onlineLink)
+    const hasAudience = Boolean(formData.audienceAgeMin !== '' && formData.audienceAgeMax !== '')
     const hasOptionalExtras = Boolean(formData.applicationLink || formData.imageUrl || formData.tags)
     const sections = [
       { label: 'Əsas məlumatlar', complete: hasBasicInfo },
-      { label: 'Logistika', complete: hasLogistics },
-      { label: 'Tələblər və detallar', complete: hasRequirements },
+      { label: 'Logistika', complete: hasSessions && hasLocation },
+      { label: 'Profil və tələblər', complete: hasAudience },
       { label: 'Əlavə məlumatlar', complete: hasOptionalExtras },
     ]
     const completed = sections.filter((section) => section.complete).length
@@ -319,7 +326,21 @@ export default function EventForm({
     if (!formData.title.trim()) nextErrors.title = 'Başlıq tələb olunur.'
     if (!formData.description.trim()) nextErrors.description = 'Təsvir tələb olunur.'
     if (!formData.category) nextErrors.category = 'Kateqoriya seçin.'
-    if (!formData.eventDate) nextErrors.eventDate = 'Başlanğıc tarixi seçin.'
+    if (!formData.eventType) nextErrors.eventType = 'Növ seçin.'
+
+    if (!Array.isArray(formData.sessions) || formData.sessions.length === 0) {
+      nextErrors.sessions = 'Ən azı bir sessiya əlavə edin.'
+    }
+
+    formData.sessions.forEach((session, index) => {
+      if (!session.date || !session.startTime || !session.endTime) {
+        nextErrors[`sessions.${index}`] = 'Sessiya üçün tarix və saatlar tələb olunur.'
+      }
+      if (session.startTime && session.endTime && session.startTime >= session.endTime) {
+        nextErrors[`sessions.${index}`] = 'Sessiya başlanğıcı bitmə saatından kiçik olmalıdır.'
+      }
+    })
+
     if (!formData.location.type) nextErrors['location.type'] = 'Yer növünü seçin.'
     if (
       (formData.location.type === 'online' || formData.location.type === 'hybrid') &&
@@ -333,9 +354,26 @@ export default function EventForm({
     ) {
       nextErrors['location.address'] = 'Fiziki ünvan tələb olunur.'
     }
+    if (
+      (formData.location.type === 'physical' || formData.location.type === 'hybrid') &&
+      !formData.location.city
+    ) {
+      nextErrors['location.city'] = 'Şəhər seçimi tələb olunur.'
+    }
     if (!formData.applicationLink.trim()) {
       nextErrors.applicationLink = 'Müraciət linki tələb olunur.'
     }
+
+    const ageMin = Number(formData.audienceAgeMin)
+    const ageMax = Number(formData.audienceAgeMax)
+    if (formData.audienceAgeMin === '' || formData.audienceAgeMax === '') {
+      nextErrors.audienceAge = 'Yaş aralığı tələb olunur.'
+    } else if (!Number.isInteger(ageMin) || !Number.isInteger(ageMax)) {
+      nextErrors.audienceAge = 'Yaş aralığı tam ədədlərdən ibarət olmalıdır.'
+    } else if (ageMin < 0 || ageMax > 99 || ageMin > ageMax) {
+      nextErrors.audienceAge = 'Yaş aralığı 0-99 intervalında və düzgün sıra ilə olmalıdır.'
+    }
+
     setFieldErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) {
       showError('Zəhmət olmasa məcburi sahələri düzgün doldurun.')
@@ -349,11 +387,14 @@ export default function EventForm({
     if (text.includes('title')) setInlineError('title', message)
     if (text.includes('description')) setInlineError('description', message)
     if (text.includes('category')) setInlineError('category', message)
-    if (text.includes('event date') || text.includes('event_date')) setInlineError('eventDate', message)
+    if (text.includes('event type')) setInlineError('eventType', message)
+    if (text.includes('session')) setInlineError('sessions', message)
     if (text.includes('location')) setInlineError('location.type', message)
     if (text.includes('online')) setInlineError('location.onlineLink', message)
     if (text.includes('address')) setInlineError('location.address', message)
+    if (text.includes('city')) setInlineError('location.city', message)
     if (text.includes('applicationlink') || text.includes('application link')) setInlineError('applicationLink', message)
+    if (text.includes('age')) setInlineError('audienceAge', message)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -361,20 +402,48 @@ export default function EventForm({
     if (!validateBeforeSubmit()) return
     setLoading(true)
     try {
+      const normalizedSessions = sortSessions(
+        formData.sessions
+          .map((session) => ({
+            date: session.date,
+            startTime: session.startTime,
+            endTime: session.endTime,
+          }))
+          .filter((session) => session.date && session.startTime && session.endTime),
+      )
+
       const payload: EventFormSubmitPayload = {
-        ...formData,
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        category: formData.category,
+        eventType: formData.eventType,
+        eventDate: sessionToIso(normalizedSessions[0], 'startTime'),
+        endDate: sessionToIso(normalizedSessions[normalizedSessions.length - 1], 'endTime'),
+        sessions: normalizedSessions,
+        location: {
+          ...formData.location,
+          address: formData.location.address.trim(),
+          city: formData.location.city.trim(),
+          country: formData.location.country.trim() || 'Azərbaycan',
+          onlineLink: formData.location.onlineLink.trim(),
+        },
         applicationLink: formData.applicationLink.trim(),
-        maxParticipants: formData.maxParticipants ? parseInt(formData.maxParticipants, 10) : undefined,
-        tags: formData.tags.split(',').map((tag) => tag.trim()).filter((tag) => tag),
-        eventDate: new Date(formData.eventDate).toISOString(),
-        endDate: formData.endDate ? new Date(formData.endDate).toISOString() : undefined,
         applicationDeadline: formData.applicationDeadline
           ? new Date(formData.applicationDeadline).toISOString()
           : undefined,
-        cost: {
-          ...formData.cost,
-          amount: formData.cost.amount ? Number(formData.cost.amount) : undefined,
+        maxParticipants: formData.maxParticipants ? parseInt(formData.maxParticipants, 10) : undefined,
+        tags: formData.tags
+          .split(',')
+          .map((tag) => tag.trim())
+          .filter((tag) => tag),
+        imageUrl: formData.imageUrl.trim() || undefined,
+        audienceAgeMin: Number(formData.audienceAgeMin),
+        audienceAgeMax: Number(formData.audienceAgeMax),
+        certification: {
+          provided: formData.certificationProvided,
         },
+        requirements: formData.requirements,
+        participantBenefits: formData.participantBenefits,
       }
 
       await onSubmit(payload)
@@ -405,30 +474,8 @@ export default function EventForm({
       return
     }
 
-    if (name.startsWith('duration.')) {
-      const durationField = name.split('.')[1]
-      setFormData((prev) => ({
-        ...prev,
-        duration: { ...prev.duration, [durationField]: value },
-      }))
-      return
-    }
-
-    if (name.startsWith('certification.')) {
-      const certField = name.split('.')[1]
-      setFormData((prev) => ({
-        ...prev,
-        certification: { ...prev.certification, [certField]: type === 'checkbox' ? checked : value },
-      }))
-      return
-    }
-
-    if (name.startsWith('cost.')) {
-      const costField = name.split('.')[1]
-      setFormData((prev) => ({
-        ...prev,
-        cost: { ...prev.cost, [costField]: type === 'checkbox' ? checked : value },
-      }))
+    if (name === 'certificationProvided') {
+      setFormData((prev) => ({ ...prev, certificationProvided: type === 'checkbox' ? checked : Boolean(value) }))
       return
     }
 
@@ -436,9 +483,50 @@ export default function EventForm({
     clearInlineError(name)
   }
 
-  const handleArrayInputChange = (field: 'prerequisites' | 'learningOutcomes', value: string) => {
-    const items = value.split(',').map((item) => item.trim()).filter((item) => item)
-    setFormData((prev) => ({ ...prev, [field]: items }))
+  const handleSessionChange = (index: number, field: keyof EventSession, value: string) => {
+    setFormData((prev) => {
+      const nextSessions = [...prev.sessions]
+      nextSessions[index] = {
+        ...nextSessions[index],
+        [field]: value,
+      }
+      return { ...prev, sessions: nextSessions }
+    })
+    clearInlineError(`sessions.${index}`)
+    clearInlineError('sessions')
+  }
+
+  const addSession = () => {
+    setFormData((prev) => ({
+      ...prev,
+      sessions: [...prev.sessions, { date: '', startTime: '', endTime: '' }],
+    }))
+  }
+
+  const removeSession = (index: number) => {
+    setFormData((prev) => {
+      if (prev.sessions.length === 1) return prev
+      return {
+        ...prev,
+        sessions: prev.sessions.filter((_, itemIndex) => itemIndex !== index),
+      }
+    })
+  }
+
+  const addListItem = (field: 'requirements' | 'participantBenefits', value: string) => {
+    const normalized = value.trim()
+    if (!normalized) return
+    setFormData((prev) => ({
+      ...prev,
+      [field]: [...prev[field], normalized],
+    }))
+  }
+
+  const removeListItem = (field: 'requirements' | 'participantBenefits', index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: prev[field].filter((_, itemIndex) => itemIndex !== index),
+    }))
   }
 
   const handleBasicInfoSync = (data: EventBasicInfoData) => {
@@ -484,13 +572,18 @@ export default function EventForm({
                     section.complete ? 'bg-emerald-100 text-emerald-700' : 'bg-white text-gray-600 border border-gray-200'
                   }`}
                 >
-                  {section.complete ? '✓ ' : ''}{section.label}
+                  {section.complete ? '✓ ' : ''}
+                  {section.label}
                 </span>
               ))}
             </div>
             {!isEditMode && (
               <p className="mt-2 text-xs text-gray-500">
-                {draftSaveState === 'saving' ? 'Qaralama saxlanılır...' : draftSaveState === 'saved' ? `Qaralama saxlanıldı: ${draftSavedAt}` : ''}
+                {draftSaveState === 'saving'
+                  ? 'Qaralama saxlanılır...'
+                  : draftSaveState === 'saved'
+                    ? `Qaralama saxlanıldı: ${draftSavedAt}`
+                    : ''}
               </p>
             )}
           </div>
@@ -544,14 +637,13 @@ export default function EventForm({
                   value={formData.eventType}
                   onChange={handleInputChange}
                   required
-                  options={[
-                    { value: 'event', label: 'Tədbir' },
-                    { value: 'training', label: 'Təlim' },
-                    { value: 'workshop', label: 'Seminar/Çalıştay' },
-                    { value: 'seminar', label: 'Seminar' },
-                  ]}
+                  options={EVENT_TYPE_VALUES.map((eventType) => ({
+                    value: eventType,
+                    label: EVENT_TYPE_LABELS[eventType],
+                  }))}
                   {...commonSelectProps}
                 />
+                {fieldErrors.eventType && <p className="mt-1 text-sm text-red-600">{fieldErrors.eventType}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">{'Kateqoriya'}</label>
@@ -561,7 +653,10 @@ export default function EventForm({
                   onChange={handleInputChange}
                   required
                   placeholder={'Kateqoriyanı seç'}
-                  options={eventCategories.map((category) => ({ value: category, label: category }))}
+                  options={eventCategories.map((category) => ({
+                    value: category,
+                    label: categoryLabel(category),
+                  }))}
                   {...commonSelectProps}
                 />
                 {fieldErrors.category && <p className="mt-1 text-sm text-red-600">{fieldErrors.category}</p>}
@@ -577,7 +672,6 @@ export default function EventForm({
                   placeholder={'məs., 30'}
                   {...commonInputProps}
                 />
-                <p className="mt-1 text-xs text-gray-500">{'Bu dəyər yalnız məlumat məqsədlidir və platformada qeydiyyat/tutum davranışını idarə etmir.'}</p>
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">{'Teglər'}</label>
@@ -593,194 +687,250 @@ export default function EventForm({
             </div>
           </FormSection>
 
-          {(formData.eventType === 'training' || formData.eventType === 'workshop' || formData.eventType === 'seminar') && (
-            <FormSection title={'Təlim Məlumatları'} gradient={false} contentPadding="md" spacing="md">
+          <FormSection title={'Logistika'} icon={Calendar} gradient={false} contentPadding="md" spacing="md">
+            <div className="space-y-6">
+              <div>
+                <div className="mb-3 flex items-center justify-between">
+                  <label className="block text-sm font-medium text-gray-700">Sessiyalar</label>
+                  <Button type="button" variant="outline" size="sm" icon={Plus} iconPosition="left" onClick={addSession}>
+                    Sessiya əlavə et
+                  </Button>
+                </div>
+                <div className="space-y-3">
+                  {formData.sessions.map((session, index) => (
+                    <div key={index} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_1fr_auto] gap-3 rounded-xl border border-gray-200 p-3">
+                      <Input
+                        type="date"
+                        value={session.date}
+                        onChange={(e) => handleSessionChange(index, 'date', e.target.value)}
+                        {...commonInputProps}
+                      />
+                      <Input
+                        type="time"
+                        value={session.startTime}
+                        onChange={(e) => handleSessionChange(index, 'startTime', e.target.value)}
+                        {...commonInputProps}
+                      />
+                      <Input
+                        type="time"
+                        value={session.endTime}
+                        onChange={(e) => handleSessionChange(index, 'endTime', e.target.value)}
+                        {...commonInputProps}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-full"
+                        onClick={() => removeSession(index)}
+                        disabled={formData.sessions.length === 1}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      {fieldErrors[`sessions.${index}`] && (
+                        <p className="md:col-span-4 text-sm text-red-600">{fieldErrors[`sessions.${index}`]}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {fieldErrors.sessions && <p className="mt-2 text-sm text-red-600">{fieldErrors.sessions}</p>}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{'Müddət'}</label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="number"
-                      name="duration.value"
-                      value={formData.duration.value}
-                      onChange={handleInputChange}
-                      min="1"
-                      className="flex-1"
-                      placeholder={'Müddət'}
-                      {...commonInputProps}
-                    />
-                    <Select
-                      name="duration.unit"
-                      value={formData.duration.unit}
-                      onChange={handleInputChange}
-                      options={[
-                        { value: 'hours', label: 'Saat' },
-                        { value: 'days', label: 'Gün' },
-                        { value: 'weeks', label: 'Həftə' },
-                      ]}
-                      {...commonSelectProps}
-                    />
-                  </div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{'Müraciət üçün son tarix'}</label>
+                  <Input
+                    type="datetime-local"
+                    name="applicationDeadline"
+                    value={formData.applicationDeadline}
+                    onChange={handleInputChange}
+                    {...commonInputProps}
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{'Hədəf auditoriya'}</label>
-                  <Input
-                    type="text"
-                    name="targetAudience"
-                    value={formData.targetAudience}
+                  <label className="block text-sm font-medium text-gray-700 mb-2">{'Yer növü'}</label>
+                  <Select
+                    name="location.type"
+                    value={formData.location.type}
                     onChange={handleInputChange}
-                    placeholder={'məs., Təşkilat heyəti, könüllülər, tələbələr'}
-                    {...commonInputProps}
+                    required
+                    options={[
+                      { value: 'physical', label: 'Fiziki' },
+                      { value: 'online', label: 'Onlayn' },
+                      { value: 'hybrid', label: 'Hibrid' },
+                    ]}
+                    {...commonSelectProps}
                   />
+                  {fieldErrors['location.type'] && <p className="mt-1 text-sm text-red-600">{fieldErrors['location.type']}</p>}
                 </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Cədvəl</label>
-                  <TextArea
-                    name="schedule"
-                    value={formData.schedule}
-                    onChange={handleInputChange}
-                    rows={3}
-                    placeholder={'Cədvəl məlumatı'}
-                    {...commonTextAreaProps}
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">İlkin tələblər</label>
-                  <Input
-                    type="text"
-                    value={formData.prerequisites.join(', ')}
-                    onChange={(e) => handleArrayInputChange('prerequisites', e.target.value)}
-                    placeholder={'Tələb olunanlar (vergüllə ayrılmış)'}
-                    {...commonInputProps}
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Öyrənmə nəticələri</label>
-                  <Input
-                    type="text"
-                    value={formData.learningOutcomes.join(', ')}
-                    onChange={(e) => handleArrayInputChange('learningOutcomes', e.target.value)}
-                    placeholder={'Öyrənmə nəticələri (vergüllə ayrılmış)'}
-                    {...commonInputProps}
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Sillabus</label>
-                  <TextArea
-                    name="syllabus"
-                    value={formData.syllabus}
-                    onChange={handleInputChange}
-                    rows={4}
-                    placeholder={'Sillabus və ya gündəm'}
-                    {...commonTextAreaProps}
-                  />
-                </div>
+                {(formData.location.type === 'physical' || formData.location.type === 'hybrid') && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:col-span-2">
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{'Ünvan'}</label>
+                      <Input
+                        type="text"
+                        name="location.address"
+                        value={formData.location.address}
+                        onChange={handleInputChange}
+                        placeholder={'Küçə ünvanı'}
+                        {...commonInputProps}
+                      />
+                      {fieldErrors['location.address'] && <p className="mt-1 text-sm text-red-600">{fieldErrors['location.address']}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{'Şəhər'}</label>
+                      <Select
+                        name="location.city"
+                        value={formData.location.city}
+                        onChange={handleInputChange}
+                        placeholder={'Şəhəri seç'}
+                        options={AZERBAIJAN_CITIES.map((city) => ({ value: city, label: city }))}
+                        {...commonSelectProps}
+                      />
+                      {fieldErrors['location.city'] && <p className="mt-1 text-sm text-red-600">{fieldErrors['location.city']}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{'Ölkə'}</label>
+                      <Input
+                        type="text"
+                        name="location.country"
+                        value={formData.location.country}
+                        onChange={handleInputChange}
+                        placeholder={'Ölkə'}
+                        {...commonInputProps}
+                      />
+                    </div>
+                  </div>
+                )}
+                {(formData.location.type === 'online' || formData.location.type === 'hybrid') && (
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{'Onlayn görüş linki'}</label>
+                    <Input
+                      type="url"
+                      name="location.onlineLink"
+                      value={formData.location.onlineLink}
+                      onChange={handleInputChange}
+                      placeholder={'https://...'}
+                      {...commonInputProps}
+                    />
+                    {fieldErrors['location.onlineLink'] && <p className="mt-1 text-sm text-red-600">{fieldErrors['location.onlineLink']}</p>}
+                  </div>
+                )}
               </div>
-            </FormSection>
-          )}
+            </div>
+          </FormSection>
 
-          <FormSection title={'Logistika'} icon={Calendar} gradient={false} contentPadding="md" spacing="md">
+          <FormSection title={'Profil və tələblər'} gradient={false} contentPadding="md" spacing="md">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{'Başlanğıc Tarixi'}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{'Yaş aralığı (min)'}</label>
                 <Input
-                  type="date"
-                  name="eventDate"
-                  value={formData.eventDate}
-                  onChange={handleInputChange}
-                  required
-                  {...commonInputProps}
-                />
-                {fieldErrors.eventDate && <p className="mt-1 text-sm text-red-600">{fieldErrors.eventDate}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{'Bitmə Tarixi'}</label>
-                <Input
-                  type="date"
-                  name="endDate"
-                  value={formData.endDate}
+                  type="number"
+                  name="audienceAgeMin"
+                  min="0"
+                  max="99"
+                  value={formData.audienceAgeMin}
                   onChange={handleInputChange}
                   {...commonInputProps}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{'Müraciət üçün son tarix'}</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{'Yaş aralığı (max)'}</label>
                 <Input
-                  type="datetime-local"
-                  name="applicationDeadline"
-                  value={formData.applicationDeadline}
+                  type="number"
+                  name="audienceAgeMax"
+                  min="0"
+                  max="99"
+                  value={formData.audienceAgeMax}
                   onChange={handleInputChange}
                   {...commonInputProps}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">{'Yer növü'}</label>
-                <Select
-                  name="location.type"
-                  value={formData.location.type}
+              {fieldErrors.audienceAge && <p className="md:col-span-2 text-sm text-red-600">{fieldErrors.audienceAge}</p>}
+
+              <div className="md:col-span-2 flex items-center gap-2 rounded-xl border border-gray-200 p-3">
+                <input
+                  id="certificationProvided"
+                  type="checkbox"
+                  name="certificationProvided"
+                  checked={formData.certificationProvided}
                   onChange={handleInputChange}
-                  required
-                  options={[
-                    { value: 'physical', label: 'Fiziki' },
-                    { value: 'online', label: 'Onlayn' },
-                    { value: 'hybrid', label: 'Hibrid' },
-                  ]}
-                  {...commonSelectProps}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
-                {fieldErrors['location.type'] && <p className="mt-1 text-sm text-red-600">{fieldErrors['location.type']}</p>}
+                <label htmlFor="certificationProvided" className="text-sm font-medium text-gray-700">
+                  İştirakçılara sertifikat verilir
+                </label>
               </div>
-              {(formData.location.type === 'physical' || formData.location.type === 'hybrid') && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:col-span-2">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{'Ünvan'}</label>
-                    <Input
-                      type="text"
-                      name="location.address"
-                      value={formData.location.address}
-                      onChange={handleInputChange}
-                      placeholder={'Küçə ünvanı'}
-                      {...commonInputProps}
-                    />
-                    {fieldErrors['location.address'] && <p className="mt-1 text-sm text-red-600">{fieldErrors['location.address']}</p>}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{'Şəhər'}</label>
-                    <Input
-                      type="text"
-                      name="location.city"
-                      value={formData.location.city}
-                      onChange={handleInputChange}
-                      placeholder={'Şəhər'}
-                      {...commonInputProps}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{'Ölkə'}</label>
-                    <Input
-                      type="text"
-                      name="location.country"
-                      value={formData.location.country}
-                      onChange={handleInputChange}
-                      placeholder={'Ölkə'}
-                      {...commonInputProps}
-                    />
-                  </div>
-                </div>
-              )}
-              {(formData.location.type === 'online' || formData.location.type === 'hybrid') && (
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">{'Onlayn görüş linki'}</label>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tələblər</label>
+                <div className="flex gap-2">
                   <Input
-                    type="url"
-                    name="location.onlineLink"
-                    value={formData.location.onlineLink}
-                    onChange={handleInputChange}
-                    placeholder={'https://...'}
+                    type="text"
+                    value={requirementInput}
+                    onChange={(e) => setRequirementInput(e.target.value)}
+                    placeholder={'Yeni tələb əlavə edin'}
                     {...commonInputProps}
                   />
-                  {fieldErrors['location.onlineLink'] && <p className="mt-1 text-sm text-red-600">{fieldErrors['location.onlineLink']}</p>}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      addListItem('requirements', requirementInput)
+                      setRequirementInput('')
+                    }}
+                  >
+                    Əlavə et
+                  </Button>
                 </div>
-              )}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {formData.requirements.map((item, index) => (
+                    <button
+                      type="button"
+                      key={`${item}-${index}`}
+                      onClick={() => removeListItem('requirements', index)}
+                      className="rounded-full border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-700"
+                    >
+                      {item} ×
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">İştirakçı faydaları</label>
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    value={benefitInput}
+                    onChange={(e) => setBenefitInput(e.target.value)}
+                    placeholder={'Yeni fayda əlavə edin'}
+                    {...commonInputProps}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      addListItem('participantBenefits', benefitInput)
+                      setBenefitInput('')
+                    }}
+                  >
+                    Əlavə et
+                  </Button>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {formData.participantBenefits.map((item, index) => (
+                    <button
+                      type="button"
+                      key={`${item}-${index}`}
+                      onClick={() => removeListItem('participantBenefits', index)}
+                      className="rounded-full border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-700"
+                    >
+                      {item} ×
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </FormSection>
 

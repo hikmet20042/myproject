@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { generateSEOMetadata, generateEventSchema, getLocationKeywords } from '@/lib/seo'
+import { EVENT_TYPE_LABELS, type EventTypeValue } from '@/lib/events/eventConfig'
 
 /**
  * Generate metadata for individual event pages
@@ -10,7 +11,7 @@ export async function generateEventMetadata(id: string): Promise<Metadata> {
     const supabase = createSupabaseAdminClient()
     const { data: eventRow, error } = await supabase
       .from('events')
-      .select('id, title, description, event_date, end_date, location, registration_link, organization_name, organization, website, image, created_at, submitted_at, updated_at, tags, focus_areas, event_type')
+      .select('id, title, description, event_date, end_date, location, application_link, organization_name, image_url, created_at, updated_at, tags, event_type')
       .eq('id', id)
       .single()
 
@@ -25,16 +26,16 @@ export async function generateEventMetadata(id: string): Promise<Metadata> {
       eventDate: eventRow.event_date,
       endDate: eventRow.end_date,
       location: eventRow.location,
-      registrationLink: eventRow.registration_link,
+      applicationLink: eventRow.application_link,
       organizationName: eventRow.organization_name,
-      organization: eventRow.organization,
-      website: eventRow.website,
-      image: eventRow.image,
+      organization: eventRow.organization_name,
+      website: eventRow.application_link,
+      image: eventRow.image_url,
       createdAt: eventRow.created_at,
-      submittedAt: eventRow.submitted_at,
+      submittedAt: eventRow.created_at,
       updatedAt: eventRow.updated_at,
       tags: eventRow.tags || [],
-      focusAreas: eventRow.focus_areas || [],
+      focusAreas: [],
       eventType: eventRow.event_type
     } : null
     
@@ -56,28 +57,18 @@ export async function generateEventMetadata(id: string): Promise<Metadata> {
       day: 'numeric'
     })
 
-    const eventTypeMap: { [key: string]: string } = {
-      workshop: 'Workshop',
-      training: 'Training Program',
-      conference: 'Conference',
-      webinar: 'Webinar',
-      networking: 'Networking Event',
-      seminar: 'Seminar',
-      other: 'Event'
-    }
-
-    const eventTypeName = eventTypeMap[event.eventType] || 'Event'
+    const eventTypeName = EVENT_TYPE_LABELS[event.eventType as EventTypeValue] || 'Tədbir'
 
     return generateSEOMetadata({
       title: `${event.title} - ${eventTypeName} ${location}da | icma360`,
-      description: `${event.title} - ${event.organizationName || event.organization} tərəfindən təşkil olunan ${eventTypeName}. Tarix: ${eventDate}. ${location}da keçirilir. icma360-da pulsuz qeydiyyat.`,
+      description: `${event.title} - ${event.organizationName || event.organization} tərəfindən təşkil olunan ${eventTypeName}. Tarix: ${eventDate}. ${location}da keçirilir. Müraciət xarici link üzərindən aparılır.`,
       keywords: [
         event.title,
         `${eventTypeName} Azərbaycan`,
         `${location} tədbirləri`,
         `${location}da təlim`,
         event.organizationName || event.organization,
-        `${event.eventType} Azərbaycan`,
+        `${eventTypeName} Azərbaycan`,
         'təlim proqramları',
         'vorkşop',
         'konfrans',

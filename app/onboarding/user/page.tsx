@@ -8,7 +8,6 @@ import { FormLayout } from '@/components/forms'
 import { Button, Input } from '@/components/ui'
 import { LoadingState } from '@/components/shared'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
-import IllustrationAsset from '@/components/shared/IllustrationAsset'
 
 const INTEREST_OPTIONS = ['IT', 'Təhsil', 'Könüllülük', 'Sosial fəaliyyət', 'Digər']
 
@@ -92,12 +91,6 @@ export default function OnboardingUserPage() {
         ? 'Adınızı daxil edin və maraq sahələrinizi seçin.'
         : 'Təcrübəni fərdiləşdirmək üçün ən azı 1 sahə seçin (maksimum 5).'}
     >
-      <div className="mb-5 rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-cyan-50 to-white p-4">
-        <IllustrationAsset
-          illustrationKey="onboarding-user"
-          className="mx-auto h-40 w-full max-w-sm"
-        />
-      </div>
       <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
         {needsName && (
           <div className="mb-6">

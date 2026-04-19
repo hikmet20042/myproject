@@ -24,14 +24,12 @@ type EventDbRow = {
   event_type?: string | null
   event_date?: string | null
   end_date?: string | null
-  duration?: string | null
-  schedule?: unknown
-  prerequisites?: string[] | null
-  learning_outcomes?: string[] | null
+  sessions?: unknown
   certification?: string | null
-  cost?: unknown
-  target_audience?: string[] | null
-  syllabus?: unknown
+  audience_age_min?: number | null
+  audience_age_max?: number | null
+  requirements?: string[] | null
+  participant_benefits?: string[] | null
   location?: unknown
   application_link?: string | null
   application_deadline?: string | null
@@ -67,14 +65,12 @@ const mapEvent = (row: EventDbRow) => ({
   eventType: row.event_type,
   eventDate: row.event_date,
   endDate: row.end_date,
-  duration: row.duration,
-  schedule: row.schedule,
-  prerequisites: row.prerequisites || [],
-  learningOutcomes: row.learning_outcomes || [],
+  sessions: row.sessions,
   certification: row.certification,
-  cost: row.cost,
-  targetAudience: row.target_audience || [],
-  syllabus: row.syllabus,
+  audienceAgeMin: row.audience_age_min,
+  audienceAgeMax: row.audience_age_max,
+  requirements: row.requirements || [],
+  participantBenefits: row.participant_benefits || [],
   location: row.location,
   applicationLink: row.application_link,
   applicationDeadline: row.application_deadline,

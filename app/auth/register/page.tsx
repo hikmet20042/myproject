@@ -10,7 +10,6 @@ import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 import { signInWithOAuth } from '@/lib/auth/client'
 import Logo from '@/components/Logo'
-import IllustrationAsset from '@/components/shared/IllustrationAsset'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -137,11 +136,7 @@ export default function RegisterPage() {
       <div className="mx-auto grid w-full max-w-6xl items-center gap-8 lg:grid-cols-2">
         <div className="hidden lg:block">
           <div className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-cyan-50 to-white p-8 shadow-sm">
-            <IllustrationAsset
-              illustrationKey="auth-register"
-              className="mx-auto h-80 w-full max-w-lg"
-              imageClassName="drop-shadow-sm"
-            />
+            
             <h2 className="mt-4 text-2xl font-black text-gray-900">Yeni başlanğıca hazır ol</h2>
             <p className="mt-2 text-sm text-gray-600">
               Qeydiyyatı tamamla, maraq sahələrini seç və icma ilə inkişaf yoluna başla.

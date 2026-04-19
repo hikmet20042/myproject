@@ -6,8 +6,9 @@ type EventListParams = {
   limit?: number
   category?: string
   eventType?: string
-  location?: string
-  month?: string
+  city?: string
+  dateFrom?: string
+  dateTo?: string
   search?: string
   status?: string
   author?: string
