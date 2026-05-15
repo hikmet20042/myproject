@@ -1,33 +1,20 @@
 'use client'
 
-import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
-import {
-  ArrowRight,
-  Briefcase,
-  Building2,
-  Calendar,
-  ChevronRight,
-  Clock3,
-  Compass,
-  Filter,
-  MapPin,
-  Sparkles,
-  Target,
-  Users,
-} from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { Hero } from '@/components/home/Hero'
+import { StatsBar } from '@/components/home/StatsBar'
+import { SectionHeader } from '@/components/shared'
+import { ContentCard } from '@/components/shared/ContentCard'
+import { OrganizationCard } from '@/components/shared/OrganizationCard'
 import { LoadingState, EmptyState } from '@/components/shared'
-import OrganizationFollowButtonContainer from '@/components/containers/OrganizationFollowButtonContainer'
-import SaveItemButtonContainer from '@/components/containers/SaveItemButtonContainer'
 import { fetchOrganizations } from '@/lib/organizationQueries'
 import { FOCUS_AREA_LABELS_AZ } from '@/lib/organizationTypes'
 import { useSession } from '@/lib/auth/client'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { logError } from '@/lib/logger'
-
-type TabKey = 'all' | 'events' | 'vacancies'
+import Link from 'next/link'
+import { ArrowRight } from 'lucide-react'
 
 type EventItem = {
   _id: string
@@ -35,6 +22,8 @@ type EventItem = {
   title: string
   eventType?: string
   eventDate?: string
+  imageUrl?: string
+  image_url?: string
   location?: {
     type?: string
     city?: string
@@ -50,6 +39,8 @@ type VacancyItem = {
   slug: string
   title: string
   type?: string
+  imageUrl?: string
+  image_url?: string
   applicationDeadline?: string
   city?: string
   address?: string
@@ -64,6 +55,19 @@ type VacancyItem = {
   }
 }
 
+type BlogItem = {
+  _id: string
+  slug: string
+  title: string
+  featuredImage?: string
+  featured_image?: string
+  authorName?: string
+  author_name?: string
+  createdAt?: string
+  created_at?: string
+  date?: string
+}
+
 type OrganizationItem = {
   _id: string
   slug: string
@@ -72,14 +76,16 @@ type OrganizationItem = {
   location?: {
     city?: string
   }
+  profileImage?: string
 }
 
 type FeedCard = {
   id: string
-  kind: 'event' | 'vacancy'
+  kind: 'event' | 'vacancy' | 'blog'
   title: string
   href: string
   badge: string
+  coverImage?: string
   dateLabel: string
   locationLabel: string
   ownerLabel: string
@@ -119,6 +125,36 @@ const focusLabel = (raw: string): string => {
   return FOCUS_AREA_LABELS_AZ[key] || raw
 }
 
+const EVENT_TYPE_LABELS_AZ: Record<string, string> = {
+  training_workshop: 'Vörkşop',
+  webinar: 'Vebinar',
+  training_course: 'Təlim kursu',
+  bootcamp: 'Bootcamp',
+  panel_discussion: 'Panel müzakirəsi',
+  camp: 'Düşərgə',
+  forum: 'Forum',
+  conference: 'Konfrans',
+  flashmob: 'Fləşmob',
+  meetup: 'Meetup',
+}
+
+const VACANCY_TYPE_LABELS_AZ: Record<string, string> = {
+  volunteer: 'Könüllülük',
+  full_time: 'Tam ştat',
+  part_time: 'Yarım ştat',
+  intern: 'Təcrübəçi',
+}
+
+const localizeEventType = (value?: string): string => {
+  if (!value) return 'Tədbir'
+  return EVENT_TYPE_LABELS_AZ[value] || value
+}
+
+const localizeVacancyType = (value?: string): string => {
+  if (!value) return 'Vakansiya'
+  return VACANCY_TYPE_LABELS_AZ[value] || value
+}
+
 export default function HomePage() {
   const localePath = useLocalizedPath()
   const { data: session, status } = useSession()
@@ -127,17 +163,18 @@ export default function HomePage() {
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  const [activeTab, setActiveTab] = useState<TabKey>('all')
   const [activeFocus, setActiveFocus] = useState<string>('all')
 
   const [events, setEvents] = useState<EventItem[]>([])
   const [vacancies, setVacancies] = useState<VacancyItem[]>([])
   const [organizations, setOrganizations] = useState<OrganizationItem[]>([])
+  const [blogs, setBlogs] = useState<BlogItem[]>([])
 
   const [stats, setStats] = useState({
     totalEvents: 0,
     totalVacancies: 0,
     totalOrganizations: 0,
+    totalBlogs: 0,
   })
 
   const isOrganizationUser = session?.user?.accountType === 'organization'
@@ -151,14 +188,16 @@ export default function HomePage() {
       try {
         setLoading(true)
 
-        const [eventsRes, vacanciesRes, organizationsRes] = await Promise.all([
+        const [eventsRes, vacanciesRes, organizationsRes, blogsRes] = await Promise.all([
           fetch('/api/events?page=1&limit=8&status=approved'),
           fetch('/api/vacancies?page=1&limit=8&status=approved'),
           fetchOrganizations({ page: 1, limit: 8, status: 'approved' }),
+          fetch('/api/blogs?page=1&limit=8&status=approved')
         ])
 
         const nextEvents: EventItem[] = []
         const nextVacancies: VacancyItem[] = []
+        const nextBlogs: BlogItem[] = []
 
         if (eventsRes.ok) {
           const rawEvents: unknown = await eventsRes.json()
@@ -193,6 +232,8 @@ export default function HomePage() {
               title,
               eventType: typeof item.eventType === 'string' ? item.eventType : undefined,
               eventDate: typeof item.eventDate === 'string' ? item.eventDate : undefined,
+              imageUrl: typeof item.imageUrl === 'string' ? item.imageUrl : undefined,
+              image_url: typeof item.image_url === 'string' ? item.image_url : undefined,
               organizationName:
                 typeof item.organizationName === 'string' ? item.organizationName : undefined,
               location,
@@ -248,6 +289,8 @@ export default function HomePage() {
               slug,
               title,
               type: typeof item.type === 'string' ? item.type : undefined,
+              imageUrl: typeof item.imageUrl === 'string' ? item.imageUrl : undefined,
+              image_url: typeof item.image_url === 'string' ? item.image_url : undefined,
               applicationDeadline:
                 typeof item.applicationDeadline === 'string'
                   ? item.applicationDeadline
@@ -293,20 +336,56 @@ export default function HomePage() {
             ? item.focusAreas.filter((area): area is string => typeof area === 'string')
             : []
 
+          const profileImage = typeof item.profileImage === 'string' ? item.profileImage : (typeof item.profile_image === 'string' ? item.profile_image : undefined)
+
           acc.push({
             _id: id,
             slug,
             organizationName,
             focusAreas,
             location,
+            profileImage,
           })
 
           return acc
         }, [])
 
+        if (blogsRes.ok) {
+          const rawBlogs: unknown = await blogsRes.json()
+          const blogsPayload = unwrapPayload(rawBlogs)
+          const list = Array.isArray(blogsPayload.items) ? blogsPayload.items : []
+          list.forEach((item) => {
+            if (!isRecord(item)) return
+            const id = normalizeId(item._id) || normalizeId(item.id)
+            const slug = typeof item.slug === 'string' ? item.slug : ''
+            const title = typeof item.title === 'string' ? item.title : ''
+            if (!id || !slug || !title) return
+
+            nextBlogs.push({
+              _id: id,
+              slug,
+              title,
+              featuredImage: typeof item.featuredImage === 'string' ? item.featuredImage : undefined,
+              featured_image: typeof item.featured_image === 'string' ? item.featured_image : undefined,
+              authorName: typeof item.authorName === 'string' ? item.authorName : undefined,
+              author_name: typeof item.author_name === 'string' ? item.author_name : undefined,
+              createdAt: typeof item.createdAt === 'string' ? item.createdAt : undefined,
+              created_at: typeof item.created_at === 'string' ? item.created_at : undefined,
+              date: typeof item.date === 'string' ? item.date : undefined,
+            })
+          })
+
+          const pagination = isRecord(blogsPayload.pagination) ? blogsPayload.pagination : {}
+          setStats((prev) => ({
+            ...prev,
+            totalBlogs: typeof pagination.total === 'number' ? pagination.total : nextBlogs.length,
+          }))
+        }
+
         setEvents(nextEvents)
         setVacancies(nextVacancies)
         setOrganizations(nextOrganizations)
+        setBlogs(nextBlogs)
 
         const totalOrganizations =
           typeof organizationsRes.meta?.total === 'number'
@@ -345,7 +424,8 @@ export default function HomePage() {
         kind: 'event',
         title: event.title,
         href: localePath(`/resources/events/${event.slug}`),
-        badge: event.eventType || 'Tədbir',
+        badge: localizeEventType(event.eventType),
+        coverImage: event.imageUrl || event.image_url,
         dateLabel: formatDate(event.eventDate),
         locationLabel:
           event.location?.type === 'online' ? 'Onlayn' : event.location?.city || 'Məkan qeyd olunmayıb',
@@ -361,7 +441,8 @@ export default function HomePage() {
         kind: 'vacancy',
         title: vacancy.title,
         href: localePath(`/resources/vacancies/${vacancy.slug}`),
-        badge: vacancy.type || 'Vakansiya',
+        badge: localizeVacancyType(vacancy.type),
+        coverImage: vacancy.imageUrl || vacancy.image_url,
         dateLabel: formatDate(vacancy.applicationDeadline),
         locationLabel: vacancy.city
           ? vacancy.address
@@ -376,11 +457,34 @@ export default function HomePage() {
     [vacancies, localePath],
   )
 
-  const feedItems = useMemo(() => {
-    if (activeTab === 'events') return eventFeed
-    if (activeTab === 'vacancies') return vacancyFeed
-    return [...eventFeed, ...vacancyFeed].slice(0, 12)
-  }, [activeTab, eventFeed, vacancyFeed])
+  const blogFeed: FeedCard[] = useMemo(
+    () =>
+      blogs.map((blog) => ({
+        id: blog._id,
+        kind: 'blog',
+        title: blog.title,
+        href: localePath(`/blogs/${blog.slug}`),
+        badge: 'İcma Bloqu',
+        coverImage: blog.featuredImage || blog.featured_image,
+        dateLabel: formatDate(blog.createdAt || blog.created_at || blog.date),
+        locationLabel: '',
+        ownerLabel: blog.authorName || blog.author_name || 'Anonim',
+      })),
+    [blogs, localePath],
+  )
+
+  const highlightFeed = useMemo(() => {
+    const picks = [
+      eventFeed[0],
+      vacancyFeed[0],
+      blogFeed[0],
+      eventFeed[1],
+      vacancyFeed[1],
+      blogFeed[1],
+    ].filter((item): item is FeedCard => Boolean(item))
+
+    return picks.slice(0, 3)
+  }, [eventFeed, vacancyFeed, blogFeed])
 
   const howItWorksCards = [
     {
@@ -405,206 +509,107 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <section className="relative overflow-hidden border-b border-slate-200 bg-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,#dbeafe,transparent_45%),radial-gradient(circle_at_bottom_right,#cffafe,transparent_45%)]" />
-        <div className="section-padding relative py-14 md:py-20">
-          <div className="mx-auto max-w-7xl">
-            <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr] lg:items-end">
-              <div>
-                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-                  <Sparkles className="h-4 w-4" />
-                  İcma dashboard
-                </div>
-                <h1 className="max-w-3xl text-3xl font-black tracking-tight text-slate-900 sm:text-4xl md:text-5xl">
-                  Fürsətləri tap, təşkilatlarla əlaqə qur, təsirini böyüt.
-                </h1>
-                <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
-                  Vakansiyalar, tədbirlər və aktiv təşkilatlar bir səhifədə. Filtrlə, yadda saxla və bir kliklə hərəkətə keç.
-                </p>
+    <div className="min-h-screen bg-white text-slate-900 relative overflow-hidden font-sans">
+      {/* Dynamic Background Blobs */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden mix-blend-multiply">
+        <div className="absolute top-[20%] -left-[10%] h-[600px] w-[600px] rounded-full bg-blue-100 opacity-50 blur-[120px]" />
+        <div className="absolute top-[40%] -right-[10%] h-[500px] w-[500px] rounded-full bg-purple-100 opacity-50 blur-[100px]" />
+        <div className="absolute bottom-[10%] left-[20%] h-[700px] w-[700px] rounded-full bg-cyan-100 opacity-40 blur-[140px]" />
+      </div>
 
-                <div className="mt-7 flex flex-wrap gap-3">
-                  <Link href={localePath('/resources')}>
-                    <Button variant="primary" size="md" icon={Compass} iconPosition="left">
-                      İmkanları kəşf et
-                    </Button>
-                  </Link>
-                  {isOrganizationUser ? (
-                    <Link href={localePath('/dashboard')}>
-                      <Button variant="outline" size="md" icon={Building2} iconPosition="left">
-                        Təşkilat paneli
-                      </Button>
-                    </Link>
-                  ) : (
-                    <Link href={localePath('/submit/blog')}>
-                      <Button variant="outline" size="md" icon={Target} iconPosition="left">
-                        Hekayəni paylaş
-                      </Button>
-                    </Link>
-                  )}
-                </div>
-              </div>
+      <Hero localePath={localePath} isOrganizationUser={isOrganizationUser} stats={stats} />
+      
+      <StatsBar stats={stats} />
 
-              <div className="grid grid-cols-3 gap-3 sm:gap-4">
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm">
-                  <p className="text-xl font-extrabold text-slate-900">{stats.totalVacancies}</p>
-                  <p className="mt-1 text-xs font-medium text-slate-500">Vakansiya</p>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm">
-                  <p className="text-xl font-extrabold text-slate-900">{stats.totalEvents}</p>
-                  <p className="mt-1 text-xs font-medium text-slate-500">Tədbir</p>
-                </div>
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm">
-                  <p className="text-xl font-extrabold text-slate-900">{stats.totalOrganizations}</p>
-                  <p className="mt-1 text-xs font-medium text-slate-500">Təşkilat</p>
-                </div>
-              </div>
-            </div>
-          </div>
+      {/* Featured Opportunities */}
+      <section className="relative z-10 py-24 container mx-auto px-4">
+        <SectionHeader 
+          title="Seçilmiş imkanlar" 
+          description="Sənin üçün ən yeni və maraqlı elanlar bir yerdə."
+        />
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {loading ? (
+            Array.from({ length: 3 }).map((_, i) => <LoadingState key={i} fullPage={false} />)
+          ) : highlightFeed.length > 0 ? (
+            highlightFeed.map((item) => <ContentCard key={`${item.kind}-${item.id}`} item={item} />)
+          ) : (
+            <EmptyState title="İmkan tapılmadı" message="Yaxın zamanda yeni imkanlar olacaq." fullPage={false} />
+          )}
         </div>
       </section>
 
-      <section className="section-padding py-6">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-          <Filter className="ml-1 h-4 w-4 text-slate-400" />
-          {(['all', 'events', 'vacancies'] as TabKey[]).map((tab) => {
-            const selected = activeTab === tab
-            const label = tab === 'all' ? 'Hamısı' : tab === 'events' ? 'Tədbirlər' : 'Vakansiyalar'
-            return (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setActiveTab(tab)}
-                className={[
-                  'rounded-xl px-3 py-2 text-sm font-semibold transition-colors',
-                  selected
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
-                ].join(' ')}
-              >
-                {label}
-              </button>
-            )
-          })}
-        </div>
-      </section>
-
-      <section className="section-padding pb-6">
-        <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[1fr_320px]">
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h2 className="text-lg font-bold text-slate-900">Seçilmiş imkanlar</h2>
-              <p className="mt-1 text-sm text-slate-600">Sənin üçün ən aktual elanlar</p>
-            </div>
-
+      {/* Vacancies Section */}
+      <section className="relative z-10 py-24 bg-slate-50/50 backdrop-blur-sm border-y border-slate-100">
+        <div className="container mx-auto px-4">
+          <SectionHeader 
+            title="Vakansiyalar" 
+            description="Karyerana başlamaq üçün ən yaxşı fürsətlər."
+            href={localePath('/resources/vacancies')}
+          />
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {loading ? (
-              <LoadingState fullPage={false} text="İmkanlar yüklənir..." />
-            ) : feedItems.length === 0 ? (
+              Array.from({ length: 4 }).map((_, i) => <LoadingState key={i} fullPage={false} />)
+            ) : vacancyFeed.length > 0 ? (
+              vacancyFeed.slice(0, 4).map((item) => <ContentCard key={item.id} item={item} />)
+            ) : (
               <EmptyState
-                title="Hazırda uyğun elan tapılmadı"
-                message="Filtrləri dəyişib yenidən yoxla."
+                title="Vakansiya tapılmadı"
+                message="Hazırda göstəriləcək vakansiya yoxdur. Bir az sonra yenidən yoxlayın."
                 fullPage={false}
               />
-            ) : (
-              <div className="space-y-3">
-                {feedItems.map((item) => (
-                  <article
-                    key={`${item.kind}-${item.id}`}
-                    className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
-                          {item.badge}
-                        </span>
-                        <Link href={item.href} className="mt-2 block">
-                          <h3 className="line-clamp-2 text-base font-bold text-slate-900 hover:text-blue-700">
-                            {item.title}
-                          </h3>
-                        </Link>
-                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
-                          <span className="inline-flex items-center gap-1">
-                            <Building2 className="h-3.5 w-3.5" />
-                            {item.ownerLabel}
-                          </span>
-                          <span className="inline-flex items-center gap-1">
-                            <MapPin className="h-3.5 w-3.5" />
-                            {item.locationLabel}
-                          </span>
-                          <span className="inline-flex items-center gap-1">
-                            <Clock3 className="h-3.5 w-3.5" />
-                            {item.dateLabel}
-                          </span>
-                        </div>
-                      </div>
-                      <Link href={item.href} className="hidden text-slate-400 hover:text-slate-600 sm:block">
-                        <ChevronRight className="h-5 w-5" />
-                      </Link>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap items-center gap-2">
-                      <Link href={item.href}>
-                        <Button variant="outline" size="sm" icon={ArrowRight} iconPosition="right">
-                          Ətraflı bax
-                        </Button>
-                      </Link>
-                      {item.kind === 'event' ? (
-                        <SaveItemButtonContainer
-                          itemId={item.id}
-                          itemType="event"
-                          itemTitle={item.title}
-                          size="sm"
-                          showText={true}
-                        />
-                      ) : (
-                        <SaveItemButtonContainer
-                          itemId={item.id}
-                          itemType="vacancy"
-                          itemTitle={item.title}
-                          size="sm"
-                          showText={true}
-                        />
-                      )}
-                    </div>
-                  </article>
-                ))}
-              </div>
             )}
           </div>
+        </div>
+      </section>
 
-          <aside className="space-y-4">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h3 className="text-sm font-bold text-slate-900">Sürətli keçidlər</h3>
-              <div className="mt-3 space-y-2">
-                <Link href={localePath('/resources/events')} className="block">
-                  <Button variant="secondary" size="sm" fullWidth icon={Calendar} iconPosition="left">
-                    Tədbirlər
-                  </Button>
-                </Link>
-                <Link href={localePath('/resources/vacancies')} className="block">
-                  <Button variant="secondary" size="sm" fullWidth icon={Briefcase} iconPosition="left">
-                    Vakansiyalar
-                  </Button>
-                </Link>
-                <Link href={localePath('/resources/organizations')} className="block">
-                  <Button variant="secondary" size="sm" fullWidth icon={Users} iconPosition="left">
-                    Təşkilatlar
-                  </Button>
-                </Link>
-              </div>
+      {/* Events Section */}
+      <section className="relative z-10 py-24">
+        <div className="container mx-auto px-4">
+          <SectionHeader 
+            title="Tədbirlər" 
+            description="Öyrən, şəbəkələş və inkişaf et."
+            href={localePath('/resources/events')}
+          />
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {loading ? (
+              Array.from({ length: 4 }).map((_, i) => <LoadingState key={i} fullPage={false} />)
+            ) : eventFeed.length > 0 ? (
+              eventFeed.slice(0, 4).map((item) => <ContentCard key={item.id} item={item} />)
+            ) : (
+              <EmptyState
+                title="Tədbir tapılmadı"
+                message="Hazırda göstəriləcək tədbir yoxdur. Yaxın zamanda yeni elanlar əlavə oluna bilər."
+                fullPage={false}
+              />
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Organizations Section */}
+      <section className="relative z-10 py-24 bg-slate-50/50 backdrop-blur-sm border-y border-slate-100">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-12">
+            <div className="max-w-2xl text-center lg:text-left">
+              <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">
+                Təşkilatlar
+              </h2>
+              <p className="text-slate-500 font-medium text-lg leading-relaxed">
+                Aktiv gənclər təşkilatlarını kəşf et və izlə.
+              </p>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h3 className="text-sm font-bold text-slate-900">Fokus sahələri</h3>
-              <div className="mt-3 flex flex-wrap gap-2">
+            <div className="flex flex-col sm:flex-row items-center gap-6">
+              {/* Horizontal Filter Bar */}
+              <div className="flex flex-wrap items-center justify-center gap-2 p-1.5 bg-white rounded-[2rem] border border-slate-100 shadow-sm">
                 <button
                   type="button"
                   onClick={() => setActiveFocus('all')}
                   className={[
-                    'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
+                    'rounded-full px-5 py-2 text-xs font-black transition-all tracking-wide uppercase',
                     activeFocus === 'all'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
+                      ? 'bg-slate-900 text-white shadow-lg'
+                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50',
                   ].join(' ')}
                 >
                   Hamısı
@@ -615,120 +620,99 @@ export default function HomePage() {
                     type="button"
                     onClick={() => setActiveFocus(focus)}
                     className={[
-                      'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
+                      'rounded-full px-5 py-2 text-xs font-black transition-all tracking-wide uppercase whitespace-nowrap',
                       activeFocus === focus
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200',
+                        ? 'bg-slate-900 text-white shadow-lg'
+                        : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50',
                     ].join(' ')}
                   >
                     {focusLabel(focus)}
                   </button>
                 ))}
               </div>
-            </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h3 className="text-sm font-bold text-slate-900">Aktiv təşkilatlar</h3>
-              <div className="mt-3 space-y-3">
-                {filteredOrganizations.slice(0, 3).map((org) => (
-                  <div key={org._id} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                    <Link href={localePath(`/o/${org.slug}`)}>
-                      <p className="line-clamp-1 text-sm font-semibold text-slate-800 hover:text-blue-700">
-                        {org.organizationName}
-                      </p>
-                    </Link>
-                    <p className="mt-1 line-clamp-1 text-xs text-slate-500">
-                      {org.location?.city || 'Məkan göstərilməyib'}
-                    </p>
-                    <div className="mt-2">
-                      <OrganizationFollowButtonContainer
-                        organizationId={org._id}
-                        organizationName={org.organizationName}
-                        size="xs"
-                        showFollowerCount={false}
-                      />
-                    </div>
-                  </div>
-                ))}
-                {!loading && filteredOrganizations.length === 0 && (
-                  <p className="text-xs text-slate-500">Bu fokus üzrə təşkilat tapılmadı.</p>
-                )}
-              </div>
+              <Link 
+                href={localePath('/resources/organizations')} 
+                className="group inline-flex items-center gap-2 rounded-full border-2 border-slate-100 bg-white px-6 py-3 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 hover:border-blue-200 hover:text-blue-600 hover:shadow-lg active:scale-95 whitespace-nowrap"
+              >
+                Hamısına bax
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
             </div>
-          </aside>
+          </div>
+          
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+
+            {loading ? (
+              Array.from({ length: 4 }).map((_, i) => <LoadingState key={i} fullPage={false} />)
+            ) : filteredOrganizations.length > 0 ? (
+              filteredOrganizations.slice(0, 8).map((org) => (
+                <OrganizationCard 
+                  key={org._id} 
+                  org={org} 
+                  localePath={localePath} 
+                  focusLabel={focusLabel} 
+                />
+              ))
+            ) : (
+              <div className="col-span-full py-12 text-center">
+                 <p className="text-slate-500 font-bold">Bu sahədə təşkilat tapılmadı.</p>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
-      <section className="section-padding py-10">
-        <div className="mx-auto max-w-7xl rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <h2 className="text-xl font-black text-slate-900">Təşkilatlar zolağı</h2>
-            <Link href={localePath('/resources/organizations')} className="text-sm font-semibold text-blue-700 hover:text-blue-800">
-              Hamısını gör
-            </Link>
+      {/* Blogs Section */}
+      <section className="relative z-10 py-24">
+        <div className="container mx-auto px-4">
+          <SectionHeader 
+            title="İcma Bloqu" 
+            description="Gənclərin hekayələri və maraqlı yazılar."
+            href={localePath('/blogs')}
+          />
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {loading ? (
+              Array.from({ length: 3 }).map((_, i) => <LoadingState key={i} fullPage={false} />)
+            ) : blogFeed.length > 0 ? (
+              blogFeed.slice(0, 3).map((item) => <ContentCard key={item.id} item={item} />)
+            ) : (
+              <EmptyState
+                title="Bloq tapılmadı"
+                message="Hazırda göstəriləcək bloq yazısı yoxdur. Daha sonra yenidən baxın."
+                fullPage={false}
+              />
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works - Restored Abstract Design */}
+      <section className="relative z-10 py-32 container mx-auto px-4">
+        <div className="relative overflow-hidden rounded-[4rem] bg-slate-900 p-10 md:p-20 shadow-2xl border border-white/10">
+          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.1] mix-blend-overlay" />
+          
+          {/* Abstract glows inside dark container */}
+          <div className="absolute -left-[10%] -top-[10%] h-[500px] w-[500px] rounded-full bg-blue-600 opacity-20 blur-[120px]" />
+          <div className="absolute -right-[10%] -bottom-[10%] h-[500px] w-[500px] rounded-full bg-purple-600 opacity-20 blur-[120px]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[400px] w-[400px] rounded-full bg-indigo-500 opacity-10 blur-[100px]" />
+          
+          <div className="relative z-10 max-w-3xl mx-auto text-center mb-20">
+             <h2 className="text-4xl md:text-7xl font-black text-white tracking-tight mb-8">Necə işləyir?</h2>
+             <p className="text-xl text-blue-100/70 font-medium leading-relaxed">Platformaya qoşul, imkanları izlə və öz karyera yolunu qur.</p>
           </div>
 
-          {loading ? (
-            <LoadingState fullPage={false} text="Təşkilatlar yüklənir..." />
-          ) : filteredOrganizations.length === 0 ? (
-            <EmptyState
-              title="Təşkilat tapılmadı"
-              message="Fokus filtrini dəyişərək yenidən bax."
-              fullPage={false}
-            />
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {filteredOrganizations.slice(0, 8).map((org) => (
-                <article
-                  key={org._id}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                >
-                  <Link href={localePath(`/o/${org.slug}`)}>
-                    <h3 className="line-clamp-2 text-sm font-bold text-slate-800 hover:text-blue-700">
-                      {org.organizationName}
-                    </h3>
-                  </Link>
-                  <p className="mt-1 line-clamp-1 text-xs text-slate-500">
-                    {org.location?.city || 'Məkan göstərilməyib'}
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {org.focusAreas.slice(0, 2).map((focus) => (
-                      <span
-                        key={`${org._id}-${focus}`}
-                        className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600"
-                      >
-                        {focusLabel(focus)}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="mt-3">
-                    <OrganizationFollowButtonContainer
-                      organizationId={org._id}
-                      organizationName={org.organizationName}
-                      size="xs"
-                      showFollowerCount={false}
-                    />
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section className="section-padding pb-14">
-        <div className="mx-auto max-w-7xl rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
-          <h2 className="text-2xl font-black text-slate-900">Necə işləyir?</h2>
-          <p className="mt-2 text-sm text-slate-600">3 addımda platformadan maksimum fayda götür.</p>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <div className="relative z-10 grid gap-10 md:grid-cols-3">
             {howItWorksCards.map((card) => (
-              <div key={card.step} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <div className="mb-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
+              <div key={card.step} className="group relative rounded-[2.5rem] border border-white/5 bg-white/5 p-10 backdrop-blur-xl transition-all duration-500 hover:bg-white/10 hover:-translate-y-3 hover:shadow-2xl hover:border-white/10">
+                <div className="absolute top-0 right-0 p-8 text-[140px] font-black text-white/[0.03] pointer-events-none leading-none transition-all duration-700 group-hover:text-white/[0.07] group-hover:scale-110">
                   {card.step}
                 </div>
-                <h3 className="text-sm font-bold text-slate-900">{card.title}</h3>
-                <p className="mt-1 text-xs leading-5 text-slate-600">{card.description}</p>
+                <div className="mb-8 inline-flex h-20 w-20 items-center justify-center rounded-[2rem] bg-gradient-to-br from-blue-500 to-indigo-600 text-3xl font-black text-white shadow-2xl border border-white/20 relative z-10">
+                  {card.step}
+                </div>
+                <h3 className="text-2xl font-black text-white mb-4 relative z-10">{card.title}</h3>
+                <p className="text-lg text-blue-100/60 font-medium relative z-10 leading-relaxed">{card.description}</p>
               </div>
             ))}
           </div>

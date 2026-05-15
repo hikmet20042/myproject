@@ -188,7 +188,7 @@ const NotificationItemComponent = memo(function NotificationItemComponent({
             </div>
           </button>
 
-          <div className="flex items-center gap-1.5 flex-shrink-0 pl-1" role="group" aria-label="Bildiriş actions">
+          <div className="flex items-center gap-1.5 flex-shrink-0 pl-1" role="group" aria-label="Bildiriş əməliyyatları">
             <button
               onClick={(e) => {
                 e.stopPropagation();

@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import DOMPurify from 'dompurify'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
+import Image from 'next/image'
 import {
   Calendar,
   Clock,
@@ -13,15 +14,11 @@ import {
   ThumbsDown,
   ArrowLeft,
   Share2,
-  BookmarkPlus,
-  MessageSquare,
-  ChevronRight,
-  TrendingUp,
+  Bookmark,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import BlogReactionsContainer from '@/features/blogs/components/BlogReactionsContainer'
 import { LoadingState, ErrorState } from '@/components/shared'
-import { DetailPageLayout } from '@/components/layout'
 import SaveItemButtonContainer from '@/components/containers/SaveItemButtonContainer'
 import ViewTracker from '@/components/ViewTracker'
 import { useSession } from '@/lib/auth/client'
@@ -31,15 +28,14 @@ import { blogQueryKeys, fetchBlogById } from '@/lib/blogQueries'
 
 function BlogContentSkeleton() {
   return (
-    <div className="animate-pulse rounded-2xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm">
-      <div className="h-5 w-40 rounded bg-gray-200" />
-      <div className="mt-6 h-4 w-full rounded bg-gray-100" />
-      <div className="mt-3 h-4 w-[95%] rounded bg-gray-100" />
-      <div className="mt-3 h-4 w-[92%] rounded bg-gray-100" />
-      <div className="mt-3 h-4 w-[88%] rounded bg-gray-100" />
-      <div className="mt-8 h-4 w-full rounded bg-gray-100" />
-      <div className="mt-3 h-4 w-[94%] rounded bg-gray-100" />
-      <div className="mt-3 h-4 w-[90%] rounded bg-gray-100" />
+    <div className="animate-pulse space-y-6">
+      <div className="h-6 w-1/4 rounded bg-gray-200" />
+      <div className="space-y-4">
+        <div className="h-4 w-full rounded bg-gray-100" />
+        <div className="h-4 w-[95%] rounded bg-gray-100" />
+        <div className="h-4 w-[92%] rounded bg-gray-100" />
+        <div className="h-4 w-[88%] rounded bg-gray-100" />
+      </div>
     </div>
   )
 }
@@ -100,6 +96,7 @@ type Blog = {
   dislikes?: number
   views?: number
   tags?: string[]
+  featuredImage?: string | null
 }
 
 export default function BlogDetailPage({ params }: { params: { slug: string } }) {
@@ -135,6 +132,7 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
         dislikes: apiBlog.dislikes || 0,
         views: apiBlog.views || 0,
         tags: apiBlog.tags || [],
+        featuredImage: apiBlog.featuredImage || apiBlog.featured_image || null,
       } as Blog
     },
     retry: false,
@@ -150,6 +148,7 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
   const publishedDate = blog?.submittedAt || blog?.date || ''
   const formattedDate = formatDate(publishedDate)
   const canAccessReactions = session?.user?.accountType !== 'organization'
+  const backHref = localePath('/blogs')
 
   const safeHtml = blog?.contentHtml ? DOMPurify.sanitize(blog.contentHtml) : ''
 
@@ -187,168 +186,42 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
     )
   }
 
-  const metadata = (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-3 text-sm text-gray-600">
-      {/* Author */}
-      {blog.authorName && (
-        <div className="flex items-center gap-2.5">
-          <span
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-emerald-500 text-white font-bold text-xs shadow-sm"
-          >
-            {blog.isAnonymous ? '?' : blog.authorName.charAt(0).toUpperCase()}
-          </span>
-          {blog.authorUrlHandle ? (
-            <Link
-              href={localePath(`/u/${blog.authorUrlHandle}`)}
-              className="font-semibold text-gray-900 hover:text-blue-600 transition-colors"
-            >
-              {blog.authorName}
-            </Link>
-          ) : (
-            <span className="font-semibold text-gray-900">{blog.authorName}</span>
-          )}
-        </div>
-      )}
-
-      <div className="hidden sm:block w-px h-5 bg-gray-200" />
-
-      {/* Date */}
-      {formattedDate && (
-        <div className="flex items-center gap-1.5">
-          <Calendar className="h-4 w-4 text-gray-400" />
-          <span>{formattedDate}</span>
-        </div>
-      )}
-
-      {/* Reading time */}
-      <div className="flex items-center gap-1.5">
-        <Clock className="h-4 w-4 text-gray-400" />
-        <span>{readingTime} dəq oxuma</span>
-      </div>
-
-      {/* Views */}
-      {blog.views !== undefined && blog.views >= 0 && (
-        <>
-          <div className="hidden sm:block w-px h-5 bg-gray-200" />
-          <div className="flex items-center gap-1.5">
-            <Eye className="h-4 w-4 text-gray-400" />
-            <span>{blog.views.toLocaleString()}</span>
-          </div>
-        </>
-      )}
-
-      {/* Likes */}
-      {blog.likes !== undefined && blog.likes >= 0 && (
-        <div className="flex items-center gap-1.5">
-          <ThumbsUp className="h-4 w-4 text-blue-500" />
-          <span>{blog.likes.toLocaleString()}</span>
-        </div>
-      )}
-
-      {/* Dislikes */}
-      {blog.dislikes !== undefined && blog.dislikes >= 0 && (
-        <div className="flex items-center gap-1.5">
-          <ThumbsDown className="h-4 w-4 text-rose-500" />
-          <span>{blog.dislikes.toLocaleString()}</span>
-        </div>
-      )}
-
-      {/* Tags */}
-      {blog.tags && blog.tags.length > 0 && (
-        <>
-          <div className="hidden sm:block w-px h-5 bg-gray-200" />
-          <div className="flex flex-wrap gap-1.5">
-            {blog.tags.slice(0, 3).map((tag: string) => (
-              <span
-                key={tag}
-                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  )
+  // Metadata will be rendered inline below in the main layout
 
   const hasBlocknoteContent = Boolean(blog.content && typeof blog.content === 'object')
 
   const mainContent = (
-    <div id="blog-content" ref={contentRef} className="prose prose-lg max-w-none
-      prose-headings:font-bold prose-headings:text-gray-900 prose-headings:tracking-tight
-      prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4
-      prose-h3:text-xl prose-h3:mt-8 prose-h3:mb-3
-      prose-p:text-gray-700 prose-p:leading-relaxed prose-p:my-4
+    <div id="blog-content" ref={contentRef} className="prose prose-lg max-w-none space-y-8
+      prose-h2:font-bold prose-h2:text-3xl prose-h2:text-gray-900 prose-h2:mt-12 prose-h2:mb-6
+      prose-h3:font-bold prose-h3:text-xl prose-h3:text-gray-900 prose-h3:mt-8 prose-h3:mb-4
+      prose-p:text-gray-700 prose-p:leading-relaxed prose-p:text-base
       prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
       prose-strong:text-gray-900 prose-strong:font-semibold
-      prose-blockquote:border-l-4 prose-blockquote:border-blue-500 prose-blockquote:bg-blue-50/50 prose-blockquote:rounded-r-xl prose-blockquote:py-3 prose-blockquote:px-5 prose-blockquote:not-italic prose-blockquote:text-gray-700
-      prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-sm prose-code:font-mono
-      prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:rounded-xl prose-pre:shadow-lg
-      prose-li:text-gray-700 prose-li:leading-relaxed
-      prose-img:rounded-xl prose-img:shadow-md
-      prose-hr:border-gray-200
+      prose-blockquote:border-l-4 prose-blockquote:border-blue-600 prose-blockquote:bg-slate-50 prose-blockquote:rounded-r-lg prose-blockquote:py-4 prose-blockquote:px-6 prose-blockquote:italic prose-blockquote:text-gray-700 prose-blockquote:my-8
+      prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-code:text-gray-900
+      prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:rounded-lg prose-pre:p-4 prose-pre:overflow-x-auto
+      prose-ul:text-gray-700 prose-ol:text-gray-700
+      prose-li:text-gray-700 prose-li:leading-relaxed prose-li:my-2
+      prose-img:rounded-lg prose-img:shadow-md prose-img:my-8
+      prose-hr:border-gray-200 prose-hr:my-12
+      prose-figure:my-8
+      prose-figcaption:text-center prose-figcaption:text-sm prose-figcaption:text-gray-600 prose-figcaption:italic prose-figcaption:mt-2
     ">
       {hasBlocknoteContent ? (
         <BlocknoteReadOnly initialJSON={blog.content} textSize="large" />
       ) : safeHtml ? (
-        <div className="text-[1.12rem] leading-9" dangerouslySetInnerHTML={{ __html: safeHtml }} />
+        <div dangerouslySetInnerHTML={{ __html: safeHtml }} />
       ) : (
-        <div className="whitespace-pre-wrap text-gray-700 text-[1.12rem] leading-9">
+        <div className="whitespace-pre-wrap text-gray-700">
           {blog.content || ''}
         </div>
       )}
     </div>
   )
 
-  const actionSection = (
-    <>
-      {/* Reactions */}
-      {blog.status === 'approved' && canAccessReactions && (
-        <section className="rounded-2xl border border-gray-200 bg-white p-6 sm:p-8 shadow-sm">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-sm">
-                <MessageSquare className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Bu məqalə haqqında nə düşünürsən?</h3>
-                <p className="text-sm text-gray-500">Rəyini bildir və digər oxucularla bölüş</p>
-              </div>
-            </div>
-            <BlogReactionsContainer
-              blogSlug={blog.slug}
-              initialLikes={blog.likes || 0}
-              initialDislikes={blog.dislikes || 0}
-            />
-          </div>
-        </section>
-      )}
+  // Sidebar removed - content moved to main layout
 
-      {/* Save & Share */}
-      <section className="flex flex-wrap items-center gap-3">
-        <SaveItemButtonContainer
-          itemId={blog._id || blog.id}
-          itemType="blog"
-          itemTitle={blog.title}
-          size="md"
-        />
-        <button
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-colors shadow-sm"
-          onClick={() => {
-            if (navigator.share) {
-              navigator.share({ title: blog.title, url: window.location.href })
-            } else {
-              navigator.clipboard.writeText(window.location.href)
-            }
-          }}
-        >
-          <Share2 className="h-4 w-4" />
-          Paylaş
-        </button>
-      </section>
-    </>
-  )
+  // actionSection will be rendered inline in the main layout
 
   return (
     <>
@@ -357,20 +230,183 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
         <ViewTracker itemType="blog" itemId={blog.slug} minTimeMs={10000} selector="#blog-content" />
       )}
 
-      <DetailPageLayout
-      backHref={localePath('/blogs')}
-      backLabel="Bloqlara qayıt"
-      breadcrumbItems={[
-        { label: 'Ana səhifə', href: localePath('/') },
-        { label: 'Bloqlar', href: localePath('/blogs') },
-        { label: blog.title, current: true },
-      ]}
-      title={blog.title}
-      metadata={metadata}
-      mainContent={mainContent}
-      actionSection={actionSection}
-      contentMaxWidthClass="max-w-6xl"
-    />
+      {/* Reading progress bar */}
+      <div className="fixed left-0 right-0 top-0 z-50 h-1 bg-gray-100">
+        <div style={{ width: `${readingProgress}%` }} className="h-1 bg-blue-600 transition-all duration-200" />
+      </div>
+
+      <div className="min-h-screen bg-white pt-20 pb-16 md:pb-20">
+        <div className="max-w-4xl mx-auto px-4 md:px-6">
+          {/* Breadcrumbs & Back Button */}
+          <div className="flex items-center justify-between gap-6 mb-12 flex-col sm:flex-row">
+            <nav className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-widest order-2 sm:order-1">
+              <Link href={localePath('/')} className="hover:text-blue-600 transition-colors">
+                Ana səhifə
+              </Link>
+              <span className="text-gray-300">/</span>
+              <Link href={localePath('/blogs')} className="hover:text-blue-600 transition-colors">
+                Bloqlar
+              </Link>
+              <span className="text-gray-300">/</span>
+              <span className="text-gray-900 truncate">{blog.title}</span>
+            </nav>
+            <Link
+              href={backHref}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-blue-200 hover:text-blue-600 transition-all whitespace-nowrap order-1 sm:order-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Geri</span>
+            </Link>
+          </div>
+
+          {/* Cover Image Card */}
+          {blog.featuredImage && (
+            <div className="mb-12 rounded-xl overflow-hidden border border-gray-200 bg-white shadow-sm">
+              <div className="relative w-full aspect-video">
+                <Image
+                  src={blog.featuredImage}
+                  alt={blog.title}
+                  fill
+                  className="object-cover"
+                  priority
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Title */}
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black leading-[1.15] text-gray-900 mb-8">
+            {blog.title}
+          </h1>
+
+          {/* Metadata Block */}
+          <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8 border-b border-gray-200 pb-6 mb-12">
+            {/* Author Card */}
+            {blog.authorName && (
+              <div className="flex items-center gap-4">
+                <div className="h-14 w-14 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                  {blog.isAnonymous ? '?' : blog.authorName.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-widest text-gray-500">Müəllif</p>
+                  {blog.authorUrlHandle ? (
+                    <Link
+                      href={localePath(`/u/${blog.authorUrlHandle}`)}
+                      className="font-bold text-gray-900 hover:text-blue-600 transition-colors"
+                    >
+                      {blog.authorName}
+                    </Link>
+                  ) : (
+                    <p className="font-bold text-gray-900">{blog.authorName}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="hidden md:block w-px h-10 bg-gray-200" />
+
+            {/* Published Date */}
+            {formattedDate && (
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-gray-500">Tarix</p>
+                <p className="font-medium text-gray-900">{formattedDate}</p>
+              </div>
+            )}
+
+            <div className="hidden md:block w-px h-10 bg-gray-200" />
+
+            {/* Reading Time */}
+            <div>
+              <p className="text-xs font-black uppercase tracking-widest text-gray-500">Oxuma müddəti</p>
+              <div className="flex items-center gap-1.5 font-medium text-gray-900">
+                <Clock className="h-4 w-4 text-gray-400" />
+                <span>{readingTime} dəq</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Interaction Bar */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 py-6 mb-12 border-b border-gray-200">
+            <div className="flex items-center gap-8">
+              {blog.views !== undefined && blog.views >= 0 && (
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Eye className="h-4 w-4 text-gray-400" />
+                  <span className="text-sm font-medium">{blog.views.toLocaleString()} baxış</span>
+                </div>
+              )}
+              <div className="flex items-center gap-6">
+                {blog.likes !== undefined && blog.likes >= 0 && (
+                  <button className="flex items-center gap-1.5 text-gray-600 hover:text-blue-600 transition-colors">
+                    <ThumbsUp className="h-4 w-4" />
+                    <span className="text-xs font-bold">{blog.likes.toLocaleString()}</span>
+                  </button>
+                )}
+                {blog.dislikes !== undefined && blog.dislikes >= 0 && (
+                  <button className="flex items-center gap-1.5 text-gray-600 hover:text-red-600 transition-colors">
+                    <ThumbsDown className="h-4 w-4" />
+                    <span className="text-xs font-bold">{blog.dislikes.toLocaleString()}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <button
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({ title: blog.title, url: window.location.href })
+                  } else {
+                    navigator.clipboard.writeText(window.location.href)
+                  }
+                }}
+              >
+                <Share2 className="h-4 w-4" />
+                Paylaş
+              </button>
+              <SaveItemButtonContainer
+                itemId={blog._id || blog.id}
+                itemType="blog"
+                itemTitle={blog.title}
+                size="md"
+              />
+            </div>
+          </div>
+
+          {/* Main Content */}
+          {mainContent}
+
+          {/* Tags & Reactions Section */}
+          <div className="space-y-12 border-t border-gray-200 pt-12 mt-12">
+            {/* Tags */}
+            {blog.tags && blog.tags.length > 0 && (
+              <div className="flex flex-wrap gap-3">
+                {blog.tags.map((tag: string) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Reactions Section */}
+            {blog.status === 'approved' && canAccessReactions && (
+              <div className="text-center py-12">
+                <h3 className="text-2xl font-bold text-gray-900 mb-8">Bu məqalə sənə necə gəldi?</h3>
+                <div className="flex justify-center">
+                  <BlogReactionsContainer
+                    blogSlug={blog.slug}
+                    initialLikes={blog.likes || 0}
+                    initialDislikes={blog.dislikes || 0}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </>
   )
 }

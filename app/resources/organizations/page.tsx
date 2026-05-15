@@ -1,72 +1,39 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Button, ButtonLink } from '@/components/ui';
-import { Input } from '@/components/ui/Input';
+import { Button, ButtonLink, SearchBar } from '@/components/ui';
 import { Select } from '@/components/ui/Select';
-import { Search, Users, MapPin, ExternalLink, Mail, Sparkles, ArrowRight } from 'lucide-react';
+import { Sparkles, RefreshCw } from 'lucide-react';
 import { useLocalizedPath } from '@/hooks/useLocalizedPath';
-import { ResourceFilterContainer, ActiveFilterBadges, ResourceCard, EmptyState } from '@/components/shared';
+import { EmptyState, ResourceFilterContainer } from '@/components/shared';
 import { ORGANIZATION_TYPE_LABELS, ORGANIZATION_TYPE_VALUES } from '@/lib/organizationTypes';
 import { fetchOrganizations } from '@/lib/organizationQueries';
 import { logError } from '@/lib/logger';
 import { ListPageLayout } from '@/components/layout';
 import { useSession } from '@/lib/auth/client';
-import OrganizationFollowButtonContainer from '@/components/containers/OrganizationFollowButtonContainer';
+import { OrganizationCard } from '@/components/shared/OrganizationCard';
+import { FOCUS_AREA_LABELS_AZ } from '@/lib/organizationTypes';
 
-interface Organization { _id: string
-  slug: string
-  organizationName: string
-  organizationType?: string
-  description: string
-  focusAreas: string[]
-  address?: string
-  website?: string
-  contactPhone?: string
-  registrationNumber?: string
-  status: 'pending' | 'approved' | 'rejected'
-  contactPerson: { name: string
-    email: string
-    phone?: string
-    position?: string }
-  socialMedia?: { facebook?: string
-    twitter?: string
-    instagram?: string
-    linkedin?: string
-    youtube?: string
-    website?: string }
-  approvedBy?: { _id: string
-    name: string
-    email: string }
-  createdAt: string
-  updatedAt: string
-}
-
-export default function OrganizationsPage() { const localePath = useLocalizedPath();
+export default function OrganizationsPage() { 
+  const localePath = useLocalizedPath();
   const { data: session } = useSession();
   const isOrganizationUser = session?.user?.accountType === 'organization';
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedLocation, setSelectedLocation] = useState('all');
   const [selectedOrganizationType, setSelectedOrganizationType] = useState('all');
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [organizations, setOrganizations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [retryKey, setRetryKey] = useState(0)
 
-  const getFocusAreaLabel = (value: string) => { if (!value) { return value; }
-    return value; };
+  const focusLabel = (raw: string): string => {
+    const key = raw as keyof typeof FOCUS_AREA_LABELS_AZ
+    return FOCUS_AREA_LABELS_AZ[key] || raw
+  }
 
-  // Fetch organizations from API
   useEffect(() => {
     const loadOrganizations = async () => {
       try {
         setLoading(true)
-        // Request a larger page size to show more organizations on the directory
-        const query = new URLSearchParams({ limit: '100' })
-        if (selectedOrganizationType !== 'all') {
-          query.set('organizationType', selectedOrganizationType)
-        }
         const { items } = await fetchOrganizations({
           limit: 100,
           organizationType: selectedOrganizationType !== 'all' ? selectedOrganizationType : undefined,
@@ -79,323 +46,122 @@ export default function OrganizationsPage() { const localePath = useLocalizedPat
         setLoading(false)
       }
     }
-
     loadOrganizations()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOrganizationType, retryKey])
 
-  const categories = [
-    { value: 'all', label: 'Bütün Kateqoriyalar' },
-    { value: 'Human Rights', label: 'İnsan Hüquqları' },
-    { value: 'Women Rights', label: 'Qadın Hüquqları' },
-    { value: 'Youth Development', label: 'Gənclərin İnkişafı' },
-    { value: 'Education', label: 'Təhsil' },
-    { value: 'Environment', label: 'Ətraf Mühit' },
-    { value: 'Healthcare', label: 'Səhiyyə' }
-  ];
-
-  const locations = [
-    { value: 'all', label: 'Bütün Yerlər' },
-    { value: 'Baku', label: 'Bakı' },
-    { value: 'Ganja', label: 'Gəncə' },
-    { value: 'Sumgayit', label: 'Sumqayıt' },
-    { value: 'Mingachevir', label: 'Mingəçevir' },
-    { value: 'Other', label: 'Digər Regionlar' }
-  ];
-
   const organizationTypes = [
-    { value: 'all', label: 'Bütün Kateqoriyalar' },
-    ...ORGANIZATION_TYPE_VALUES.map((value) => ({ value,
-      label: ORGANIZATION_TYPE_LABELS[value] }))
+    { value: 'all', label: 'Bütün növlər' },
+    ...ORGANIZATION_TYPE_VALUES.map((value) => ({ value, label: ORGANIZATION_TYPE_LABELS[value] }))
   ];
 
-  const getCategoryLabel = (val: string) => categories.find(c => c.value === val)?.label || val;
-  const getLocationLabel = (val: string) => locations.find(l => l.value === val)?.label || val;
+  const filteredOrganizations = organizations.filter(organization => {
+    const name = organization.organizationName || '';
+    const desc = organization.description || '';
+    const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) || desc.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
 
-  const filteredOrganizations = organizations.filter(organization => { const matchesSearch = organization.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         organization.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || 
-                           (organization.focusAreas && organization.focusAreas.some(area => area === selectedCategory));
-    const matchesLocation = selectedLocation === 'all' || 
-                           (organization.address && organization.address.toLowerCase().includes(selectedLocation.toLowerCase()));
-    const matchesType = selectedOrganizationType === 'all' ||
-      (organization.organizationType && organization.organizationType === selectedOrganizationType);
-    
-    return matchesSearch && matchesCategory && matchesLocation && matchesType; });
-
-  // Determine if any filters are active (used to control empty-state actions)
-  const hasActiveFilters =
-    searchTerm.trim() !== '' || selectedCategory !== 'all' || selectedLocation !== 'all' || selectedOrganizationType !== 'all';
+  const hasActiveFilters = searchTerm.trim() !== '' || selectedOrganizationType !== 'all';
 
   return (
     <ListPageLayout
-      title="Təşkilat Kataloqu"
-      description="Gender bərabərliyi proqramları və sağ qalanlara dəstək xidmətləri göstərən təşkilatları kəşf et."
+      title="Təşkilatlar"
+      description="İcmamızdakı ən fəal gənclər təşkilatlarını kəşf et, izlə və onlarla əlaqə qur."
+      headerBadgeText="RESURSLAR"
+      pageType="organization"
       icon={Sparkles}
       headerActions={
         isOrganizationUser ? (
           <>
-            <ButtonLink href={localePath('/dashboard/events/create')} variant="secondary" size="lg" hoverEffect="scale">
-              {'Tədbir Paylaş'}
-            </ButtonLink>
-            <ButtonLink href={localePath('/dashboard/vacancies/create')} variant="outline" size="lg" hoverEffect="scale">
-              {'Vakansiya Paylaş'}
-            </ButtonLink>
-            <ButtonLink href={localePath('/dashboard/profile')} variant="outline" size="lg" hoverEffect="scale">
-              {'Təşkilat Paneli'}
+            <ButtonLink href={localePath('/dashboard/profile')} variant="secondary" size="lg" className="rounded-full px-8">
+              Təşkilat Paneli
             </ButtonLink>
           </>
         ) : (
           <>
-            <ButtonLink href={localePath('/submit')} variant="secondary" size="lg" hoverEffect="scale">
-              {'Bloq Paylaş'}
-            </ButtonLink>
-            <ButtonLink href={localePath('/resources')} variant="outline" size="lg" hoverEffect="scale">
-              {'Fürsətləri Kəşf Et'}
+            <ButtonLink href={localePath('/auth/register?type=organization')} variant="secondary" size="lg" className="rounded-full px-8 shadow-xl shadow-blue-500/20">
+              Təşkilat Qeydiyyatı
             </ButtonLink>
           </>
         )
       }
       isLoading={loading}
       isError={Boolean(error)}
-      errorTitle="Təşkilatlar yüklənmədi. Yenidən cəhd et."
-      errorMessage={error || undefined}
       onRetry={() => setRetryKey((prev) => prev + 1)}
       isEmpty={!loading && !error && filteredOrganizations.length === 0 && !hasActiveFilters}
-      emptyTitle="Təşkilat tapılmadı"
-      emptyMessage="Hazırda göstəriləcək təşkilat yoxdur."
-      filterContainerClassName="max-w-6xl mx-auto"
-      contentContainerClassName="max-w-6xl mx-auto"
       filterSection={
         <ResourceFilterContainer
-              title={'Filtrlə və Axtar'}
-              subtitle={'Ehtiyaclarına uyğun təşkilatları tapmaq üçün axtarışı dəqiqləşdir.'}
-              iconGradient="from-blue-600 to-emerald-600"
-              borderColor="border-blue-100"
-              searchInput={ <Input
-                  type="text"
-                  id="search"
-                  label={'Axtar'}
-                  placeholder={'Ad və ya təsvir üzrə axtar...'}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  icon={Search}
-                  iconPosition="left"
-                  inputSize="md"
-                /> }
-              filterControls={ <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                  <div>
-                    <Select
-                      label={'Kateqoriya'}
-                      value={selectedCategory}
-                      onChange={(e) => setSelectedCategory(e.target.value)}
-                      options={categories}
-                      placeholder={'Bütün Kateqoriyalar'}
-                      selectSize="md"
-                    />
-                  </div>
-
-                  <div>
-                    <Select
-                      label={'Yer'}
-                      value={selectedLocation}
-                      onChange={(e) => setSelectedLocation(e.target.value)}
-                      options={locations}
-                      placeholder={'Bütün Yerlər'}
-                      selectSize="md"
-                    />
-                  </div>
-
-                  <div>
-                    <Select
-                      label={'Növ'}
-                      value={selectedOrganizationType}
-                      onChange={(e) => setSelectedOrganizationType(e.target.value)}
-                      options={organizationTypes}
-                      placeholder={'Növ'}
-                      selectSize="md"
-                    />
-                  </div>
-                </div> }
-              activeFilters={ hasActiveFilters ? (
-                  <ActiveFilterBadges
-                    badges={[
-                      ...(selectedCategory !== 'all' ? [{ id: 'category',
-                        label: 'Kateqoriya',
-                        value: getCategoryLabel(selectedCategory),
-                        onRemove: () => setSelectedCategory('all'),
-                        colorScheme: 'teal' as const, }] : []),
-                      ...(selectedLocation !== 'all' ? [{ id: 'location',
-                        label: 'Yer',
-                        value: getLocationLabel(selectedLocation),
-                        onRemove: () => setSelectedLocation('all'),
-                        colorScheme: 'blue' as const, }] : []),
-                      ...(selectedOrganizationType !== 'all' ? [{ id: 'organizationType',
-                        label: 'Növ',
-                        value: ORGANIZATION_TYPE_LABELS[
-                          selectedOrganizationType as keyof typeof ORGANIZATION_TYPE_LABELS
-                        ],
-                        onRemove: () => setSelectedOrganizationType('all'),
-                        colorScheme: 'green' as const, }] : []),
-                    ]}
-                    onClearAll={() => { setSearchTerm('');
-                      setSelectedCategory('all');
-                      setSelectedLocation('all');
-                      setSelectedOrganizationType('all'); }}
-                  />
-                ) : undefined }
+          searchInput={
+            <SearchBar 
+              onSearch={setSearchTerm} 
+              placeholder="Təşkilat adı və ya fəaliyyət sahəsi axtar..." 
+              value={searchTerm}
+              variant="minimal"
             />
+          }
+          filterControls={
+            <div className="space-y-2">
+              <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Təşkilat növü</label>
+              <Select
+                value={selectedOrganizationType}
+                onChange={(e) => setSelectedOrganizationType(e.target.value)}
+                options={organizationTypes}
+                className="bg-slate-50 border-none rounded-2xl h-14 font-bold text-slate-700"
+              />
+            </div>
+          }
+          activeFilters={hasActiveFilters && (
+             <Button 
+               variant="outline" 
+               size="sm" 
+               onClick={() => { setSearchTerm(''); setSelectedOrganizationType('all'); }}
+               className="rounded-full text-xs font-black bg-white"
+             >
+               Filtrləri təmizlə
+             </Button>
+          )}
+        />
       }
       content={
-        <>
-          {filteredOrganizations.length === 0 ? (
-            <EmptyState
-              title="Təşkilat tapılmadı"
-              message="Daha çox təşkilat tapmaq üçün axtarış və ya filtrləri dəyişməyi sına."
-              actionText="Filtrləri Təmizlə"
-              onAction={hasActiveFilters ? () => { setSearchTerm('');
-                setSelectedCategory('all');
-                setSelectedLocation('all');
-                setSelectedOrganizationType('all'); } : undefined}
-            />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
+          {filteredOrganizations.length > 0 ? (
+            filteredOrganizations.map((org) => (
+              <OrganizationCard 
+                key={org._id} 
+                org={org} 
+                localePath={localePath} 
+                focusLabel={focusLabel} 
+              />
+            ))
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredOrganizations.map((organization, idx) => (
-                <ResourceCard
-                  key={organization._id}
-                  type="organization"
-                  title={organization.organizationName}
-                  description={organization.description}
-                  wrapperClassName="animate-fade-in"
-                  style={{ animationDelay: `${idx * 0.05}s` }}
-                  icon={
-                    <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <span className="text-xl font-black text-primary">
-                        {organization.organizationName.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                  }
-                  topRight={organization.status === 'approved' ? (
-                    <span className="text-xs px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full font-semibold whitespace-nowrap">
-                      {'Təsdiqlənmiş'}
-                    </span>
-                  ) : undefined}
-                  badges={[
-                    ...(organization.focusAreas && organization.focusAreas.length > 0
-                      ? [{ label: getFocusAreaLabel(organization.focusAreas[0]) || organization.focusAreas[0], variant: 'info' as const }]
-                      : []),
-                    ...(organization.organizationType
-                      ? [{
-                          label:
-                            ORGANIZATION_TYPE_LABELS[
-                              organization.organizationType as keyof typeof ORGANIZATION_TYPE_LABELS
-                            ] || organization.organizationType,
-                          variant: 'success' as const,
-                        }]
-                      : []),
-                    ...(organization.address
-                      ? [{ label: organization.address.split(',')[0], variant: 'secondary' as const }]
-                      : []),
-                  ]}
-                  metadata={
-                    <>
-                      {organization.website && (
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <ExternalLink className="w-4 h-4 text-primary flex-shrink-0" />
-                          <a
-                            href={organization.website.startsWith('http') ? organization.website : `https://${organization.website}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline font-medium truncate text-xs"
-                          >
-                            {organization.website}
-                          </a>
-                        </div>
-                      )}
-                      {organization.contactPerson?.email && (
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <Mail className="w-4 h-4 text-primary flex-shrink-0" />
-                          <a href={`mailto:${organization.contactPerson.email}`} className="text-primary hover:underline font-medium truncate text-xs">
-                            {organization.contactPerson.email}
-                          </a>
-                        </div>
-                      )}
-                      {organization.contactPhone && (
-                        <div className="flex items-center gap-2 text-gray-500">
-                          <Users className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                          <span className="text-xs">{organization.contactPhone}</span>
-                        </div>
-                      )}
-                    </>
-                  }
-                  actions={
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap gap-2">
-                        {organization.contactPerson?.email && (
-                          <ButtonLink
-                            href={`mailto:${organization.contactPerson.email}`}
-                            variant="outline"
-                            size="sm"
-                            className="text-center justify-center"
-                            hoverEffect="scale"
-                          >
-                            {'Təşkilat ilə əlaqə'}
-                          </ButtonLink>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                      <OrganizationFollowButtonContainer
-                        organizationId={organization._id}
-                        organizationName={organization.organizationName}
-                        size="sm"
-                        showFollowerCount={false}
-                        className="flex-1"
-                      />
-                      <ButtonLink
-                        href={localePath(`/o/${organization.slug}`)}
-                        variant="secondary"
-                        size="sm"
-                        hoverEffect="scale"
-                        className="flex-1"
-                      >
-                        {'Profili Gör'}
-                      </ButtonLink>
-                      </div>
-                    </div>
-                  }
-                />
-              ))}
+            <div className="col-span-full py-20">
+              <EmptyState
+                title="Təşkilat tapılmadı"
+                message="Axtarış meyarlarını dəyişərək yenidən yoxlayın."
+                actionText="Filtrləri təmizlə"
+                onAction={() => { setSearchTerm(''); setSelectedOrganizationType('all'); }}
+              />
             </div>
           )}
-
-          {filteredOrganizations.length > 0 && (
-            <div className="text-center mt-8 text-gray-600 font-medium">
-              {`${organizations.length} təşkilatdan ${filteredOrganizations.length} göstərilir`}
-            </div>
-          )}
-        </>
+        </div>
       }
       bottomCta={
-          <div className="rounded-2xl border border-gray-200 bg-white p-8 md:p-12 text-center shadow-sm">
-            <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
-              <Users className="w-7 h-7 text-primary" />
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 mb-4">
-              {'Təşkilat-sənmi?'}
-            </h2>
-            <p className="text-base sm:text-lg text-gray-600 mb-8 leading-relaxed px-4">
-              {'İcma ilə əlaqə qurmaq, işini paylaşmaq və əlavə funksiyalara giriş əldə etmək üçün platformamıza qoşul.'}
-            </p>
+        <div className="text-center py-10">
+          <h3 className="text-3xl md:text-5xl font-black mb-6 text-white text-center">Təşkilat-sənmi?</h3>
+          <p className="text-slate-400 font-medium text-lg mb-10 max-w-2xl mx-auto text-center">
+            İcma daxilində görünürlüyünü artırmaq və gənclərlə daha yaxından işləmək üçün bizə qoşul.
+          </p>
+          <div className="flex justify-center">
             <ButtonLink
               href={localePath('/auth/register?type=organization')}
               variant="secondary"
               size="lg"
-              hoverEffect="scale"
+              className="rounded-2xl px-10 py-4 font-black bg-white text-slate-900 hover:bg-slate-100 border-none"
             >
-              {'Təşkilat-ni Qeydiyyatdan Keçir'}
-              <ArrowRight className="w-5 h-5 ml-2" />
+              Təşkilatını qeydiyyatdan keçir
             </ButtonLink>
           </div>
+        </div>
       }
     />
   );

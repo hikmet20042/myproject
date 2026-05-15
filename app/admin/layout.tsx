@@ -27,7 +27,7 @@ export default function AdminLayout({
   const pathname = usePathname();
 
   const navItems = [
-    { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/admin/dashboard", label: "Rəhbər panel", icon: LayoutDashboard },
     { href: "/admin/blogs", label: "Bloqlar", icon: BookOpen },
     { href: "/admin/events", label: "Tədbirlər", icon: Calendar },
     { href: "/admin/vacancies", label: "Vakansiyalar", icon: Briefcase },
@@ -103,7 +103,10 @@ export default function AdminLayout({
             </div>
           </aside>
           <main className="flex-1 min-w-0">
-            <ErrorBoundary title="Something went wrong in admin panel" message="Please retry or reload the admin page.">
+            <ErrorBoundary
+              title="İdarəetmə panelində xəta baş verdi"
+              message="Zəhmət olmasa yenidən cəhd edin və ya idarəetmə səhifəsini yeniləyin."
+            >
               <AdminRoleProvider role={session?.user?.role}>
                 {children}
               </AdminRoleProvider>

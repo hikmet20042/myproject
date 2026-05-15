@@ -116,7 +116,7 @@ function SignInContent() {
       <div className="mx-auto grid w-full max-w-6xl items-center gap-8 lg:grid-cols-2">
         <div className="hidden lg:block">
           <div className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50 via-cyan-50 to-white p-8 shadow-sm">
-            
+          
             <h2 className="mt-4 text-2xl font-black text-gray-900">Yenidən xoş gəldin</h2>
             <p className="mt-2 text-sm text-gray-600">
               Hesabına daxil ol və sənə uyğun imkanlara bir addım daha yaxın ol.

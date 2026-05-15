@@ -752,7 +752,7 @@ export default function ProfileSettingsPage() {
           <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50/40 p-4">
             <div className="h-14 w-14 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
               {form.avatar ? (
-                <img src={form.avatar} alt="Avatar" className="h-full w-full object-cover" />
+                <img src={form.avatar} alt="Profil şəkli" className="h-full w-full object-cover" />
               ) : (
                 <UserRound className="w-6 h-6 text-gray-500" />
               )}

@@ -15,6 +15,10 @@ const storiesCache = new LRUCache({
   ...CACHE_OPTIONS,
   ttl: 1000 * 60 * 2, // 2 minutes for stories (more dynamic)
 });
+const searchCache = new LRUCache({
+  ...CACHE_OPTIONS,
+  ttl: 1000 * 60 * 2, // 2 minutes for search suggestions/results
+});
 
 
 // Cache key generators
@@ -28,6 +32,14 @@ export const generateCacheKey = {
     if (tags?.length) params.set('tags', tags.join(','));
     if (status) params.set('status', status);
     return `stories_${params.toString()}`;
+  },
+  search: (query: string, types: string[], page: number, limit: number) => {
+    const params = new URLSearchParams();
+    params.set('q', query);
+    params.set('types', types.join(','));
+    params.set('page', String(page));
+    params.set('limit', String(limit));
+    return `search_${params.toString()}`;
   },
 
 };
@@ -50,6 +62,12 @@ export const cache = {
     clear: () => storiesCache.clear(),
     // Clear all stories cache when new story is added/updated
     invalidateAll: () => storiesCache.clear(),
+  },
+  search: {
+    get: (key: string) => searchCache.get(key),
+    set: (key: string, value: any) => searchCache.set(key, value),
+    delete: (key: string) => searchCache.delete(key),
+    clear: () => searchCache.clear(),
   },
   
 

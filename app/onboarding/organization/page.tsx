@@ -74,7 +74,7 @@ export default function OnboardingOrganizationPage() {
   return (
     <FormLayout
       title="Təşkilat qurulumu"
-      subtitle="Qısa məlumatı tamamlayın və dashboard istifadəsinə başlayın."
+      subtitle="Qısa məlumatı tamamlayın və rəhbər paneldən istifadəyə başlayın."
     >
       
       <form onSubmit={handleSubmit} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8 space-y-5">

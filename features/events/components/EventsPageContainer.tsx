@@ -157,15 +157,15 @@ export default function EventsPageContainer() {
             <Calendar className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900">Your Events</h1>
+            <h1 className="text-2xl font-semibold text-slate-900">Tədbirləriniz</h1>
             <p className="mt-1 text-sm text-slate-600">
-              Manage and track the events you've created.
+              Yaratdığınız tədbirləri idarə edin və izləyin.
             </p>
           </div>
         </div>
         <Link href={localePath("/dashboard/events/create")}>
           <Button variant="primary" size="sm" icon={Plus} className="rounded-xl">
-            Create Event
+            Tədbir yarat
           </Button>
         </Link>
       </header>

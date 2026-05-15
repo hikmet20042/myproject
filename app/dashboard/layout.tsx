@@ -67,11 +67,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const shouldBlockRender = status === 'loading' || isRedirecting || status === 'unauthenticated';
 
   if (shouldBlockRender) {
-    return <LoadingState text="Dashboard yüklənir..." />;
+    return <LoadingState text="Rəhbər paneli yüklənir..." />;
   }
 
   return (
-    <ErrorBoundary title="Something went wrong in dashboard" message="Try again or reload the dashboard page.">
+    <ErrorBoundary
+      title="Rəhbər panelində xəta baş verdi"
+      message="Zəhmət olmasa yenidən cəhd edin və ya səhifəni yeniləyin."
+    >
       <DashboardVacancyDataContainer>
         <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 text-foreground">
           <AppContainer className="py-8 md:py-10 space-y-6">

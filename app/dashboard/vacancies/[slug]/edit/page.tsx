@@ -54,7 +54,7 @@ export default function EditVacancyPage() {
 
   useEffect(() => {
     if (!vacancyId) {
-      setFetchError('Vacancy not found.')
+      setFetchError('Vakansiya tapılmadı.')
       setLoading(false)
       return
     }
@@ -71,7 +71,7 @@ export default function EditVacancyPage() {
 
         if (!response.ok) {
           if (!active) return
-          setFetchError(payload?.error?.message || payload?.error || 'Failed to load vacancy.')
+          setFetchError(payload?.error?.message || payload?.error || 'Vakansiyanı yükləmək mümkün olmadı.')
           setLoading(false)
           return
         }
@@ -80,7 +80,7 @@ export default function EditVacancyPage() {
         setVacancy((payload?.data?.vacancy || null) as VacancyResponse | null)
       } catch {
         if (!active) return
-        setFetchError('Failed to load vacancy.')
+        setFetchError('Vakansiyanı yükləmək mümkün olmadı.')
       } finally {
         if (active) setLoading(false)
       }
@@ -101,11 +101,11 @@ export default function EditVacancyPage() {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}))
-      throw new Error(error?.error?.message || error?.error || 'Failed to update vacancy.')
+      throw new Error(error?.error?.message || error?.error || 'Vakansiyanı yeniləmək mümkün olmadı.')
     }
 
     markVacanciesDirty()
-    showSuccess('Your vacancy has been updated and sent for review')
+    showSuccess('Vakansiyanız yeniləndi və yoxlama üçün göndərildi')
     router.push(localePath('/dashboard/vacancies'))
   }
 
@@ -120,9 +120,9 @@ export default function EditVacancyPage() {
   if (fetchError || !vacancy) {
     return (
       <ErrorState
-        title="Vacancy not found"
-        message={fetchError || 'Unable to load vacancy.'}
-        retryText="Back to vacancies"
+        title="Vakansiya tapılmadı"
+        message={fetchError || 'Vakansiyanı yükləmək mümkün olmadı.'}
+        retryText="Vakansiyalara qayıt"
         onRetry={() => router.push(localePath('/dashboard/vacancies'))}
       />
     )
@@ -131,9 +131,9 @@ export default function EditVacancyPage() {
   if (!ownerOrAdmin) {
     return (
       <ErrorState
-        title="Access denied"
-        message="You do not have permission to edit this vacancy."
-        retryText="Back to vacancies"
+        title="Giriş rədd edildi"
+        message="Bu vakansiyanı redaktə etmək üçün icazəniz yoxdur."
+        retryText="Vakansiyalara qayıt"
         onRetry={() => router.push(localePath('/dashboard/vacancies'))}
       />
     )
@@ -149,7 +149,7 @@ export default function EditVacancyPage() {
               {(vacancy.views || 0).toLocaleString()} baxış
             </span>
             <span className="text-xs text-blue-500">
-              ({(vacancy.uniqueViews || 0).toLocaleString()} unikal)
+              ({(vacancy.uniqueViews || 0).toLocaleString()} unikal baxış)
             </span>
           </div>
           <div className="flex items-center gap-2 rounded-lg border border-amber-100 bg-amber-50 px-3 py-1.5">

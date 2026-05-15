@@ -22,16 +22,16 @@ export default function VacanciesSection({
         <CardContent padding="md">
           <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 py-12 text-center">
             <Briefcase className="mx-auto mb-4 h-12 w-12 text-blue-300" />
-            <h3 className="mb-2 text-lg font-medium text-gray-900">No vacancies found</h3>
+            <h3 className="mb-2 text-lg font-medium text-gray-900">Vakansiya tapılmadı</h3>
             <p className="mb-4 text-gray-600">
               {vacancies.length === 0
-                ? "You haven't created any vacancies yet"
-                : "Try changing filters or search terms to see matching vacancies."}
+                ? 'Hələ heç bir vakansiya yaratmamısınız'
+                : 'Uyğun vakansiyaları görmək üçün filtrləri və ya axtarış sözlərini dəyişin.'}
             </p>
             {vacancies.length === 0 && (
               <p className="mx-auto max-w-md text-sm text-slate-500">
-                Vacancies make it easier for qualified candidates to find your opportunities.
-                Use the Create Vacancy button above to publish your first role.
+                Vakansiyalar uyğun namizədlərin imkanlarınızı daha asan tapmasına kömək edir.
+                İlk vakansiyanızı paylaşmaq üçün yuxarıdakı vakansiya yarat düyməsindən istifadə edin.
               </p>
             )}
           </div>

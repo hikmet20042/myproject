@@ -6,7 +6,7 @@ import { useSession } from '@/lib/auth/client'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { LoadingState, ErrorState } from '@/components/shared'
 import { Button } from '@/components/ui/Button'
-import { ArrowLeft, Calendar, Mail, MapPin, Phone, User, UserRound } from 'lucide-react'
+import { ArrowLeft, Calendar, MapPin, Phone, User } from 'lucide-react'
 
 type UserProfile = {
   id: string
@@ -42,7 +42,7 @@ export default function PublicUserProfilePage() {
 
     fetch(`/api/users/public/${encodeURIComponent(handle)}`)
       .then((res) => {
-        if (!res.ok) throw new Error('User not found')
+        if (!res.ok) throw new Error('İstifadəçi tapılmadı')
         return res.json()
       })
       .then((json) => {
@@ -50,7 +50,7 @@ export default function PublicUserProfilePage() {
         setError('')
       })
       .catch((err) => {
-        setError(err.message || 'Failed to load profile')
+        setError(err.message || 'Profili yükləmək mümkün olmadı')
       })
       .finally(() => setLoading(false))
   }, [handle])

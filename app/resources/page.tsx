@@ -1,11 +1,11 @@
 'use client'
 
 import { BookOpen, Users, Briefcase, Calendar, ArrowRight, Sparkles } from 'lucide-react'
-import { Button, ButtonLink } from '@/components/ui'
+import { ButtonLink } from '@/components/ui'
 import { ListPageLayout } from '@/components/layout'
-import { ResourceCard } from '@/components/shared'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useSession } from '@/lib/auth/client'
+import Link from 'next/link'
 
 export default function ResourcesPage() {
   const localePath = useLocalizedPath()
@@ -15,113 +15,113 @@ export default function ResourcesPage() {
   const resourceCategories = [
     {
       key: 'educationalMaterials',
-      type: 'material' as const,
       title: 'Tədris Materialları',
-      description: 'Gender bərabərliyi və icma rifahına fokuslanan təlimatlar, kurslar, videolar və endirilə bilən bələdçilərə daxil olun.',
+      description: 'Gənclərin inkişafına və bacarıqların artırılmasına yönəlmiş təlimatlar, kurslar və bələdçilər.',
       href: '/resources/materials',
       icon: BookOpen,
-      tone: 'blue',
+      gradient: 'from-blue-500 to-indigo-600',
     },
     {
       key: 'organizationDirectory',
-      type: 'organization' as const,
       title: 'Təşkilat Kataloqu',
-      description: 'Gender bərabərliyi və sağ qalanlara dəstək üzərində çalışan təşkilatları kəşf edin və əlaqə saxlayın.',
+      description: 'İcmamızdakı ən fəal gənclər təşkilatlarını kəşf edin və onlarla əlaqə saxlayın.',
       href: '/resources/organizations',
       icon: Users,
-      tone: 'green',
+      gradient: 'from-purple-500 to-pink-600',
     },
     {
       key: 'jobOpportunities',
-      type: 'vacancy' as const,
       title: 'Vakansiyalar',
-      description: 'Gender bərabərliyi və icma qayğısını dəstəkləyən təşkilatlarda iş, könüllülük və təcrübə imkanlarını tapın.',
+      description: 'Karyerana başlamaq üçün ən yaxşı iş, könüllülük və təcrübə imkanlarını tapın.',
       href: '/resources/vacancies',
       icon: Briefcase,
-      tone: 'blue',
+      gradient: 'from-cyan-500 to-blue-600',
     },
     {
       key: 'events',
-      type: 'event' as const,
       title: 'Tədbirlər',
-      description: 'Gender bərabərliyi üzrə bilik və bacarıqlarınızı gücləndirən yaxınlaşan tədbir, seminar və proqramları kəşf edin.',
+      description: 'Öyrənmək, şəbəkələşmək və inkişaf etmək üçün yaxınlaşan tədbirləri kəşf edin.',
       href: '/resources/events',
       icon: Calendar,
-      tone: 'green',
+      gradient: 'from-amber-500 to-orange-600',
     },
-  ]
-
-  const quickAccessItems = [
-    { href: localePath('/resources/materials'), label: 'Materiallara Bax', icon: BookOpen, variant: 'primary' as const },
-    { href: localePath('/resources/organizations'), label: 'Təşkilatları Tap', icon: Users, variant: 'outline' as const },
-    { href: localePath('/resources/vacancies'), label: 'Vakansiyaları Tap', icon: Briefcase, variant: 'primary' as const },
-    { href: localePath('/resources/events'), label: 'Yaxınlaşan Tədbirlər', icon: Calendar, variant: 'outline' as const },
   ]
 
   return (
     <ListPageLayout
-      title="İcma Dəstək Resursları"
-      description="Gender bərabərliyini irəli aparmaq və sağ qalanlara dəstəyi gücləndirmək üçün seçilmiş alətlər, təşkilatlar və imkanlar."
+      title="Resurslar və İmkanlar"
+      description="Gənclərin inkişafını dəstəkləmək üçün seçilmiş alətlər, təşkilatlar və karyera imkanları bir yerdə."
+      headerBadgeText="KƏŞF ET"
       icon={Sparkles}
       headerActions={
         isOrganizationUser ? (
           <>
-            <ButtonLink href={localePath('/dashboard/events/create')} variant="secondary" size="lg" hoverEffect="scale">
-              {'Tədbir Paylaş'}
+            <ButtonLink href={localePath('/dashboard/events/create')} variant="secondary" size="lg" className="rounded-full px-8">
+              Tədbir Paylaş
             </ButtonLink>
-            <ButtonLink href={localePath('/dashboard/vacancies/create')} variant="outline" size="lg" hoverEffect="scale">
-              {'Vakansiya Paylaş'}
-            </ButtonLink>
-            <ButtonLink href={localePath('/dashboard/profile')} variant="outline" size="lg" hoverEffect="scale">
-              {'Təşkilat Paneli'}
+            <ButtonLink href={localePath('/dashboard/vacancies/create')} variant="outline" size="lg" className="rounded-full px-8 bg-white/70 backdrop-blur-sm">
+              Vakansiya Paylaş
             </ButtonLink>
           </>
         ) : (
           <>
-            <ButtonLink href={localePath('/submit')} variant="secondary" size="lg" hoverEffect="scale">
-              {'Bloq Paylaş'}
+            <ButtonLink href={localePath('/submit/blog')} variant="secondary" size="lg" className="rounded-full px-8 shadow-xl shadow-blue-500/20">
+              Hekayəni Paylaş
             </ButtonLink>
-            <ButtonLink href={localePath('/resources')} variant="outline" size="lg" hoverEffect="scale">
-              {'Fürsətləri Kəşf Et'}
+            <ButtonLink href={localePath('/')} variant="outline" size="lg" className="rounded-full px-8 bg-white/70 backdrop-blur-sm">
+              Ana Səhifə
             </ButtonLink>
           </>
         )
       }
       content={
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {resourceCategories.map((category) => {
             const Icon = category.icon
             return (
-              <ResourceCard
+              <Link 
                 key={category.key}
-                type={category.type}
-                title={category.title}
-                description={category.description}
-                href={category.href}
-                icon={
-                  <div className={`h-12 w-12 rounded-xl ${category.tone === 'green' ? 'bg-emerald-100' : 'bg-blue-100'} flex items-center justify-center`}>
-                    <Icon className={`h-6 w-6 ${category.tone === 'green' ? 'text-emerald-700' : 'text-blue-700'}`} />
-                  </div>
-                }
-                actionText="Kəşf et"
-              />
+                href={localePath(category.href)}
+                className="group relative flex flex-col p-10 rounded-[3rem] bg-white border border-slate-100 shadow-sm transition-all duration-500 hover:shadow-2xl hover:shadow-slate-200/50 hover:-translate-y-2 overflow-hidden"
+              >
+                <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${category.gradient} opacity-[0.03] group-hover:opacity-10 transition-opacity rounded-bl-[5rem]`} />
+                
+                <div className={`mb-8 h-16 w-16 rounded-3xl bg-gradient-to-br ${category.gradient} flex items-center justify-center text-white shadow-lg transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}>
+                  <Icon className="h-8 w-8" />
+                </div>
+                
+                <h3 className="text-3xl font-black text-slate-900 mb-4 group-hover:text-blue-600 transition-colors">
+                  {category.title}
+                </h3>
+                
+                <p className="text-lg text-slate-500 font-medium leading-relaxed mb-8">
+                  {category.description}
+                </p>
+                
+                <div className="mt-auto flex items-center gap-2 text-sm font-black text-slate-900 uppercase tracking-widest group/link">
+                  Kəşf et
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover/link:translate-x-2" />
+                </div>
+              </Link>
             )
           })}
         </div>
       }
       bottomCta={
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 sm:p-8 text-center shadow-sm">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">{'Elə İndi Başla'}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            {quickAccessItems.map((item, idx) => {
-              const Icon = item.icon
-              return (
-                <ButtonLink key={idx} href={item.href} variant={item.variant} size="lg" hoverEffect="scale" className="w-full py-4 sm:py-5 rounded-xl font-semibold text-sm sm:text-base">
-                  <Icon className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                  <span className="line-clamp-1">{item.label}</span>
-                </ButtonLink>
-              )
-            })}
+        <div className="text-center py-10">
+          <h3 className="text-3xl md:text-5xl font-black mb-6 text-white text-center">Hər şey sizin üçün</h3>
+          <p className="text-slate-400 font-medium text-lg mb-10 max-w-2xl mx-auto text-center">
+            Platformamızdakı resurslardan tam yararlanmaq üçün qeydiyyatdan keçin və yeniliklərdən xəbərdar olun.
+          </p>
+          <div className="flex flex-wrap justify-center gap-4">
+            <ButtonLink
+              href={localePath('/auth/register')}
+              variant="secondary"
+              size="lg"
+              className="rounded-2xl px-10 py-4 font-black bg-white text-slate-900 hover:bg-slate-100 border-none"
+            >
+              Qeydiyyatdan keç
+            </ButtonLink>
           </div>
         </div>
       }

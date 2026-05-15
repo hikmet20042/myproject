@@ -165,15 +165,15 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
     <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h1 className="text-2xl font-black text-gray-900">{isEditMode ? 'Vakansiyani redakte et' : 'Yeni vakansiya yarat'}</h1>
-          <p className="mt-2 text-sm text-gray-600">Vezife melumatlarini doldurun ve muraciet axinini qurasdirin.</p>
+          <h1 className="text-2xl font-black text-gray-900">{isEditMode ? 'Vakansiyanı redaktə et' : 'Yeni vakansiya yarat'}</h1>
+          <p className="mt-2 text-sm text-gray-600">Vəzifə məlumatlarını doldurun və müraciət axınını qurun.</p>
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input label="Vezife basligi" name="title" value={formData.title} onChange={handleInputChange} required />
+            <Input label="Vəzifə başlığı" name="title" value={formData.title} onChange={handleInputChange} required />
             <Select
-              label="Vakansiya novu"
+              label="Vakansiya növü"
               name="type"
               value={formData.type}
               onChange={handleInputChange}
@@ -182,24 +182,24 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input label="Esas seher" name="city" value={formData.city} onChange={handleInputChange} required />
+            <Input label="Əsas şəhər" name="city" value={formData.city} onChange={handleInputChange} required />
             <Input
-              label="Unvan (opsional)"
+              label="Ünvan (opsional)"
               name="address"
               value={formData.address}
               onChange={handleInputChange}
-              placeholder="Kuche, mekan adi ve s."
+              placeholder="Küçə, məkan adı və s."
             />
           </div>
-          <TextArea label="Description" name="description" value={formData.description} onChange={handleInputChange} required rows={5} />
+          <TextArea label="Təsvir" name="description" value={formData.description} onChange={handleInputChange} required rows={5} />
         </div>
 
         {isInternOrVolunteer(formData.type) && (
           <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Calendar className="h-5 w-5" /> Program araligi</h2>
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Calendar className="h-5 w-5" /> Proqram aralığı</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Select
-                label="From ay"
+                label="Başlanğıc ayı"
                 name="periodFromMonth"
                 value={formData.periodFromMonth}
                 onChange={handleInputChange}
@@ -207,7 +207,7 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
                 required
               />
               <Select
-                label="From il"
+                label="Başlanğıc ili"
                 name="periodFromYear"
                 value={formData.periodFromYear}
                 onChange={handleInputChange}
@@ -215,7 +215,7 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
                 required
               />
               <Select
-                label="To ay"
+                label="Bitiş ayı"
                 name="periodToMonth"
                 value={formData.periodToMonth}
                 onChange={handleInputChange}
@@ -223,7 +223,7 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
                 required
               />
               <Select
-                label="To il"
+                label="Bitiş ili"
                 name="periodToYear"
                 value={formData.periodToYear}
                 onChange={handleInputChange}
@@ -384,7 +384,7 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
             )}
           </div>
           {formData.imageUrl && (
-            <img src={formData.imageUrl} alt="Vacancy cover" className="h-40 w-full max-w-md rounded-xl object-cover border border-gray-200" />
+            <img src={formData.imageUrl} alt="Vakansiya örtük şəkli" className="h-40 w-full max-w-md rounded-xl object-cover border border-gray-200" />
           )}
         </div>
 

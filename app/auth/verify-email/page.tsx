@@ -168,7 +168,7 @@ export default function VerifyEmailPage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center bg-background text-gray-600">
-          {'Yuklənir...'}
+          {'Yüklənir...'}
         </div>
       }
     >

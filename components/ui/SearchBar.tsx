@@ -10,6 +10,7 @@ export interface SearchBarProps {
   debounceMs?: number
   value?: string
   storageKey?: string
+  variant?: 'default' | 'minimal'
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({
@@ -19,7 +20,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
   className = "",
   debounceMs = 300,
   value,
-  storageKey
+  storageKey,
+  variant = 'default'
 }) => {
   const [query, setQuery] = useState(() => {
     if (typeof window !== 'undefined' && storageKey) {
@@ -75,22 +77,26 @@ const SearchBar: React.FC<SearchBarProps> = ({
   return (
     <form onSubmit={handleSubmit} className={`relative ${className}`}>
       <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <MagnifyingGlassIcon className="h-5 w-5 text-blue-400" aria-hidden="true" />
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+          <MagnifyingGlassIcon className={`h-5 w-5 ${variant === 'minimal' ? 'text-slate-400' : 'text-blue-400'}`} aria-hidden="true" />
         </div>
         <input
           type="text"
           value={query}
           onChange={handleInputChange}
-          className="block w-full rounded-xl border border-blue-100 bg-white pl-10 pr-10 py-3 leading-5 text-gray-900 placeholder-gray-500 shadow-sm transition-colors duration-200 focus:border-blue-400 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-100"
+          className={`block w-full leading-5 text-slate-900 placeholder-slate-400 transition-all duration-200 focus:outline-none ${
+            variant === 'minimal' 
+              ? 'bg-transparent border-none ring-0 focus:ring-0 py-4 pl-12' 
+              : 'rounded-xl border border-blue-100 bg-white pl-10 pr-10 py-3 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100'
+          }`}
           placeholder={placeholder}
         />
         {query && (
-          <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+          <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
             <button
               type="button"
               onClick={handleClear}
-              className="text-gray-400 transition-colors duration-200 hover:text-blue-600 focus:text-blue-600 focus:outline-none"
+              className="text-slate-300 transition-colors duration-200 hover:text-blue-600 focus:text-blue-600 focus:outline-none"
               aria-label="Axtarışı təmizlə"
             >
               <XMarkIcon className="h-5 w-5" aria-hidden="true" />

@@ -1,20 +1,23 @@
-import type { ReactNode } from 'react'
-import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
-import { Breadcrumb } from '@/components/ui'
-import type { BreadcrumbItem } from '@/components/ui/Breadcrumb'
+import type { ReactNode } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { ArrowLeft } from "lucide-react";
+import { Breadcrumb } from "@/components/ui";
+import type { BreadcrumbItem } from "@/components/ui/Breadcrumb";
 
 type DetailPageLayoutProps = {
-  backHref: string
-  backLabel: string
-  breadcrumbItems: BreadcrumbItem[]
-  title: ReactNode
-  metadata?: ReactNode
-  mainContent: ReactNode
-  actionSection?: ReactNode
-  sidebar?: ReactNode
-  contentMaxWidthClass?: string
-}
+  backHref: string;
+  backLabel: string;
+  breadcrumbItems: BreadcrumbItem[];
+  title: ReactNode;
+  metadata?: ReactNode;
+  mainContent: ReactNode;
+  actionSection?: ReactNode;
+  sidebar?: ReactNode;
+  contentMaxWidthClass?: string;
+  pageType?: string;
+  coverImage?: string;
+};
 
 export default function DetailPageLayout({
   backHref,
@@ -25,15 +28,16 @@ export default function DetailPageLayout({
   mainContent,
   actionSection,
   sidebar,
-  contentMaxWidthClass = 'max-w-4xl',
+  contentMaxWidthClass = "max-w-4xl",
+  coverImage,
 }: DetailPageLayoutProps) {
-  const hasSidebar = Boolean(sidebar)
+  const hasSidebar = Boolean(sidebar);
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
       <section className="relative overflow-hidden pt-28 pb-14 md:pt-36 md:pb-20">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-40" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[480px] w-[820px] rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-40 z-0" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[480px] w-[820px] rounded-full bg-primary/10 blur-3xl z-0" />
 
         <div className="section-padding relative z-10">
           <div className="mx-auto max-w-6xl">
@@ -49,7 +53,22 @@ export default function DetailPageLayout({
               <span>{backLabel}</span>
             </Link>
 
-            <div className="mt-6 rounded-2xl border border-gray-200 bg-white/90 p-6 shadow-sm sm:p-8">
+            {/* Cover image block placed above the title card */}
+            {coverImage && (
+              <div className="mt-6 mb-6 w-full overflow-hidden rounded-2xl shadow-lg">
+                <div className="relative h-44 md:h-64 w-full">
+                  <Image
+                    src={coverImage}
+                    alt="Cover image"
+                    fill
+                    className="object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/80" />
+                </div>
+              </div>
+            )}
+
+            <div className="mt-0 rounded-2xl border border-gray-200 bg-white/95 p-6 shadow-sm sm:p-8">
               <h1 className="text-3xl font-black leading-tight tracking-tight text-gray-900 sm:text-4xl md:text-5xl">
                 {title}
               </h1>
@@ -78,5 +97,5 @@ export default function DetailPageLayout({
         </div>
       </section>
     </div>
-  )
+  );
 }

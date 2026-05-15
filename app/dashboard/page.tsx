@@ -8,7 +8,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/shared'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { getUserErrorMessage } from '@/lib/errorMessages'
 import { Button } from '@/components/ui/Button'
-import { Plus, FileText, Eye, Heart } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import {
   PageHeader,
   SectionCard,
@@ -110,13 +110,13 @@ function DashboardOverviewContent() {
   }, [status, loadDashboardStats])
 
   if (status === 'loading' || loading) {
-    return <LoadingState text="Dashboard yüklənir..." />
+    return <LoadingState text="Rəhbər paneli yüklənir..." />
   }
 
   if (error && stats.totalEvents === 0 && stats.totalVacancies === 0) {
     return (
       <ErrorState
-        title="Dashboard yüklənmədi"
+        title="Rəhbər paneli yüklənmədi"
         message={error}
         retryText="Yenidən cəhd et"
         onRetry={() => window.location.reload()}
@@ -178,8 +178,8 @@ function DashboardOverviewContent() {
       {/* Recent Activity or Empty State */}
       {stats.totalEvents === 0 && stats.totalVacancies === 0 && (
         <EmptyState
-          title="Başqa tədbir yaratmağa başlayın"
-          message="Təşkilatınızı göstərmək üçün ilk tədbirini yarat və cəmiyyətə qoşul."
+          title="İlk tədbirinizi yaratmağa başlayın"
+          message="Təşkilatınızı göstərmək və icma ilə əlaqə qurmaq üçün ilk tədbirinizi paylaşın."
           actionText="Tədbir yaratın"
           onAction={() => router.push(localePath('/dashboard/events/create'))}
         />

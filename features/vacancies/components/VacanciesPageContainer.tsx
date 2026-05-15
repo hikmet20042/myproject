@@ -66,16 +66,16 @@ export default function VacanciesPageContainer() {
       if (response.ok) {
         removeVacancyById(vacancyToDelete._id);
         setFeedbackVariant("success");
-        setFeedbackMessage("Vacancy deleted successfully.");
+        setFeedbackMessage("Vakansiya uğurla silindi.");
         setDeleteModalOpen(false);
         setVacancyToDelete(null);
       } else {
         setFeedbackVariant("error");
-        setFeedbackMessage("Could not delete the vacancy. Please try again.");
+        setFeedbackMessage("Vakansiyanı silmək mümkün olmadı. Zəhmət olmasa yenidən cəhd edin.");
       }
     } catch {
       setFeedbackVariant("error");
-      setFeedbackMessage("Something went wrong while deleting the vacancy.");
+      setFeedbackMessage("Vakansiya silinərkən xəta baş verdi.");
     } finally {
       setDeleting(false);
     }
@@ -151,15 +151,15 @@ export default function VacanciesPageContainer() {
             <Briefcase className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900">Your Vacancies</h1>
+            <h1 className="text-2xl font-semibold text-slate-900">Vakansiyalarınız</h1>
             <p className="mt-1 text-sm text-slate-600">
-              Manage and track the vacancies you've published.
+              Paylaşdığınız vakansiyaları idarə edin və izləyin.
             </p>
           </div>
         </div>
         <Link href={localePath("/dashboard/vacancies/create")}>
           <Button variant="primary" size="sm" icon={Plus} className="rounded-xl">
-            Create Vacancy
+            Vakansiya yarat
           </Button>
         </Link>
       </header>

@@ -126,7 +126,7 @@ export default function ImageUploadContainer({
       ) : (
         <div className="relative group">
           <div className="relative w-full h-64 rounded-lg overflow-hidden border-2 border-blue-100">
-            <Image src={preview} alt="Preview" fill className="object-cover" unoptimized />
+            <Image src={preview} alt="Önizləmə" fill className="object-cover" unoptimized />
           </div>
           <button
             type="button"
@@ -141,7 +141,7 @@ export default function ImageUploadContainer({
             disabled={uploading}
             className="absolute bottom-2 right-2 px-3 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors shadow-lg opacity-0 group-hover:opacity-100 disabled:opacity-50"
           >
-            {'Şəkli Dəyişdir'}
+            {'Şəkli dəyişdir'}
           </button>
         </div>
       )}
