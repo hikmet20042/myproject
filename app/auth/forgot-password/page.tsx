@@ -6,6 +6,7 @@ import { Mail, ArrowLeft } from 'lucide-react'
 import { Input, Button } from '@/components/ui'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
+import { Card } from '@/components/ui/Card'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -59,10 +60,10 @@ export default function ForgotPasswordPage() {
       <div className="absolute left-1/2 top-24 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-200/30 blur-3xl" />
 
       <div className="relative z-10 mx-auto flex min-h-[80vh] w-full max-w-lg items-center justify-center px-4 sm:px-6">
-        <div className="w-full rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+        <Card className="w-full rounded-3xl p-6 sm:p-8">
           <Link
             href={localePath('/auth/signin')}
-            className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-gray-600 transition-colors hover:text-blue-600"
+            className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition-colors hover:text-blue-600"
           >
             <ArrowLeft className="h-4 w-4" />
             {'Girişə qayıt'}
@@ -72,15 +73,15 @@ export default function ForgotPasswordPage() {
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
               <Mail className="h-6 w-6 text-blue-700" />
             </div>
-            <h1 className="text-2xl font-black text-gray-900">{'Şifrəni unutmusunuz?'}</h1>
-            <p className="mt-2 text-sm text-gray-600">
+            <h1 className="text-2xl font-black text-slate-900">{'Şifrəni unutmusunuz?'}</h1>
+            <p className="mt-2 text-sm text-slate-600">
               {'E-poçt ünvanınızı daxil edin və şifrəni sıfırlamaq üçün keçid göndərək.'}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block text-sm font-medium text-slate-700">
                 {'E-poçt ünvanı'}
               </label>
               <Input
@@ -105,7 +106,7 @@ export default function ForgotPasswordPage() {
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-gray-600">
+          <p className="mt-6 text-center text-sm text-slate-600">
             {'Şifrənizi xatırlayırsınız?'}{' '}
             <Link
               href={localePath('/auth/signin')}
@@ -114,7 +115,7 @@ export default function ForgotPasswordPage() {
               {'Buradan daxil olun'}
             </Link>
           </p>
-        </div>
+        </Card>
       </div>
     </div>
   )

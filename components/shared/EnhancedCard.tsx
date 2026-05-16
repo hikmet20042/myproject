@@ -6,6 +6,7 @@
 
 import { ReactNode } from 'react'
 import { LucideIcon } from 'lucide-react'
+import { Card } from '@/components/ui/Card'
 
 interface EnhancedCardProps {
   title?: string
@@ -27,8 +28,9 @@ export default function EnhancedCard({
   animationDelay = 0
 }: EnhancedCardProps) {
   return (
-    <div 
-      className={`bg-white shadow-md rounded-2xl border-2 border-blue-100 overflow-hidden animate-fade-in ${className}`}
+    <Card
+      shadow="md"
+      className={`animate-fade-in ${className}`}
       style={{ animationDelay: `${animationDelay}s` }}
     >
       {(title || Icon) && (
@@ -44,7 +46,7 @@ export default function EnhancedCard({
               </div>
             )}
             {title && (
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{title}</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900">{title}</h2>
             )}
           </div>
         </div>
@@ -53,6 +55,6 @@ export default function EnhancedCard({
       <div className="p-6">
         {children}
       </div>
-    </div>
+    </Card>
   )
 }

@@ -5,13 +5,16 @@ import { useRouter } from 'next/navigation'
 import DOMPurify from 'dompurify'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import * as Dialog from '@radix-ui/react-dialog'
-import { ArrowLeft, CheckCircle, XCircle, Clock, Eye, User, Calendar, FileText, Heart, ThumbsUp, ThumbsDown, MessageSquare } from 'lucide-react'
+import { Modal } from '@/components/ui/Modal'
+import { ArrowLeft, CheckCircle, XCircle, AlertCircle, Clock, Eye, User, Calendar, FileText, Heart, ThumbsUp, ThumbsDown, MessageSquare } from 'lucide-react'
+import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { TextArea } from '@/components/ui/Textarea'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { LoadingState, ErrorState } from '@/components/shared'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import AdminListLayout from '@/components/admin/AdminListLayout'
+import { Badge } from '@/components/ui/Badge'
 
 const BlocknoteReadOnly = dynamic(() => import('@/components/BlocknoteReadOnly'), { ssr: false })
 
@@ -65,24 +68,24 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
 
   const getStatusBadge = (status: string) => { switch (status) { case 'approved':
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          <Badge variant="success" size="sm">
             <CheckCircle className="w-3 h-3 mr-1" />
             {'Təsdiqlənib'}
-          </span>
+          </Badge>
         )
       case 'rejected':
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+          <Badge variant="danger" size="sm">
             <XCircle className="w-3 h-3 mr-1" />
             {'Rədd edilib'}
-          </span>
+          </Badge>
         )
       default:
         return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+          <Badge variant="warning" size="sm">
             <Clock className="w-3 h-3 mr-1" />
             {'Gözləmədə'}
-          </span>
+          </Badge>
         ) } }
 
   if (loading) { return <LoadingState text={'Bloq önizləməsi yüklənir...'} /> }
@@ -142,18 +145,18 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
       <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-35" />
       <div className="absolute left-1/2 top-16 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-200/30 blur-3xl" />
       {/* Header */}
-      <div className="relative z-10 border-b border-gray-200 bg-white/90 backdrop-blur-sm">
+      <div className="relative z-10 border-b border-slate-200 bg-white/90 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <Link href={localePath("/admin/blogs")} 
-              className="inline-flex items-center text-gray-600 hover:text-gray-900"
+              className="inline-flex items-center text-slate-600 hover:text-slate-900"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               {'Adminə Qayıt'}
             </Link>
             <div className="flex items-center space-x-3">
               {getStatusBadge(blog.status)}
-              <span className="text-sm text-gray-500">{'Önizləmə rejimi'}</span>
+              <span className="text-sm text-slate-500">{'Önizləmə rejimi'}</span>
               {/* Admin Actions */}
               {blog.status === 'pending' && (
                 <div className="flex space-x-2">
@@ -184,15 +187,15 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
 
       {/* Story Content */}
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <article className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <Card className="overflow-hidden">
           {/* Story Header */}
-          <div className="px-6 py-8 border-b border-gray-200">
-            <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+          <div className="px-6 py-8 border-b border-slate-200">
+            <h1 className="text-3xl lg:text-4xl font-bold text-slate-900 mb-4">
               {blog.title}
             </h1>
             
             {/* blog Meta */}
-            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-4">
+            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600 mb-4">
               <div className="flex items-center">
                 <User className="w-4 h-4 mr-1" />
                 {blog.isAnonymous ? (
@@ -206,7 +209,7 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
                     {authorDisplay}
                   </Link>
                 ) : (
-                  <span className="font-medium text-gray-700">{authorDisplay}</span>
+                  <span className="font-medium text-slate-700">{authorDisplay}</span>
                 )}
               </div>
               <div className="flex items-center">
@@ -232,9 +235,9 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
             {/* Category */}
             {blog.category && (
               <div className="mb-4">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                <Badge variant="primary" size="md">
                   {blog.category}
-                </span>
+                </Badge>
               </div>
             )}
 
@@ -242,18 +245,18 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
 
             {/* Abstract */}
             {blog.abstract && (
-              <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                <h3 className="font-semibold text-gray-900 mb-2 flex items-center">
+              <div className="bg-gray-50 rounded-md p-4 mb-4">
+                <h3 className="font-semibold text-slate-900 mb-2 flex items-center">
                   <FileText className="w-4 h-4 mr-2" />
                   {'Xülasə'}
                 </h3>
-                <p className="text-gray-700 leading-relaxed">{blog.abstract}</p>
+                <p className="text-slate-700 leading-relaxed">{blog.abstract}</p>
               </div>
             )}
 
             {/* Admin Comment */}
             {blog.adminComment && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="bg-red-50 border border-red-200 rounded-md p-4">
                 <h3 className="font-semibold text-red-800 mb-2">{'İdarəçi şərhi'}</h3>
                 <p className="text-red-700">{blog.adminComment}</p>
               </div>
@@ -270,72 +273,58 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
               ) : blog.content && typeof blog.content === 'string' ? (
                 <div className="whitespace-pre-wrap leading-relaxed">{blog.content}</div>
               ) : (
-                <p className="text-gray-500 italic">{'Məzmun mövcud deyil.'}</p>
+                <p className="text-slate-500 italic">{'Məzmun mövcud deyil.'}</p>
               )}
             </div>
           </div>
-        </article>
+        </Card>
       </div>
 
       {/* Admin Action Modal */}
-      <Dialog.Root
-        open={showModal}
-        onOpenChange={(open) => { if (!open) setShowModal(false) }}
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title={actionType === 'approve' ? 'Məzmunu Təsdiq Et' : 'Məzmunu Rədd Et'}
+        size="sm"
       >
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-gray-600/50" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-md bg-white p-5 shadow-lg">
-            <div className="mt-3">
+            <div>
               <div className="flex items-center justify-between mb-4">
-                <Dialog.Title className="text-lg font-medium text-gray-900">
-                  {actionType === 'approve' ? 'Məzmunu Təsdiq Et' : 'Məzmunu Rədd Et'}
-                </Dialog.Title>
-                <Dialog.Close asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-gray-400 hover:text-gray-600 p-1"
-                  >
-                    <XCircle className="w-5 h-5" />
-                  </Button>
-                </Dialog.Close>
+                <div />
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {actionType === 'approve' ? 'Şərh' + ' (' + 'ixtiyari' + ')' : 'Rədd etmə səbəbi...'}
-                </label>
+
                 <div className="mb-2 flex flex-wrap gap-2">
                   {REJECTION_TEMPLATES.map((template) => (
-                    <button
+                    <Button
                       key={template}
-                      type="button"
-                      className="rounded-full border border-gray-300 px-2.5 py-1 text-[11px] text-gray-600 hover:border-red-300 hover:text-red-700"
+                      variant="outline"
+                      size="xs"
+                      className="rounded-full px-2.5 py-1 text-[11px] text-slate-600 hover:border-red-300 hover:text-red-700"
                       onClick={() => setAdminComment(template)}
                     >
                       {'Şablon'}
-                    </button>
+                    </Button>
                   ))}
                 </div>
-                <textarea
+                <TextArea
+                  label={actionType === 'approve' ? 'Şərh (ixtiyari)' : 'Rədd etmə səbəbi...'}
                   value={adminComment}
                   onChange={(e) => setAdminComment(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   rows={4}
                   placeholder={actionType === 'approve' ? 'Şərh əlavə edin...' : 'Rədd etmə səbəbi...'}
                 />
               </div>
 
               <div className="flex justify-end space-x-3">
-                <Dialog.Close asChild>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={isProcessing}
-                  >
-                    {'Ləğv Et'}
-                  </Button>
-                </Dialog.Close>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={isProcessing}
+                  onClick={() => setShowModal(false)}
+                >
+                  {'Ləğv Et'}
+                </Button>
                 <Button
                   onClick={handleSubmitAction}
                   disabled={isProcessing}
@@ -346,9 +335,7 @@ export default function AdminStoryPreview({ params }: { params: { id: string } }
                 </Button>
               </div>
             </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+      </Modal>
     </div>
     </AdminListLayout>
   ) }

@@ -46,7 +46,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     const descriptionId = description ? `${selectId}-description` : undefined;
     const errorId = error ? `${selectId}-error` : undefined;
     
-    const baseClasses = 'relative inline-flex w-full items-center cursor-pointer rounded-xl border bg-white text-left text-gray-900 shadow-sm transition-all duration-200 focus:outline-none';
+    const baseClasses = 'relative inline-flex w-full items-center cursor-pointer rounded-xl border bg-white text-left text-slate-900 shadow-sm transition-all duration-200 focus:outline-none';
     
     const variants = {
       default: 'border-blue-100 focus:border-blue-400 focus:ring-4 focus:ring-blue-100',
@@ -64,14 +64,14 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="space-y-1.5">
         {label && (
-          <label htmlFor={selectId} className="block text-sm font-medium text-gray-700">
+          <label htmlFor={selectId} className="block text-sm font-medium text-slate-700">
             {label}
             {required && <span className="text-red-500 ml-1">*</span>}
           </label>
         )}
         
         {description && (
-          <p id={descriptionId} className="text-sm text-gray-600 mb-3">{description}</p>
+          <p id={descriptionId} className="text-sm text-slate-600 mb-3">{description}</p>
         )}
         
         <div className="relative">
@@ -120,7 +120,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                       key={option.value}
                       value={option.value}
                       disabled={option.disabled}
-                      className="relative flex select-none items-center rounded-md py-2 pl-8 pr-2 text-sm text-gray-700 outline-none focus:bg-blue-50 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50"
+                      className="relative flex select-none items-center rounded-md py-2 pl-8 pr-2 text-sm text-slate-700 outline-none focus:bg-blue-50 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50"
                     >
                       <RadixSelect.ItemIndicator className="absolute left-2 inline-flex items-center">
                         <Check className="h-4 w-4 text-blue-600" />

@@ -2,6 +2,7 @@ import React from "react";
 import { Mail } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 interface ProfileHeaderCardProps {
   name: string;
@@ -21,7 +22,7 @@ export default function ProfileHeaderCard({
   const fallbackInitial = name?.charAt(0)?.toUpperCase() || "U";
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm">
+    <Card className="rounded-2xl p-5 sm:p-6">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-4">
           <div className="relative h-16 w-16 overflow-hidden rounded-full bg-primary text-white flex items-center justify-center text-2xl font-black">
@@ -48,6 +49,6 @@ export default function ProfileHeaderCard({
           </Button>
         ) : null}
       </div>
-    </div>
+    </Card>
   );
 }

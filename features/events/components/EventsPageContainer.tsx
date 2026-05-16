@@ -151,7 +151,7 @@ export default function EventsPageContainer() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-start sm:justify-between">
+      <Card className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-blue-200 bg-blue-100 text-blue-700">
             <Calendar className="h-5 w-5" />
@@ -168,7 +168,7 @@ export default function EventsPageContainer() {
             Tədbir yarat
           </Button>
         </Link>
-      </header>
+      </Card>
 
       {sectionState === "error-nonblocking" && (
         <SectionErrorInline
@@ -194,8 +194,7 @@ export default function EventsPageContainer() {
                 placeholder={"Başlıq, təşkilatçı və ya təsvir üzrə axtar..."}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                variant="indigo"
-                className="h-12 border-blue-100 bg-white pl-7"
+                className="h-12 border-slate-200 bg-white pl-7"
                 disabled={sectionState === "loading-initial"}
               />
             </div>

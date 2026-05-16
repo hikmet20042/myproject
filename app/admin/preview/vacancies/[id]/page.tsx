@@ -2,13 +2,16 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import * as Dialog from '@radix-ui/react-dialog'
+import { Modal } from '@/components/ui/Modal'
 import { ArrowLeft, CheckCircle, XCircle, AlertCircle, MapPin, Briefcase, Calendar, Building } from 'lucide-react'
+import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { TextArea } from '@/components/ui/Textarea'
 import { LoadingState, ErrorState } from '@/components/shared'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import AdminListLayout from '@/components/admin/AdminListLayout'
+import { Badge } from '@/components/ui/Badge'
 
 interface Vacancy { _id: string
   title: string
@@ -82,22 +85,22 @@ export default function AdminVacancyPreview() {
       setShowRejectModal(false) } }
 
   const getStatusBadge = (statusValue?: string) => { if (statusValue === 'approved') { return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+        <Badge variant="success" size="sm">
           <CheckCircle className="w-3 h-3 mr-1" />
           {'Təsdiqlənib'}
-        </span>
+        </Badge>
       ) }
     if (statusValue === 'rejected') { return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+        <Badge variant="danger" size="sm">
           <XCircle className="w-3 h-3 mr-1" />
           {'Rədd edilib'}
-        </span>
+        </Badge>
       ) }
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+      <Badge variant="warning" size="sm">
         <AlertCircle className="w-3 h-3 mr-1" />
         {'Gözləmədə'}
-      </span>
+      </Badge>
     ) }
 
   if (loading) { return (
@@ -142,10 +145,10 @@ export default function AdminVacancyPreview() {
 
         <div className="flex items-start justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{vacancy.title}</h1>
+            <h1 className="text-3xl font-bold text-slate-900">{vacancy.title}</h1>
             <div className="flex items-center gap-3 mt-2">
               {getStatusBadge(vacancy.status)}
-              <span className="text-gray-500">{organizationName}</span>
+              <span className="text-slate-500">{organizationName}</span>
             </div>
           </div>
 
@@ -172,18 +175,18 @@ export default function AdminVacancyPreview() {
           )}
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+        <Card className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-700">
             <div className="flex items-center gap-2">
-              <Building className="w-4 h-4 text-gray-400" />
+              <Building className="w-4 h-4 text-slate-400" />
               <span>{organizationName}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Briefcase className="w-4 h-4 text-gray-400" />
+              <Briefcase className="w-4 h-4 text-slate-400" />
               <span>{vacancy.type || 'Növ'}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-gray-400" />
+              <Calendar className="w-4 h-4 text-slate-400" />
               <span>
                 {vacancy.applicationDeadline
                   ? new Date(vacancy.applicationDeadline).toLocaleDateString()
@@ -191,7 +194,7 @@ export default function AdminVacancyPreview() {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-gray-400" />
+              <MapPin className="w-4 h-4 text-slate-400" />
               <span>
                 {vacancy.city
                   ? vacancy.address
@@ -201,20 +204,20 @@ export default function AdminVacancyPreview() {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Briefcase className="w-4 h-4 text-gray-400" />
+              <Briefcase className="w-4 h-4 text-slate-400" />
               <span>{paymentLabel}</span>
             </div>
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">{'Təsvir'}</h3>
-            <p className="text-gray-700 whitespace-pre-wrap">{vacancy.description}</p>
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">{'Təsvir'}</h3>
+            <p className="text-slate-700 whitespace-pre-wrap">{vacancy.description}</p>
           </div>
 
           {vacancy.requirements && vacancy.requirements.length > 0 && (
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">{'Tələblər'}</h3>
-              <ul className="list-disc list-inside text-gray-700 space-y-1">
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">{'Tələblər'}</h3>
+              <ul className="list-disc list-inside text-slate-700 space-y-1">
                 {vacancy.requirements.map((req, idx) => (
                   <li key={idx}>{req}</li>
                 ))}
@@ -224,8 +227,8 @@ export default function AdminVacancyPreview() {
 
           {vacancy.responsibilities && vacancy.responsibilities.length > 0 && (
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">{'Məsuliyyətlər'}</h3>
-              <ul className="list-disc list-inside text-gray-700 space-y-1">
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">{'Məsuliyyətlər'}</h3>
+              <ul className="list-disc list-inside text-slate-700 space-y-1">
                 {vacancy.responsibilities.map((item, idx) => (
                   <li key={idx}>{item}</li>
                 ))}
@@ -238,55 +241,33 @@ export default function AdminVacancyPreview() {
               <strong>{'Rədd səbəbi'}:</strong> {vacancy.rejectionReason || vacancy.adminComment}
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
-      <Dialog.Root
-        open={showRejectModal}
-        onOpenChange={(open) => { if (!open) setShowRejectModal(false) }}
+      <Modal
+        isOpen={showRejectModal}
+        onClose={() => setShowRejectModal(false)}
+        title={'Vakansiyanı Rədd Et'}
+        size="sm"
       >
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white shadow-md">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <Dialog.Title className="text-lg font-semibold text-gray-900">
-                {'Vakansiyanı Rədd Et'}
-              </Dialog.Title>
-              <Dialog.Close asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <XCircle className="w-5 h-5" />
-                </Button>
-              </Dialog.Close>
-            </div>
-            <div className="p-6 space-y-4">
-              <label className="block text-sm font-medium text-gray-700">
-                {'İdarəçi şərhi'}
-              </label>
-              <textarea
+            <div className="space-y-4">
+              <TextArea
+                label={'İdarəçi şərhi'}
                 value={adminComment}
                 onChange={(e) => setAdminComment(e.target.value)}
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
                 placeholder={'Zəhmət olmasa bu vakansiyanı rədd etmək üçün ətraflı şərh daxil edin...'}
               />
               <div className="flex justify-end gap-2">
-                <Dialog.Close asChild>
-                  <Button variant="outline" size="sm">
-                    {'Ləğv Et'}
-                  </Button>
-                </Dialog.Close>
+                <Button variant="outline" size="sm" onClick={() => setShowRejectModal(false)}>
+                  {'Ləğv Et'}
+                </Button>
                 <Button onClick={handleReject} disabled={actionLoading} variant="danger" size="sm">
                   {actionLoading ? 'Emal olunur...' : 'Rədd Et'}
                 </Button>
               </div>
             </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+      </Modal>
     </div>
     </AdminListLayout>
   )

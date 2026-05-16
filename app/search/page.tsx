@@ -10,6 +10,8 @@ import { useGlobalSearch } from "@/features/search/hooks/useGlobalSearch";
 import { SearchResultsList } from "@/features/search/components/SearchResultsList";
 import type { GlobalSearchType } from "@/features/search/types/search.types";
 import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 
 const TYPE_OPTIONS: Array<{ key: "all" | GlobalSearchType; label: string }> = [
   { key: "all", label: "Hamısı" },
@@ -57,10 +59,10 @@ export default function GlobalSearchPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const queryFromUrl = searchParams.get('q') || ''
-  const activeTypeFromUrl = resolveActiveType(searchParams.get('type'))
-  const pageFromUrl = resolvePage(searchParams.get('page'))
-  const currentParams = searchParams.toString()
+  const queryFromUrl = searchParams?.get('q') ?? ''
+  const activeTypeFromUrl = resolveActiveType(searchParams?.get('type') ?? null)
+  const pageFromUrl = resolvePage(searchParams?.get('page') ?? null)
+  const currentParams = searchParams?.toString() ?? ''
 
   const [query, setQuery] = useState(queryFromUrl);
   const [activeType, setActiveType] = useState<"all" | GlobalSearchType>(
@@ -108,7 +110,7 @@ export default function GlobalSearchPage() {
   return (
     <div className="section-padding min-h-screen bg-slate-50 py-10 text-slate-900">
       <div className="mx-auto max-w-7xl space-y-8">
-        <section className="rounded-3xl border border-white/60 bg-white/70 p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-xl md:p-8">
+        <Card className="rounded-3xl border-white/60 bg-white/70 p-6 backdrop-blur-xl md:p-8">
           <div className="flex flex-col gap-4">
             <div>
               <h1 className="text-3xl font-black tracking-tight text-slate-900 md:text-4xl">
@@ -127,7 +129,6 @@ export default function GlobalSearchPage() {
               }}
               placeholder="Açar söz yazın..."
               icon={Search}
-              variant="default"
               inputSize="lg"
             />
 
@@ -140,24 +141,25 @@ export default function GlobalSearchPage() {
                     : totalsByType[option.key as GlobalSearchType] || 0;
 
                 return (
-                  <button
+                  <Button
                     key={option.key}
-                    type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => updateType(option.key)}
                     className={cn(
-                      "rounded-2xl border px-4 py-2 text-xs font-black uppercase tracking-wide transition-all",
+                      "rounded-2xl px-4 py-2 text-xs font-black uppercase tracking-wide",
                       selected
                         ? "border-transparent bg-slate-900 text-white shadow-lg shadow-slate-900/20"
                         : "border-slate-200/60 bg-white text-slate-600 shadow-sm hover:border-slate-300 hover:bg-slate-50",
                     )}
                   >
                     {option.label} ({count})
-                  </button>
+                  </Button>
                 );
               })}
             </div>
           </div>
-        </section>
+        </Card>
 
         {!query.trim() ? (
           <EmptyState
@@ -190,22 +192,24 @@ export default function GlobalSearchPage() {
 
             {pages > 1 && (
               <div className="flex items-center justify-center gap-2 pt-2">
-                <button
-                  type="button"
+                <Button
+                  variant="outline"
+                  size="sm"
                   disabled={page <= 1}
                   onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-xl px-4 py-2 text-xs font-bold disabled:cursor-not-allowed"
                 >
                   Əvvəlki
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   disabled={page >= pages}
                   onClick={() => setPage((prev) => Math.min(pages, prev + 1))}
-                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="rounded-xl px-4 py-2 text-xs font-bold disabled:cursor-not-allowed"
                 >
                   Növbəti
-                </button>
+                </Button>
               </div>
             )}
           </section>

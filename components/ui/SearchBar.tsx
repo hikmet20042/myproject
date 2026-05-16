@@ -1,6 +1,7 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { Button } from '@/components/ui/Button'
 
 export interface SearchBarProps {
   placeholder?: string
@@ -93,14 +94,15 @@ const SearchBar: React.FC<SearchBarProps> = ({
         />
         {query && (
           <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="xs"
               onClick={handleClear}
-              className="text-slate-300 transition-colors duration-200 hover:text-blue-600 focus:text-blue-600 focus:outline-none"
+              className="text-slate-300 hover:text-blue-600"
               aria-label="Axtarışı təmizlə"
             >
               <XMarkIcon className="h-5 w-5" aria-hidden="true" />
-            </button>
+            </Button>
           </div>
         )}
       </div>

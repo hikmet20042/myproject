@@ -1,5 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { AlertCircle, CheckCircle, Info, XCircle, X } from 'lucide-react';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -23,8 +25,6 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
     children,
     ...props
   }, ref) => {
-    const baseClasses = 'rounded-2xl border shadow-sm transition-colors duration-200';
-    
     const variants = {
       success: 'bg-green-50 border-green-200 text-green-800',
       error: 'bg-rose-50 border-rose-200 text-rose-800',
@@ -55,10 +55,9 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
     const IconComponent = icons[variant];
     
     return (
-      <div
+      <Card
         ref={ref}
         className={cn(
-          baseClasses,
           variants[variant],
           sizes[size],
           className
@@ -75,7 +74,7 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
           <div className="flex-1">
             {title && (
               <h4 className={cn(
-                'mb-1 font-semibold text-gray-900',
+                'mb-1 font-semibold text-slate-900',
                 size === 'sm' ? 'text-sm' : size === 'md' ? 'text-sm' : 'text-base'
               )}>
                 {title}
@@ -91,18 +90,20 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
           </div>
           
           {dismissible && onDismiss && (
-            <button
+            <Button
+              variant="ghost"
+              size="xs"
               onClick={onDismiss}
               className={cn(
-                'ml-2 flex-shrink-0 rounded-full p-1 transition-colors duration-200 hover:bg-black/5',
+                'rounded-full p-1',
                 iconColors[variant]
               )}
             >
               <X className={size === 'sm' ? 'w-4 h-4' : 'w-5 h-5'} />
-            </button>
+            </Button>
           )}
         </div>
-      </div>
+      </Card>
     );
   }
 );

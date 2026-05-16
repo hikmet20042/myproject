@@ -2,14 +2,17 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import * as Dialog from '@radix-ui/react-dialog'
+import { Modal } from '@/components/ui/Modal'
 import { Calendar, MapPin, Users, Link as LinkIcon, Clock, Tag, ArrowLeft, CheckCircle, XCircle, AlertCircle, ExternalLink } from 'lucide-react'
+import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { TextArea } from '@/components/ui/Textarea'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { LoadingState, ErrorState } from '@/components/shared'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import AdminListLayout from '@/components/admin/AdminListLayout'
 import { EVENT_TYPE_LABELS, type EventTypeValue } from '@/lib/events/eventConfig'
+import { Badge } from '@/components/ui/Badge'
 
 interface Event { _id: string
   title: string
@@ -125,22 +128,22 @@ interface Event { _id: string
       minute: '2-digit' }) }
 
   const getStatusBadge = () => { if (event?.status === 'rejected') { return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+        <Badge variant="danger" size="sm">
           <XCircle className="w-3 h-3 mr-1" />
           {'Rədd edilib'}
-        </span>
+        </Badge>
       ) }
     if (event?.status === 'approved') { return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+        <Badge variant="success" size="sm">
           <CheckCircle className="w-3 h-3 mr-1" />
           {'Təsdiqlənib'}
-        </span>
+        </Badge>
       ) }
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+      <Badge variant="warning" size="sm">
         <AlertCircle className="w-3 h-3 mr-1" />
         {'Baxışda'}
-      </span>
+      </Badge>
     ) }
 
   if (loading) { return <LoadingState text={'Yüklənir'} /> }
@@ -174,10 +177,10 @@ interface Event { _id: string
           
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{event.title}</h1>
+              <h1 className="text-3xl font-bold text-slate-900">{event.title}</h1>
               <div className="flex items-center gap-4 mt-2">
                 {getStatusBadge()}
-                <span className="text-gray-500">{'Təşkilatçı'} {event.organizationName || event.createdBy?.name || 'Naməlum'}</span>
+                <span className="text-slate-500">{'Təşkilatçı'} {event.organizationName || event.createdBy?.name || 'Naməlum'}</span>
               </div>
             </div>
             
@@ -209,35 +212,36 @@ interface Event { _id: string
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Description */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">{'Təsvir'}</h3>
-              <p className="text-gray-700 whitespace-pre-wrap">{event.description}</p>
-            </div>
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">{'Təsvir'}</h3>
+              <p className="text-slate-700 whitespace-pre-wrap">{event.description}</p>
+            </Card>
 
             {/* Tags */}
             {event.tags.length > 0 && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">{'Teqlər'}</h3>
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold text-slate-900 mb-4">{'Teqlər'}</h3>
                 <div className="flex flex-wrap gap-2">
                   {event.tags.map((tag, index) => (
-                    <span
+                    <Badge
                       key={index}
-                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                      variant="primary"
+                      size="md"
                     >
                       <Tag className="w-3 h-3 mr-1" />
                       {tag}
-                    </span>
+                    </Badge>
                   ))}
                 </div>
-              </div>
+              </Card>
             )}
 
             {/* Location Details */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">{'Məkan təfərrüatları'}</h3>
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">{'Məkan təfərrüatları'}</h3>
               <div className="space-y-3">
                 <div>
-                  <span className="font-medium text-gray-700">{'Növ'}:</span>
+                  <span className="font-medium text-slate-700">{'Növ'}:</span>
                   <span className="ml-2 capitalize">{event.location.type}</span>
                 </div>
                 
@@ -245,19 +249,19 @@ interface Event { _id: string
                   <>
                     {event.location.address && (
                       <div>
-                        <span className="font-medium text-gray-700">{'Ünvan'}:</span>
+                        <span className="font-medium text-slate-700">{'Ünvan'}:</span>
                         <span className="ml-2">{event.location.address}</span>
                       </div>
                     )}
                     {event.location.city && (
                       <div>
-                        <span className="font-medium text-gray-700">{'Şəhər'}:</span>
+                        <span className="font-medium text-slate-700">{'Şəhər'}:</span>
                         <span className="ml-2">{event.location.city}</span>
                       </div>
                     )}
                     {event.location.country && (
                       <div>
-                        <span className="font-medium text-gray-700">{'Ölkə'}:</span>
+                        <span className="font-medium text-slate-700">{'Ölkə'}:</span>
                         <span className="ml-2">{event.location.country}</span>
                       </div>
                     )}
@@ -266,7 +270,7 @@ interface Event { _id: string
                 
                 {(event.location.type === 'online' || event.location.type === 'hybrid') && event.location.onlineLink && (
                   <div>
-                    <span className="font-medium text-gray-700">{'Onlayn keçid'}:</span>
+                    <span className="font-medium text-slate-700">{'Onlayn keçid'}:</span>
                     <a
                       href={event.location.onlineLink}
                       target="_blank"
@@ -279,43 +283,43 @@ interface Event { _id: string
                   </div>
                 )}
               </div>
-            </div>
+            </Card>
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Event Details */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">{'Tədbir təfərrüatları'}</h3>
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">{'Tədbir təfərrüatları'}</h3>
               <div className="space-y-4">
                 <div className="flex items-start">
-                  <Tag className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
+                  <Tag className="w-5 h-5 text-slate-400 mr-3 mt-0.5" />
                   <div>
-                    <p className="font-medium text-gray-900">{'Tədbir növü'}</p>
-                    <p className="text-gray-600 text-sm">
+                    <p className="font-medium text-slate-900">{'Tədbir növü'}</p>
+                    <p className="text-slate-600 text-sm">
                       {formatEventType(event.eventType)}
                     </p>
                   </div>
                 </div>
                 
                 <div className="flex items-start">
-                  <Tag className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
+                  <Tag className="w-5 h-5 text-slate-400 mr-3 mt-0.5" />
                   <div>
-                    <p className="font-medium text-gray-900">{'Kateqoriya'}</p>
-                    <p className="text-gray-600 text-sm">{event.category}</p>
+                    <p className="font-medium text-slate-900">{'Kateqoriya'}</p>
+                    <p className="text-slate-600 text-sm">{event.category}</p>
                   </div>
                 </div>
                 
                 <div className="flex items-start">
-                  <Calendar className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
+                  <Calendar className="w-5 h-5 text-slate-400 mr-3 mt-0.5" />
                   <div>
-                    <p className="font-medium text-gray-900">{'Tədbir tarixi'}</p>
-                    <p className="text-gray-600 text-sm">{formatDate(event.eventDate)}</p>
+                    <p className="font-medium text-slate-900">{'Tədbir tarixi'}</p>
+                    <p className="text-slate-600 text-sm">{formatDate(event.eventDate)}</p>
                   </div>
                 </div>
 
                 {Array.isArray(event.sessions) && event.sessions.length > 0 && (
-                  <div className="pl-8 text-sm text-gray-600 space-y-1">
+                  <div className="pl-8 text-sm text-slate-600 space-y-1">
                     {event.sessions.map((session, index) => (
                       <p key={`${session.date}-${session.startTime}-${index}`}>
                         {session.date}: {session.startTime} - {session.endTime}
@@ -326,29 +330,29 @@ interface Event { _id: string
                 
                 {event.endDate && (
                   <div className="flex items-start">
-                    <Calendar className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
+                    <Calendar className="w-5 h-5 text-slate-400 mr-3 mt-0.5" />
                     <div>
-                      <p className="font-medium text-gray-900">{'Bitmə tarixi'}</p>
-                      <p className="text-gray-600 text-sm">{formatDate(event.endDate)}</p>
+                      <p className="font-medium text-slate-900">{'Bitmə tarixi'}</p>
+                      <p className="text-slate-600 text-sm">{formatDate(event.endDate)}</p>
                     </div>
                   </div>
                 )}
                 
                 {event.applicationDeadline && (
                   <div className="flex items-start">
-                    <AlertCircle className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
+                    <AlertCircle className="w-5 h-5 text-slate-400 mr-3 mt-0.5" />
                     <div>
-                      <p className="font-medium text-gray-900">{'Müraciət son tarixi'}</p>
-                      <p className="text-gray-600 text-sm">{formatDateTime(event.applicationDeadline)}</p>
+                      <p className="font-medium text-slate-900">{'Müraciət son tarixi'}</p>
+                      <p className="text-slate-600 text-sm">{formatDateTime(event.applicationDeadline)}</p>
                     </div>
                   </div>
                 )}
                 
                 {event.applicationLink && (
                   <div className="flex items-start">
-                    <LinkIcon className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
+                    <LinkIcon className="w-5 h-5 text-slate-400 mr-3 mt-0.5" />
                     <div>
-                      <p className="font-medium text-gray-900">{'Xarici müraciət'}</p>
+                      <p className="font-medium text-slate-900">{'Xarici müraciət'}</p>
                       <a
                         href={event.applicationLink}
                         target="_blank"
@@ -364,27 +368,27 @@ interface Event { _id: string
 
                 {(event.audienceAgeMin !== undefined && event.audienceAgeMax !== undefined) && (
                   <div className="flex items-start">
-                    <Users className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
+                    <Users className="w-5 h-5 text-slate-400 mr-3 mt-0.5" />
                     <div>
-                      <p className="font-medium text-gray-900">İştirakçı profili</p>
-                      <p className="text-gray-600 text-sm">Yaş aralığı: {event.audienceAgeMin} - {event.audienceAgeMax}</p>
+                      <p className="font-medium text-slate-900">İştirakçı profili</p>
+                      <p className="text-slate-600 text-sm">Yaş aralığı: {event.audienceAgeMin} - {event.audienceAgeMax}</p>
                     </div>
                   </div>
                 )}
               </div>
-            </div>
+            </Card>
 
             {/* Participant profile details */}
             {(event.requirements?.length || event.participantBenefits?.length) && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Profil və faydalar</h3>
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold text-slate-900 mb-4">Profil və faydalar</h3>
                 <div className="space-y-4">
                   {event.requirements && event.requirements.length > 0 && (
                     <div className="flex items-start">
-                      <Tag className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
+                      <Tag className="w-5 h-5 text-slate-400 mr-3 mt-0.5" />
                       <div>
-                        <p className="font-medium text-gray-900">{'Tələblər'}</p>
-                        <ul className="text-gray-600 text-sm list-disc list-inside">
+                        <p className="font-medium text-slate-900">{'Tələblər'}</p>
+                        <ul className="text-slate-600 text-sm list-disc list-inside">
                           {event.requirements.map((prereq, index) => (
                             <li key={index}>{prereq}</li>
                           ))}
@@ -395,10 +399,10 @@ interface Event { _id: string
 
                   {event.participantBenefits && event.participantBenefits.length > 0 && (
                     <div className="flex items-start">
-                      <Tag className="w-5 h-5 text-gray-400 mr-3 mt-0.5" />
+                      <Tag className="w-5 h-5 text-slate-400 mr-3 mt-0.5" />
                       <div>
-                        <p className="font-medium text-gray-900">İştirakçı faydaları</p>
-                        <ul className="text-gray-600 text-sm list-disc list-inside">
+                        <p className="font-medium text-slate-900">İştirakçı faydaları</p>
+                        <ul className="text-slate-600 text-sm list-disc list-inside">
                           {event.participantBenefits.map((outcome, index) => (
                             <li key={index}>{outcome}</li>
                           ))}
@@ -407,66 +411,72 @@ interface Event { _id: string
                     </div>
                   )}
                 </div>
-              </div>
+              </Card>
             )}
 
             {/* Status Information */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">{'Vəziyyət məlumatı'}</h3>
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-slate-900 mb-4">{'Vəziyyət məlumatı'}</h3>
               <div className="space-y-3 text-sm">
                 <div>
-                  <span className="font-medium text-gray-700">{'Yaradılıb:'}</span>
+                  <span className="font-medium text-slate-700">{'Yaradılıb:'}</span>
                   <span className="ml-2">{formatDateTime(event.createdAt)}</span>
                 </div>
                 <div>
-                  <span className="font-medium text-gray-700">Son yenilənmə:</span>
+                  <span className="font-medium text-slate-700">Son yenilənmə:</span>
                   <span className="ml-2">{formatDateTime(event.updatedAt)}</span>
                 </div>
                 {event.approvedAt && (
                   <div>
-                    <span className="font-medium text-gray-700">{'Təsdiqləndi:'}</span>
+                    <span className="font-medium text-slate-700">{'Təsdiqləndi:'}</span>
                     <span className="ml-2">{formatDateTime(event.approvedAt)}</span>
                   </div>
                 )}
                 {event.adminComment && (
                   <div>
-                    <span className="font-medium text-gray-700">{'İdarəçi şərhi'}:</span>
-                    <p className="mt-1 text-gray-600">{event.adminComment}</p>
+                    <span className="font-medium text-slate-700">{'İdarəçi şərhi'}:</span>
+                    <p className="mt-1 text-slate-600">{event.adminComment}</p>
                   </div>
                 )}
               </div>
-            </div>
+            </Card>
           </div>
         </div>
       </div>
 
       {/* Reject Modal */}
-      <Dialog.Root
-        open={showRejectModal}
-        onOpenChange={(open) => { if (!open) { setShowRejectModal(false)
-            setAdminComment('')
-            setError('') } }}
+      <Modal
+        isOpen={showRejectModal}
+        onClose={() => {
+          setShowRejectModal(false)
+          setAdminComment('')
+          setError('')
+        }}
+        title="Tədbiri rədd et"
+        size="sm"
       >
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-6">
-            <Dialog.Title className="text-lg font-semibold text-gray-900 mb-4">Tədbiri rədd et</Dialog.Title>
-            <Dialog.Description className="text-gray-600 mb-4">
+            <p className="text-slate-600 mb-4">
               Bu tədbiri rədd etmə səbəbini daxil edin:
-            </Dialog.Description>
-            <textarea
+            </p>
+            <TextArea
+              label="Rədd etmə səbəbi"
               value={adminComment}
               onChange={(e) => setAdminComment(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
               rows={4}
               placeholder={'İdarəçi şərhini daxil edin...'}
             />
             <div className="flex justify-end gap-3 mt-6">
-              <Dialog.Close asChild>
-                <Button variant="outline" size="sm">
-                  Ləğv et
-                </Button>
-              </Dialog.Close>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setShowRejectModal(false)
+                  setAdminComment('')
+                  setError('')
+                }}
+              >
+                Ləğv et
+              </Button>
               <Button
                 onClick={handleReject}
                 disabled={actionLoading || !adminComment.trim()}
@@ -476,9 +486,7 @@ interface Event { _id: string
                 {actionLoading ? 'Rədd edilir...' : 'Tədbiri rədd et'}
               </Button>
             </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+      </Modal>
     </div>
     </AdminListLayout>
   ) }

@@ -35,7 +35,7 @@ export default function BlocknoteReadOnly({ initialJSON, className, context = 'g
     initialContent: normalizedInitialContent,
   })
 
-  if (!normalizedInitialContent) return <div className="text-gray-400 italic">Məzmun yoxdur</div>
+  if (!normalizedInitialContent) return <div className="text-slate-400 italic">Məzmun yoxdur</div>
 
   return (
     <div className={`${className ?? ''} relative`} data-text-size={textSize}>

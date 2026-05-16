@@ -55,7 +55,7 @@ export const Modal: React.FC<ModalProps> = ({
           {(title || showCloseButton) && (
             <div className="flex items-center justify-between border-b border-blue-100 bg-gradient-to-r from-slate-50 to-blue-50/70 p-6">
               {title && (
-                <Dialog.Title className="text-lg font-semibold text-gray-900">
+                <Dialog.Title className="text-lg font-semibold text-slate-900">
                   {title}
                 </Dialog.Title>
               )}

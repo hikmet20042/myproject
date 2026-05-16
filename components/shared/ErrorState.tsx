@@ -5,6 +5,7 @@
  */
 
 import { AlertCircle } from 'lucide-react'
+import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 
 
@@ -37,14 +38,14 @@ export default function ErrorState({
 
   return (
     <div className={`${containerClassName} ${className}`}>
-      <div className="w-full max-w-md rounded-2xl border border-rose-200 bg-white p-8 text-center shadow-sm">
+      <Card className="w-full max-w-md p-8 text-center">
         
         <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-rose-50 text-rose-600">
           <AlertCircle className="h-8 w-8" />
         </div>
 
-        <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
-        <p className="mt-3 text-base text-gray-600">{message}</p>
+        <h2 className="text-2xl font-bold text-slate-900">{title}</h2>
+        <p className="mt-3 text-base text-slate-600">{message}</p>
         
         {onRetry && (
           <Button
@@ -56,7 +57,7 @@ export default function ErrorState({
             {retryText}
           </Button>
         )}
-      </div>
+      </Card>
     </div>
   )
 }

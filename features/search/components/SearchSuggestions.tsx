@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { cn } from '@/lib/utils'
 import type { GlobalSearchItem } from '@/features/search/types/search.types'
@@ -59,14 +60,14 @@ export function SearchSuggestions({
               </Link>
             ))}
           </div>
-          <button
-            type="button"
-            onClick={onViewAll}
+          <Button
+            variant="ghost"
             className="flex w-full items-center justify-center gap-1.5 bg-blue-50 px-4 py-2.5 text-xs font-bold text-blue-700 transition-colors hover:bg-blue-100"
+            onClick={onViewAll}
           >
             Bütün nəticələrə bax
             <ArrowRight className="h-3.5 w-3.5" />
-          </button>
+          </Button>
         </>
       )}
     </div>

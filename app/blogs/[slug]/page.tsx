@@ -16,7 +16,8 @@ import {
   Share2,
   Bookmark,
 } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { Button, ButtonLink } from '@/components/ui'
+import { Card } from '@/components/ui/Card'
 import BlogReactionsContainer from '@/features/blogs/components/BlogReactionsContainer'
 import { LoadingState, ErrorState } from '@/components/shared'
 import SaveItemButtonContainer from '@/components/containers/SaveItemButtonContainer'
@@ -192,27 +193,27 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
 
   const mainContent = (
     <div id="blog-content" ref={contentRef} className="prose prose-lg max-w-none space-y-8
-      prose-h2:font-bold prose-h2:text-3xl prose-h2:text-gray-900 prose-h2:mt-12 prose-h2:mb-6
-      prose-h3:font-bold prose-h3:text-xl prose-h3:text-gray-900 prose-h3:mt-8 prose-h3:mb-4
-      prose-p:text-gray-700 prose-p:leading-relaxed prose-p:text-base
+      prose-h2:font-bold prose-h2:text-3xl prose-h2:text-slate-900 prose-h2:mt-12 prose-h2:mb-6
+      prose-h3:font-bold prose-h3:text-xl prose-h3:text-slate-900 prose-h3:mt-8 prose-h3:mb-4
+      prose-p:text-slate-700 prose-p:leading-relaxed prose-p:text-base
       prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline
-      prose-strong:text-gray-900 prose-strong:font-semibold
-      prose-blockquote:border-l-4 prose-blockquote:border-blue-600 prose-blockquote:bg-slate-50 prose-blockquote:rounded-r-lg prose-blockquote:py-4 prose-blockquote:px-6 prose-blockquote:italic prose-blockquote:text-gray-700 prose-blockquote:my-8
-      prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-code:text-gray-900
-      prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:rounded-lg prose-pre:p-4 prose-pre:overflow-x-auto
-      prose-ul:text-gray-700 prose-ol:text-gray-700
-      prose-li:text-gray-700 prose-li:leading-relaxed prose-li:my-2
-      prose-img:rounded-lg prose-img:shadow-md prose-img:my-8
-      prose-hr:border-gray-200 prose-hr:my-12
+      prose-strong:text-slate-900 prose-strong:font-semibold
+      prose-blockquote:border-l-4 prose-blockquote:border-blue-600 prose-blockquote:bg-slate-50 prose-blockquote:rounded-r-lg prose-blockquote:py-4 prose-blockquote:px-6 prose-blockquote:italic prose-blockquote:text-slate-700 prose-blockquote:my-8
+      prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-code:text-slate-900
+      prose-pre:bg-gray-900 prose-pre:text-slate-100 prose-pre:rounded-md prose-pre:p-4 prose-pre:overflow-x-auto
+      prose-ul:text-slate-700 prose-ol:text-slate-700
+      prose-li:text-slate-700 prose-li:leading-relaxed prose-li:my-2
+      prose-img:rounded-md prose-img:shadow-md prose-img:my-8
+      prose-hr:border-slate-200 prose-hr:my-12
       prose-figure:my-8
-      prose-figcaption:text-center prose-figcaption:text-sm prose-figcaption:text-gray-600 prose-figcaption:italic prose-figcaption:mt-2
+      prose-figcaption:text-center prose-figcaption:text-sm prose-figcaption:text-slate-600 prose-figcaption:italic prose-figcaption:mt-2
     ">
       {hasBlocknoteContent ? (
         <BlocknoteReadOnly initialJSON={blog.content} textSize="large" />
       ) : safeHtml ? (
         <div dangerouslySetInnerHTML={{ __html: safeHtml }} />
       ) : (
-        <div className="whitespace-pre-wrap text-gray-700">
+        <div className="whitespace-pre-wrap text-slate-700">
           {blog.content || ''}
         </div>
       )}
@@ -239,29 +240,32 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
         <div className="max-w-4xl mx-auto px-4 md:px-6">
           {/* Breadcrumbs & Back Button */}
           <div className="flex items-center justify-between gap-6 mb-12 flex-col sm:flex-row">
-            <nav className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-widest order-2 sm:order-1">
+            <nav className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest order-2 sm:order-1">
               <Link href={localePath('/')} className="hover:text-blue-600 transition-colors">
                 Ana səhifə
               </Link>
-              <span className="text-gray-300">/</span>
+              <span className="text-slate-300">/</span>
               <Link href={localePath('/blogs')} className="hover:text-blue-600 transition-colors">
                 Bloqlar
               </Link>
-              <span className="text-gray-300">/</span>
-              <span className="text-gray-900 truncate">{blog.title}</span>
+              <span className="text-slate-300">/</span>
+              <span className="text-slate-900 truncate">{blog.title}</span>
             </nav>
-            <Link
+            <ButtonLink
               href={backHref}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-blue-200 hover:text-blue-600 transition-all whitespace-nowrap order-1 sm:order-2"
+              variant="outline"
+              size="sm"
+              className="gap-2 order-1 sm:order-2"
+              icon={ArrowLeft}
+              iconPosition="left"
             >
-              <ArrowLeft className="h-4 w-4" />
-              <span>Geri</span>
-            </Link>
+              Geri
+            </ButtonLink>
           </div>
 
           {/* Cover Image Card */}
           {blog.featuredImage && (
-            <div className="mb-12 rounded-xl overflow-hidden border border-gray-200 bg-white shadow-sm">
+            <Card className="mb-12 overflow-hidden">
               <div className="relative w-full aspect-video">
                 <Image
                   src={blog.featuredImage}
@@ -271,16 +275,16 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
                   priority
                 />
               </div>
-            </div>
+            </Card>
           )}
 
           {/* Title */}
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black leading-[1.15] text-gray-900 mb-8">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black leading-[1.15] text-slate-900 mb-8">
             {blog.title}
           </h1>
 
           {/* Metadata Block */}
-          <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8 border-b border-gray-200 pb-6 mb-12">
+          <div className="flex flex-col md:flex-row md:items-center gap-6 md:gap-8 border-b border-slate-200 pb-6 mb-12">
             {/* Author Card */}
             {blog.authorName && (
               <div className="flex items-center gap-4">
@@ -288,16 +292,16 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
                   {blog.isAnonymous ? '?' : blog.authorName.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-xs font-black uppercase tracking-widest text-gray-500">Müəllif</p>
+                  <p className="text-xs font-black uppercase tracking-widest text-slate-500">Müəllif</p>
                   {blog.authorUrlHandle ? (
                     <Link
                       href={localePath(`/u/${blog.authorUrlHandle}`)}
-                      className="font-bold text-gray-900 hover:text-blue-600 transition-colors"
+                      className="font-bold text-slate-900 hover:text-blue-600 transition-colors"
                     >
                       {blog.authorName}
                     </Link>
                   ) : (
-                    <p className="font-bold text-gray-900">{blog.authorName}</p>
+                    <p className="font-bold text-slate-900">{blog.authorName}</p>
                   )}
                 </div>
               </div>
@@ -308,8 +312,8 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
             {/* Published Date */}
             {formattedDate && (
               <div>
-                <p className="text-xs font-black uppercase tracking-widest text-gray-500">Tarix</p>
-                <p className="font-medium text-gray-900">{formattedDate}</p>
+                <p className="text-xs font-black uppercase tracking-widest text-slate-500">Tarix</p>
+                <p className="font-medium text-slate-900">{formattedDate}</p>
               </div>
             )}
 
@@ -317,41 +321,43 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
 
             {/* Reading Time */}
             <div>
-              <p className="text-xs font-black uppercase tracking-widest text-gray-500">Oxuma müddəti</p>
-              <div className="flex items-center gap-1.5 font-medium text-gray-900">
-                <Clock className="h-4 w-4 text-gray-400" />
+              <p className="text-xs font-black uppercase tracking-widest text-slate-500">Oxuma müddəti</p>
+              <div className="flex items-center gap-1.5 font-medium text-slate-900">
+                <Clock className="h-4 w-4 text-slate-400" />
                 <span>{readingTime} dəq</span>
               </div>
             </div>
           </div>
 
           {/* Interaction Bar */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 py-6 mb-12 border-b border-gray-200">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 py-6 mb-12 border-b border-slate-200">
             <div className="flex items-center gap-8">
               {blog.views !== undefined && blog.views >= 0 && (
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Eye className="h-4 w-4 text-gray-400" />
+                <div className="flex items-center gap-2 text-slate-600">
+                  <Eye className="h-4 w-4 text-slate-400" />
                   <span className="text-sm font-medium">{blog.views.toLocaleString()} baxış</span>
                 </div>
               )}
               <div className="flex items-center gap-6">
                 {blog.likes !== undefined && blog.likes >= 0 && (
-                  <button className="flex items-center gap-1.5 text-gray-600 hover:text-blue-600 transition-colors">
+                  <Button variant="ghost" size="sm" className="gap-1.5 text-slate-600 hover:text-blue-600">
                     <ThumbsUp className="h-4 w-4" />
                     <span className="text-xs font-bold">{blog.likes.toLocaleString()}</span>
-                  </button>
+                  </Button>
                 )}
                 {blog.dislikes !== undefined && blog.dislikes >= 0 && (
-                  <button className="flex items-center gap-1.5 text-gray-600 hover:text-red-600 transition-colors">
+                  <Button variant="ghost" size="sm" className="gap-1.5 text-slate-600 hover:text-red-600">
                     <ThumbsDown className="h-4 w-4" />
                     <span className="text-xs font-bold">{blog.dislikes.toLocaleString()}</span>
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <button
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 transition-colors"
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2 text-slate-700 hover:text-blue-600"
                 onClick={() => {
                   if (navigator.share) {
                     navigator.share({ title: blog.title, url: window.location.href })
@@ -362,7 +368,7 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
               >
                 <Share2 className="h-4 w-4" />
                 Paylaş
-              </button>
+              </Button>
               <SaveItemButtonContainer
                 itemId={blog._id || blog.id}
                 itemType="blog"
@@ -376,14 +382,14 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
           {mainContent}
 
           {/* Tags & Reactions Section */}
-          <div className="space-y-12 border-t border-gray-200 pt-12 mt-12">
+          <div className="space-y-12 border-t border-slate-200 pt-12 mt-12">
             {/* Tags */}
             {blog.tags && blog.tags.length > 0 && (
               <div className="flex flex-wrap gap-3">
                 {blog.tags.map((tag: string) => (
                   <span
                     key={tag}
-                    className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700"
+                    className="inline-flex items-center px-4 py-2 rounded-md text-sm font-medium bg-gray-100 text-slate-700"
                   >
                     {tag}
                   </span>
@@ -394,7 +400,7 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
             {/* Reactions Section */}
             {blog.status === 'approved' && canAccessReactions && (
               <div className="text-center py-12">
-                <h3 className="text-2xl font-bold text-gray-900 mb-8">Bu məqalə sənə necə gəldi?</h3>
+                <h3 className="text-2xl font-bold text-slate-900 mb-8">Bu məqalə sənə necə gəldi?</h3>
                 <div className="flex justify-center">
                   <BlogReactionsContainer
                     blogSlug={blog.slug}

@@ -178,9 +178,9 @@ export default function MaterialsPage() {
           <div className="flex justify-center">
             <ButtonLink
               href={localePath('/submit/blog')}
-              variant="secondary"
+              variant="white-on-dark"
               size="lg"
-              className="rounded-2xl px-10 py-4 font-black bg-white text-slate-900 hover:bg-slate-100 border-none"
+              className="rounded-2xl px-10 py-4 font-black"
             >
               Material göndər
             </ButtonLink>

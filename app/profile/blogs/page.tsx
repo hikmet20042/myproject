@@ -4,18 +4,20 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Edit3, Eye, History, Trash2, ThumbsDown, ThumbsUp, Bookmark } from "lucide-react";
-import * as Dialog from "@radix-ui/react-dialog";
+import { Modal } from '@/components/ui/Modal'
 import { EmptyState } from "@/components/shared";
 import { Button } from "@/components/ui/Button";
+import { Tabs } from "@/components/ui/Tabs";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import { useSession } from "@/lib/auth/client";
 import { blogQueryKeys, deleteBlog as deleteBlogRequest, fetchUserBlogs } from "@/lib/blogQueries";
 import { getUserErrorMessage } from "@/lib/errorMessages";
 import { useLocalizedPath } from "@/hooks/useLocalizedPath";
+import { Card } from "@/components/ui/Card";
 import { PageHeader, SectionCard } from "@/features/profile/components/ui";
 
 const STATUS_STYLES: Record<string, string> = {
-  pending: "bg-gray-100 text-gray-700 border-gray-200",
+  pending: "bg-gray-100 text-slate-700 border-slate-200",
   approved: "bg-green-100 text-green-700 border-green-200",
   rejected: "bg-red-100 text-red-700 border-red-200",
   resubmitted: "bg-blue-100 text-blue-700 border-blue-200",
@@ -112,7 +114,7 @@ const buildModerationTimeline = (blog: any): ModerationEvent[] => {
 };
 
 const TIMELINE_TONE_STYLES: Record<ModerationEvent["tone"], string> = {
-  neutral: "border-gray-200 bg-gray-50 text-gray-700",
+  neutral: "border-slate-200 bg-gray-50 text-slate-700",
   success: "border-green-200 bg-green-50 text-green-700",
   warning: "border-amber-200 bg-amber-50 text-amber-800",
 };
@@ -199,16 +201,16 @@ export default function ProfileBlogsPage() {
       />
 
       {deleteConfirm && (
-        <Dialog.Root open onOpenChange={(open) => !open && setDeleteConfirm(null)}>
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-40 bg-black/40" />
-            <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-[92vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-red-200 bg-white p-6 shadow-lg">
-              <Dialog.Title className="text-lg font-semibold text-gray-900">
-                Bloqu silmək istədiyinizə əminsiniz?
-              </Dialog.Title>
-              <Dialog.Description className="mt-2 text-sm text-gray-600">
+        <Modal
+          isOpen
+          onClose={() => setDeleteConfirm(null)}
+          title="Bloqu silmək istədiyinizə əminsiniz?"
+          size="sm"
+          className="border-red-200 w-[92vw]"
+        >
+              <p className="mt-2 text-sm text-slate-600">
                 <strong>{deleteConfirm.title}</strong> silinəcək və bu əməliyyat geri qaytarılmayacaq.
-              </Dialog.Description>
+              </p>
               <div className="mt-5 flex gap-3">
                 <Button
                   variant="danger"
@@ -222,18 +224,16 @@ export default function ProfileBlogsPage() {
                   Ləğv et
                 </Button>
               </div>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
+        </Modal>
       )}
 
       <SectionCard title="Bloq idarəetməsi" description="Statusa görə filtrlə və bloqlarını bir yerdən idarə et.">
         {!userBlogsQuery.isLoading && !userBlogsQuery.isError && blogs.length > 0 && (
           <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-xl border border-gray-200 bg-white p-3">
-              <p className="text-xs text-gray-500">Ümumi bloq</p>
-              <p className="mt-1 text-xl font-semibold text-gray-900">{summary.total}</p>
-            </div>
+            <Card className="p-3">
+              <p className="text-xs text-slate-500">Ümumi bloq</p>
+              <p className="mt-1 text-xl font-semibold text-slate-900">{summary.total}</p>
+            </Card>
             <div className="rounded-xl border border-green-200 bg-green-50 p-3">
               <p className="text-xs text-green-700">Yayımlanıb</p>
               <p className="mt-1 text-xl font-semibold text-green-800">{summary.approved}</p>
@@ -250,18 +250,26 @@ export default function ProfileBlogsPage() {
         )}
 
         {!userBlogsQuery.isLoading && !userBlogsQuery.isError && blogs.length > 0 && (
-          <div className="mb-5 flex flex-wrap gap-2">
-            <Button size="sm" variant={filter === "all" ? "primary" : "outline"} onClick={() => setFilter("all")}>Hamısı</Button>
-            <Button size="sm" variant={filter === "approved" ? "primary" : "outline"} onClick={() => setFilter("approved")}>Yayımlanıb</Button>
-            <Button size="sm" variant={filter === "pending" ? "primary" : "outline"} onClick={() => setFilter("pending")}>Yoxlanışda</Button>
-            <Button size="sm" variant={filter === "rejected" ? "primary" : "outline"} onClick={() => setFilter("rejected")}>Rədd edilib</Button>
+          <div className="mb-5">
+            <Tabs
+              tabs={[
+                { id: 'all', label: 'Hamısı' },
+                { id: 'approved', label: 'Yayımlanıb' },
+                { id: 'pending', label: 'Yoxlanışda' },
+                { id: 'rejected', label: 'Rədd edilib' },
+              ]}
+              activeTab={filter}
+              onTabChange={(tabId) => setFilter(tabId as BlogFilter)}
+              variant="pills"
+              size="sm"
+            />
           </div>
         )}
 
         {userBlogsQuery.isLoading ? (
           <div className="space-y-3">
             {[...Array(3)].map((_, idx) => (
-              <div key={idx} className="animate-pulse rounded-xl border border-gray-200 p-4">
+              <div key={idx} className="animate-pulse rounded-xl border border-slate-200 p-4">
                 <div className="h-4 w-32 bg-gray-200 rounded" />
                 <div className="mt-3 h-4 w-2/3 bg-gray-100 rounded" />
               </div>
@@ -296,46 +304,46 @@ export default function ProfileBlogsPage() {
               const isApproved = blog.status === "approved";
 
               return (
-                <article key={blogId} className="rounded-xl border border-gray-200 bg-white p-4 transition-all duration-200 hover:border-gray-300 hover:shadow-sm sm:p-5">
+                <Card key={blogId} className="p-4 transition-all duration-200 hover:border-slate-200 hover:shadow-sm sm:p-5">
                   <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`inline-flex items-center rounded-lg border px-2.5 py-1 text-xs font-semibold ${statusView.style}`}>
+                        <span className={`inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-semibold ${statusView.style}`}>
                           {statusView.label}
                         </span>
                         {isApproved ? (
                           <>
-                            <span className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-2 py-1 text-xs text-gray-600">
+                            <span className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-2 py-1 text-xs text-slate-600">
                               <Eye className="w-3.5 h-3.5" />
                               {blog.views || 0}
                             </span>
-                            <span className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2 py-1 text-xs text-blue-700">
+                            <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-xs text-blue-700">
                               <ThumbsUp className="w-3.5 h-3.5" />
                               {blog.likes || 0}
                             </span>
-                            <span className="inline-flex items-center gap-1 rounded-lg bg-rose-50 px-2 py-1 text-xs text-rose-700">
+                            <span className="inline-flex items-center gap-1 rounded-md bg-rose-50 px-2 py-1 text-xs text-rose-700">
                               <ThumbsDown className="w-3.5 h-3.5" />
                               {blog.dislikes || 0}
                             </span>
-                            <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-1 text-xs text-amber-700">
+                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-700">
                               <Bookmark className="w-3.5 h-3.5" />
                               {blog.saves || 0}
                             </span>
                           </>
                         ) : (
-                          <span className="inline-flex items-center rounded-lg bg-gray-100 px-2 py-1 text-xs text-gray-600">
+                          <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs text-slate-600">
                             Statistika təsdiqdən sonra görünəcək
                           </span>
                         )}
                       </div>
 
-                      <h3 className="text-lg font-semibold text-gray-900">{blog.title}</h3>
-                      <p className="text-sm text-gray-500">
+                      <h3 className="text-lg font-semibold text-slate-900">{blog.title}</h3>
+                      <p className="text-sm text-slate-500">
                         {blog.createdAt ? new Date(blog.createdAt).toLocaleDateString() : ""}
                       </p>
 
                       {blog.adminComment ? (
-                        <p className="text-sm rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
+                        <p className="text-sm rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
                           <strong>Son rəy:</strong> {blog.adminComment}
                         </p>
                       ) : null}
@@ -374,8 +382,8 @@ export default function ProfileBlogsPage() {
                       </Button>
                     </div>
 
-                    <div className="lg:col-span-2 rounded-xl border border-gray-200 bg-gray-50/80 p-3">
-                      <p className="mb-2 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-gray-600">
+                    <Card className="lg:col-span-2 bg-gray-50/80 p-3">
+                      <p className="mb-2 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
                         <History className="h-3.5 w-3.5" />
                         Moderasiya tarixçəsi
                       </p>
@@ -386,7 +394,7 @@ export default function ProfileBlogsPage() {
                               <span className={`h-2.5 w-2.5 rounded-full ${event.tone === "success" ? "bg-green-500" : event.tone === "warning" ? "bg-amber-500" : "bg-gray-400"}`} />
                               {index < timeline.length - 1 ? <span className="mt-1 h-full w-px bg-gray-300" /> : null}
                             </div>
-                            <div className={`flex-1 rounded-lg border px-3 py-2 text-xs ${TIMELINE_TONE_STYLES[event.tone]}`}>
+                            <div className={`flex-1 rounded-md border px-3 py-2 text-xs ${TIMELINE_TONE_STYLES[event.tone]}`}>
                               <p className="font-semibold">{event.title}</p>
                               {event.timestamp ? (
                                 <p className="mt-0.5 text-[11px] opacity-80">
@@ -398,9 +406,9 @@ export default function ProfileBlogsPage() {
                           </div>
                         ))}
                       </div>
-                    </div>
+                    </Card>
                   </div>
-                </article>
+                </Card>
               );
             })}
           </div>

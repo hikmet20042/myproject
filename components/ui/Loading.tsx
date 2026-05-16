@@ -103,7 +103,7 @@ const Loading = React.forwardRef<HTMLDivElement, LoadingProps>(
           <span className={cn(
             'font-medium',
             textSizes[size],
-            color === 'primary' ? 'text-blue-700' : color === 'white' ? 'text-white' : color === 'gray' ? 'text-gray-600' : 'text-current'
+            color === 'primary' ? 'text-blue-700' : color === 'white' ? 'text-white' : color === 'gray' ? 'text-slate-600' : 'text-current'
           )}>
             {text}
           </span>

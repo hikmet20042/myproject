@@ -3,8 +3,9 @@
 import Link from 'next/link'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useSession } from '@/lib/auth/client'
-import { Github, Mail, Instagram, Twitter, Linkedin, ArrowUpRight } from 'lucide-react'
+import { Mail, ArrowUpRight } from 'lucide-react'
 import Logo from '@/components/Logo'
+import { ButtonLink, SocialLink } from '@/components/ui'
 
 export default function Footer() {
   const localePath = useLocalizedPath()
@@ -34,10 +35,10 @@ export default function Footer() {
   ]
 
   const socialLinks = [
-    { icon: Instagram, href: '#', label: 'Instagram' },
-    { icon: Twitter, href: '#', label: 'Twitter' },
-    { icon: Linkedin, href: '#', label: 'LinkedIn' },
-    { icon: Github, href: 'https://github.com/hikmet20042/icma360', label: 'GitHub' },
+    { href: '#', platform: 'instagram' as const },
+    { href: '#', platform: 'twitter' as const },
+    { href: '#', platform: 'linkedin' as const },
+    { href: 'https://github.com/hikmet20042/icma360', platform: 'github' as const },
   ]
 
   return (
@@ -67,16 +68,7 @@ export default function Footer() {
             </p>
             <div className="flex items-center gap-3">
               {socialLinks.map((social, index) => (
-                <a
-                  key={index}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="h-11 w-11 flex items-center justify-center rounded-xl bg-slate-50 border border-slate-200 text-slate-500 transition-all hover:bg-blue-600 hover:text-white hover:border-blue-600 hover:-translate-y-1 shadow-sm"
-                  aria-label={social.label}
-                >
-                  <social.icon className="h-5 w-5" />
-                </a>
+                <SocialLink key={index} platform={social.platform} href={social.href} variant="icon-only" />
               ))}
             </div>
           </div>
@@ -108,13 +100,20 @@ export default function Footer() {
                 <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-white/10 blur-xl group-hover:scale-150 transition-transform duration-700" />
                 <h3 className="text-xl font-black mb-2 relative z-10">Sualın var?</h3>
                 <p className="text-sm text-blue-50 font-bold mb-6 relative z-10 opacity-90 leading-relaxed">Bizimlə birbaşa əlaqə qurmaqdan çəkinmə.</p>
-                <a 
-                  href="mailto:info@icma360.org" 
-                  className="inline-flex items-center gap-2 text-sm font-black bg-white text-blue-600 px-5 py-3 rounded-2xl shadow-lg transition-all hover:scale-105 active:scale-95"
+                <ButtonLink
+                  href="mailto:info@icma360.org"
+                  variant="secondary"
+                  size="md"
+                  className="px-5 py-3 text-sm font-black text-blue-600 hover:scale-105"
+                  icon={Mail}
+                  iconPosition="left"
+                  rounded="xl"
+                  shadow="lg"
+                  hoverEffect="scale"
+                  external
                 >
-                  <Mail className="h-4 w-4" />
                   E-poçt yaz
-                </a>
+                </ButtonLink>
               </div>
             </div>
           </div>

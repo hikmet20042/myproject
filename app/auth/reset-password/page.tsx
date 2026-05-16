@@ -3,11 +3,13 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Loader2, Lock, Eye, EyeOff } from 'lucide-react'
+import { Lock, Eye, EyeOff } from 'lucide-react'
+import { Loading } from '@/components/ui/Loading'
 import { Input, Button } from '@/components/ui'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import { Card } from '@/components/ui/Card'
 
 function ResetPasswordContent() {
   const localePath = useLocalizedPath()
@@ -170,10 +172,10 @@ function ResetPasswordContent() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-35" />
         <div className="absolute left-1/2 top-24 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-200/30 blur-3xl" />
         <div className="relative z-10 mx-auto flex min-h-[80vh] w-full max-w-lg items-center justify-center px-4 sm:px-6">
-          <div className="w-full rounded-3xl border border-gray-200 bg-white p-6 text-center shadow-sm sm:p-8">
-            <Loader2 className="mx-auto mb-3 h-8 w-8 animate-spin text-blue-600" />
-            <p className="text-sm text-gray-600">{'Sıfırlama sessiyası hazırlanır...'}</p>
-          </div>
+          <Card className="w-full rounded-3xl p-6 text-center sm:p-8">
+            <Loading size="lg" variant="spinner" color="primary" className="mx-auto mb-3" />
+            <p className="text-sm text-slate-600">{'Sıfırlama sessiyası hazırlanır...'}</p>
+          </Card>
         </div>
       </div>
     )
@@ -185,9 +187,9 @@ function ResetPasswordContent() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-35" />
         <div className="absolute left-1/2 top-24 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-200/30 blur-3xl" />
         <div className="relative z-10 mx-auto flex min-h-[80vh] w-full max-w-lg items-center justify-center px-4 sm:px-6">
-          <div className="w-full rounded-3xl border border-gray-200 bg-white p-6 text-center shadow-sm sm:p-8">
-            <h1 className="text-2xl font-black text-gray-900">{'Etibarsız sıfırlama keçidi'}</h1>
-            <p className="mt-3 text-sm text-gray-600">
+          <Card className="w-full rounded-3xl p-6 text-center sm:p-8">
+            <h1 className="text-2xl font-black text-slate-900">{'Etibarsız sıfırlama keçidi'}</h1>
+            <p className="mt-3 text-sm text-slate-600">
               {error || 'Bu şifrə sıfırlama keçidi etibarsızdır və ya müddəti bitib.'}
             </p>
             <Link
@@ -196,7 +198,7 @@ function ResetPasswordContent() {
             >
               {'Yeni şifrə sıfırlama tələb edin'}
             </Link>
-          </div>
+          </Card>
         </div>
       </div>
     )
@@ -208,20 +210,20 @@ function ResetPasswordContent() {
       <div className="absolute left-1/2 top-24 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-200/30 blur-3xl" />
 
       <div className="relative z-10 mx-auto flex min-h-[80vh] w-full max-w-lg items-center justify-center px-4 sm:px-6">
-        <div className="w-full rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+        <Card className="w-full rounded-3xl p-6 sm:p-8">
           <div className="mb-6 text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
               <Lock className="h-6 w-6 text-blue-700" />
             </div>
-            <h1 className="text-2xl font-black text-gray-900">{'Şifrəni sıfırla'}</h1>
-            <p className="mt-2 text-sm text-gray-600">
+            <h1 className="text-2xl font-black text-slate-900">{'Şifrəni sıfırla'}</h1>
+            <p className="mt-2 text-sm text-slate-600">
               {`${recoveryEmail} üçün yeni şifrə daxil edin`}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="block text-sm font-medium text-slate-700">
                 {'Yeni şifrə'}
               </label>
               <div className="relative mt-1">
@@ -234,23 +236,20 @@ function ResetPasswordContent() {
                   required
                   disabled={isLoading}
                 />
-                <button
+                <Button
                   type="button"
-                  className="absolute inset-y-0 right-0 flex items-center pr-3"
+                  variant="ghost"
+                  size="xs"
+                  className="absolute inset-y-0 right-0 pr-3"
                   onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-gray-400" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-gray-400" />
-                  )}
-                </button>
+                  icon={showPassword ? EyeOff : Eye}
+                />
               </div>
-              <p className="mt-1 text-xs text-gray-500">{'Ən azı 6 simvol olmalıdır'}</p>
+              <p className="mt-1 text-xs text-slate-500">{'Ən azı 6 simvol olmalıdır'}</p>
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700">
                 {'Yeni şifrəni təsdiqlə'}
               </label>
               <div className="relative mt-1">
@@ -263,17 +262,14 @@ function ResetPasswordContent() {
                   required
                   disabled={isLoading}
                 />
-                <button
+                <Button
                   type="button"
-                  className="absolute inset-y-0 right-0 flex items-center pr-3"
+                  variant="ghost"
+                  size="xs"
+                  className="absolute inset-y-0 right-0 pr-3"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4 text-gray-400" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-gray-400" />
-                  )}
-                </button>
+                  icon={showConfirmPassword ? EyeOff : Eye}
+                />
               </div>
             </div>
 
@@ -291,12 +287,12 @@ function ResetPasswordContent() {
           <div className="mt-6 text-center">
             <Link
               href={localePath('/auth/signin')}
-              className="text-sm text-gray-600 transition-colors hover:text-blue-600"
+              className="text-sm text-slate-600 transition-colors hover:text-blue-600"
             >
               {'Girişə qayıt'}
             </Link>
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   )
@@ -307,7 +303,7 @@ export default function ResetPasswordPage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center bg-background">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <Loading size="lg" variant="spinner" color="primary" />
         </div>
       }
     >

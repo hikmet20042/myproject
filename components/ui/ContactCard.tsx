@@ -29,7 +29,7 @@ const ContactCard = React.forwardRef<any, ContactCardProps>(
     };
     
     const iconVariants = {
-      default: 'mr-3 flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 text-white',
+      default: 'mr-3 flex h-8 w-8 items-center justify-center rounded-md bg-gradient-to-br from-blue-500 to-cyan-500 text-white',
       compact: 'mr-2 h-6 w-6 text-blue-600'
     };
     
@@ -40,14 +40,14 @@ const ContactCard = React.forwardRef<any, ContactCardProps>(
         </div>
         <div className="flex-1">
           <p className={cn(
-            'font-medium text-gray-500',
+            'font-medium text-slate-500',
             variant === 'default' ? 'text-xs' : 'text-sm'
           )}>
             {label}
           </p>
           <p className={cn(
             'font-medium break-all',
-            variant === 'default' ? 'text-gray-900 hover:text-blue-700' : 'text-gray-700'
+            variant === 'default' ? 'text-slate-900 hover:text-blue-700' : 'text-slate-700'
           )}>
             {value}
           </p>

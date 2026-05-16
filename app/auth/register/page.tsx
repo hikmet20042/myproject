@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react'
-import { Input, Button } from '@/components/ui'
+import { Input, Button, Card } from '@/components/ui'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
@@ -132,28 +132,39 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground px-4 py-10">
-      <div className="mx-auto grid w-full max-w-6xl items-center gap-8 lg:grid-cols-2">
-        <div className="hidden lg:block">
-          <div className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-cyan-50 to-white p-8 shadow-sm">
-            
-            <h2 className="mt-4 text-2xl font-black text-gray-900">Yeni başlanğıca hazır ol</h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Qeydiyyatı tamamla, maraq sahələrini seç və icma ilə inkişaf yoluna başla.
-            </p>
-          </div>
-        </div>
+    <div className="relative min-h-screen overflow-hidden bg-slate-50 px-4 py-8 text-slate-900 sm:py-12">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute -top-24 left-1/2 h-[420px] w-[820px] -translate-x-1/2 rounded-full bg-blue-100/70 blur-3xl" />
+        <div className="absolute bottom-[-4rem] left-[-4rem] h-72 w-72 rounded-full bg-indigo-100/70 blur-3xl" />
+      </div>
 
-        <div className="w-full max-w-md justify-self-center">
-        <div className="mb-6 text-center">
-          <div className="flex justify-center">
-            <Logo href={localePath('/')} size="md" variant="dark" showText={false} showTagline={false} />
-          </div>
-          <h1 className="mt-6 text-3xl font-black text-gray-900">{'Hesab yarat'}</h1>
-          <p className="mt-2 text-sm text-gray-600">{'Qeydiyyatı tamamla və onboarding mərhələsinə keç.'}</p>
-        </div>
+      <Card className="mx-auto w-full max-w-5xl rounded-3xl shadow-xl shadow-slate-200/60">
+        <div className="grid lg:grid-cols-[1.1fr_1fr]">
+          <aside className="hidden border-r border-slate-200 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-10 lg:flex lg:flex-col lg:justify-between">
+            <div>
+              <Logo href={localePath('/')} size="lg" variant="dark" showText={false} showTagline={false} />
+              <h2 className="mt-8 text-4xl font-black leading-tight text-slate-900">Yeni başlanğıca hazır ol</h2>
+              <p className="mt-4 max-w-sm text-base leading-relaxed text-slate-600">
+                Qeydiyyatı tamamla, maraq sahələrini seç və icma ilə inkişaf yoluna başla.
+              </p>
+            </div>
+            <Card className="rounded-2xl bg-white/90 p-5 backdrop-blur">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Sürətli başlanğıc</p>
+              <p className="mt-2 text-sm text-slate-600">
+                Hesabını yaratdıqdan sonra onboarding addımları ilə profilini fərdiləşdirə bilərsən.
+              </p>
+            </Card>
+          </aside>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+          <section className="p-6 sm:p-10">
+            <div className="mb-8 text-center">
+              <div className="flex justify-center lg:hidden">
+                <Logo href={localePath('/')} size="md" variant="dark" showText={false} showTagline={false} />
+              </div>
+              <h1 className="mt-6 text-3xl font-black text-slate-900">{'Hesab yarat'}</h1>
+              <p className="mt-2 text-sm text-slate-600">{'Qeydiyyatı tamamla və onboarding mərhələsinə keç.'}</p>
+            </div>
+
           <div className="mb-6">
             <Button
               onClick={handleGoogleSignUp}
@@ -185,11 +196,11 @@ export default function RegisterPage() {
           </div>
 
           <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="bg-white px-2 text-slate-500">
                 {'Və ya e-poçt ilə qeydiyyat'}
               </span>
             </div>
@@ -197,7 +208,7 @@ export default function RegisterPage() {
 
           <form className="space-y-5" onSubmit={handleSubmit} autoComplete="off">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">{'E-poçt ünvanı'}</label>
+              <label htmlFor="email" className="block text-sm font-bold text-slate-700">{'E-poçt ünvanı'}</label>
               <div className="mt-1">
                 <Input
                   id="email"
@@ -216,7 +227,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">{'Şifrə'}</label>
+              <label htmlFor="password" className="block text-sm font-bold text-slate-700">{'Şifrə'}</label>
               <div className="mt-1 relative">
                 <Input
                   id="password"
@@ -230,20 +241,20 @@ export default function RegisterPage() {
                   icon={Lock}
                   inputSize="md"
                 />
-                <button
+                <Button
                   type="button"
-                  tabIndex={-1}
-                  className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                  variant="ghost"
+                  size="xs"
+                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
                   onClick={() => setShowPassword((v) => !v)}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+                  icon={showPassword ? EyeOff : Eye}
+                />
               </div>
               {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">{'Şifrəni təsdiq et'}</label>
+              <label htmlFor="confirmPassword" className="block text-sm font-bold text-slate-700">{'Şifrəni təsdiq et'}</label>
               <div className="mt-1 relative">
                 <Input
                   id="confirmPassword"
@@ -257,14 +268,14 @@ export default function RegisterPage() {
                   icon={Lock}
                   inputSize="md"
                 />
-                <button
+                <Button
                   type="button"
-                  tabIndex={-1}
-                  className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                  variant="ghost"
+                  size="xs"
+                  className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
                   onClick={() => setShowConfirmPassword((v) => !v)}
-                >
-                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+                  icon={showConfirmPassword ? EyeOff : Eye}
+                />
               </div>
               {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
             </div>
@@ -274,15 +285,15 @@ export default function RegisterPage() {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-gray-600">
+          <div className="mt-6 text-center text-sm text-slate-600">
             {'Artıq hesabın var?'}{' '}
-            <Link href={localePath('/auth/signin')} className="font-medium text-blue-600 hover:text-blue-500">
+            <Link href={localePath('/auth/signin')} className="font-bold text-blue-600 hover:text-blue-500">
               {'Daxil ol'}
             </Link>
           </div>
+          </section>
         </div>
-      </div>
-      </div>
+      </Card>
     </div>
   )
 }

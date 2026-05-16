@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
+import { Modal } from '@/components/ui/Modal'
 import {
   CheckCircle,
   Clock,
@@ -14,15 +14,18 @@ import {
   Tag,
   Trash2,
 } from "lucide-react";
+import { Loading } from '@/components/ui/Loading'
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { TextArea } from "@/components/ui/Textarea";
+import { Card } from "@/components/ui/Card";
 import { ImageUpload, PageStateGuard } from "@/components/shared";
 import AdminActionModal from "@/components/admin/AdminActionModal";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import AdminListLayout from "@/components/admin/AdminListLayout";
+import { Badge } from '@/components/ui/Badge'
 
 type Material = {
   _id: string;
@@ -381,20 +384,20 @@ export default function MaterialsAdminPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <Card className="p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Search className="w-5 h-5 text-gray-400" />
-            <h3 className="text-lg font-semibold text-gray-900">
+            <Search className="w-5 h-5 text-slate-400" />
+            <h3 className="text-lg font-semibold text-slate-900">
               Axtarış və filtrləmə
             </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Materiallarda axtarış
               </label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <Input
                   type="text"
                   placeholder={"Başlıq, təsvir və ya təminatçı üzrə axtar..."}
@@ -405,23 +408,24 @@ export default function MaterialsAdminPage() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Kateqoriya
               </label>
-              <select
+              <Select
                 value={materialCategoryFilter}
                 onChange={(e) => setMaterialCategoryFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-              >
-                <option value="all">Bütün kateqoriyalar</option>
-                <option value="toolkit">🛠️ Toolkit</option>
-                <option value="course">📚 Course</option>
-                <option value="video">🎥 Video</option>
-                <option value="guide">📖 Guide</option>
-                <option value="document">📄 Document</option>
-                <option value="emergency">🚨 Emergency</option>
-                <option value="other">📦 Other</option>
-              </select>
+                options={[
+                  { value: "all", label: "Bütün kateqoriyalar" },
+                  { value: "toolkit", label: "🛠️ Toolkit" },
+                  { value: "course", label: "📚 Course" },
+                  { value: "video", label: "🎥 Video" },
+                  { value: "guide", label: "📖 Guide" },
+                  { value: "document", label: "📄 Document" },
+                  { value: "emergency", label: "🚨 Emergency" },
+                  { value: "other", label: "📦 Other" },
+                ]}
+                variant="default"
+              />
             </div>
             <div className="flex items-end">
               <Button
@@ -438,15 +442,15 @@ export default function MaterialsAdminPage() {
               </Button>
             </div>
           </div>
-        </div>
+        </Card>
 
-        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+        <Card className="overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-200 bg-gray-50">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-slate-900">
                 Material siyahısı ({materials.length})
               </h3>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-slate-500">
                 {materialCategoryFilter !== "all" &&
                   `Filtr: ${materialCategoryFilter}`}
               </div>
@@ -455,18 +459,18 @@ export default function MaterialsAdminPage() {
 
           {tabLoading ? (
             <div className="flex justify-center items-center py-16">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-              <span className="ml-3 text-gray-600">
+              <Loading size="lg" variant="spinner" color="primary" />
+              <span className="ml-3 text-slate-600">
                 Materiallar yüklənir...
               </span>
             </div>
           ) : materials.length === 0 ? (
             <div className="text-center py-16">
-              <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-slate-900 mb-2">
                 Material tapılmadı
               </h3>
-              <p className="text-gray-500 mb-6">
+              <p className="text-slate-500 mb-6">
                 {materialSearch || materialCategoryFilter !== "all"
                   ? "Filtrləri dəyişərək yenidən yoxlayın"
                   : "İlk materialınızı əlavə edərək başlayın"}
@@ -483,22 +487,22 @@ export default function MaterialsAdminPage() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Material
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Kateqoriya
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Növ
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Aktivlik
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Əməliyyatlar
                     </th>
                   </tr>
@@ -517,18 +521,18 @@ export default function MaterialsAdminPage() {
                               alt={material.title}
                               width={48}
                               height={48}
-                              className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                              className="w-12 h-12 rounded-md object-cover flex-shrink-0"
                             />
                           )}
                           <div className="min-w-0">
-                            <div className="text-sm font-semibold text-gray-900 truncate max-w-xs">
+                            <div className="text-sm font-semibold text-slate-900 truncate max-w-xs">
                               {material.title}
                             </div>
-                            <div className="text-xs text-gray-500 mt-1 line-clamp-2 max-w-md">
+                            <div className="text-xs text-slate-500 mt-1 line-clamp-2 max-w-md">
                               {material.description}
                             </div>
                             {material.provider && (
-                              <div className="text-xs text-gray-400 mt-1">
+                              <div className="text-xs text-slate-400 mt-1">
                                 {`təminatçı: ${material.provider}`}
                               </div>
                             )}
@@ -536,23 +540,23 @@ export default function MaterialsAdminPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 capitalize">
+                        <Badge variant="primary" size="sm" className="capitalize">
                           {material.category}
-                        </span>
+                        </Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
+                        <div className="text-sm text-slate-900">
                           {material.type || "Göstərilməyib"}
                         </div>
                         {material.duration && (
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-slate-500">
                             {material.duration}
                           </div>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-4">
-                          <div className="flex items-center text-sm text-gray-500">
+                          <div className="flex items-center text-sm text-slate-500">
                             <Eye className="w-4 h-4 mr-1" />
                             {material.views || 0}
                           </div>
@@ -560,12 +564,14 @@ export default function MaterialsAdminPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex flex-col gap-2">
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="xs"
                             onClick={() => handleToggleMaterialPublish(material)}
-                            className={`px-3 py-1 inline-flex items-center justify-center text-xs font-semibold rounded-full transition-all ${
+                            className={`px-3 py-1 text-xs font-semibold rounded-full ${
                               material.isPublished
                                 ? "bg-green-100 text-green-800 hover:bg-green-200"
-                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                                : "bg-gray-100 text-slate-800 hover:bg-gray-200"
                             }`}
                             title="Yayımlanma statusunu dəyiş"
                           >
@@ -580,23 +586,25 @@ export default function MaterialsAdminPage() {
                                 {"Qaralama"}
                               </>
                             )}
-                          </button>
+                          </Button>
                           {material.featured && (
-                            <span className="px-3 py-1 inline-flex items-center justify-center text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                            <Badge variant="primary" size="sm">
                               <Tag className="w-3 h-3 mr-1" />
                               {"Önə çıxarılan"}
-                            </span>
+                            </Badge>
                           )}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="xs"
                             onClick={() => handleToggleMaterialFeatured(material)}
-                            className={`p-2 rounded-lg transition-all ${
+                            className={`p-2 rounded-md ${
                               material.featured
                                 ? "bg-blue-100 text-blue-600 hover:bg-blue-200"
-                                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                : "bg-gray-100 text-slate-600 hover:bg-gray-200"
                             }`}
                             title={
                               material.featured
@@ -605,21 +613,25 @@ export default function MaterialsAdminPage() {
                             }
                           >
                             <Tag className="w-4 h-4" />
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="xs"
                             onClick={() => handleEditMaterial(material)}
-                            className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-all"
+                            className="p-2 bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200"
                             title="Materialı redaktə et"
                           >
                             <Edit className="w-4 h-4" />
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="xs"
                             onClick={() => setDeleteConfirmMaterial(material)}
-                            className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-all"
+                            className="p-2 bg-red-100 text-red-600 rounded-md hover:bg-red-200"
                             title="Materialı sil"
                           >
                             <Trash2 className="w-4 h-4" />
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -628,37 +640,26 @@ export default function MaterialsAdminPage() {
               </table>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {showMaterialFormModal && (
-        <Dialog.Root
-          open={showMaterialFormModal}
-          onOpenChange={(open) => {
-            if (!open) {
-              setShowMaterialFormModal(false);
-              setSelectedMaterial(null);
-            }
+        <Modal
+          isOpen={showMaterialFormModal}
+          onClose={() => {
+            setShowMaterialFormModal(false);
+            setSelectedMaterial(null);
           }}
+          title={selectedMaterial ? "Materialı redaktə et" : "Yeni material əlavə et"}
+          size="xl"
+          className="max-h-[90vh] overflow-y-auto"
         >
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50" />
-            <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-3xl -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-gray-200 bg-white shadow-md max-h-[90vh] overflow-y-auto">
-              <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-2xl">
-                <Dialog.Title className="text-2xl font-bold text-gray-900">
-                  {selectedMaterial
-                    ? "Materialı redaktə et"
-                    : "Yeni material əlavə et"}
-                </Dialog.Title>
-              </div>
-              <div className="p-6 space-y-4">
+              <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {"Başlıq"} *
-                    </label>
                     <Input
                       type="text"
+                      label={"Başlıq"}
                       value={materialFormData.title || ""}
                       onChange={(e) =>
                         setMaterialFormData({
@@ -673,10 +674,8 @@ export default function MaterialsAdminPage() {
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {"Təsvir"} *
-                    </label>
                     <TextArea
+                      label="Təsvir"
                       value={materialFormData.description || ""}
                       onChange={(e) =>
                         setMaterialFormData({
@@ -692,10 +691,8 @@ export default function MaterialsAdminPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {"Kateqoriya"} *
-                    </label>
                     <Select
+                      label="Kateqoriya"
                       value={materialFormData.category || "other"}
                       onChange={(e) =>
                         setMaterialFormData({
@@ -717,11 +714,9 @@ export default function MaterialsAdminPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {"Növ"}
-                    </label>
                     <Input
                       type="text"
+                      label={"Növ"}
                       value={materialFormData.type || ""}
                       onChange={(e) =>
                         setMaterialFormData({
@@ -735,11 +730,9 @@ export default function MaterialsAdminPage() {
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {"URL"} *
-                    </label>
                     <Input
                       type="url"
+                      label={"URL"}
                       value={materialFormData.url || ""}
                       onChange={(e) =>
                         setMaterialFormData({
@@ -754,11 +747,9 @@ export default function MaterialsAdminPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {"Təminatçı"}
-                    </label>
                     <Input
                       type="text"
+                      label={"Təminatçı"}
                       value={materialFormData.provider || ""}
                       onChange={(e) =>
                         setMaterialFormData({
@@ -772,11 +763,9 @@ export default function MaterialsAdminPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {"Müddət"}
-                    </label>
                     <Input
                       type="text"
+                      label={"Müddət"}
                       value={materialFormData.duration || ""}
                       onChange={(e) =>
                         setMaterialFormData({
@@ -790,11 +779,9 @@ export default function MaterialsAdminPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {"Dillər (vergüllə ayrılmış)"}
-                    </label>
                     <Input
                       type="text"
+                      label={"Dillər (vergüllə ayrılmış)"}
                       value={materialFormData.language?.join(", ") || ""}
                       onChange={(e) =>
                         setMaterialFormData({
@@ -811,11 +798,9 @@ export default function MaterialsAdminPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {"Teqlər (vergüllə ayrılmış)"}
-                    </label>
                     <Input
                       type="text"
+                      label={"Teqlər (vergüllə ayrılmış)"}
                       value={materialFormData.tags?.join(", ") || ""}
                       onChange={(e) =>
                         setMaterialFormData({
@@ -832,11 +817,9 @@ export default function MaterialsAdminPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {"Sıra"}
-                    </label>
                     <Input
                       type="number"
+                      label={"Sıra"}
                       value={materialFormData.order || 0}
                       onChange={(e) =>
                         setMaterialFormData({
@@ -850,7 +833,7 @@ export default function MaterialsAdminPage() {
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
                       {"Material şəkli"}
                     </label>
                     <ImageUpload
@@ -864,7 +847,7 @@ export default function MaterialsAdminPage() {
                       context="material"
                       maxSize={10}
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-slate-500 mt-1">
                       {"Şəkil yükləyin və ya standart görünüş üçün boş saxlayın"}
                     </p>
                   </div>
@@ -880,9 +863,9 @@ export default function MaterialsAdminPage() {
                             featured: e.target.checked,
                           })
                         }
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        className="w-4 h-4 text-blue-600 border-slate-200 rounded focus:ring-blue-500"
                       />
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-sm font-medium text-slate-700">
                         {"Önə çıxarılan"}
                       </span>
                     </label>
@@ -897,9 +880,9 @@ export default function MaterialsAdminPage() {
                             isPublished: e.target.checked,
                           })
                         }
-                        className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                        className="w-4 h-4 text-green-600 border-slate-200 rounded focus:ring-green-500"
                       />
-                      <span className="text-sm font-medium text-gray-700">
+                      <span className="text-sm font-medium text-slate-700">
                         {"Yayımlanıb"}
                       </span>
                     </label>
@@ -907,19 +890,17 @@ export default function MaterialsAdminPage() {
                 </div>
               </div>
 
-              <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 p-6 rounded-b-2xl flex justify-end gap-3">
-                <Dialog.Close asChild>
-                  <Button
-                    onClick={() => {
-                      setShowMaterialFormModal(false);
-                      setSelectedMaterial(null);
-                    }}
-                    variant="outline"
-                    disabled={isProcessing}
-                  >
-                    {"Ləğv et"}
-                  </Button>
-                </Dialog.Close>
+              <div className="sticky bottom-0 bg-gray-50 border-t border-slate-200 p-6 rounded-b-2xl flex justify-end gap-3">
+                <Button
+                  onClick={() => {
+                    setShowMaterialFormModal(false);
+                    setSelectedMaterial(null);
+                  }}
+                  variant="outline"
+                  disabled={isProcessing}
+                >
+                  {"Ləğv et"}
+                </Button>
                 <Button
                   onClick={handleSaveMaterial}
                   variant="primary"
@@ -934,9 +915,7 @@ export default function MaterialsAdminPage() {
                   {isProcessing ? "Yadda saxlanılır..." : selectedMaterial ? "Materialı yenilə" : "Material yarat"}
                 </Button>
               </div>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
+        </Modal>
       )}
 
       <AdminActionModal

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
+import { Modal } from '@/components/ui/Modal'
 import {
   Building,
   CheckCircle,
@@ -13,11 +13,17 @@ import {
   XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { TextArea } from "@/components/ui/Textarea";
 import { LoadingState } from "@/components/shared";
 import AdminActionModal from "@/components/admin/AdminActionModal";
 import { ORGANIZATION_TYPE_LABELS } from "@/lib/organizationTypes";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import AdminListLayout from "@/components/admin/AdminListLayout";
+import { Card } from "@/components/ui/Card";
+import { Select } from '@/components/ui/Select'
+import { SocialLink } from '@/components/ui'
+import { Badge } from '@/components/ui/Badge'
 
 type Organization = {
   _id: string;
@@ -227,10 +233,10 @@ export default function OrganizationsAdminPage() {
     <AdminListLayout title="Təşkilat İdarəetməsi" description="Təşkilat qeydiyyatlarını nəzərdən keçirin və moderasiya edin.">
       <div className="py-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="rounded-xl border border-gray-200 border-l-4 border-l-yellow-500 bg-white p-6 shadow-sm">
+          <Card className="border-l-4 border-l-yellow-500 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-sm font-medium text-slate-600">
                   {"Gözləmədə"}
                 </p>
                 <p className="text-3xl font-bold text-yellow-600">
@@ -239,11 +245,11 @@ export default function OrganizationsAdminPage() {
               </div>
               <Clock className="w-8 h-8 text-yellow-500" />
             </div>
-          </div>
-          <div className="rounded-xl border border-gray-200 border-l-4 border-l-green-500 bg-white p-6 shadow-sm">
+          </Card>
+          <Card className="border-l-4 border-l-green-500 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-sm font-medium text-slate-600">
                   {"Təsdiqlənmiş"}
                 </p>
                 <p className="text-3xl font-bold text-green-600">
@@ -252,11 +258,11 @@ export default function OrganizationsAdminPage() {
               </div>
               <CheckCircle className="w-8 h-8 text-green-500" />
             </div>
-          </div>
-          <div className="rounded-xl border border-gray-200 border-l-4 border-l-red-500 bg-white p-6 shadow-sm">
+          </Card>
+          <Card className="border-l-4 border-l-red-500 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-sm font-medium text-slate-600">
                   {"Rədd Edilmiş"}
                 </p>
                 <p className="text-3xl font-bold text-red-600">
@@ -265,11 +271,11 @@ export default function OrganizationsAdminPage() {
               </div>
               <XCircle className="w-8 h-8 text-red-500" />
             </div>
-          </div>
-          <div className="rounded-xl border border-gray-200 border-l-4 border-l-blue-500 bg-white p-6 shadow-sm">
+          </Card>
+          <Card className="border-l-4 border-l-blue-500 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-sm font-medium text-slate-600">
                   {"Cəmi Təşkilatlar"}
                 </p>
                 <p className="text-3xl font-bold text-blue-600">
@@ -278,54 +284,55 @@ export default function OrganizationsAdminPage() {
               </div>
               <Shield className="w-8 h-8 text-blue-500" />
             </div>
-          </div>
+          </Card>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <Card className="p-6">
           <div className="flex flex-col lg:flex-row gap-4 mb-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
+                <Input
                   type="text"
+                  icon={Search}
                   placeholder={
                     "Ad, təşkilat və ya e-poçt ilə Təşkilat axtar..."
                   }
                   value={contentSearch}
                   onChange={(e) => setContentSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 />
               </div>
             </div>
             <div className="flex gap-2">
-              <select
+              <Select
+                label="Status"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white text-gray-900"
-              >
-                <option value="all">{"Bütün Statuslar"}</option>
-                <option value="pending">{"Gözləmədə"}</option>
-                <option value="approved">{"Təsdiqlənmiş"}</option>
-                <option value="rejected">{"Rədd Edilmiş"}</option>
-              </select>
+                options={[
+                  { value: 'all', label: 'Bütün Statuslar' },
+                  { value: 'pending', label: 'Gözləmədə' },
+                  { value: 'approved', label: 'Təsdiqlənmiş' },
+                  { value: 'rejected', label: 'Rədd Edilmiş' },
+                ]}
+              />
             </div>
           </div>
-        </div>
+        </Card>
 
-        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">
+        <Card className="overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-200">
+            <h3 className="text-lg font-semibold text-slate-900">
               {"Təşkilat Qeydiyyatları"}
             </h3>
           </div>
           <div className="divide-y divide-gray-200">
             {organizations.length === 0 ? (
               <div className="px-6 py-12 text-center">
-                <Shield className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">
+                <Shield className="mx-auto h-12 w-12 text-slate-400" />
+                <h3 className="mt-2 text-sm font-medium text-slate-900">
                   {"Təşkilat tapılmadı"}
                 </h3>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-slate-500">
                   {"Filterlərə uyğun Təşkilat qeydiyyatı yoxdur."}
                 </p>
               </div>
@@ -363,16 +370,16 @@ export default function OrganizationsAdminPage() {
                                 : "Gözləmədə"}
                           </span>
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-1 truncate">
+                        <h3 className="text-lg font-bold text-slate-900 mb-1 truncate">
                           {organization.organizationName}
                         </h3>
-                        <p className="text-sm text-gray-600 mb-2">
+                        <p className="text-sm text-slate-600 mb-2">
                           {organization.email}
                         </p>
-                        <p className="text-sm text-gray-700 mb-2 line-clamp-2">
+                        <p className="text-sm text-slate-700 mb-2 line-clamp-2">
                           {organization.description}
                         </p>
-                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                        <div className="flex items-center gap-4 text-xs text-slate-500">
                           <span>
                             {"Qeydiyyat tarixi"}:{" "}
                             {new Date(
@@ -453,9 +460,9 @@ export default function OrganizationsAdminPage() {
           </div>
 
           {organizationPagination.totalPages > 1 && (
-            <div className="px-6 py-4 border-t border-gray-200">
+            <div className="px-6 py-4 border-t border-slate-200">
               <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-700">
+                <div className="text-sm text-slate-700">
                   {"Səhifə"} {organizationPagination.page} {"/"}{" "}
                   {organizationPagination.totalPages}
                 </div>
@@ -491,47 +498,18 @@ export default function OrganizationsAdminPage() {
               </div>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {showOrganizationDetailModal && selectedOrganization && (
-        <Dialog.Root
-          open={showOrganizationDetailModal}
-          onOpenChange={(open) => {
-            if (!open) setShowOrganizationDetailModal(false);
-          }}
+        <Modal
+          isOpen={showOrganizationDetailModal}
+          onClose={() => setShowOrganizationDetailModal(false)}
+          title="Təşkilat Qeydiyyat Məlumatları"
+          size="xl"
+          className="max-h-[90vh] overflow-y-auto"
         >
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
-            <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-3xl -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-gray-200 bg-white shadow-md max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
-                <Dialog.Title className="text-xl font-semibold text-gray-900">
-                  {"Təşkilat Qeydiyyat Məlumatları"}
-                </Dialog.Title>
-                <Dialog.Close asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <svg
-                      className="w-6 h-6"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </Button>
-                </Dialog.Close>
-              </div>
-
-              <div className="p-6 space-y-6">
+              <div className="space-y-6">
                 <div className="flex items-center gap-2">
                   <span
                     className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${
@@ -558,58 +536,58 @@ export default function OrganizationsAdminPage() {
                 </div>
 
                 <div>
-                  <h4 className="text-2xl font-bold text-gray-900 mb-2">
+                  <h4 className="text-2xl font-bold text-slate-900 mb-2">
                     {selectedOrganization.organizationName}
                   </h4>
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                  <h5 className="font-semibold text-gray-900 mb-3">
+                <div className="bg-gray-50 rounded-md p-4 space-y-3">
+                  <h5 className="font-semibold text-slate-900 mb-3">
                     {"Əlaqə Məlumatları"}
                   </h5>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                     <div>
-                      <span className="font-medium text-gray-700">
+                      <span className="font-medium text-slate-700">
                         {"E-poçt"}:
                       </span>
-                      <p className="text-gray-600">
+                      <p className="text-slate-600">
                         {selectedOrganization.email}
                       </p>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-700">
+                      <span className="font-medium text-slate-700">
                         {"Əlaqə Şəxsi"}:
                       </span>
-                      <p className="text-gray-600">
+                      <p className="text-slate-600">
                         {selectedOrganization.contactPerson.name}
                       </p>
                     </div>
                     {selectedOrganization.contactPerson.position && (
                       <div>
-                        <span className="font-medium text-gray-700">
+                        <span className="font-medium text-slate-700">
                           {"Vəzifə"}:
                         </span>
-                        <p className="text-gray-600">
+                        <p className="text-slate-600">
                           {selectedOrganization.contactPerson.position}
                         </p>
                       </div>
                     )}
                     {selectedOrganization.contactPhone && (
                       <div>
-                        <span className="font-medium text-gray-700">
+                        <span className="font-medium text-slate-700">
                           {"Telefon"}:
                         </span>
-                        <p className="text-gray-600">
+                        <p className="text-slate-600">
                           {selectedOrganization.contactPhone}
                         </p>
                       </div>
                     )}
                     {selectedOrganization.contactPerson.phone && (
                       <div>
-                        <span className="font-medium text-gray-700">
+                        <span className="font-medium text-slate-700">
                           {"Əlaqə Telefonu"}:
                         </span>
-                        <p className="text-gray-600">
+                        <p className="text-slate-600">
                           {selectedOrganization.contactPerson.phone}
                         </p>
                       </div>
@@ -618,10 +596,10 @@ export default function OrganizationsAdminPage() {
                       selectedOrganization.contactPerson.email !==
                         selectedOrganization.email && (
                         <div>
-                          <span className="font-medium text-gray-700">
+                          <span className="font-medium text-slate-700">
                             {"Əlaqə E-poçtu"}:
                           </span>
-                          <p className="text-gray-600">
+                          <p className="text-slate-600">
                             {selectedOrganization.contactPerson.email}
                           </p>
                         </div>
@@ -630,22 +608,22 @@ export default function OrganizationsAdminPage() {
                 </div>
 
                 <div>
-                  <h5 className="font-semibold text-gray-900 mb-2">
+                  <h5 className="font-semibold text-slate-900 mb-2">
                     {"Təsvir"}
                   </h5>
-                  <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
+                  <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">
                     {selectedOrganization.description}
                   </p>
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                  <h5 className="font-semibold text-gray-900 mb-3">
+                <div className="bg-gray-50 rounded-md p-4 space-y-3">
+                  <h5 className="font-semibold text-slate-900 mb-3">
                     {"Təşkilat Məlumatları"}
                   </h5>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                     {selectedOrganization.website && (
                       <div>
-                        <span className="font-medium text-gray-700">
+                        <span className="font-medium text-slate-700">
                           {"Veb səhifə"}:
                         </span>
                         <a
@@ -660,30 +638,30 @@ export default function OrganizationsAdminPage() {
                     )}
                     {selectedOrganization.address && (
                       <div>
-                        <span className="font-medium text-gray-700">
+                        <span className="font-medium text-slate-700">
                           {"Ünvan"}:
                         </span>
-                        <p className="text-gray-600">
+                        <p className="text-slate-600">
                           {selectedOrganization.address}
                         </p>
                       </div>
                     )}
                     {selectedOrganization.registrationNumber && (
                       <div>
-                        <span className="font-medium text-gray-700">
+                        <span className="font-medium text-slate-700">
                           {"Qeydiyyat Nömrəsi"}:
                         </span>
-                        <p className="text-gray-600">
+                        <p className="text-slate-600">
                           {selectedOrganization.registrationNumber}
                         </p>
                       </div>
                     )}
                     {selectedOrganization.organizationType && (
                       <div>
-                        <span className="font-medium text-gray-700">
+                        <span className="font-medium text-slate-700">
                           {"Təşkilat növü"}:
                         </span>
-                        <p className="text-gray-600">
+                        <p className="text-slate-600">
                           {ORGANIZATION_TYPE_LABELS[
                             selectedOrganization.organizationType as keyof typeof ORGANIZATION_TYPE_LABELS
                           ] || selectedOrganization.organizationType}
@@ -696,18 +674,19 @@ export default function OrganizationsAdminPage() {
                 {selectedOrganization.focusAreas &&
                   selectedOrganization.focusAreas.length > 0 && (
                     <div>
-                      <h5 className="font-semibold text-gray-900 mb-3">
+                      <h5 className="font-semibold text-slate-900 mb-3">
                         {"Fəaliyyət Sahələri"}
                       </h5>
                       <div className="flex flex-wrap gap-2">
                         {selectedOrganization.focusAreas.map(
                           (area: string, index: number) => (
-                            <span
+                            <Badge
                               key={index}
-                              className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                              variant="primary"
+                              size="md"
                             >
                               {area}
-                            </span>
+                            </Badge>
                           ),
                         )}
                       </div>
@@ -719,67 +698,26 @@ export default function OrganizationsAdminPage() {
                     (val) => val,
                   ) && (
                     <div>
-                      <h5 className="font-semibold text-gray-900 mb-3">
+                      <h5 className="font-semibold text-slate-900 mb-3">
                         {"Sosial Media"}
                       </h5>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                        {selectedOrganization.socialMedia.facebook && (
-                          <a
-                            href={selectedOrganization.socialMedia.facebook}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            Facebook
-                          </a>
-                        )}
-                        {selectedOrganization.socialMedia.twitter && (
-                          <a
-                            href={selectedOrganization.socialMedia.twitter}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            Twitter
-                          </a>
-                        )}
-                        {selectedOrganization.socialMedia.instagram && (
-                          <a
-                            href={selectedOrganization.socialMedia.instagram}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            Instagram
-                          </a>
-                        )}
-                        {selectedOrganization.socialMedia.linkedin && (
-                          <a
-                            href={selectedOrganization.socialMedia.linkedin}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            LinkedIn
-                          </a>
-                        )}
-                        {selectedOrganization.socialMedia.youtube && (
-                          <a
-                            href={selectedOrganization.socialMedia.youtube}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            YouTube
-                          </a>
-                        )}
+                        {[
+                          { key: 'facebook', platform: 'facebook' as const, url: selectedOrganization.socialMedia.facebook },
+                          { key: 'twitter', platform: 'twitter' as const, url: selectedOrganization.socialMedia.twitter },
+                          { key: 'instagram', platform: 'instagram' as const, url: selectedOrganization.socialMedia.instagram },
+                          { key: 'linkedin', platform: 'linkedin' as const, url: selectedOrganization.socialMedia.linkedin },
+                          { key: 'youtube', platform: 'youtube' as const, url: selectedOrganization.socialMedia.youtube },
+                        ].map(({ key, platform, url }) => url ? (
+                          <SocialLink key={key} platform={platform} href={url} variant="compact" />
+                        ) : null)}
                       </div>
                     </div>
                   )}
 
                 {selectedOrganization.adminComment &&
                   selectedOrganization.status === "rejected" && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="bg-red-50 border border-red-200 rounded-md p-4">
                       <h5 className="font-semibold text-red-900 mb-2">
                         {"İdarəçi şərhi"}
                       </h5>
@@ -789,7 +727,7 @@ export default function OrganizationsAdminPage() {
                     </div>
                   )}
 
-                <div className="border-t pt-4 text-xs text-gray-500 space-y-1">
+                <div className="border-t pt-4 text-xs text-slate-500 space-y-1">
                   <p>
                     {"Qeydiyyat tarixi"}:{" "}
                     {new Date(
@@ -814,7 +752,7 @@ export default function OrganizationsAdminPage() {
               </div>
 
               {selectedOrganization.status === "pending" && (
-                <div className="flex justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+                <div className="flex justify-end gap-3 p-6 border-t border-slate-200 bg-gray-50">
                   <Button
                     onClick={() => {
                       setShowOrganizationDetailModal(false);
@@ -841,66 +779,34 @@ export default function OrganizationsAdminPage() {
                   </Button>
                 </div>
               )}
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
+        </Modal>
       )}
 
       {showOrganizationModal && selectedOrganization && (
-        <Dialog.Root
-          open={showOrganizationModal}
-          onOpenChange={(open) => {
-            if (!open) setShowOrganizationModal(false);
-          }}
+        <Modal
+          isOpen={showOrganizationModal}
+          onClose={() => setShowOrganizationModal(false)}
+          title={
+            organizationAction === "approve"
+              ? "Qeydiyyatı Təsdiqlə"
+              : "Qeydiyyatı Rədd Et"
+          }
+          size="sm"
+          className="max-h-[90vh] overflow-y-auto"
         >
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
-            <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-gray-200 bg-white shadow-md max-h-[90vh] overflow-y-auto">
-              <Dialog.Description className="sr-only">
-                Təşkilat qeydiyyatı üçün təsdiq və ya rədd qərarını idarə edin.
-              </Dialog.Description>
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                <Dialog.Title className="text-lg font-semibold text-gray-900">
-                  {organizationAction === "approve"
-                    ? "Qeydiyyatı Təsdiqlə"
-                    : "Qeydiyyatı Rədd Et"}
-                </Dialog.Title>
-                <Dialog.Close asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <svg
-                      className="w-6 h-6"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </Button>
-                </Dialog.Close>
-              </div>
-
-              <div className="p-6">
+              <div>
                 <div className="mb-4">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h4 className="text-lg font-semibold text-slate-900 mb-2">
                     {selectedOrganization.organizationName}
                   </h4>
-                  <p className="text-sm text-gray-600 mb-2">
+                  <p className="text-sm text-slate-600 mb-2">
                     {"Əlaqə"}: {selectedOrganization.contactPerson.name} (
                     {selectedOrganization.email})
                   </p>
-                  <p className="text-sm text-gray-700 mb-3">
+                  <p className="text-sm text-slate-700 mb-3">
                     {selectedOrganization.description}
                   </p>
-                  <div className="grid grid-cols-1 gap-2 text-xs text-gray-500">
+                  <div className="grid grid-cols-1 gap-2 text-xs text-slate-500">
                     {selectedOrganization.website && (
                       <span>
                         {"Veb səhifə"}: {selectedOrganization.website}
@@ -924,18 +830,19 @@ export default function OrganizationsAdminPage() {
                   {selectedOrganization.focusAreas &&
                     selectedOrganization.focusAreas.length > 0 && (
                       <div className="mt-3">
-                        <p className="text-xs text-gray-500 mb-1">
+                        <p className="text-xs text-slate-500 mb-1">
                           {"Fəaliyyət Sahələri"}:
                         </p>
                         <div className="flex flex-wrap gap-1">
                           {selectedOrganization.focusAreas.map(
                             (area: string, index: number) => (
-                              <span
+                              <Badge
                                 key={index}
-                                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
+                                variant="primary"
+                                size="sm"
                               >
                                 {area}
-                              </span>
+                              </Badge>
                             ),
                           )}
                         </div>
@@ -989,27 +896,26 @@ export default function OrganizationsAdminPage() {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {"İdarəçi şərhi"} ({"mütləq"})
-                      </label>
-                      <textarea
-                        value={adminComment}
-                        onChange={(e) => setAdminComment(e.target.value)}
-                        placeholder={"Rədd etmə səbəbi..."}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        rows={4}
-                        required
-                      />
+                    <TextArea
+                      label={"İdarəçi şərhi (mütləq)"}
+                      value={adminComment}
+                      onChange={(e) => setAdminComment(e.target.value)}
+                      placeholder={"Rədd etmə səbəbi..."}
+                      rows={4}
+                      required
+                    />
                     </div>
                   </div>
                 )}
 
                 <div className="flex justify-end space-x-3">
-                  <Dialog.Close asChild>
-                    <Button variant="outline" size="sm">
-                      {"Ləğv Et"}
-                    </Button>
-                  </Dialog.Close>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowOrganizationModal(false)}
+                  >
+                    {"Ləğv Et"}
+                  </Button>
                   <Button
                     onClick={executeOrganizationAction}
                     disabled={
@@ -1029,9 +935,7 @@ export default function OrganizationsAdminPage() {
                   </Button>
                 </div>
               </div>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
+        </Modal>
       )}
 
       <AdminActionModal

@@ -6,6 +6,8 @@ import DOMPurify from "dompurify";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { TextArea } from "@/components/ui/Textarea";
 import { PageStateGuard } from "@/components/shared";
 import AdminListLayout from "@/components/admin/AdminListLayout";
 import AdminFilters from "@/components/admin/AdminFilters";
@@ -20,6 +22,8 @@ import {
 import { useAdminActionExecutor } from "@/features/admin/hooks/useAdminActionExecutor";
 import { useAdminRole } from "@/components/admin/AdminRoleProvider";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
+import { Select } from '@/components/ui/Select'
+import { Badge } from '@/components/ui/Badge'
 
 const BlocknoteReadOnly = dynamic(
   () => import("@/components/BlocknoteReadOnly"),
@@ -248,7 +252,7 @@ export default function BlogsAdminPage() {
             type="checkbox"
             checked={blogs.length > 0 && selectedItems.length === blogs.length}
             onChange={toggleSelectAll}
-            className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+            className="rounded border-slate-200 text-red-600 focus:ring-red-500"
           />
         ),
         render: (blog) => (
@@ -256,7 +260,7 @@ export default function BlogsAdminPage() {
             type="checkbox"
             checked={selectedItems.includes(blog._id)}
             onChange={() => toggleItemSelection(blog._id)}
-            className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+            className="rounded border-slate-200 text-red-600 focus:ring-red-500"
           />
         ),
         className: "w-12",
@@ -286,7 +290,7 @@ export default function BlogsAdminPage() {
                 >
                     {getBlogStatusLabel(blog)}
                 </span>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-slate-500">
                   {"tərəfindən"}{" "}
                   {blog.isAnonymous ? (
                     "Anonim"
@@ -299,21 +303,21 @@ export default function BlogsAdminPage() {
                       {authorName || "Naməlum"}
                     </Link>
                   ) : (
-                    <span className="font-medium text-gray-700">{authorName || "Naməlum"}</span>
+                    <span className="font-medium text-slate-700">{authorName || "Naməlum"}</span>
                   )}
                 </span>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-slate-400">
                   {new Date(blog.createdAt).toLocaleDateString()}
                 </span>
               </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">
+              <h3 className="text-lg font-bold text-slate-900 mb-2">
                 {blog.title}
               </h3>
               {blog.abstract && (
-                <p className="text-sm text-gray-600 mb-2">{blog.abstract}</p>
+                <p className="text-sm text-slate-600 mb-2">{blog.abstract}</p>
               )}
               {blog.adminComment && (
-                <div className="mt-3 p-3 bg-red-100 rounded-lg">
+                <div className="mt-3 p-3 bg-red-100 rounded-md">
                   <p className="text-sm font-medium text-red-800 mb-1">
                     {"İdarəçi şərhi"}:
                   </p>
@@ -374,7 +378,7 @@ export default function BlogsAdminPage() {
               onClick={() => setShowFilters(!showFilters)}
               variant="outline"
               size="md"
-              className="flex items-center gap-2 border-gray-300 hover:border-blue-500 hover:text-blue-600 transition-all"
+              className="flex items-center gap-2 border-slate-200 hover:border-blue-500 hover:text-blue-600 transition-all"
             >
               <Filter className="w-4 h-4" />
               {"Filterlər"}
@@ -385,55 +389,45 @@ export default function BlogsAdminPage() {
           }
         >
           {showFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-md border border-slate-200">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {"Status"}
-                </label>
-                <select
+                <Select
+                  label="Status"
                   value={statusFilter}
                   onChange={(e) => setFilters({ status: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                >
-                  <option value="all">{"Bütün Statuslar"}</option>
-                  <option value="pending">{"Gözləmədə"}</option>
-                  <option value="approved">{"Təsdiqlənmiş"}</option>
-                  <option value="rejected">{"Rədd Edilmiş"}</option>
-                </select>
+                  options={[
+                    { value: 'all', label: 'Bütün Statuslar' },
+                    { value: 'pending', label: 'Gözləmədə' },
+                    { value: 'approved', label: 'Təsdiqlənmiş' },
+                    { value: 'rejected', label: 'Rədd Edilmiş' },
+                  ]}
+                />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {"Müəllif"}
-                </label>
-                <select
+                <Select
+                  label="Müəllif"
                   value={authorFilter}
                   onChange={(e) => setFilters({ author: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                >
-                  <option value="">{"Bütün Müəlliflər"}</option>
-                  {availableFilters.authors.map((author) => (
-                    <option key={author.id} value={author.id}>
-                      {author.name}
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    { value: '', label: 'Bütün Müəlliflər' },
+                    ...availableFilters.authors.map((author) => ({ value: author.id, label: author.name })),
+                  ]}
+                />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {"Sırala"}
-                </label>
                 <div className="flex gap-2">
-                  <select
+                  <Select
+                    label="Sırala"
                     value={sortBy}
                     onChange={(e) => setFilters({ sortBy: e.target.value })}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  >
-                    <option value="createdAt">{"Tarix"}</option>
-                    <option value="title">{"Başlıq"}</option>
-                    <option value="author">{"Müəllif"}</option>
-                  </select>
+                    options={[
+                      { value: 'createdAt', label: 'Tarix' },
+                      { value: 'title', label: 'Başlıq' },
+                      { value: 'author', label: 'Müəllif' },
+                    ]}
+                  />
                   <Button
                     onClick={() =>
                       setFilters({
@@ -442,7 +436,7 @@ export default function BlogsAdminPage() {
                     }
                     variant="outline"
                     size="sm"
-                    className="border-gray-300 hover:border-blue-500 hover:text-blue-600 transition-all"
+                    className="border-slate-200 hover:border-blue-500 hover:text-blue-600 transition-all"
                   >
                     {sortOrder === "asc" ? (
                       <SortAsc className="w-4 h-4" />
@@ -454,22 +448,22 @@ export default function BlogsAdminPage() {
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1">
                   {"Tarix Aralığı"}
                 </label>
                 <div className="flex gap-2">
-                  <input
+                  <Input
                     type="date"
                     value={dateFromFilter}
                     onChange={(e) => setFilters({ dateFrom: e.target.value })}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="flex-1 px-3 py-2 border border-slate-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
-                  <span className="self-center text-gray-500">{"dən"}</span>
-                  <input
+                  <span className="self-center text-slate-500">{"dən"}</span>
+                  <Input
                     type="date"
                     value={dateToFilter}
                     onChange={(e) => setFilters({ dateTo: e.target.value })}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    className="flex-1 px-3 py-2 border border-slate-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                 </div>
               </div>
@@ -479,7 +473,7 @@ export default function BlogsAdminPage() {
                   onClick={clearFilters}
                   variant="outline"
                   size="md"
-                  className="w-full text-gray-600 border-gray-300 hover:border-red-500 hover:text-red-600 transition-all"
+                  className="w-full text-slate-600 border-slate-200 hover:border-red-500 hover:text-red-600 transition-all"
                 >
                   {"Hamısını Təmizlə"}
                 </Button>
@@ -488,7 +482,7 @@ export default function BlogsAdminPage() {
           )}
 
           {selectedItems.length > 0 && (
-            <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg mt-4">
+            <div className="flex items-center justify-between p-4 bg-blue-50 rounded-md mt-4">
               <span className="text-sm font-medium text-blue-800">
                 {`${selectedItems.length} element seçildi`}
               </span>
@@ -539,7 +533,7 @@ export default function BlogsAdminPage() {
           actions={tableActions}
           emptyState={
             <div className="text-center py-12">
-              <p className="text-gray-500">{"Bloq tapılmadı"}</p>
+              <p className="text-slate-500">{"Bloq tapılmadı"}</p>
             </div>
           }
         />
@@ -598,14 +592,14 @@ export default function BlogsAdminPage() {
         >
           <div className="space-y-4">
             <div>
-              <h4 className="text-lg font-semibold text-gray-900 mb-2">
+              <h4 className="text-lg font-semibold text-slate-900 mb-2">
                 {modalState.item.title}
               </h4>
               <div className="flex items-center space-x-2 mb-2">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                <Badge variant="primary" size="sm">
                   {"bloq"}
-                </span>
-                <span className="text-sm text-gray-500">
+                </Badge>
+                <span className="text-sm text-slate-500">
                   {"müəllif: "}{" "}
                   {modalState.item.isAnonymous
                     ? "Anonim"
@@ -616,7 +610,7 @@ export default function BlogsAdminPage() {
                 </span>
               </div>
               {modalState.item.abstract && (
-                <p className="text-sm text-gray-600 mb-4">
+                <p className="text-sm text-slate-600 mb-4">
                   {modalState.item.abstract}
                 </p>
               )}
@@ -641,26 +635,26 @@ export default function BlogsAdminPage() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 {"Şərh"}
               </label>
               <div className="mb-2 flex flex-wrap gap-2">
                 {REJECTION_TEMPLATES.map((template) => (
-                  <button
+                  <Button
                     key={template}
-                    type="button"
-                    className="rounded-full border border-gray-300 px-2.5 py-1 text-[11px] text-gray-600 hover:border-red-300 hover:text-red-700"
+                    variant="outline"
+                    size="xs"
+                    className="rounded-full px-2.5 py-1 text-[11px] text-slate-600 hover:border-red-300 hover:text-red-700"
                     onClick={() => setAdminComment(template)}
                   >
                     Şablon
-                  </button>
+                  </Button>
                 ))}
               </div>
-              <textarea
+              <TextArea
                 value={adminComment}
                 onChange={(e) => setAdminComment(e.target.value)}
                 rows={3}
-                className="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                 placeholder={"Şərh əlavə edin..."}
               />
             </div>
@@ -717,14 +711,14 @@ export default function BlogsAdminPage() {
         ]}
       >
         <div className="mb-4">
-          <p className="text-sm text-gray-600 mb-2">
+          <p className="text-sm text-slate-600 mb-2">
             {`${selectedItems.length} bloq üçün əməliyyatı təsdiqləyin`}
           </p>
-          <div className="bg-gray-50 rounded-lg p-3 max-h-32 overflow-y-auto">
+          <div className="bg-gray-50 rounded-md p-3 max-h-32 overflow-y-auto">
             {selectedItems.map((id) => {
               const item = blogs.find((b) => b._id === id);
               return (
-                <div key={id} className="text-sm text-gray-700 mb-1">
+                <div key={id} className="text-sm text-slate-700 mb-1">
                   • {item?.title || "Naməlum"}
                 </div>
               );
@@ -735,15 +729,11 @@ export default function BlogsAdminPage() {
         {(bulkAction?.key === "bulkReject" ||
           bulkAction?.key === "bulkApprove") && (
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              {"Şərh"}{" "}
-              {bulkAction?.key === "bulkReject" ? "(mütləq)" : "(ixtiyari)"}
-            </label>
-            <textarea
+            <TextArea
+              label={`Şərh ${bulkAction?.key === "bulkReject" ? "(mütləq)" : "(ixtiyari)"}`}
               value={bulkComment}
               onChange={(e) => setBulkComment(e.target.value)}
               placeholder={"Şərh əlavə edin..."}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               rows={3}
             />
           </div>

@@ -104,7 +104,7 @@ export default function OrganizationDetailPage() { const localePath = useLocaliz
             <Link href={localePath("/resources/organizations")} className="inline-block mb-8">
               <Button 
                 variant="outline" 
-                className="bg-white border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-primary"
+                className="bg-white border-slate-200 text-slate-700 hover:bg-blue-50 hover:border-blue-200 hover:text-primary"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 {'Təşkilatlara qayıt'}
@@ -134,7 +134,7 @@ export default function OrganizationDetailPage() { const localePath = useLocaliz
               
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-4">
-                  <h1 className="text-3xl lg:text-4xl font-bold text-gray-900">
+                  <h1 className="text-3xl lg:text-4xl font-bold text-slate-900">
                     {organization.organizationName}
                   </h1>
                   {organization.status === 'approved' && (
@@ -149,14 +149,14 @@ export default function OrganizationDetailPage() { const localePath = useLocaliz
                     </Badge>
                   )}
                   {organization.organizationType && (
-                    <Badge className="bg-slate-100 text-gray-700 border-gray-200">
+                    <Badge className="bg-slate-100 text-slate-700 border-slate-200">
                       {ORGANIZATION_TYPE_LABELS[
                         organization.organizationType as keyof typeof ORGANIZATION_TYPE_LABELS
                       ] || organization.organizationType}
                     </Badge>
                   )}
                   {organization.address && (
-                    <Badge className="bg-white text-gray-700 border-gray-200">
+                    <Badge className="bg-white text-slate-700 border-slate-200">
                       <MapPin className="w-4 h-4 mr-2" />
                       {organization.address}
                     </Badge>
@@ -173,7 +173,7 @@ export default function OrganizationDetailPage() { const localePath = useLocaliz
                   </Badge>
                 </div>
                 
-                <p className="text-gray-600 text-lg leading-relaxed mb-6 max-w-3xl">
+                <p className="text-slate-600 text-lg leading-relaxed mb-6 max-w-3xl">
                   {organization.description}
                 </p>
                 
@@ -203,7 +203,7 @@ export default function OrganizationDetailPage() { const localePath = useLocaliz
                     >
                       <Button 
                         variant="outline"
-                        className="bg-white border-gray-200 text-gray-700 hover:bg-blue-50 hover:border-blue-200 hover:text-primary"
+                        className="bg-white border-slate-200 text-slate-700 hover:bg-blue-50 hover:border-blue-200 hover:text-primary"
                       >
                         <Globe className="w-4 h-4 mr-2" />
                         {'Veb-sayt'}
@@ -225,23 +225,23 @@ export default function OrganizationDetailPage() { const localePath = useLocaliz
               {/* Main Information */}
               <div className="lg:col-span-2 space-y-8">
                 {/* About Section */}
-                <Card className="bg-white rounded-xl shadow-sm border border-gray-200">
+                <Card className="rounded-xl">
                   <CardContent className="p-6">
                     <div className="flex items-center mb-6">
-                      <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center mr-3">
+                      <div className="w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center mr-3">
                         <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                       </div>
-                      <h2 className="text-xl font-semibold text-gray-900">{`${organization.organizationName} Haqqında`}</h2>
+                      <h2 className="text-xl font-semibold text-slate-900">{`${organization.organizationName} Haqqında`}</h2>
                     </div>
-                    <p className="text-gray-700 leading-relaxed mb-6">
+                    <p className="text-slate-700 leading-relaxed mb-6">
                       {organization.description}
                     </p>
                     
                     {organization.focusAreas && organization.focusAreas.length > 0 && (
-                      <div className="border-t border-gray-200 pt-6">
-                        <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                      <div className="border-t border-slate-200 pt-6">
+                        <h3 className="text-xl font-semibold text-slate-900 mb-4 flex items-center">
                           <svg className="w-5 h-5 text-primary mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                           </svg>
@@ -265,18 +265,18 @@ export default function OrganizationDetailPage() { const localePath = useLocaliz
 
                 {/* Location & Address */}
                 {organization.address && (
-                  <Card className="bg-white rounded-xl shadow-sm border border-gray-200">
+                  <Card className="rounded-xl">
                     <CardContent className="p-6">
                       <div className="flex items-center mb-6">
-                        <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center mr-3">
+                        <div className="w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center mr-3">
                           <MapPin className="w-4 h-4 text-primary" />
                         </div>
-                        <h2 className="text-xl font-semibold text-gray-900">{'Yer və Ünvan'}</h2>
+                        <h2 className="text-xl font-semibold text-slate-900">{'Yer və Ünvan'}</h2>
                       </div>
-                      <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="bg-gray-50 rounded-md p-4">
                         <div className="flex items-start">
-                          <MapPin className="w-4 h-4 text-gray-500 mr-3 mt-1" />
-                          <p className="text-gray-700 leading-relaxed">{organization.address}</p>
+                          <MapPin className="w-4 h-4 text-slate-500 mr-3 mt-1" />
+                          <p className="text-slate-700 leading-relaxed">{organization.address}</p>
                         </div>
                       </div>
                     </CardContent>
@@ -285,20 +285,20 @@ export default function OrganizationDetailPage() { const localePath = useLocaliz
                 
                 {/* Registration Information */}
                 {organization.registrationNumber && (
-                  <Card className="bg-white rounded-xl shadow-sm border border-gray-200">
+                  <Card className="rounded-xl">
                     <CardContent className="p-6">
                       <div className="flex items-center mb-6">
-                        <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center mr-3">
+                        <div className="w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center mr-3">
                           <ExternalLink className="w-4 h-4 text-primary" />
                         </div>
-                        <h2 className="text-xl font-semibold text-gray-900">{'Qeydiyyat Məlumatları'}</h2>
+                        <h2 className="text-xl font-semibold text-slate-900">{'Qeydiyyat Məlumatları'}</h2>
                       </div>
-                      <div className="bg-primary/5 rounded-lg p-4 border border-primary/10">
+                      <div className="bg-primary/5 rounded-md p-4 border border-primary/10">
                         <div className="flex items-center">
                           <ExternalLink className="w-4 h-4 text-primary mr-3" />
                           <div>
                             <p className="text-sm text-primary font-medium">{'Qeydiyyat Nömrəsi'}</p>
-                            <p className="text-lg font-semibold text-gray-900">{organization.registrationNumber}</p>
+                            <p className="text-lg font-semibold text-slate-900">{organization.registrationNumber}</p>
                           </div>
                         </div>
                       </div>
@@ -309,15 +309,15 @@ export default function OrganizationDetailPage() { const localePath = useLocaliz
 
               {/* Contact Information Sidebar */}
               <div className="space-y-8">
-                <Card className="bg-white rounded-xl shadow-sm border border-gray-200">
+                <Card className="rounded-xl">
                   <CardContent className="p-6">
                     <div className="flex items-center mb-6">
-                      <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center mr-3">
+                      <div className="w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center mr-3">
                         <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                         </svg>
                       </div>
-                      <h3 className="text-lg font-bold text-gray-900">{'Əlaqə Məlumatları'}</h3>
+                      <h3 className="text-lg font-bold text-slate-900">{'Əlaqə Məlumatları'}</h3>
                     </div>
                     <div className="space-y-4">
                       {organization.contactPerson?.email && (
@@ -357,11 +357,11 @@ export default function OrganizationDetailPage() { const localePath = useLocaliz
                       )}
                       
                       {organization.contactPerson?.name && (
-                        <div className="p-4 bg-gray-50 rounded-lg">
-                          <p className="text-sm font-medium text-gray-600 mb-1">{'Əlaqə Şəxsi'}</p>
-                          <p className="font-semibold text-gray-900">{organization.contactPerson.name}</p>
+                        <div className="p-4 bg-gray-50 rounded-md">
+                          <p className="text-sm font-medium text-slate-600 mb-1">{'Əlaqə Şəxsi'}</p>
+                          <p className="font-semibold text-slate-900">{organization.contactPerson.name}</p>
                           {organization.contactPerson.position && (
-                            <p className="text-sm text-gray-600">{organization.contactPerson.position}</p>
+                            <p className="text-sm text-slate-600">{organization.contactPerson.position}</p>
                           )}
                         </div>
                       )}
@@ -371,15 +371,15 @@ export default function OrganizationDetailPage() { const localePath = useLocaliz
 
                 {/* Social Media Links */}
                 {organization.socialMedia && Object.values(organization.socialMedia).some(link => link) && (
-                  <Card className="bg-white rounded-xl shadow-sm border border-gray-200">
+                  <Card className="rounded-xl">
                     <CardContent className="p-6">
                       <div className="flex items-center mb-6">
-                        <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center mr-3">
+                        <div className="w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center mr-3">
                           <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                           </svg>
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900">{'Bizi İzlə'}</h3>
+                        <h3 className="text-lg font-bold text-slate-900">{'Bizi İzlə'}</h3>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {organization.socialMedia.facebook && (
@@ -419,36 +419,36 @@ export default function OrganizationDetailPage() { const localePath = useLocaliz
                 )}
 
                 {/* Organization Stats */}
-                <Card className="bg-white rounded-xl shadow-sm border border-gray-200">
+                <Card className="rounded-xl">
                   <CardContent className="p-6">
                     <div className="flex items-center mb-6">
-                      <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center mr-3">
+                      <div className="w-8 h-8 bg-primary/10 rounded-md flex items-center justify-center mr-3">
                         <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                         </svg>
                       </div>
-                      <h3 className="text-lg font-bold text-gray-900">{'Təşkilat Məlumatları'}</h3>
+                      <h3 className="text-lg font-bold text-slate-900">{'Təşkilat Məlumatları'}</h3>
                     </div>
                     <div className="space-y-4">
-                      <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                      <div className="p-4 bg-primary/5 rounded-md border border-primary/10">
                         <div className="flex items-center mb-2">
                           <CheckCircle className="w-5 h-5 text-primary mr-2" />
-                          <p className="text-sm font-medium text-gray-600">{'Vəziyyət'}</p>
+                          <p className="text-sm font-medium text-slate-600">{'Vəziyyət'}</p>
                         </div>
-                        <p className="text-lg font-semibold text-gray-900">
+                        <p className="text-lg font-semibold text-slate-900">
                           {organization.status === 'approved' ? 'Təsdiqlənmiş' : 'Təsdiq gözlənilir'}
                         </p>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 bg-gray-50 rounded-lg">
-                          <p className="text-sm text-gray-600 mb-1">{'Qoşulma tarixi'}</p>
-                          <p className="font-semibold text-gray-900">
+                        <div className="p-4 bg-gray-50 rounded-md">
+                          <p className="text-sm text-slate-600 mb-1">{'Qoşulma tarixi'}</p>
+                          <p className="font-semibold text-slate-900">
                             {new Date(organization.createdAt).toLocaleDateString()}
                           </p>
                         </div>
-                        <div className="p-4 bg-gray-50 rounded-lg">
-                          <p className="text-sm text-gray-600 mb-1">{'Son yenilənmə'}</p>
-                          <p className="font-semibold text-gray-900">
+                        <div className="p-4 bg-gray-50 rounded-md">
+                          <p className="text-sm text-slate-600 mb-1">{'Son yenilənmə'}</p>
+                          <p className="font-semibold text-slate-900">
                             {new Date(organization.updatedAt).toLocaleDateString()}
                           </p>
                         </div>

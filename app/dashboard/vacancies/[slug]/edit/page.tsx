@@ -9,6 +9,7 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useSession } from '@/lib/auth/client'
 import { useDashboardVacancyData } from '@/components/containers/DashboardVacancyDataContainer'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
+import { Card } from '@/components/ui/Card'
 import VacancyForm, {
   type VacancyFormInitialData,
   type VacancyFormSubmitPayload,
@@ -141,9 +142,9 @@ export default function EditVacancyPage() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      <Card className="p-4">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-1.5">
+          <div className="flex items-center gap-2 rounded-md border border-blue-100 bg-blue-50 px-3 py-1.5">
             <Eye className="h-4 w-4 text-blue-600" />
             <span className="text-sm font-medium text-blue-700">
               {(vacancy.views || 0).toLocaleString()} baxış
@@ -152,14 +153,14 @@ export default function EditVacancyPage() {
               ({(vacancy.uniqueViews || 0).toLocaleString()} unikal baxış)
             </span>
           </div>
-          <div className="flex items-center gap-2 rounded-lg border border-amber-100 bg-amber-50 px-3 py-1.5">
+          <div className="flex items-center gap-2 rounded-md border border-amber-100 bg-amber-50 px-3 py-1.5">
             <Bookmark className="h-4 w-4 text-amber-600" />
             <span className="text-sm font-medium text-amber-700">
               {(vacancy.saves || 0).toLocaleString()} saxlama
             </span>
           </div>
         </div>
-      </div>
+      </Card>
 
       <VacancyForm
         isEditMode

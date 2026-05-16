@@ -2,11 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { TextArea } from "@/components/ui/Textarea";
+import { Card } from "@/components/ui/Card";
 import { PageStateGuard } from "@/components/shared";
 import AdminActionModal from "@/components/admin/AdminActionModal";
 import { History, RotateCcw, Save, Settings } from "lucide-react";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import AdminListLayout from "@/components/admin/AdminListLayout";
+import { Select } from '@/components/ui/Select'
 
 type SiteSettings = {
   _id: string;
@@ -213,15 +217,15 @@ export default function SettingsAdminPage() {
     >
     <AdminListLayout title="Sistem Parametrləri" description="Sayt üzrə ümumi parametrləri və üstünlükləri tənzimləyin.">
       <div className="py-6 space-y-6">
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <Card className="p-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="flex items-center gap-3">
               <Settings className="w-8 h-8 text-blue-500" />
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">
+                <h2 className="text-2xl font-bold text-slate-900">
                   {"Sistem Parametrləri"}
                 </h2>
-                <p className="text-gray-600">
+                <p className="text-slate-600">
                   {
                     "Sayt üzrə ümumi parametrləri və üstünlükləri tənzimləyin"
                   }
@@ -262,12 +266,12 @@ export default function SettingsAdminPage() {
               </Button>
             </div>
           </div>
-        </div>
+        </Card>
 
         {settings && (
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <div className="lg:col-span-1">
-              <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+              <Card className="p-4">
                 <nav className="space-y-2">
                   {[
                     { id: "siteInfo", label: "Sayt Məlumatı", icon: "🌐" },
@@ -285,7 +289,7 @@ export default function SettingsAdminPage() {
                       className={`w-full text-left justify-start ${
                         activeSettingsSection === section.id
                           ? "bg-blue-100 text-blue-700"
-                          : "text-gray-600 hover:bg-gray-100"
+                          : "text-slate-600 hover:bg-gray-100"
                       }`}
                     >
                       <span className="mr-2">{section.icon}</span>
@@ -293,48 +297,42 @@ export default function SettingsAdminPage() {
                     </Button>
                   ))}
                 </nav>
-              </div>
+              </Card>
             </div>
 
             <div className="lg:col-span-3">
-              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <Card className="p-6">
                 {activeSettingsSection === "siteInfo" && (
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-4">
                       {"Sayt Məlumatı"}
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          {"Sayt Adı"}
-                        </label>
-                        <input
+                        <Input
                           type="text"
+                          label="Sayt Adı"
                           value={settings.siteInfo.siteName}
                           onChange={(e) =>
                             updateSettingsField("siteInfo", "siteName", e.target.value)
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-slate-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          {"Sayt URL-i"}
-                        </label>
-                        <input
+                        <Input
                           type="url"
+                          label="Sayt URL-i"
                           value={settings.siteInfo.siteUrl}
                           onChange={(e) =>
                             updateSettingsField("siteInfo", "siteUrl", e.target.value)
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-slate-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </div>
                       <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          {"Sayt Təsviri"}
-                        </label>
-                        <textarea
+                        <TextArea
+                          label={"Sayt Təsviri"}
                           value={settings.siteInfo.siteDescription}
                           onChange={(e) =>
                             updateSettingsField(
@@ -344,33 +342,28 @@ export default function SettingsAdminPage() {
                             )
                           }
                           rows={3}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          {"Əlaqə E-poçtu"}
-                        </label>
-                        <input
+                        <Input
                           type="email"
+                          label="Əlaqə E-poçtu"
                           value={settings.siteInfo.contactEmail}
                           onChange={(e) =>
                             updateSettingsField("siteInfo", "contactEmail", e.target.value)
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-slate-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          {"Dəstək E-poçtu"}
-                        </label>
-                        <input
+                        <Input
                           type="email"
+                          label="Dəstək E-poçtu"
                           value={settings.siteInfo.supportEmail}
                           onChange={(e) =>
                             updateSettingsField("siteInfo", "supportEmail", e.target.value)
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-3 py-2 border border-slate-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </div>
                     </div>
@@ -379,16 +372,16 @@ export default function SettingsAdminPage() {
 
                 {activeSettingsSection === "contentPolicies" && (
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-4">
                       {"Məzmun Qaydaları"}
                     </h3>
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <label className="text-sm font-medium text-gray-700">
+                          <label className="text-sm font-medium text-slate-700">
                             {"Təsdiq Tələb Olunur"}
                           </label>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-slate-500">
                             {"Bütün məzmun dərcdən əvvəl təsdiqlənməlidir"}
                           </p>
                         </div>
@@ -402,15 +395,15 @@ export default function SettingsAdminPage() {
                               e.target.checked,
                             )
                           }
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-200 rounded"
                         />
                       </div>
                       <div className="flex items-center justify-between">
                         <div>
-                          <label className="text-sm font-medium text-gray-700">
+                          <label className="text-sm font-medium text-slate-700">
                             {"Təsdiqlənmiş İstifadəçiləri Avtomatik Təsdiqlə"}
                           </label>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-slate-500">
                             {"Təsdiqlənmiş istifadəçilərdən gələn məzmunu avtomatik təsdiqlə"}
                           </p>
                         </div>
@@ -424,16 +417,14 @@ export default function SettingsAdminPage() {
                               e.target.checked,
                             )
                           }
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-200 rounded"
                         />
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {"Məqalə üçün Maks. Uzunluq"}
-                          </label>
-                          <input
+                          <Input
                             type="number"
+                            label="Məqalə üçün Maks. Uzunluq"
                             value={settings.contentPolicies.maxArticleLength}
                             onChange={(e) =>
                               updateSettingsField(
@@ -442,15 +433,13 @@ export default function SettingsAdminPage() {
                                 parseInt(e.target.value),
                               )
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border border-slate-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {"Bloq üçün Maks. Uzunluq"}
-                          </label>
-                          <input
+                          <Input
                             type="number"
+                            label="Bloq üçün Maks. Uzunluq"
                             value={settings.contentPolicies.maxBlogLength}
                             onChange={(e) =>
                               updateSettingsField(
@@ -459,7 +448,7 @@ export default function SettingsAdminPage() {
                                 parseInt(e.target.value),
                               )
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border border-slate-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           />
                         </div>
                       </div>
@@ -469,16 +458,16 @@ export default function SettingsAdminPage() {
 
                 {activeSettingsSection === "userManagement" && (
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-4">
                       {"İstifadəçi İdarəetməsi"}
                     </h3>
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <label className="text-sm font-medium text-gray-700">
+                          <label className="text-sm font-medium text-slate-700">
                             {"İstifadəçi Qeydiyyatı"}
                           </label>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-slate-500">
                             {"Yeni istifadəçilərin qeydiyyatına icazə verin"}
                           </p>
                         </div>
@@ -492,15 +481,15 @@ export default function SettingsAdminPage() {
                               e.target.checked,
                             )
                           }
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-200 rounded"
                         />
                       </div>
                       <div className="flex items-center justify-between">
                         <div>
-                          <label className="text-sm font-medium text-gray-700">
+                          <label className="text-sm font-medium text-slate-700">
                             {"E-poçt Təsdiqi Tələb Et"}
                           </label>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-slate-500">
                             {"İstifadəçilər yazı yazmadan əvvəl e-poçtu təsdiqləməlidir"}
                           </p>
                         </div>
@@ -514,14 +503,12 @@ export default function SettingsAdminPage() {
                               e.target.checked,
                             )
                           }
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-200 rounded"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          {"Standart İstifadəçi Rolu"}
-                        </label>
-                        <select
+                        <Select
+                          label="Standart İstifadəçi Rolu"
                           value={settings.userManagement.defaultUserRole}
                           onChange={(e) =>
                             updateSettingsField(
@@ -530,11 +517,11 @@ export default function SettingsAdminPage() {
                               e.target.value,
                             )
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                          <option value="user">{"İstifadəçi"}</option>
-                          <option value="contributor">{"Töhfəçi"}</option>
-                        </select>
+                          options={[
+                            { value: 'user', label: 'İstifadəçi' },
+                            { value: 'contributor', label: 'Töhfəçi' },
+                          ]}
+                        />
                       </div>
                     </div>
                   </div>
@@ -542,16 +529,16 @@ export default function SettingsAdminPage() {
 
                 {activeSettingsSection === "security" && (
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-4">
                       {"Təhlükəsizlik Parametrləri"}
                     </h3>
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <label className="text-sm font-medium text-gray-700">
+                          <label className="text-sm font-medium text-slate-700">
                             {"İki Mərhələli Doğrulamanı Aktiv Et"}
                           </label>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-slate-500">
                             {"Admin hesabları üçün 2FA tələb et"}
                           </p>
                         </div>
@@ -565,15 +552,15 @@ export default function SettingsAdminPage() {
                               e.target.checked,
                             )
                           }
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-200 rounded"
                         />
                       </div>
                       <div className="flex items-center justify-between">
                         <div>
-                          <label className="text-sm font-medium text-gray-700">
+                          <label className="text-sm font-medium text-slate-700">
                             {"Sorğu Məhdudiyyətini Aktiv Et"}
                           </label>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-slate-500">
                             {"Sui-istifadənin qarşısını almaq üçün API sorğularını məhdudlaşdır"}
                           </p>
                         </div>
@@ -587,16 +574,14 @@ export default function SettingsAdminPage() {
                               e.target.checked,
                             )
                           }
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-200 rounded"
                         />
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {"Sessiya Müddəti (dəqiqə)"}
-                          </label>
-                          <input
+                          <Input
                             type="number"
+                            label="Sessiya Müddəti (dəqiqə)"
                             value={settings.security.sessionTimeout}
                             onChange={(e) =>
                               updateSettingsField(
@@ -605,15 +590,13 @@ export default function SettingsAdminPage() {
                                 parseInt(e.target.value),
                               )
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border border-slate-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            {"Maks. Giriş Cəhdləri"}
-                          </label>
-                          <input
+                          <Input
                             type="number"
+                            label="Maks. Giriş Cəhdləri"
                             value={settings.security.maxLoginAttempts}
                             onChange={(e) =>
                               updateSettingsField(
@@ -622,7 +605,7 @@ export default function SettingsAdminPage() {
                                 parseInt(e.target.value),
                               )
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full px-3 py-2 border border-slate-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           />
                         </div>
                       </div>
@@ -632,17 +615,17 @@ export default function SettingsAdminPage() {
 
                 {activeSettingsSection === "features" && (
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-4">
                       {"Funksiya Yandır/Söndür"}
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {Object.entries(settings.features).map(([key, value]) => (
                         <div
                           key={key}
-                          className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
+                          className="flex items-center justify-between p-3 border border-slate-200 rounded-md"
                         >
                           <div>
-                            <label className="text-sm font-medium text-gray-700 capitalize">
+                            <label className="text-sm font-medium text-slate-700 capitalize">
                               {key.replace(/([A-Z])/g, " $1").trim()}
                             </label>
                           </div>
@@ -656,14 +639,14 @@ export default function SettingsAdminPage() {
                                 e.target.checked,
                               )
                             }
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-200 rounded"
                           />
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
-              </div>
+              </Card>
             </div>
           </div>
         )}

@@ -154,9 +154,9 @@ export default function OrganizationsPage() {
           <div className="flex justify-center">
             <ButtonLink
               href={localePath('/auth/register?type=organization')}
-              variant="secondary"
+              variant="white-on-dark"
               size="lg"
-              className="rounded-2xl px-10 py-4 font-black bg-white text-slate-900 hover:bg-slate-100 border-none"
+              className="rounded-2xl px-10 py-4 font-black"
             >
               Təşkilatını qeydiyyatdan keçir
             </ButtonLink>

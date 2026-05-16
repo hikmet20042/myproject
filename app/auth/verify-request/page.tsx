@@ -7,6 +7,7 @@ import { Mail, ArrowLeft } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { Input, Button } from '@/components/ui'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
+import { Card } from '@/components/ui/Card'
 
 export default function VerifyRequest() {
   const localePath = useLocalizedPath()
@@ -66,23 +67,23 @@ export default function VerifyRequest() {
       <div className="absolute left-1/2 top-24 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-200/30 blur-3xl" />
 
       <div className="relative z-10 mx-auto flex min-h-[80vh] w-full max-w-lg items-center justify-center px-4 sm:px-6">
-        <div className="w-full rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+        <Card className="w-full rounded-3xl p-6 sm:p-8">
           <div className="text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
               <Mail className="h-6 w-6 text-blue-700" />
             </div>
 
-            <h1 className="text-2xl font-black text-gray-900">
+            <h1 className="text-2xl font-black text-slate-900">
               {'E-poçtunuzu yoxlayın'}
             </h1>
 
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-slate-600">
               {'Təsdiq e-poçtu göndərmək üçün e-poçt ünvanını daxil edin.'}
             </p>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <div>
-                <label htmlFor="email" className="block text-left text-sm font-medium text-gray-700">
+                <label htmlFor="email" className="block text-left text-sm font-medium text-slate-700">
                   {'E-poçt ünvanı'}
                 </label>
                 <Input
@@ -119,7 +120,7 @@ export default function VerifyRequest() {
               <div>
                 <Link
                   href={localePath('/')}
-                  className="inline-flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-blue-600"
+                  className="inline-flex items-center gap-2 text-sm text-slate-600 transition-colors hover:text-blue-600"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   {'Ana səhifəyə qayıt'}
@@ -127,7 +128,7 @@ export default function VerifyRequest() {
               </div>
             </div>
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   )

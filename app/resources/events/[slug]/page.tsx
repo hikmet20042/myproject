@@ -188,24 +188,16 @@ export default function EventDetailPage() {
     return EVENT_TYPE_LABELS[type as EventTypeValue] || type;
   };
 
-  const getCategoryColor = (category: string) => {
-    const colors: { [key: string]: string } = {
-      "Human Rights": "bg-red-100 text-red-800",
-      "Women Rights": "bg-blue-100 text-blue-800",
-      "Children Rights": "bg-blue-100 text-blue-800",
-      Education: "bg-green-100 text-green-800",
-      Healthcare: "bg-cyan-100 text-cyan-800",
-      Environment: "bg-emerald-100 text-emerald-800",
-      "Poverty Alleviation": "bg-orange-100 text-orange-800",
-      "Legal Aid": "bg-sky-100 text-sky-800",
-      "Community Development": "bg-yellow-100 text-yellow-800",
-      "Youth Development": "bg-cyan-100 text-cyan-800",
-      "Elderly Care": "bg-gray-100 text-gray-800",
-      "Disability Rights": "bg-teal-100 text-teal-800",
-      "LGBTQ+ Rights": "bg-rainbow-100 text-rainbow-800",
-      "Mental Health": "bg-teal-100 text-teal-800",
+  const getCategoryVariant = (category: string): 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info' => {
+    const variantMap: Record<string, 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info'> = {
+      seminar: 'primary',
+      workshop: 'secondary',
+      conference: 'info',
+      webinar: 'warning',
+      social: 'success',
+      cultural: 'danger',
     };
-    return colors[category] || "bg-gray-100 text-gray-800";
+    return variantMap[category] || 'primary';
   };
 
   const isDeadlinePassed = (deadline: string) => {
@@ -361,9 +353,9 @@ export default function EventDetailPage() {
               {hasActiveApplicationLink ? (
                 <ButtonLink
                   href={event.applicationLink!}
-                  variant="secondary"
+                  variant="white-on-dark"
                   size="lg"
-                  className="w-full md:w-auto rounded-2xl px-12 py-4 font-black bg-white text-slate-900 border-none hover:bg-slate-100"
+                  className="w-full md:w-auto rounded-2xl px-12 py-4 font-black"
                   external
                 >
                   Müraciət et
@@ -382,7 +374,7 @@ export default function EventDetailPage() {
         sidebar={
           <div className="space-y-8">
             {/* Quick Info Card */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
+            <Card className="p-8">
               <h3 className="text-xl font-black text-slate-900 mb-8 flex items-center gap-3">
                 <div className="h-10 w-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
                   <Clock className="h-5 w-5" />
@@ -432,10 +424,10 @@ export default function EventDetailPage() {
                   </div>
                 )}
               </div>
-            </div>
+            </Card>
 
             {/* Organizer Card */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
+            <Card className="p-8">
               <h3 className="text-xl font-black text-slate-900 mb-8 flex items-center gap-3">
                 <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
                   <Users className="h-5 w-5" />
@@ -465,7 +457,7 @@ export default function EventDetailPage() {
                   </ButtonLink>
                 )}
               </div>
-            </div>
+            </Card>
           </div>
         }
       />

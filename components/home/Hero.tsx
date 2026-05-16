@@ -1,8 +1,8 @@
 'use client'
 
-import Link from 'next/link'
 import { Compass, Building2, Target, Sparkles, Search, Briefcase, Calendar, Users } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { ButtonLink } from '@/components/ui'
+import { Badge } from '@/components/ui/Badge'
 
 interface HeroProps {
   localePath: (path: string) => string
@@ -30,10 +30,9 @@ export const Hero = ({ localePath, isOrganizationUser, stats }: HeroProps) => {
       <div className="container relative z-10 mx-auto px-4">
         <div className="grid gap-16 lg:grid-cols-[1.2fr_1fr] lg:items-center">
           <div className="text-left">
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/80 px-4 py-2 text-sm font-bold text-blue-700 shadow-sm backdrop-blur-md mb-8">
-              <Sparkles className="h-4 w-4 text-blue-600 animate-pulse" />
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Gənclər üçün ən yeni platforma</span>
-            </div>
+            <Badge variant="primary" size="md" icon={Sparkles} className="border border-blue-100 bg-white/80 shadow-sm backdrop-blur-md mb-8">
+              Gənclər üçün ən yeni platforma
+            </Badge>
 
             <h1 className="text-4xl font-black tracking-tight sm:text-6xl md:text-7xl lg:text-8xl mb-6 text-slate-900 leading-[1.05]">
               Fürsətləri tap, <br />
@@ -48,41 +47,39 @@ export const Hero = ({ localePath, isOrganizationUser, stats }: HeroProps) => {
             </p>
 
             <div className="flex flex-wrap gap-4">
-              <Link href={localePath('/resources')}>
-                <Button
-                  variant="primary"
+              <ButtonLink
+                href={localePath('/resources')}
+                variant="gradient-blue"
+                size="lg"
+                className="rounded-full px-8 py-7 text-lg shadow-xl shadow-blue-500/20"
+                hoverEffect="scale"
+                icon={Compass}
+                iconPosition="left"
+              >
+                İmkanları kəşf et
+              </ButtonLink>
+              {isOrganizationUser ? (
+                <ButtonLink
+                  href={localePath('/dashboard')}
+                  variant="outline"
                   size="lg"
-                  className="rounded-full px-8 py-7 text-lg shadow-xl shadow-blue-500/20 hover:scale-105 transition-all bg-gradient-to-r from-blue-600 to-indigo-600 font-bold"
-                  icon={Compass}
+                  className="rounded-full px-8 py-7 text-lg border-2 border-slate-200 hover:border-slate-300"
+                  icon={Building2}
                   iconPosition="left"
                 >
-                  İmkanları kəşf et
-                </Button>
-              </Link>
-              {isOrganizationUser ? (
-                <Link href={localePath('/dashboard')}>
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="rounded-full px-8 py-7 text-lg bg-white/70 backdrop-blur-md border-2 border-slate-200 hover:border-slate-300 transition-all font-bold text-slate-700"
-                    icon={Building2}
-                    iconPosition="left"
-                  >
-                    Təşkilat paneli
-                  </Button>
-                </Link>
+                  Təşkilat paneli
+                </ButtonLink>
               ) : (
-                <Link href={localePath('/submit/blog')}>
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="rounded-full px-8 py-7 text-lg bg-white/70 backdrop-blur-md border-2 border-slate-200 hover:border-slate-300 transition-all font-bold text-slate-700"
-                    icon={Target}
-                    iconPosition="left"
-                  >
-                    Hekayəni paylaş
-                  </Button>
-                </Link>
+                <ButtonLink
+                  href={localePath('/submit/blog')}
+                  variant="outline"
+                  size="lg"
+                  className="rounded-full px-8 py-7 text-lg border-2 border-slate-200 hover:border-slate-300"
+                  icon={Target}
+                  iconPosition="left"
+                >
+                  Hekayəni paylaş
+                </ButtonLink>
               )}
             </div>
           </div>
@@ -131,4 +128,3 @@ export const Hero = ({ localePath, isOrganizationUser, stats }: HeroProps) => {
     </section>
   )
 }
-

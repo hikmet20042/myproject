@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
+import { Loading } from '@/components/ui/Loading'
 import EventForm, { type EventFormSubmitPayload } from '@/features/events/components/EventForm'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useCreateEvent } from '@/lib/eventQueries'
@@ -42,7 +42,7 @@ export default function CreateEventPage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen items-center justify-center bg-background">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <Loading size="lg" variant="spinner" color="primary" />
         </div>
       }
     >

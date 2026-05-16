@@ -2,6 +2,8 @@
 
 import { User } from "lucide-react";
 import { ORGANIZATION_TYPE_LABELS } from "@/lib/organizationTypes";
+import { Badge } from "@/components/ui/Badge";
+import { SocialLink } from "@/components/ui";
 
 interface ProfileViewProps {
   organizationProfile: any;
@@ -66,12 +68,7 @@ export default function ProfileView({ organizationProfile }: ProfileViewProps) {
         <div className="flex flex-wrap gap-2">
           {organizationProfile.focusAreas?.length > 0 ? (
             organizationProfile.focusAreas.map((area: string, index: number) => (
-              <span
-                key={index}
-                className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700"
-              >
-                {area}
-              </span>
+              <Badge key={index} variant="primary" size="sm">{area}</Badge>
             ))
           ) : (
             <span className="text-gray-600">{"Fəaliyyət sahələri göstərilməyib"}</span>
@@ -84,56 +81,15 @@ export default function ProfileView({ organizationProfile }: ProfileViewProps) {
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
             <h3 className="mb-2 font-medium text-gray-900">{"Sosial Media"}</h3>
             <div className="flex flex-wrap gap-3">
-              {organizationProfile.socialMedia.facebook && (
-                <a
-                  href={organizationProfile.socialMedia.facebook}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-full border border-blue-200 bg-white px-3 py-1 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-50 hover:text-blue-800"
-                >
-                  {"Facebook"}
-                </a>
-              )}
-              {organizationProfile.socialMedia.twitter && (
-                <a
-                  href={organizationProfile.socialMedia.twitter}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-full border border-cyan-200 bg-white px-3 py-1 text-sm font-medium text-cyan-700 transition-colors hover:bg-cyan-50 hover:text-cyan-800"
-                >
-                  {"Twitter"}
-                </a>
-              )}
-              {organizationProfile.socialMedia.instagram && (
-                <a
-                  href={organizationProfile.socialMedia.instagram}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-full border border-indigo-200 bg-white px-3 py-1 text-sm font-medium text-indigo-700 transition-colors hover:bg-indigo-50 hover:text-indigo-800"
-                >
-                  {"Instagram"}
-                </a>
-              )}
-              {organizationProfile.socialMedia.linkedin && (
-                <a
-                  href={organizationProfile.socialMedia.linkedin}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-full border border-blue-200 bg-white px-3 py-1 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-50 hover:text-blue-800"
-                >
-                  {"LinkedIn"}
-                </a>
-              )}
-              {organizationProfile.socialMedia.youtube && (
-                <a
-                  href={organizationProfile.socialMedia.youtube}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-full border border-rose-200 bg-white px-3 py-1 text-sm font-medium text-rose-700 transition-colors hover:bg-rose-50 hover:text-rose-800"
-                >
-                  {"YouTube"}
-                </a>
-              )}
+              {[
+                { key: 'facebook', platform: 'facebook' as const, url: organizationProfile.socialMedia.facebook },
+                { key: 'twitter', platform: 'twitter' as const, url: organizationProfile.socialMedia.twitter },
+                { key: 'instagram', platform: 'instagram' as const, url: organizationProfile.socialMedia.instagram },
+                { key: 'linkedin', platform: 'linkedin' as const, url: organizationProfile.socialMedia.linkedin },
+                { key: 'youtube', platform: 'youtube' as const, url: organizationProfile.socialMedia.youtube },
+              ].map(({ key, platform, url }) => url ? (
+                <SocialLink key={key} platform={platform} href={url} variant="compact" />
+              ) : null)}
             </div>
           </div>
         )}

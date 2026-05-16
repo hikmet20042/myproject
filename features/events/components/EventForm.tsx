@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Calendar, Loader2, Plus, Tag, Trash2 } from 'lucide-react'
+import { Calendar, Plus, Tag, Trash2 } from 'lucide-react'
+import { Loading } from '@/components/ui/Loading'
 import { Input, Select, Button, TextArea } from '@/components/ui'
+import { Card } from '@/components/ui/Card'
 import { FormSection } from '@/components/forms'
 import ContentForm from '@/features/forms/ContentForm'
 import {
@@ -887,14 +889,16 @@ export default function EventForm({
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {formData.requirements.map((item, index) => (
-                    <button
+                    <Button
                       type="button"
                       key={`${item}-${index}`}
+                      variant="outline"
+                      size="xs"
+                      className="rounded-full px-3 py-1 text-xs border-gray-300"
                       onClick={() => removeListItem('requirements', index)}
-                      className="rounded-full border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-700"
                     >
                       {item} ×
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
@@ -922,14 +926,16 @@ export default function EventForm({
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {formData.participantBenefits.map((item, index) => (
-                    <button
+                    <Button
                       type="button"
                       key={`${item}-${index}`}
+                      variant="outline"
+                      size="xs"
+                      className="rounded-full px-3 py-1 text-xs border-gray-300"
                       onClick={() => removeListItem('participantBenefits', index)}
-                      className="rounded-full border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-700"
                     >
                       {item} ×
-                    </button>
+                    </Button>
                   ))}
                 </div>
               </div>
@@ -966,14 +972,14 @@ export default function EventForm({
             </div>
           </FormSection>
 
-          <div className="flex justify-end gap-4 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <Card className="flex justify-end gap-4 rounded-2xl p-4">
             <Button type="button" onClick={() => router.push(localePath('/dashboard/events'))} variant="outline">
               {'Ləğv et'}
             </Button>
             <Button type="submit" disabled={loading}>
               {loading ? (
                 <span className="inline-flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loading size="sm" variant="spinner" color="current" />
                   {isEditMode ? 'Yenilənir...' : 'Yaradılır...'}
                 </span>
               ) : isEditMode ? (
@@ -982,7 +988,7 @@ export default function EventForm({
                 'Yoxlanış üçün göndər'
               )}
             </Button>
-          </div>
+          </Card>
         </form>
       </div>
     </div>

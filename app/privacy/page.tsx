@@ -3,6 +3,9 @@
 import { Shield, Lock, Eye, FileText, Mail, Bell } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import Link from 'next/link'
+import { Card } from '@/components/ui/Card'
+import { ButtonLink } from '@/components/ui/ButtonLink'
+import { Badge } from '@/components/ui/Badge'
 
 export default function PrivacyPolicyPage() {
   const localePath = useLocalizedPath()
@@ -51,10 +54,9 @@ export default function PrivacyPolicyPage() {
         </div>
         
         <div className="container relative z-10 mx-auto px-4 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-xs font-black text-blue-600 uppercase tracking-widest mb-6">
-            <Shield className="h-4 w-4" />
+          <Badge variant="primary" className="gap-2 bg-blue-50 px-4 py-2 text-xs font-black text-blue-600 uppercase tracking-widest mb-6" icon={Shield}>
             Məxfilik və Təhlükəsizlik
-          </div>
+          </Badge>
           <h1 className="text-4xl md:text-6xl font-black text-slate-900 mb-6 tracking-tight">
             Məxfilik Siyasəti
           </h1>
@@ -72,10 +74,7 @@ export default function PrivacyPolicyPage() {
         <div className="max-w-5xl mx-auto">
           <div className="grid gap-8 md:grid-cols-2">
             {sections.map((section, index) => (
-              <div 
-                key={index} 
-                className="group p-10 rounded-[2.5rem] bg-white border border-slate-100 shadow-sm transition-all hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1"
-              >
+              <Card key={index} className="p-10 transition-all hover:shadow-xl hover:shadow-slate-200/200 hover:-translate-y-1" interactive>
                 <div className="mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors duration-500">
                   <section.icon className="h-7 w-7" />
                 </div>
@@ -83,7 +82,7 @@ export default function PrivacyPolicyPage() {
                 <p className="text-slate-500 font-medium leading-relaxed">
                   {section.content}
                 </p>
-              </div>
+              </Card>
             ))}
           </div>
 
@@ -97,12 +96,14 @@ export default function PrivacyPolicyPage() {
                      Sizin məlumatlarınız platformanın yalnız ictimai fayda və gənclərin inkişafı məqsədilə istifadə olunmasını təmin edir. Şəxsi məlumatlarınızı heç vaxt kommersiya məqsədilə paylaşmırıq.
                    </p>
                 </div>
-                <Link 
+                <ButtonLink
                   href={localePath('/')}
-                  className="whitespace-nowrap px-8 py-4 bg-white text-slate-900 font-black rounded-2xl hover:scale-105 transition-transform"
+                  variant="white-on-dark"
+                  size="lg"
+                  className="px-8 py-4 rounded-2xl hover:scale-105"
                 >
                   Ana səhifəyə dön
-                </Link>
+                </ButtonLink>
              </div>
           </div>
         </div>

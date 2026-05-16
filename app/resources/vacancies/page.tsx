@@ -103,7 +103,7 @@ export default function VacanciesPage() {
           </>
         ) : (
           <>
-            <ButtonLink href={localePath('/resources')} variant="outline" size="lg" className="rounded-full px-8 bg-white/70 backdrop-blur-sm">
+            <ButtonLink href={localePath('/resources')} variant="white-on-dark" size="lg" className="rounded-full px-8">
               Digər İmkanlar
             </ButtonLink>
           </>
@@ -173,9 +173,9 @@ export default function VacanciesPage() {
           <div className="flex justify-center">
             <ButtonLink
               href={localePath('/dashboard/vacancies/create')}
-              variant="secondary"
+              variant="white-on-dark"
               size="lg"
-              className="rounded-2xl px-10 py-4 font-black bg-white text-slate-900 hover:bg-slate-100 border-none"
+              className="rounded-2xl px-10 py-4 font-black"
             >
               Vakansiya yerləşdir
             </ButtonLink>

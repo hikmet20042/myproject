@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
-import { Sparkles, BookOpen, Calendar, Briefcase, Users, FileText, Search } from "lucide-react";
+import { Sparkles, BookOpen, Calendar, Briefcase, Users, FileText, Search, Link } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 import type { ReactNode } from "react";
 import { PageStateGuard } from "@/components/shared";
 
@@ -219,10 +220,9 @@ export default function ListPageLayout({
           <div className="container relative z-10 mx-auto px-4">
             <div className="grid lg:grid-cols-[1fr_auto] gap-16 items-center">
               <div className="max-w-3xl text-center lg:text-left">
-                <div className={`inline-flex items-center gap-2 rounded-full border border-slate-100 ${themes.badgeBg} px-5 py-2.5 text-[10px] font-black ${themes.badgeText} uppercase tracking-[0.3em] mb-8 shadow-sm backdrop-blur-md`}>
-                  <HeaderIcon size={12} className="animate-pulse" />
+                <Badge variant="primary" size="md" icon={HeaderIcon} className={`border border-slate-100 ${themes.badgeBg} px-5 py-2.5 text-[10px] font-black ${themes.badgeText} uppercase tracking-[0.3em] mb-8 shadow-sm backdrop-blur-md`}>
                   {headerBadgeText || title}
-                </div>
+                </Badge>
 
                 <h1 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tight text-slate-900 leading-[0.95] mb-8 drop-shadow-sm">
                   {title}

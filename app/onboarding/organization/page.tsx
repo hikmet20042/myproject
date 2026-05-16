@@ -9,6 +9,7 @@ import { Button, Input, Select, TextArea } from '@/components/ui'
 import { LoadingState } from '@/components/shared'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { ORGANIZATION_TYPE_LABELS, ORGANIZATION_TYPE_VALUES } from '@/lib/organizationTypes'
+import { Card } from '@/components/ui/Card'
 
 export default function OnboardingOrganizationPage() {
   const router = useRouter()
@@ -77,7 +78,8 @@ export default function OnboardingOrganizationPage() {
       subtitle="Qısa məlumatı tamamlayın və rəhbər paneldən istifadəyə başlayın."
     >
       
-      <form onSubmit={handleSubmit} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8 space-y-5">
+      <Card className="p-6 sm:p-8">
+        <form onSubmit={handleSubmit} className="space-y-5">
         <Input
           label="Təşkilat adı"
           value={formData.organizationName}
@@ -112,7 +114,8 @@ export default function OnboardingOrganizationPage() {
             Davam et
           </Button>
         </div>
-      </form>
+        </form>
+      </Card>
     </FormLayout>
   )
 }

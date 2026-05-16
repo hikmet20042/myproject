@@ -8,6 +8,7 @@ import { EmptyState, ErrorState, LoadingState } from '@/components/shared'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { getUserErrorMessage } from '@/lib/errorMessages'
 import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
 import { Plus } from 'lucide-react'
 import {
   PageHeader,
@@ -133,22 +134,22 @@ function DashboardOverviewContent() {
 
       {/* Stats Cards */}
       <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="text-sm text-gray-600">Tədbirlər</div>
-          <div className="mt-2 text-3xl font-bold text-gray-900">{stats.totalEvents}</div>
-        </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="text-sm text-gray-600">Vakansiyalar</div>
-          <div className="mt-2 text-3xl font-bold text-gray-900">{stats.totalVacancies}</div>
-        </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="text-sm text-gray-600">İzləyicilər</div>
-          <div className="mt-2 text-3xl font-bold text-gray-900">{stats.totalOrganizationFollowers}</div>
-        </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="text-sm text-gray-600">Baxışlar</div>
-          <div className="mt-2 text-3xl font-bold text-gray-900">{stats.totalViews}</div>
-        </div>
+        <Card className="p-4">
+          <div className="text-sm text-slate-600">Tədbirlər</div>
+          <div className="mt-2 text-3xl font-bold text-slate-900">{stats.totalEvents}</div>
+        </Card>
+        <Card className="p-4">
+          <div className="text-sm text-slate-600">Vakansiyalar</div>
+          <div className="mt-2 text-3xl font-bold text-slate-900">{stats.totalVacancies}</div>
+        </Card>
+        <Card className="p-4">
+          <div className="text-sm text-slate-600">İzləyicilər</div>
+          <div className="mt-2 text-3xl font-bold text-slate-900">{stats.totalOrganizationFollowers}</div>
+        </Card>
+        <Card className="p-4">
+          <div className="text-sm text-slate-600">Baxışlar</div>
+          <div className="mt-2 text-3xl font-bold text-slate-900">{stats.totalViews}</div>
+        </Card>
       </section>
 
       {/* Quick Actions */}

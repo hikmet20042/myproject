@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft } from "lucide-react";
-import { Breadcrumb } from "@/components/ui";
+import { Card } from "@/components/ui/Card";
+import { Breadcrumb, ButtonLink } from "@/components/ui";
 import type { BreadcrumbItem } from "@/components/ui/Breadcrumb";
 
 type DetailPageLayoutProps = {
@@ -45,13 +45,17 @@ export default function DetailPageLayout({
               <Breadcrumb items={breadcrumbItems} />
             </div>
 
-            <Link
+            <ButtonLink
               href={backHref}
-              className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:border-blue-200 hover:text-primary"
+              variant="outline"
+              size="sm"
+              icon={ArrowLeft}
+              iconPosition="left"
+              className="border-slate-200 hover:border-blue-200"
+              shadow="sm"
             >
-              <ArrowLeft className="h-4 w-4" />
-              <span>{backLabel}</span>
-            </Link>
+              {backLabel}
+            </ButtonLink>
 
             {/* Cover image block placed above the title card */}
             {coverImage && (
@@ -68,12 +72,12 @@ export default function DetailPageLayout({
               </div>
             )}
 
-            <div className="mt-0 rounded-2xl border border-gray-200 bg-white/95 p-6 shadow-sm sm:p-8">
-              <h1 className="text-3xl font-black leading-tight tracking-tight text-gray-900 sm:text-4xl md:text-5xl">
+            <Card className="mt-0 p-6 sm:p-8">
+              <h1 className="text-3xl font-black leading-tight tracking-tight text-slate-900 sm:text-4xl md:text-5xl">
                 {title}
               </h1>
               {metadata && <div className="mt-5">{metadata}</div>}
-            </div>
+            </Card>
           </div>
         </div>
       </section>

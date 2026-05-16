@@ -1,6 +1,7 @@
 'use client'
 
 import { BookOpen, Users, Briefcase, Calendar, ArrowRight, Sparkles } from 'lucide-react'
+import { Card } from '@/components/ui/Card'
 import { ButtonLink } from '@/components/ui'
 import { ListPageLayout } from '@/components/layout'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
@@ -59,7 +60,7 @@ export default function ResourcesPage() {
             <ButtonLink href={localePath('/dashboard/events/create')} variant="secondary" size="lg" className="rounded-full px-8">
               Tədbir Paylaş
             </ButtonLink>
-            <ButtonLink href={localePath('/dashboard/vacancies/create')} variant="outline" size="lg" className="rounded-full px-8 bg-white/70 backdrop-blur-sm">
+            <ButtonLink href={localePath('/dashboard/vacancies/create')} variant="white-on-dark" size="lg" className="rounded-full px-8">
               Vakansiya Paylaş
             </ButtonLink>
           </>
@@ -68,7 +69,7 @@ export default function ResourcesPage() {
             <ButtonLink href={localePath('/submit/blog')} variant="secondary" size="lg" className="rounded-full px-8 shadow-xl shadow-blue-500/20">
               Hekayəni Paylaş
             </ButtonLink>
-            <ButtonLink href={localePath('/')} variant="outline" size="lg" className="rounded-full px-8 bg-white/70 backdrop-blur-sm">
+            <ButtonLink href={localePath('/')} variant="white-on-dark" size="lg" className="rounded-full px-8">
               Ana Səhifə
             </ButtonLink>
           </>
@@ -82,8 +83,9 @@ export default function ResourcesPage() {
               <Link 
                 key={category.key}
                 href={localePath(category.href)}
-                className="group relative flex flex-col p-10 rounded-[3rem] bg-white border border-slate-100 shadow-sm transition-all duration-500 hover:shadow-2xl hover:shadow-slate-200/50 hover:-translate-y-2 overflow-hidden"
+                className="group relative flex flex-col transition-all duration-500 hover:-translate-y-2"
               >
+                <Card className="rounded-[3rem] p-10">
                 <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${category.gradient} opacity-[0.03] group-hover:opacity-10 transition-opacity rounded-bl-[5rem]`} />
                 
                 <div className={`mb-8 h-16 w-16 rounded-3xl bg-gradient-to-br ${category.gradient} flex items-center justify-center text-white shadow-lg transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}>
@@ -102,6 +104,7 @@ export default function ResourcesPage() {
                   Kəşf et
                   <ArrowRight className="h-4 w-4 transition-transform group-hover/link:translate-x-2" />
                 </div>
+                </Card>
               </Link>
             )
           })}
@@ -116,9 +119,9 @@ export default function ResourcesPage() {
           <div className="flex flex-wrap justify-center gap-4">
             <ButtonLink
               href={localePath('/auth/register')}
-              variant="secondary"
+              variant="white-on-dark"
               size="lg"
-              className="rounded-2xl px-10 py-4 font-black bg-white text-slate-900 hover:bg-slate-100 border-none"
+              className="rounded-2xl px-10 py-4 font-black"
             >
               Qeydiyyatdan keç
             </ButtonLink>

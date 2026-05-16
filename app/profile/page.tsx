@@ -170,7 +170,7 @@ function ProfileOverviewContent() {
         title="Profil mərkəzi"
         description="Hesab məlumatların və aktivliyin bir yerdə."
         actions={
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-slate-500">
             Son yenilənmə: {lastUpdatedAt ? new Date(lastUpdatedAt).toLocaleString() : "-"}
           </span>
         }
@@ -220,27 +220,27 @@ function ProfileOverviewContent() {
         }
       >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50/40 p-4 text-sm">
+          <div className="space-y-3 rounded-xl border border-slate-200 bg-gray-50/40 p-4 text-sm">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-gray-500">Profil doluluğu</span>
-              <span className="font-semibold text-gray-900">{profileCompletion}%</span>
+              <span className="text-slate-500">Profil doluluğu</span>
+              <span className="font-semibold text-slate-900">{profileCompletion}%</span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-gray-500">Qoşulma tarixi</span>
-              <span className="font-medium text-gray-900">{joinedDateLabel}</span>
+              <span className="text-slate-500">Qoşulma tarixi</span>
+              <span className="font-medium text-slate-900">{joinedDateLabel}</span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-gray-500">Məkan</span>
-              <span className="font-medium text-gray-900">{profile.profile?.location || "-"}</span>
+              <span className="text-slate-500">Məkan</span>
+              <span className="font-medium text-slate-900">{profile.profile?.location || "-"}</span>
             </div>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-gray-500">Peşə</span>
-              <span className="font-medium text-gray-900">{profile.profile?.occupation || "-"}</span>
+              <span className="text-slate-500">Peşə</span>
+              <span className="font-medium text-slate-900">{profile.profile?.occupation || "-"}</span>
             </div>
           </div>
 
-          <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50/40 p-4 text-sm">
-            <p className="text-gray-500">Sürətli əməliyyatlar</p>
+          <div className="space-y-3 rounded-xl border border-slate-200 bg-gray-50/40 p-4 text-sm">
+            <p className="text-slate-500">Sürətli əməliyyatlar</p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <Button variant="outline" onClick={() => router.push(localePath("/profile/settings"))}>
                 <UserCog className="mr-2 h-4 w-4" />

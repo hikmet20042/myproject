@@ -50,7 +50,7 @@ const DynamicList = React.forwardRef<HTMLDivElement, DynamicListProps>(
       orange: 'bg-amber-100 text-amber-600',
       indigo: 'bg-blue-100 text-blue-600',
       purple: 'bg-cyan-100 text-cyan-600',
-      default: 'bg-slate-100 text-gray-600'
+      default: 'bg-slate-100 text-slate-600'
     };
     
     return (
@@ -70,20 +70,20 @@ const DynamicList = React.forwardRef<HTMLDivElement, DynamicListProps>(
                   value={item}
                   onChange={(e) => handleItemChange(index, e.target.value)}
                   placeholder={placeholder}
-                  variant={variant}
                   rows={2}
                   textAreaSize="lg"
                 />
               </div>
               
               {items.length > minItems && (
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  size="xs"
                   onClick={() => removeItem(index)}
-                  className="flex-shrink-0 w-8 h-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100 mt-2"
+                  className="flex-shrink-0 w-8 h-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full opacity-0 group-hover:opacity-100 mt-2"
                 >
                   <X className="w-4 h-4" />
-                </button>
+                </Button>
               )}
             </div>
           </div>

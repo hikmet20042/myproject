@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import * as RadixTabs from '@radix-ui/react-tabs';
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
+import { Badge } from './Badge';
 
 export interface TabItem {
   id: string;
@@ -28,17 +29,17 @@ export interface TabsProps {
 const tabVariants = {
   default: {
     container: 'border-b border-blue-100',
-    tab: 'px-4 py-2 font-medium text-sm border-b-2 border-transparent text-gray-600 hover:text-blue-700 hover:border-blue-200',
+    tab: 'px-4 py-2 font-medium text-sm border-b-2 border-transparent text-slate-600 hover:text-blue-700 hover:border-blue-200',
     activeTab: 'border-blue-500 text-blue-600'
   },
   pills: {
     container: 'rounded-xl border border-blue-100 bg-blue-50/70 p-1',
-    tab: 'px-4 py-2 font-medium text-sm rounded-lg text-gray-600 hover:bg-white/80 hover:text-blue-700',
+    tab: 'px-4 py-2 font-medium text-sm rounded-md text-slate-600 hover:bg-white/80 hover:text-blue-700',
     activeTab: 'bg-white text-blue-700 shadow-sm border border-blue-100'
   },
   underline: {
     container: '',
-    tab: 'px-4 py-2 font-medium text-sm border-b-2 border-transparent text-gray-600 hover:text-blue-700',
+    tab: 'px-4 py-2 font-medium text-sm border-b-2 border-transparent text-slate-600 hover:text-blue-700',
     activeTab: 'border-blue-500 text-blue-600'
   }
 };
@@ -102,9 +103,9 @@ export const Tabs: React.FC<TabsProps> = ({
               )}
               <span>{tab.label}</span>
               {tab.badge !== undefined && tab.badge !== null && (
-                <span className="ml-2 rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-xs text-blue-700">
+                <Badge variant="primary" size={size === 'lg' ? 'md' : 'sm'} className="ml-2">
                   {tab.badge}
-                </span>
+                </Badge>
               )}
             </RadixTabs.Trigger>
           );

@@ -167,7 +167,7 @@ export default function EventRow({ event, onRequestDelete }: EventRowProps) {
                 size="sm"
                 icon={Eye}
                 title={"Tədbirə bax"}
-                className="rounded-xl border border-transparent hover:border-blue-200 hover:bg-blue-50"
+                className="rounded-xl hover:border-blue-200 hover:bg-blue-50"
               />
             </Link>
             <Link href={localePath(`/dashboard/events/${event.slug}/edit`)} onMouseEnter={prefetchDetail} onFocus={prefetchDetail}>
@@ -176,7 +176,7 @@ export default function EventRow({ event, onRequestDelete }: EventRowProps) {
                 size="sm"
                 icon={Edit}
                 title={"Tədbiri redaktə et"}
-                className="rounded-xl border border-transparent hover:border-cyan-200 hover:bg-cyan-50"
+                className="rounded-xl hover:border-cyan-200 hover:bg-cyan-50"
               />
             </Link>
             <Button
@@ -185,7 +185,7 @@ export default function EventRow({ event, onRequestDelete }: EventRowProps) {
               size="sm"
               icon={Trash2}
               title={"Tədbiri sil"}
-              className="rounded-xl border border-transparent text-red-600 hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+              className="rounded-xl text-red-600 hover:border-red-200 hover:bg-red-50 hover:text-red-700"
             />
           </div>
         </div>

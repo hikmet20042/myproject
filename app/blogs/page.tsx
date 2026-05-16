@@ -113,7 +113,7 @@ export default function CommunityBlogs() {
             <ButtonLink href={localePath('/dashboard/events/create')} variant="secondary" size="lg" className="rounded-full px-8">
               Tədbir Paylaş
             </ButtonLink>
-            <ButtonLink href={localePath('/dashboard/vacancies/create')} variant="outline" size="lg" className="rounded-full px-8 bg-white/70 backdrop-blur-sm">
+            <ButtonLink href={localePath('/dashboard/vacancies/create')} variant="white-on-dark" size="lg" className="rounded-full px-8">
               Vakansiya Paylaş
             </ButtonLink>
           </>
@@ -122,7 +122,7 @@ export default function CommunityBlogs() {
             <ButtonLink href={localePath('/submit/blog')} variant="secondary" size="lg" className="rounded-full px-8 shadow-xl shadow-blue-500/20">
               Bloq Paylaş
             </ButtonLink>
-            <ButtonLink href={localePath('/resources')} variant="outline" size="lg" className="rounded-full px-8 bg-white/70 backdrop-blur-sm">
+            <ButtonLink href={localePath('/resources')} variant="white-on-dark" size="lg" className="rounded-full px-8">
               Fürsətləri Kəşf Et
             </ButtonLink>
           </>
@@ -187,9 +187,9 @@ export default function CommunityBlogs() {
           <div className="flex justify-center">
             <ButtonLink
               href={localePath('/submit/blog')}
-              variant="secondary"
+              variant="white-on-dark"
               size="lg"
-              className="rounded-2xl px-10 py-4 font-black bg-white text-slate-900 hover:bg-slate-100 border-none"
+              className="rounded-2xl px-10 py-4 font-black"
             >
               Bloq yazısını göndər
             </ButtonLink>

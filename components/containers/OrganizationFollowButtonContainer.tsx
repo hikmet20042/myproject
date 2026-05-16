@@ -14,7 +14,7 @@ import { fetchOrganizationFollowState, toggleOrganizationFollow } from '@/lib/or
 type OrganizationFollowButtonContainerProps = {
   organizationId: string
   organizationName?: string
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+  size?: 'xs' | 'sm' | 'md' | 'lg'
   showFollowerCount?: boolean
   className?: string
 }
@@ -144,7 +144,7 @@ export default function OrganizationFollowButtonContainer({
         {isFollowing ? 'İzləyirsən' : 'İzlə'}
       </Button>
       {showFollowerCount && (
-        <span className="text-xs font-medium text-gray-500 whitespace-nowrap">
+        <span className="text-xs font-medium text-slate-500 whitespace-nowrap">
           {followerLabel}
         </span>
       )}

@@ -4,7 +4,9 @@ import { useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSession } from '@/lib/auth/client'
-import { ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react'
+import { ThumbsUp, ThumbsDown } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
+import { Loading } from '@/components/ui/Loading'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { blogQueryKeys, dislikeBlog, fetchBlogReactions, likeBlog } from '@/lib/blogQueries'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
@@ -144,66 +146,46 @@ export default function BlogReactionsContainer({ blogSlug,
 
   if (status === 'loading') { return (
       <div className={`flex items-center gap-3 ${className}`}>
-        <div className="flex items-center gap-4 px-4 py-2 bg-white border-2 border-blue-100 rounded-xl animate-pulse">
-          <div className="flex items-center gap-2 text-gray-400">
-            <ThumbsUp className="w-5 h-5" />
-            <span className="text-sm font-semibold">—</span>
-          </div>
-          <div className="w-px h-6 bg-slate-300"></div>
-          <div className="flex items-center gap-2 text-gray-400">
-            <ThumbsDown className="w-5 h-5" />
-            <span className="text-sm font-semibold">—</span>
-          </div>
-        </div>
+        <Loading variant="pulse" size="md" className="rounded-xl border border-blue-100" />
       </div>
     ) }
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
       {/* Like Button */}
-      <button
+      <Button
+        variant="ghost"
+        className={`group relative flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 ${reactionState.hasLiked ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20 scale-[1.02]' : 'bg-white border-2 border-blue-100 text-gray-700 hover:border-blue-500 hover:text-blue-600 hover:shadow-md hover:-translate-y-0.5'} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
         onClick={handleLike}
         disabled={isLoading}
-        className={`group relative flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 ${reactionState.hasLiked
-          ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20 scale-[1.02]'
-          : 'bg-white border-2 border-blue-100 text-gray-700 hover:border-blue-500 hover:text-blue-600 hover:shadow-md hover:-translate-y-0.5' } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         {isLoading ? (
-          <Loader2 className="w-5 h-5 animate-spin" />
+          <Loading size="md" variant="spinner" color="current" />
         ) : (
-          <ThumbsUp
-            className={`w-5 h-5 transition-transform duration-200 ${reactionState.hasLiked ? 'fill-current' : 'group-hover:scale-110' }`}
-          />
+          <ThumbsUp className={`w-5 h-5 transition-transform duration-200 ${reactionState.hasLiked ? 'fill-current' : 'group-hover:scale-110'}`} />
         )}
-        <span className="text-sm font-bold min-w-[20px] text-center">
-          {reactionState.likes}
-        </span>
+        <span className="text-sm font-bold min-w-[20px] text-center">{reactionState.likes}</span>
         {reactionState.hasLiked && !isLoading && (
           <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-bounce"></div>
         )}
-      </button>
+      </Button>
 
       {/* Dislike Button */}
-      <button
+      <Button
+        variant="ghost"
+        className={`group relative flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 ${reactionState.hasDisliked ? 'bg-rose-600 text-white shadow-md shadow-rose-500/20 scale-[1.02]' : 'bg-white border-2 border-blue-100 text-gray-700 hover:border-red-500 hover:text-red-600 hover:shadow-md hover:-translate-y-0.5'} ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
         onClick={handleDislike}
         disabled={isLoading}
-        className={`group relative flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 ${reactionState.hasDisliked
-          ? 'bg-rose-600 text-white shadow-md shadow-rose-500/20 scale-[1.02]'
-          : 'bg-white border-2 border-blue-100 text-gray-700 hover:border-red-500 hover:text-red-600 hover:shadow-md hover:-translate-y-0.5' } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         {isLoading ? (
-          <Loader2 className="w-5 h-5 animate-spin" />
+          <Loading size="md" variant="spinner" color="current" />
         ) : (
-          <ThumbsDown
-            className={`w-5 h-5 transition-transform duration-200 ${reactionState.hasDisliked ? 'fill-current' : 'group-hover:scale-110' }`}
-          />
+          <ThumbsDown className={`w-5 h-5 transition-transform duration-200 ${reactionState.hasDisliked ? 'fill-current' : 'group-hover:scale-110'}`} />
         )}
-        <span className="text-sm font-bold min-w-[20px] text-center">
-          {reactionState.dislikes}
-        </span>
+        <span className="text-sm font-bold min-w-[20px] text-center">{reactionState.dislikes}</span>
         {reactionState.hasDisliked && !isLoading && (
           <div className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full border-2 border-white animate-bounce"></div>
         )}
-      </button>
+      </Button>
     </div>
   ) }

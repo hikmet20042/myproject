@@ -8,7 +8,6 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   error?: string;
   icon?: LucideIcon;
   iconPosition?: 'left' | 'right';
-  variant?: 'default' | 'orange' | 'indigo' | 'purple';
   inputSize?: 'sm' | 'md' | 'lg';
 }
 
@@ -21,55 +20,47 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     error,
     icon: Icon,
     iconPosition = 'left',
-    variant = 'default',
     inputSize = 'md',
     id,
     required,
     ...props
   }, ref) => {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
-    
-    const baseClasses = 'w-full rounded-xl border bg-white text-gray-900 shadow-sm transition-all duration-200 focus:outline-none';
-    
-    const variants = {
-      default: 'border-blue-100 focus:border-blue-400 focus:ring-4 focus:ring-blue-100',
-      orange: 'border-emerald-100 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100',
-      indigo: 'border-blue-100 focus:border-blue-400 focus:ring-4 focus:ring-blue-100',
-      purple: 'border-cyan-100 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-100'
-    };
-    
+
+    const baseClasses = 'w-full rounded-md border bg-white text-slate-900 shadow-card transition-all duration-200 focus:outline-none';
+
     const sizes = {
       sm: 'px-3 py-1.5 text-sm',
-      md: 'px-4 py-3 text-base',
-      lg: 'px-4 py-2.5 text-base'
+      md: 'px-4 py-2.5 text-sm',
+      lg: 'px-4 py-3 text-base',
     };
-    
+
     const iconSizes = {
       sm: 'w-4 h-4',
       md: 'w-4 h-4',
-      lg: 'w-5 h-5'
+      lg: 'w-5 h-5',
     };
-    
+
     return (
       <div className="space-y-1.5">
         {label && (
-          <label htmlFor={inputId} className="block text-sm font-medium text-gray-700">
+          <label htmlFor={inputId} className="block text-sm font-bold text-slate-700">
             {label}
-            {required && <span className="text-red-500 ml-1">*</span>}
+            {required && <span className="ml-1 text-red-500">*</span>}
           </label>
         )}
-        
+
         {description && (
-          <p className="text-xs text-gray-600 mb-2">{description}</p>
+          <p className="mb-2 text-xs text-slate-500">{description}</p>
         )}
-        
+
         <div className="relative">
           {Icon && iconPosition === 'left' && (
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+            <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
               <Icon className={iconSizes[inputSize]} />
             </div>
           )}
-          
+
           <input
             type={type}
             id={inputId}
@@ -77,25 +68,25 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             required={required}
             className={cn(
               baseClasses,
-              variants[variant],
               sizes[inputSize],
-              Icon && iconPosition === 'left' && 'pl-12',
-              Icon && iconPosition === 'right' && 'pr-12',
+              'border-slate-200 placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100',
+              Icon && iconPosition === 'left' && 'pl-10',
+              Icon && iconPosition === 'right' && 'pr-10',
               error && 'border-red-300 focus:border-red-500 focus:ring-red-100',
               className
             )}
             {...props}
           />
-          
+
           {Icon && iconPosition === 'right' && (
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
               <Icon className={iconSizes[inputSize]} />
             </div>
           )}
         </div>
-        
+
         {error && (
-          <p className="text-sm text-red-600 mt-1">{error}</p>
+          <p className="mt-1 text-sm text-red-600">{error}</p>
         )}
       </div>
     );

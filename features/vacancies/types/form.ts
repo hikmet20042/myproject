@@ -8,6 +8,8 @@ export type VacancyFormData = {
   title: string
   type: VacancyTypeValue
   description: string
+  category: string
+  experienceLevel: string
   city: string
   address: string
   isPaid: boolean
@@ -100,6 +102,8 @@ export const INITIAL_VACANCY_FORM_DATA: VacancyFormData = {
   title: '',
   type: 'full_time',
   description: '',
+  category: '',
+  experienceLevel: '',
   city: '',
   address: '',
   isPaid: false,

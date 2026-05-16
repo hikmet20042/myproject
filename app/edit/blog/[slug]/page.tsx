@@ -12,6 +12,7 @@ import { AlertCircle, FileText, Send, Sparkles, User } from 'lucide-react'
 import { blogQueryKeys, editBlog, fetchBlogById } from '@/lib/blogQueries'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { getEditDraftKey, readLocalDraft, removeLocalDraft, writeLocalDraft } from '@/lib/blogDraftStorage'
+import { Card } from '@/components/ui/Card'
 import BlocknoteEditor from '@/components/BlocknoteEditor'
 
 type EditBlogData = {
@@ -274,8 +275,8 @@ export default function EditBlogPage() {
       subtitle={'Bloqunuzu yeniləyin və yoxlama üçün göndərin.'}
     >
       {/* Blog Details Section */}
-      <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+      <Card className="mb-6 p-6">
+        <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
           <FileText className="w-6 h-6 text-blue-600" />
           {'Bloq Təfərrüatları'}
         </h2>
@@ -283,7 +284,7 @@ export default function EditBlogPage() {
         <div className="space-y-6">
           {/* Title Input */}
           <div className="space-y-3">
-            <label className="flex items-center gap-2 text-base font-bold text-gray-900">
+            <label className="flex items-center gap-2 text-base font-bold text-slate-900">
               <FileText className="w-5 h-5 text-blue-600" />
               {'Bloq Başlığı *'}
               <span className="text-red-500">*</span>
@@ -298,29 +299,29 @@ export default function EditBlogPage() {
                 required
                 maxLength={200}
                 placeholder={'Bloqunuz üçün cəlbedici bir başlıq verin...'}
-                className="w-full pl-4 pr-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-300"
+                className="w-full pl-4 pr-4 py-3 text-base border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-300"
               />
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">
                 {title.length}/200
               </div>
             </div>
-            <p className="text-sm text-gray-600 flex items-start gap-2">
+            <p className="text-sm text-slate-600 flex items-start gap-2">
               <Sparkles className="w-4 h-4 mt-0.5 text-blue-500 flex-shrink-0" />
               <span>{'Hekayənizi ən yaxşı ifadə edən cəlbedici başlıq seçin'}</span>
             </p>
           </div>
 
           {/* Author Display */}
-          <div className="rounded-xl border border-gray-200 bg-slate-50 p-4">
-            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{'Müəllif'}</label>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{'Müəllif'}</label>
             <div className="flex items-center gap-2">
-              <User className="w-4 h-4 text-gray-500" />
-              <p className="text-base font-semibold text-gray-900">{displayAuthor}</p>
+              <User className="w-4 h-4 text-slate-500" />
+              <p className="text-base font-semibold text-slate-900">{displayAuthor}</p>
             </div>
           </div>
 
           {/* Anonymous Checkbox */}
-          <div className="p-5 bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 rounded-2xl hover:border-blue-300 transition-all duration-300">
+          <div className="p-5 bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-slate-200 rounded-2xl hover:border-blue-300 transition-all duration-300">
             <div className="flex items-start gap-4">
               <div className="flex items-center h-6">
                 <input
@@ -331,14 +332,14 @@ export default function EditBlogPage() {
                     setIsAnonymous(e.target.checked)
                     saveDraft()
                   }}
-                  className="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+                  className="h-5 w-5 text-blue-600 border-slate-200 rounded focus:ring-blue-500 cursor-pointer"
                 />
               </div>
               <div className="flex-1">
-                <label htmlFor="anon-edit" className="text-base font-semibold text-gray-900 cursor-pointer">
+                <label htmlFor="anon-edit" className="text-base font-semibold text-slate-900 cursor-pointer">
                   {'Anonim göndər'}
                 </label>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-sm text-slate-600 mt-1">
                   {isAnonymous
                     ? 'Kimliyiniz gizli saxlanılacaq. Yalnız "Anonim" göstəriləcək.'
                     : `Bloqunuz "${session?.user?.name || 'İstifadəçi adı'}" adı ilə dərc olunacaq.`}
@@ -347,17 +348,17 @@ export default function EditBlogPage() {
             </div>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Editor Section */}
-      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-        <div className="border-b border-gray-200 bg-slate-50 px-6 py-5">
+      <Card className="overflow-hidden">
+        <div className="border-b border-slate-200 bg-slate-50 px-6 py-5">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
               <FileText className="w-6 h-6 text-blue-600" />
               {'Bloq Məzmunu'}
             </h2>
-            <span className="text-sm font-semibold text-gray-700">{characterCount} simvol</span>
+            <span className="text-sm font-semibold text-slate-700">{characterCount} simvol</span>
           </div>
         </div>
         <div className="p-6 min-h-[400px]">
@@ -373,11 +374,11 @@ export default function EditBlogPage() {
             context="blog"
           />
         </div>
-      </div>
+      </Card>
 
       {/* Progress Hint */}
       {progressHint && (
-        <div className="mt-4 rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700">
+        <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
           {progressHint}
         </div>
       )}

@@ -6,6 +6,9 @@ import { StatsBar } from '@/components/home/StatsBar'
 import { SectionHeader } from '@/components/shared'
 import { ContentCard } from '@/components/shared/ContentCard'
 import { OrganizationCard } from '@/components/shared/OrganizationCard'
+import { Card } from '@/components/ui/Card'
+import { ButtonLink } from '@/components/ui/ButtonLink'
+import { Tabs } from '@/components/ui/Tabs'
 import { LoadingState, EmptyState } from '@/components/shared'
 import { fetchOrganizations } from '@/lib/organizationQueries'
 import { FOCUS_AREA_LABELS_AZ } from '@/lib/organizationTypes'
@@ -601,43 +604,31 @@ export default function HomePage() {
 
             <div className="flex flex-col sm:flex-row items-center gap-6">
               {/* Horizontal Filter Bar */}
-              <div className="flex flex-wrap items-center justify-center gap-2 p-1.5 bg-white rounded-[2rem] border border-slate-100 shadow-sm">
-                <button
-                  type="button"
-                  onClick={() => setActiveFocus('all')}
-                  className={[
-                    'rounded-full px-5 py-2 text-xs font-black transition-all tracking-wide uppercase',
-                    activeFocus === 'all'
-                      ? 'bg-slate-900 text-white shadow-lg'
-                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50',
-                  ].join(' ')}
-                >
-                  Hamısı
-                </button>
-                {focusFilters.map((focus) => (
-                  <button
-                    key={focus}
-                    type="button"
-                    onClick={() => setActiveFocus(focus)}
-                    className={[
-                      'rounded-full px-5 py-2 text-xs font-black transition-all tracking-wide uppercase whitespace-nowrap',
-                      activeFocus === focus
-                        ? 'bg-slate-900 text-white shadow-lg'
-                        : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50',
-                    ].join(' ')}
-                  >
-                    {focusLabel(focus)}
-                  </button>
-                ))}
-              </div>
+              <Card className="rounded-[2rem] border-slate-100 shadow-sm">
+                <Tabs
+                  tabs={[
+                    { id: 'all', label: 'Hamısı' },
+                    ...focusFilters.map(focus => ({ id: focus, label: focusLabel(focus) }))
+                  ]}
+                  activeTab={activeFocus}
+                  onTabChange={(tabId) => setActiveFocus(tabId)}
+                  variant="pills"
+                  size="sm"
+                />
+              </Card>
 
-              <Link 
-                href={localePath('/resources/organizations')} 
-                className="group inline-flex items-center gap-2 rounded-full border-2 border-slate-100 bg-white px-6 py-3 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 hover:border-blue-200 hover:text-blue-600 hover:shadow-lg active:scale-95 whitespace-nowrap"
+              <ButtonLink
+                href={localePath('/resources/organizations')}
+                variant="outline"
+                size="md"
+                rounded="full"
+                shadow="lg"
+                className="border-2 border-slate-100 px-6 py-3 hover:border-blue-200 hover:text-blue-600"
+                icon={ArrowRight}
+                iconPosition="right"
               >
                 Hamısına bax
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Link>
+              </ButtonLink>
             </div>
           </div>
           

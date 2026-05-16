@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
+import { Modal } from '@/components/ui/Modal'
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Calendar,
@@ -13,6 +13,8 @@ import {
   XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { TextArea } from "@/components/ui/Textarea";
 import { LoadingState } from "@/components/shared";
 import AdminActionModal from "@/components/admin/AdminActionModal";
 import { useLocalizedPath } from "@/hooks/useLocalizedPath";
@@ -24,6 +26,9 @@ import {
   EVENT_TYPE_VALUES,
   type EventTypeValue,
 } from "@/lib/events/eventConfig";
+import { Card } from "@/components/ui/Card";
+import { Select } from '@/components/ui/Select'
+import { Badge } from '@/components/ui/Badge'
 
 type AdminEventsPayload = {
   items: any[];
@@ -285,10 +290,10 @@ export default function EventsAdminPage() {
     <AdminListLayout title="Tədbir İdarəetməsi" description="Tədbir təqdimatlarını moderasiya edin və statuslarını idarə edin.">
       <div className="py-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="rounded-xl border border-gray-200 border-l-4 border-l-yellow-500 bg-white p-6 shadow-sm">
+          <Card className="border-l-4 border-l-yellow-500 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-sm font-medium text-slate-600">
                   {"Gözləmədə"}
                 </p>
                 <p className="text-3xl font-bold text-yellow-600">
@@ -297,11 +302,11 @@ export default function EventsAdminPage() {
               </div>
               <Clock className="w-8 h-8 text-yellow-500" />
             </div>
-          </div>
-          <div className="rounded-xl border border-gray-200 border-l-4 border-l-green-500 bg-white p-6 shadow-sm">
+          </Card>
+          <Card className="border-l-4 border-l-green-500 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-sm font-medium text-slate-600">
                   {"Təsdiqlənmiş"}
                 </p>
                 <p className="text-3xl font-bold text-green-600">
@@ -310,11 +315,11 @@ export default function EventsAdminPage() {
               </div>
               <CheckCircle className="w-8 h-8 text-green-500" />
             </div>
-          </div>
-          <div className="rounded-xl border border-gray-200 border-l-4 border-l-red-500 bg-white p-6 shadow-sm">
+          </Card>
+          <Card className="border-l-4 border-l-red-500 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-sm font-medium text-slate-600">
                   {"Rədd Edilmiş"}
                 </p>
                 <p className="text-3xl font-bold text-red-600">
@@ -323,11 +328,11 @@ export default function EventsAdminPage() {
               </div>
               <XCircle className="w-8 h-8 text-red-500" />
             </div>
-          </div>
-          <div className="rounded-xl border border-gray-200 border-l-4 border-l-blue-500 bg-white p-6 shadow-sm">
+          </Card>
+          <Card className="border-l-4 border-l-blue-500 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-sm font-medium text-slate-600">
                   {"Cəmi Tədbirlər"}
                 </p>
                 <p className="text-3xl font-bold text-blue-600">
@@ -336,94 +341,90 @@ export default function EventsAdminPage() {
               </div>
               <Calendar className="w-8 h-8 text-blue-500" />
             </div>
-          </div>
+          </Card>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <Card className="p-6">
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
+                <Input
                   type="text"
+                  icon={Search}
                   placeholder={
                     "Başlıq, təşkilat və ya təsvir üzrə tədbir axtar..."
                   }
                   value={contentSearch}
                   onChange={(e) => setContentSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 />
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <select
+              <Select
+                label="Növ"
                 value={eventTypeFilter}
                 onChange={(e) => setEventTypeFilter(e.target.value)}
-                className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white text-gray-900"
-              >
-                <option value="all">{"Bütün növlər"}</option>
-                {EVENT_TYPE_VALUES.map((type) => (
-                  <option key={type} value={type}>
-                    {EVENT_TYPE_LABELS[type]}
-                  </option>
-                ))}
-              </select>
-              <select
+                options={[
+                  { value: 'all', label: 'Bütün növlər' },
+                  ...EVENT_TYPE_VALUES.map((type) => ({ value: type, label: EVENT_TYPE_LABELS[type] })),
+                ]}
+                variant="default"
+              />
+              <Select
+                label="Status"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white text-gray-900"
-              >
-                <option value="all">{"Bütün Statuslar"}</option>
-                <option value="pending">{"Gözləmədə"}</option>
-                <option value="approved">{"Təsdiqlənmiş"}</option>
-                <option value="rejected">{"Rədd Edilmiş"}</option>
-              </select>
-              <select
+                options={[
+                  { value: 'all', label: 'Bütün Statuslar' },
+                  { value: 'pending', label: 'Gözləmədə' },
+                  { value: 'approved', label: 'Təsdiqlənmiş' },
+                  { value: 'rejected', label: 'Rədd Edilmiş' },
+                ]}
+              />
+              <Select
+                label="Məkan"
                 value={locationFilter}
                 onChange={(e) => setLocationFilter(e.target.value)}
-                className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white text-gray-900"
-              >
-                <option value="all">{"Bütün məkanlar"}</option>
-                <option value="online">{"Onlayn/Hibrid"}</option>
-                <option value="physical">{"Fiziki/Hibrid"}</option>
-                {AZERBAIJAN_CITIES.map((city) => (
-                  <option key={city} value={city}>
-                    {city}
-                  </option>
-                ))}
-              </select>
-              <input
+                options={[
+                  { value: 'all', label: 'Bütün məkanlar' },
+                  { value: 'online', label: 'Onlayn/Hibrid' },
+                  { value: 'physical', label: 'Fiziki/Hibrid' },
+                  ...AZERBAIJAN_CITIES.map((city) => ({ value: city, label: city })),
+                ]}
+              />
+              <Input
                 type="date"
                 value={dateFromFilter}
                 onChange={(e) => setDateFromFilter(e.target.value)}
-                className="px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white text-gray-900"
+                className="px-3 py-2.5 border border-slate-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white text-slate-900"
                 aria-label="Tarixdən"
               />
-              <input
+              <Input
                 type="date"
                 value={dateToFilter}
                 onChange={(e) => setDateToFilter(e.target.value)}
-                className="px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white text-gray-900"
+                className="px-3 py-2.5 border border-slate-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white text-slate-900"
                 aria-label="Tarixə"
               />
             </div>
           </div>
-        </div>
+        </Card>
 
-        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">
+        <Card className="overflow-hidden">
+          <div className="px-6 py-4 border-b border-slate-200">
+            <h3 className="text-lg font-semibold text-slate-900">
               {"Tədbir Təqdimləri"}
             </h3>
           </div>
           <div className="divide-y divide-gray-200">
             {events.length === 0 ? (
               <div className="px-6 py-12 text-center">
-                <Calendar className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">
+                <Calendar className="mx-auto h-12 w-12 text-slate-400" />
+                <h3 className="mt-2 text-sm font-medium text-slate-900">
                   {"Tədbir tapılmadı"}
                 </h3>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-slate-500">
                   {"Filterlərə uyğun tədbir təqdimatı yoxdur."}
                 </p>
               </div>
@@ -460,20 +461,20 @@ export default function EventsAdminPage() {
                                 ? "Rədd Edilmiş"
                                 : "Gözləmədə"}
                           </span>
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 capitalize">
+                          <Badge variant="primary" size="sm" className="capitalize">
                             {EVENT_TYPE_LABELS[event.eventType as EventTypeValue] || event.eventType || "Tədbir"}
-                          </span>
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                          </Badge>
+                          <Badge variant="primary" size="sm">
                             {event.category}
-                          </span>
+                          </Badge>
                         </div>
-                        <h4 className="text-lg font-semibold text-gray-900 mb-1">
+                        <h4 className="text-lg font-semibold text-slate-900 mb-1">
                           {event.title}
                         </h4>
-                        <p className="text-sm text-gray-600 mb-2">
+                        <p className="text-sm text-slate-600 mb-2">
                           {event.description?.substring(0, 150)}...
                         </p>
-                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <div className="flex items-center gap-4 text-sm text-slate-500">
                           <span>
                             {"Təşkilatçı"}:{" "}
                             {event.organizationName || "Naməlum"}
@@ -562,9 +563,9 @@ export default function EventsAdminPage() {
           </div>
 
           {eventPagination.totalPages > 1 && (
-            <div className="px-6 py-4 border-t border-gray-200">
+            <div className="px-6 py-4 border-t border-slate-200">
               <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-700">
+                <div className="text-sm text-slate-700">
                   {"Səhifə"} {eventPagination.page} {"/"}{" "}
                   {eventPagination.totalPages}
                 </div>
@@ -593,78 +594,59 @@ export default function EventsAdminPage() {
               </div>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {showEventModal && selectedEvent && (
-        <Dialog.Root
-          open={showEventModal}
-          onOpenChange={(open) => {
-            if (!open) setShowEventModal(false);
-          }}
+        <Modal
+          isOpen={showEventModal}
+          onClose={() => setShowEventModal(false)}
+          title={eventAction === "approve" ? "Tədbiri Təsdiqlə" : "Tədbiri Rədd Et"}
+          size="lg"
         >
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
-            <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-gray-200 bg-white p-6 shadow-md">
-              <div className="flex items-center justify-between mb-6">
-                <Dialog.Title className="text-xl font-semibold text-gray-900">
-                  {eventAction === "approve"
-                    ? "Tədbiri Təsdiqlə"
-                    : "Tədbiri Rədd Et"}
-                </Dialog.Title>
-                <Dialog.Close asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <XCircle className="w-6 h-6" />
-                  </Button>
-                </Dialog.Close>
-              </div>
 
               <div className="space-y-4">
-                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
                   {eventAction === "approve"
                     ? "Bu tədbiri təsdiqləmək istədiyinizə əminsiniz?"
                     : "Bu tədbiri rədd etmək istədiyinizə əminsiniz?"}
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-semibold text-gray-900 mb-2">
+                <div className="bg-gray-50 p-4 rounded-md">
+                  <h4 className="font-semibold text-slate-900 mb-2">
                     {selectedEvent.title}
                   </h4>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="font-medium text-gray-700">
+                      <span className="font-medium text-slate-700">
                         {"Kateqoriya"}:
                       </span>
-                      <span className="ml-2 text-gray-600">
+                      <span className="ml-2 text-slate-600">
                         {selectedEvent.category}
                       </span>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-700">
+                      <span className="font-medium text-slate-700">
                         {"Yaradan"}:
                       </span>
-                      <span className="ml-2 text-gray-600">
+                      <span className="ml-2 text-slate-600">
                         {selectedEvent.organizationName || "Naməlum"}
                       </span>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-700">
+                      <span className="font-medium text-slate-700">
                         {"Başlama Tarixi"}:
                       </span>
-                      <span className="ml-2 text-gray-600">
+                      <span className="ml-2 text-slate-600">
                         {new Date(
                           selectedEvent.eventDate,
                         ).toLocaleDateString()}
                       </span>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-700">
+                      <span className="font-medium text-slate-700">
                         {"Yer"}:
                       </span>
-                      <span className="ml-2 text-gray-600">
+                      <span className="ml-2 text-slate-600">
                         {selectedEvent.location?.type || "Naməlum"}
                       </span>
                     </div>
@@ -673,16 +655,13 @@ export default function EventsAdminPage() {
 
                 {eventAction === "reject" && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {"Rədd etmə səbəbi"} ({"mütləq"})
-                    </label>
-                    <textarea
+                    <TextArea
+                      label={"Rədd etmə səbəbi (mütləq)"}
                       value={eventRejectionReason}
                       onChange={(e) => setEventRejectionReason(e.target.value)}
                       placeholder={
                         "Zəhmət olmasa bu tədbiri rədd etmək üçün ətraflı şərh daxil edin..."
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       rows={4}
                       required
                     />
@@ -690,11 +669,13 @@ export default function EventsAdminPage() {
                 )}
 
                 <div className="flex justify-end space-x-3">
-                  <Dialog.Close asChild>
-                    <Button variant="outline" size="sm">
-                      {"Ləğv Et"}
-                    </Button>
-                  </Dialog.Close>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowEventModal(false)}
+                  >
+                    {"Ləğv Et"}
+                  </Button>
                   <Button
                     onClick={executeEventAction}
                     disabled={
@@ -713,9 +694,7 @@ export default function EventsAdminPage() {
                   </Button>
                 </div>
               </div>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
+        </Modal>
       )}
 
       <AdminActionModal

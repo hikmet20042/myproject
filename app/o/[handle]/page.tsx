@@ -18,8 +18,11 @@ import {
   ExternalLink,
   ChevronRight,
 } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
 import OrganizationFollowButtonContainer from '@/components/containers/OrganizationFollowButtonContainer'
 import Link from 'next/link'
+import { Card } from '@/components/ui/Card'
+import { SocialLink } from '@/components/ui'
 
 type OrgProfile = {
   id: string
@@ -170,7 +173,7 @@ export default function PublicOrgProfilePage() {
           </nav>
 
           {/* Hero Section */}
-          <section className="mb-8 rounded-xl border border-slate-200 bg-white p-6 shadow-[0_20px_50px_rgba(0,0,0,0.04)] md:p-8">
+          <Card className="mb-8 p-6 md:p-8">
             <div className="flex flex-col gap-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
                 <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -217,37 +220,37 @@ export default function PublicOrgProfilePage() {
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_20px_50px_rgba(0,0,0,0.04)]">
+                <Card className="p-5">
                   <p className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">İzləyicilər</p>
                   <p className="font-newsreader text-3xl font-semibold text-blue-600">{followerLabel}</p>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_20px_50px_rgba(0,0,0,0.04)]">
+                </Card>
+                <Card className="p-5">
                   <p className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">Aktiv tədbirlər</p>
                   <p className="font-newsreader text-3xl font-semibold text-slate-900">{eventLabel}</p>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_20px_50px_rgba(0,0,0,0.04)]">
+                </Card>
+                <Card className="p-5">
                   <p className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">Açıq vakansiyalar</p>
                   <p className="font-newsreader text-3xl font-semibold text-slate-900">{vacancyLabel}</p>
-                </div>
+                </Card>
               </div>
             </div>
-          </section>
+          </Card>
 
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-start">
             {/* Main Column */}
             <div className="space-y-8 lg:col-span-8">
-              <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-[0_20px_50px_rgba(0,0,0,0.04)] md:p-8">
+              <Card className="p-6 md:p-8">
                 <div className="mb-6 border-b border-slate-100 pb-3">
                   <h2 className="font-newsreader text-2xl font-semibold text-slate-900 md:text-[30px]">Haqqında</h2>
                 </div>
                 <div className="space-y-4 text-[17px] leading-8 text-slate-600">
                   <p>{org.description || 'Bu təşkilat haqqında hələlik ətraflı məlumat əlavə olunmayıb.'}</p>
                 </div>
-              </section>
+              </Card>
 
               {org.focusAreas.length > 0 && (
-                <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-[0_20px_50px_rgba(0,0,0,0.04)] md:p-8">
+                <Card className="p-6 md:p-8">
                   <div className="mb-6 border-b border-slate-100 pb-3">
                     <h2 className="font-newsreader text-2xl font-semibold text-slate-900 md:text-[30px]">Mission &amp; Focus</h2>
                   </div>
@@ -261,10 +264,10 @@ export default function PublicOrgProfilePage() {
                       </span>
                     ))}
                   </div>
-                </section>
+                </Card>
               )}
 
-              <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-[0_20px_50px_rgba(0,0,0,0.04)] md:p-8">
+              <Card className="p-6 md:p-8">
                 <div className="mb-6 flex items-end justify-between border-b border-slate-100 pb-3">
                   <h2 className="font-newsreader text-2xl font-semibold text-slate-900 md:text-[30px]">Recent Activity</h2>
                   <Link href={localePath('/resources/events')} className="mb-1 text-sm font-semibold text-blue-600 hover:underline">
@@ -319,12 +322,12 @@ export default function PublicOrgProfilePage() {
                     </div>
                   )}
                 </div>
-              </section>
+              </Card>
             </div>
 
             {/* Sidebar */}
             <aside className="space-y-8 lg:col-span-4 lg:sticky lg:top-28">
-              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-[0_20px_50px_rgba(0,0,0,0.04)]">
+              <Card className="p-6">
                 <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-100 pb-4">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Actions</p>
@@ -342,19 +345,20 @@ export default function PublicOrgProfilePage() {
                     size="lg"
                     showFollowerCount={false}
                   />
-                  <button
-                    type="button"
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={handleShare}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-all hover:border-blue-200 hover:bg-slate-50 hover:text-blue-600"
+                    icon={Share2}
+                    className="w-full gap-2 rounded-lg px-4 py-3 text-sm font-semibold"
                     aria-label={`Paylaş: ${org.organizationName}`}
                   >
-                    <Share2 className="h-4 w-4" />
                     Paylaş
-                  </button>
+                  </Button>
                 </div>
-              </div>
+              </Card>
 
-              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-[0_20px_50px_rgba(0,0,0,0.04)]">
+              <Card className="p-6">
                 <h3 className="mb-6 flex items-center gap-2 font-newsreader text-2xl font-semibold text-slate-900">
                   <Globe className="h-5 w-5 text-blue-600" />
                   Əlaqə
@@ -400,23 +404,22 @@ export default function PublicOrgProfilePage() {
                     <div className="pt-2">
                       <p className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-400">Social Links</p>
                       <div className="flex flex-wrap gap-3">
-                        {socialLinks.map(([key, url]) => (
-                          <a
-                            key={key}
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 transition-colors hover:border-blue-200 hover:text-blue-600"
-                            aria-label={key}
-                          >
-                            <Globe className="h-4 w-4" />
-                          </a>
-                        ))}
+                        {socialLinks.map(([key, url]) => {
+                          const knownPlatforms = ['facebook', 'twitter', 'instagram', 'linkedin', 'youtube', 'tiktok'];
+                          if (knownPlatforms.includes(key)) {
+                            return <SocialLink key={key} platform={key as any} href={url} variant="icon-only" />;
+                          }
+                          return (
+                            <a key={key} href={url} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 transition-colors hover:border-blue-200 hover:text-blue-600" aria-label={key}>
+                              <Globe className="h-4 w-4" />
+                            </a>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
                 </div>
-              </div>
+              </Card>
 
               <div className="rounded-xl border border-slate-200 bg-slate-900 p-6 text-white shadow-[0_20px_50px_rgba(0,0,0,0.1)]">
                 <h3 className="mb-6 font-newsreader text-2xl font-semibold">Statistika</h3>
@@ -432,7 +435,7 @@ export default function PublicOrgProfilePage() {
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.04)]">
+              <Card>
                 <div className="bg-slate-50 px-6 py-4 border-b border-slate-100">
                   <h3 className="font-newsreader text-2xl font-semibold text-slate-900">Quick Reference</h3>
                 </div>
@@ -465,7 +468,7 @@ export default function PublicOrgProfilePage() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </Card>
             </aside>
           </div>
         </main>

@@ -92,7 +92,7 @@ export function ResourceCard({
   const content = (
       <Card
         data-resource-type={type}
-        className={`h-full border-2 border-gray-200 ${hoverBorderColor} hover:shadow-lg transition-all duration-300 hover:scale-[1.02] ${className}`}
+        className={`h-full border-2 border-slate-200 ${hoverBorderColor} hover:shadow-lg transition-all duration-300 hover:scale-[1.02] ${className}`}
       >
         <CardContent className={`relative p-6 h-full flex flex-col bg-gradient-to-br from-white to-gray-50 ${hoverGradient} transition-all duration-300`}>
           {topRight && (
@@ -102,7 +102,7 @@ export function ResourceCard({
           )}
           {/* Image */}
           {imageUrl && (
-            <div className="mb-4 rounded-lg overflow-hidden">
+            <div className="mb-4 rounded-md overflow-hidden">
               <Image
                 src={imageUrl}
                 alt={title}
@@ -137,25 +137,25 @@ export function ResourceCard({
               {(views !== undefined || likes !== undefined || dislikes !== undefined || saves !== undefined) && (
                 <div className="flex items-center gap-3">
                   {views !== undefined && (
-                    <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500 bg-gray-100/50 px-2 py-1 rounded-lg">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-gray-100/50 px-2 py-1 rounded-md">
                       <Eye className="w-3.5 h-3.5" />
                       <span>{views.toLocaleString()}</span>
                     </div>
                   )}
                   {likes !== undefined && (
-                    <div className="flex items-center gap-1.5 text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
                       <ThumbsUp className="w-3.5 h-3.5 fill-current" />
                       <span>{likes.toLocaleString()}</span>
                     </div>
                   )}
                   {dislikes !== undefined && (
-                    <div className="flex items-center gap-1.5 text-xs font-medium text-rose-700 bg-rose-50 px-2 py-1 rounded-lg">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-rose-700 bg-rose-50 px-2 py-1 rounded-md">
                       <ThumbsDown className="w-3.5 h-3.5" />
                       <span>{dislikes.toLocaleString()}</span>
                     </div>
                   )}
                   {saves !== undefined && (
-                    <div className="flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-1 rounded-lg">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-1 rounded-md">
                       <Bookmark className="w-3.5 h-3.5" />
                       <span>{saves.toLocaleString()}</span>
                     </div>
@@ -166,13 +166,13 @@ export function ResourceCard({
           )}
 
           {/* Title */}
-          <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">
+          <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">
             {title}
           </h3>
 
           {/* Description */}
           {description && (
-            <p className="text-gray-600 mb-4 flex-1 line-clamp-3">
+            <p className="text-slate-600 mb-4 flex-1 line-clamp-3">
               {description}
             </p>
           )}
@@ -185,13 +185,13 @@ export function ResourceCard({
 
           {/* Footer */}
           {footer && (
-            <div className="mt-auto pt-4 border-t border-gray-200">
+            <div className="mt-auto pt-4 border-t border-slate-200">
               {footer}
             </div>
           )}
 
           {actions && (
-            <div className="pt-4 border-t border-gray-200 mt-auto">
+            <div className="pt-4 border-t border-slate-200 mt-auto">
               {actions}
             </div>
           )}
@@ -201,7 +201,7 @@ export function ResourceCard({
             <div className="mt-4">
               <Button
                 variant="outline"
-                className="w-full group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all duration-300"
+                className="w-full"
               >
                 {actionText}
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
@@ -222,9 +222,9 @@ export function ResourceCard({
 
   if (onClick) {
     return (
-      <div onClick={onClick} role="button" tabIndex={0} className={`group block cursor-pointer ${wrapperClassName}`} style={style} onKeyDown={(e) => e.key === 'Enter' && onClick()}>
+      <button type="button" onClick={onClick} className={`group block w-full cursor-pointer text-left rounded-xl transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 ${wrapperClassName}`} style={style}>
         {content}
-      </div>
+      </button>
     );
   }
 

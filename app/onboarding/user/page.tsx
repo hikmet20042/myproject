@@ -7,6 +7,7 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { FormLayout } from '@/components/forms'
 import { Button, Input } from '@/components/ui'
 import { LoadingState } from '@/components/shared'
+import { Card } from '@/components/ui/Card'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 
 const INTEREST_OPTIONS = ['IT', 'Təhsil', 'Könüllülük', 'Sosial fəaliyyət', 'Digər']
@@ -91,7 +92,7 @@ export default function OnboardingUserPage() {
         ? 'Adınızı daxil edin və maraq sahələrinizi seçin.'
         : 'Təcrübəni fərdiləşdirmək üçün ən azı 1 sahə seçin (maksimum 5).'}
     >
-      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+      <Card className="p-6 sm:p-8">
         {needsName && (
           <div className="mb-6">
             <Input
@@ -104,34 +105,35 @@ export default function OnboardingUserPage() {
           </div>
         )}
 
-        <h3 className="text-base font-bold text-gray-900 mb-3">Maraq sahələri</h3>
+        <h3 className="text-base font-bold text-slate-900 mb-3">Maraq sahələri</h3>
         <div className="flex flex-wrap gap-3">
           {INTEREST_OPTIONS.map((interest) => {
             const active = selectedInterests.includes(interest)
             return (
-              <button
+              <Button
                 key={interest}
-                type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => toggleInterest(interest)}
-                className={`rounded-full border px-4 py-2 text-sm font-semibold transition-all ${
+                className={`rounded-full px-4 py-2 text-sm font-semibold ${
                   active
                     ? 'border-blue-600 bg-blue-600 text-white'
-                    : 'border-gray-300 bg-white text-gray-700 hover:border-blue-300 hover:text-blue-700'
+                    : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:text-blue-700'
                 }`}
               >
                 {interest}
-              </button>
+              </Button>
             )}
           )}
         </div>
 
         <div className="mt-6 flex items-center justify-between">
-          <span className="text-sm text-gray-600">{selectedInterests.length}/5 seçildi</span>
+          <span className="text-sm text-slate-600">{selectedInterests.length}/5 seçildi</span>
           <Button onClick={handleSubmit} loading={isSubmitting} disabled={isSubmitting} variant="primary">
             Davam et
           </Button>
         </div>
-      </div>
+      </Card>
     </FormLayout>
   )
 }

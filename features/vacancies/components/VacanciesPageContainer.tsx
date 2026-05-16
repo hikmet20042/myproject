@@ -145,7 +145,7 @@ export default function VacanciesPageContainer() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-start sm:justify-between">
+      <Card className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-cyan-200 bg-cyan-100 text-cyan-700">
             <Briefcase className="h-5 w-5" />
@@ -162,7 +162,7 @@ export default function VacanciesPageContainer() {
             Vakansiya yarat
           </Button>
         </Link>
-      </header>
+      </Card>
 
       {feedbackMessage && (
         <Alert
@@ -198,8 +198,7 @@ export default function VacanciesPageContainer() {
                 placeholder={"Vakansiya adı və ya təşkilat adı axtar."}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                variant="indigo"
-                className="h-12 border-blue-100 bg-white pl-7"
+                className="h-12 border-slate-200 bg-white pl-7"
                 disabled={sectionState === "loading-initial"}
               />
             </div>

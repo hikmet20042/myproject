@@ -4,7 +4,8 @@
  * Used across: All pages with loading states
  */
 
-import { Loader2 } from 'lucide-react'
+import { Loading } from '@/components/ui/Loading'
+import { Card } from '@/components/ui/Card'
 
 interface LoadingStateProps {
   title?: string
@@ -27,14 +28,14 @@ export default function LoadingState({
 
   return (
     <div className={`${containerClassName} ${className}`}>
-      <div className="w-full max-w-md rounded-2xl border border-blue-100 bg-white p-8 text-center shadow-sm">
+      <Card className="w-full max-w-md p-8 text-center">
         
         <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-600">
-          <Loader2 className="h-8 w-8 animate-spin" />
+          <Loading size="lg" variant="spinner" color="primary" />
         </div>
-        <h2 className="text-xl font-bold text-gray-900">{title}</h2>
-        <p className="mt-2 text-sm text-gray-600">{text}</p>
-      </div>
+        <h2 className="text-xl font-bold text-slate-900">{title}</h2>
+        <p className="mt-2 text-sm text-slate-600">{text}</p>
+      </Card>
     </div>
   )
 }

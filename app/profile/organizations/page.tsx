@@ -1,13 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Building2, Search, UserMinus } from "lucide-react";
 import { EmptyState } from "@/components/shared";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
+import { ButtonLink } from "@/components/ui";
 import { useLocalizedPath } from "@/hooks/useLocalizedPath";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import { fetchFollowedOrganizations, toggleOrganizationFollow } from "@/lib/organizationQueries";
@@ -95,7 +95,7 @@ export default function ProfileFollowedOrganizationsPage() {
         {followedQuery.isLoading ? (
           <div className="space-y-3">
             {[...Array(3)].map((_, idx) => (
-              <div key={idx} className="animate-pulse rounded-xl border border-gray-200 p-4">
+              <div key={idx} className="animate-pulse rounded-xl border border-slate-200 p-4">
                 <div className="h-5 w-40 rounded bg-gray-200" />
                 <div className="mt-3 h-4 w-3/4 rounded bg-gray-100" />
               </div>
@@ -128,35 +128,36 @@ export default function ProfileFollowedOrganizationsPage() {
         ) : (
           <div className="space-y-4">
             {items.map((organization: any) => (
-              <Card key={organization._id} className="border border-gray-200 shadow-sm">
+              <Card key={organization._id} className="border border-slate-200 shadow-sm">
                 <CardContent className="p-4 sm:p-5">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-blue-50 text-blue-700">
                           <Building2 className="h-4 w-4" />
                         </span>
-                        <h3 className="text-lg font-semibold text-gray-900">
+                        <h3 className="text-lg font-semibold text-slate-900">
                           {organization.organizationName}
                         </h3>
                       </div>
                       {organization.description ? (
-                        <p className="text-sm text-gray-600 line-clamp-2">{organization.description}</p>
+                        <p className="text-sm text-slate-600 line-clamp-2">{organization.description}</p>
                       ) : null}
                       {organization.followedAt ? (
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-slate-500">
                           {`İzləmə tarixi: ${new Date(organization.followedAt).toLocaleDateString("az-AZ")}`}
                         </p>
                       ) : null}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
-                      <Link
+                      <ButtonLink
                         href={localePath(`/o/${organization.slug}`)}
-                        className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-50"
+                        variant="outline"
+                        size="sm"
                       >
                         Profili gör
-                      </Link>
+                      </ButtonLink>
                       <Button
                         variant="outline"
                         size="sm"
@@ -174,7 +175,7 @@ export default function ProfileFollowedOrganizationsPage() {
             ))}
 
             {totalPages > 1 && (
-              <div className="flex items-center justify-between border-t border-gray-200 pt-4">
+              <div className="flex items-center justify-between border-t border-slate-200 pt-4">
                 <Button
                   variant="outline"
                   size="sm"
@@ -183,7 +184,7 @@ export default function ProfileFollowedOrganizationsPage() {
                 >
                   Əvvəlki
                 </Button>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-slate-500">
                   {`Səhifə ${page} / ${totalPages}`}
                 </span>
                 <Button

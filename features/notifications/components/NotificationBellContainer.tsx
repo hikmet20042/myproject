@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Bell, Loader2 } from 'lucide-react'
+import { Bell } from 'lucide-react'
+import { Loading } from '@/components/ui/Loading'
 import { useSession } from '@/lib/auth/client'
 import { type NotificationItem, useNotificationContext } from '@/features/notifications/context/NotificationContext'
 import { useSSENotifications } from '@/features/notifications/providers/SSENotificationProvider'
@@ -11,6 +12,7 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 
 // Patch NotificationItem type to match NotificationContext
 import NotificationItemRow from '@/components/ui/notifications/NotificationItem'
+import { Button } from '@/components/ui/Button'
 import type { NotificationItem as NotificationItemType } from '@/features/notifications/context/NotificationContext'
 
 interface NotificationBellContainerProps {
@@ -252,10 +254,11 @@ export default function NotificationBellContainer({ className = '' }: Notificati
 
   return (
     <div className={`relative ${className}`} ref={notificationsRef}>
-      <button
+      <Button
+        variant="ghost"
+        className="relative flex items-center justify-center p-2 rounded-full hover:bg-slate-100"
+        aria-label="Bildirişlər"
         onClick={handleNotificationsToggle}
-        className="relative flex items-center justify-center p-2 text-gray-700 hover:text-blue-600 transition-colors duration-200 rounded-full hover:bg-slate-100"
-        aria-label={'Bildirişlər'}
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
@@ -268,7 +271,7 @@ export default function NotificationBellContainer({ className = '' }: Notificati
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
-      </button>
+      </Button>
 
       {/* Notifications Dropdown */}
       {notificationsOpen && (
@@ -279,14 +282,16 @@ export default function NotificationBellContainer({ className = '' }: Notificati
               <h3 className="text-base font-semibold text-gray-900">{'Bildirişlər'}</h3>
               <div className="flex items-center gap-2">
                 {unreadCount > 0 && (
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    className="text-xs text-blue-600 hover:text-blue-700 disabled:text-blue-400 font-medium inline-flex items-center gap-1"
                     onClick={handleMarkAllAsRead}
                     disabled={markAllLoading}
-                    className="text-xs text-blue-600 hover:text-blue-700 disabled:text-blue-400 font-medium transition-colors inline-flex items-center gap-1"
                   >
-                    {markAllLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    {markAllLoading && <Loading size="sm" variant="spinner" color="primary" />}
                     {'Hamısını oxunmuş kimi işarələ'}
-                  </button>
+                  </Button>
                 )}
                 <Link
                   href={viewAllNotificationsPath}

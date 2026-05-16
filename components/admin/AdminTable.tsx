@@ -2,6 +2,7 @@
 
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { adminConfig, AdminResourceKey } from "@/lib/admin-config";
 
@@ -52,16 +53,16 @@ export default function AdminTable<T extends { _id?: string; id?: string }>({
 }: AdminTableProps<T>) {
   if (!data.length) {
     return (
-      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+      <Card className="p-6">
         {emptyState || (
-          <p className="text-gray-500 text-center py-8">{"Məlumat tapılmadı"}</p>
+          <p className="text-slate-500 text-center py-8">{"Məlumat tapılmadı"}</p>
         )}
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+    <Card className="overflow-hidden">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -70,7 +71,7 @@ export default function AdminTable<T extends { _id?: string; id?: string }>({
                 <th
                   key={column.key}
                   className={cn(
-                    "px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider",
+                    "px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider",
                     column.headerClassName,
                   )}
                 >
@@ -78,7 +79,7 @@ export default function AdminTable<T extends { _id?: string; id?: string }>({
                 </th>
               ))}
               {actions && resource && (
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   {actionsHeader || "Əməliyyatlar"}
                 </th>
               )}
@@ -153,6 +154,6 @@ export default function AdminTable<T extends { _id?: string; id?: string }>({
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   );
 }

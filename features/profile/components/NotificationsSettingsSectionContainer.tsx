@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Bell, Loader2, Save } from "lucide-react";
+import { Bell, Save } from "lucide-react";
+import { Loading } from '@/components/ui/Loading'
 import { Button } from "@/components/ui/Button";
 import { SectionCard } from "@/features/profile/components/ui";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
+import { Select } from '@/components/ui/Select'
 
 type NotificationPreferences = {
   engagement_enabled: boolean;
@@ -100,7 +102,7 @@ export function NotificationsSettingsSectionContainer() {
     return (
       <SectionCard title="Bildirimlərin Tercihlər" description="Hansı bildirişləri almağınızı idarə edin">
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+          <Loading size="md" variant="spinner" color="gray" />
         </div>
       </SectionCard>
     );
@@ -191,16 +193,17 @@ export function NotificationsSettingsSectionContainer() {
             <p className="text-xs text-gray-600">Bildirişləri nə vaxt almağınızı seçin</p>
           </div>
           <div className="p-3 rounded-lg border border-gray-200 bg-gray-50">
-            <select
+            <Select
+              label="Bildiriş tezliyi"
               value={preferences?.frequency || 'instant'}
               onChange={(e) =>
                 setPreferences(prev => prev ? { ...prev, frequency: e.target.value as 'instant' | 'off' } : prev)
               }
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500"
-            >
-              <option value="instant">🚀 Ani - Dərhal göndər</option>
-              <option value="off">🔕 Söndür - Hamısını deaktivləşdir (Mütləq olmayanlar istisna)</option>
-            </select>
+              options={[
+                { value: 'instant', label: '🚀 Ani - Dərhal göndər' },
+                { value: 'off', label: '🔕 Söndür' },
+              ]}
+            />
           </div>
         </div>
 

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import Link from 'next/link'
+import { ButtonLink } from '@/components/ui'
 import { ArrowRight } from 'lucide-react'
 
 type HomeSectionLayoutProps = {
@@ -29,22 +29,26 @@ export default function HomeSectionLayout({
         <div className="max-w-7xl mx-auto">
           <div className={`flex flex-col md:flex-row md:items-end md:justify-between gap-4 ${isPrimary ? 'mb-10 md:mb-12' : 'mb-8'}`}>
             <div>
-              <h2 className={isPrimary ? 'text-4xl md:text-5xl font-black tracking-tight text-gray-900' : 'text-3xl md:text-4xl font-bold text-gray-900'}>
+              <h2 className={isPrimary ? 'text-4xl md:text-5xl font-black tracking-tight text-slate-900' : 'text-3xl md:text-4xl font-bold text-slate-900'}>
                 {title}
               </h2>
-              <p className={isPrimary ? 'mt-3 text-base md:text-lg text-gray-700' : 'mt-2 text-gray-600'}>{description}</p>
+              <p className={isPrimary ? 'mt-3 text-base md:text-lg text-slate-700' : 'mt-2 text-slate-600'}>{description}</p>
             </div>
             {isPrimary ? (
-              <Link
+              <ButtonLink
                 href={ctaHref}
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-white font-semibold shadow-sm hover:bg-blue-700 transition-colors"
+                variant="primary"
+                size="md"
+                shadow="sm"
+                icon={ArrowRight}
+                iconPosition="right"
               >
-                {ctaLabel} <ArrowRight size={16} />
-              </Link>
+                {ctaLabel}
+              </ButtonLink>
             ) : (
-              <Link href={ctaHref} className="inline-flex items-center gap-2 text-primary font-semibold hover:text-blue-700">
-                {ctaLabel} <ArrowRight size={16} />
-              </Link>
+              <ButtonLink href={ctaHref} variant="ghost" size="md" icon={ArrowRight} iconPosition="right" shadow="none">
+                {ctaLabel}
+              </ButtonLink>
             )}
           </div>
           {children}

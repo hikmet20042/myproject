@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertCircle, Check, KeyRound, Link, Loader2, Mail, Pencil, Save, Trash2, Upload, UserRound, XCircle } from "lucide-react";
+import { AlertCircle, Check, KeyRound, Link, Mail, Pencil, Save, Trash2, Upload, UserRound, XCircle } from "lucide-react";
+import { Loading } from '@/components/ui/Loading'
 import { useSession } from "@/lib/auth/client";
 import { useLocalizedPath } from "@/hooks/useLocalizedPath";
 import { Button } from "@/components/ui/Button";
@@ -102,13 +103,13 @@ function UrlHandleSection({ currentHandle, onChange, onSave, previewUrl }: UrlHa
         }
       >
         <div className="flex items-center gap-2 text-sm">
-          <Link className="w-4 h-4 text-gray-500" />
+          <Link className="w-4 h-4 text-slate-500" />
           {currentHandle ? (
-            <span className="text-gray-900">
+            <span className="text-slate-900">
               <code className="bg-gray-100 px-2 py-0.5 rounded text-sm">/u/{currentHandle}</code>
             </span>
           ) : (
-            <span className="text-gray-400">Keçid təyin edilməyib</span>
+            <span className="text-slate-400">Keçid təyin edilməyib</span>
           )}
         </div>
       </SectionCard>
@@ -136,19 +137,18 @@ function UrlHandleSection({ currentHandle, onChange, onSave, previewUrl }: UrlHa
     >
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Keçid</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Keçid</label>
           <div className="flex items-center gap-2">
-            <span className="text-gray-500 text-sm flex-shrink-0">/u/</span>
-            <input
-              type="text"
+            <span className="text-slate-500 text-sm flex-shrink-0">/u/</span>
+            <Input
               value={localHandle}
               onChange={(e) => handleChange(e.target.value)}
               onBlur={() => localHandle.length >= 3 && checkAvailability(localHandle)}
               placeholder="istifadəçi-adı"
-              className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-400 text-sm"
+              className="flex-1 px-3 py-2 border border-slate-200 rounded-md focus:ring-2 focus:ring-blue-100 focus:border-blue-400 text-sm"
               maxLength={50}
             />
-            {checking && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
+            {checking && <Loading size="sm" variant="spinner" color="gray" />}
             {!checking && available === true && <Check className="w-4 h-4 text-green-500" />}
             {!checking && available === false && <AlertCircle className="w-4 h-4 text-red-500" />}
           </div>
@@ -162,13 +162,13 @@ function UrlHandleSection({ currentHandle, onChange, onSave, previewUrl }: UrlHa
         )}
 
         {localHandle && isValid && previewUrl && (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-slate-500">
             Profilinizə keçid: <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">{previewUrl}</code>
           </p>
         )}
 
         {!localHandle && (
-          <p className="text-sm text-gray-500">Boş buraxılsanız, standart profil URL-i istifadə olunacaq.</p>
+          <p className="text-sm text-slate-500">Boş buraxılsanız, standart profil URL-i istifadə olunacaq.</p>
         )}
       </div>
     </SectionCard>
@@ -677,8 +677,8 @@ export default function ProfileSettingsPage() {
 
   const renderValue = (value?: string) => {
     const normalized = String(value || "").trim();
-    if (!normalized) return <span className="text-gray-400">-</span>;
-    return <span className="text-gray-900">{normalized}</span>;
+    if (!normalized) return <span className="text-slate-400">-</span>;
+    return <span className="text-slate-900">{normalized}</span>;
   };
 
   if (loading && !initialForm) {
@@ -692,9 +692,9 @@ export default function ProfileSettingsPage() {
         {[0, 1, 2].map((idx) => (
           <SectionCard key={idx} title="Yüklənir..." description="Zəhmət olmasa gözlə.">
             <div className="space-y-3">
-              <div className="h-10 rounded-lg bg-gray-100 animate-pulse" />
-              <div className="h-10 rounded-lg bg-gray-100 animate-pulse" />
-              <div className="h-24 rounded-lg bg-gray-100 animate-pulse" />
+              <div className="h-10 rounded-md bg-gray-100 animate-pulse" />
+              <div className="h-10 rounded-md bg-gray-100 animate-pulse" />
+              <div className="h-24 rounded-md bg-gray-100 animate-pulse" />
             </div>
           </SectionCard>
         ))}
@@ -749,15 +749,15 @@ export default function ProfileSettingsPage() {
         }
       >
         <div className="space-y-5">
-          <div className="flex items-center gap-4 rounded-xl border border-gray-200 bg-gray-50/40 p-4">
+          <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-gray-50/40 p-4">
             <div className="h-14 w-14 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
               {form.avatar ? (
                 <img src={form.avatar} alt="Profil şəkli" className="h-full w-full object-cover" />
               ) : (
-                <UserRound className="w-6 h-6 text-gray-500" />
+                <UserRound className="w-6 h-6 text-slate-500" />
               )}
             </div>
-            <label className={`inline-flex items-center gap-2 text-sm font-medium ${profileEditMode ? "text-primary cursor-pointer" : "text-gray-400 cursor-not-allowed"}`}>
+            <label className={`inline-flex items-center gap-2 text-sm font-medium ${profileEditMode ? "text-primary cursor-pointer" : "text-slate-400 cursor-not-allowed"}`}>
               <Upload className="w-4 h-4" />
               {uploading ? "Yüklənir..." : "Profil şəklini yenilə"}
               <input
@@ -792,14 +792,14 @@ export default function ProfileSettingsPage() {
               <TextArea label="Bio" rows={4} value={form.bio} onChange={(e) => setForm((prev) => ({ ...prev, bio: e.target.value }))} />
             </>
           ) : (
-            <div className="grid grid-cols-1 gap-3 rounded-xl border border-gray-200 p-4 text-sm md:grid-cols-2">
-              <p><span className="text-gray-500">Ad:</span> {renderValue(form.name)}</p>
-              <p><span className="text-gray-500">Peşə:</span> {renderValue(form.occupation)}</p>
-              <p><span className="text-gray-500">Məkan:</span> {renderValue(form.location)}</p>
-              <p><span className="text-gray-500">Telefon:</span> {renderValue(form.phone)}</p>
-              <p><span className="text-gray-500">Vebsayt:</span> {renderValue(form.website)}</p>
-              <p><span className="text-gray-500">Maraqlar:</span> {renderValue(form.interests)}</p>
-              <p className="md:col-span-2"><span className="text-gray-500">Bio:</span> {renderValue(form.bio)}</p>
+            <div className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 p-4 text-sm md:grid-cols-2">
+              <p><span className="text-slate-500">Ad:</span> {renderValue(form.name)}</p>
+              <p><span className="text-slate-500">Peşə:</span> {renderValue(form.occupation)}</p>
+              <p><span className="text-slate-500">Məkan:</span> {renderValue(form.location)}</p>
+              <p><span className="text-slate-500">Telefon:</span> {renderValue(form.phone)}</p>
+              <p><span className="text-slate-500">Vebsayt:</span> {renderValue(form.website)}</p>
+              <p><span className="text-slate-500">Maraqlar:</span> {renderValue(form.interests)}</p>
+              <p className="md:col-span-2"><span className="text-slate-500">Bio:</span> {renderValue(form.bio)}</p>
             </div>
           )}
         </div>
@@ -855,24 +855,24 @@ export default function ProfileSettingsPage() {
             <Input label="YouTube" value={form.socialMedia.youtube} onChange={(e) => setForm((prev) => ({ ...prev, socialMedia: { ...prev.socialMedia, youtube: e.target.value } }))} />
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 rounded-xl border border-gray-200 p-4 text-sm md:grid-cols-2">
-            <p><span className="text-gray-500">Facebook:</span> {renderValue(form.socialMedia.facebook)}</p>
-            <p><span className="text-gray-500">LinkedIn:</span> {renderValue(form.socialMedia.linkedin)}</p>
-            <p><span className="text-gray-500">Instagram:</span> {renderValue(form.socialMedia.instagram)}</p>
-            <p><span className="text-gray-500">Twitter/X:</span> {renderValue(form.socialMedia.twitter)}</p>
-            <p><span className="text-gray-500">YouTube:</span> {renderValue(form.socialMedia.youtube)}</p>
+          <div className="grid grid-cols-1 gap-3 rounded-xl border border-slate-200 p-4 text-sm md:grid-cols-2">
+            <p><span className="text-slate-500">Facebook:</span> {renderValue(form.socialMedia.facebook)}</p>
+            <p><span className="text-slate-500">LinkedIn:</span> {renderValue(form.socialMedia.linkedin)}</p>
+            <p><span className="text-slate-500">Instagram:</span> {renderValue(form.socialMedia.instagram)}</p>
+            <p><span className="text-slate-500">Twitter/X:</span> {renderValue(form.socialMedia.twitter)}</p>
+            <p><span className="text-slate-500">YouTube:</span> {renderValue(form.socialMedia.youtube)}</p>
           </div>
         )}
       </SectionCard>
 
       <SectionCard title="Account" description="Hesab məlumatların və təhlükəsizlik ayarların.">
         <div className="space-y-4">
-          <div className="flex items-center justify-between rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center justify-between rounded-xl border border-slate-200 p-4">
             <div className="flex items-center gap-3">
-              <Mail className="w-5 h-5 text-gray-500" />
+              <Mail className="w-5 h-5 text-slate-500" />
               <div>
-                <p className="text-sm text-gray-500">Email</p>
-                <p className="font-medium text-gray-900">{session?.user?.email || "-"}</p>
+                <p className="text-sm text-slate-500">Email</p>
+                <p className="font-medium text-slate-900">{session?.user?.email || "-"}</p>
               </div>
             </div>
             <Button variant="outline" onClick={openEmailModal}>
@@ -880,12 +880,12 @@ export default function ProfileSettingsPage() {
             </Button>
           </div>
 
-          <div className="flex items-center justify-between rounded-xl border border-gray-200 p-4">
+          <div className="flex items-center justify-between rounded-xl border border-slate-200 p-4">
             <div className="flex items-center gap-3">
-              <KeyRound className="w-5 h-5 text-gray-500" />
+              <KeyRound className="w-5 h-5 text-slate-500" />
               <div>
-                <p className="font-medium text-gray-900">Parolu dəyiş</p>
-                <p className="text-sm text-gray-500">Hesab təhlükəsizliyi üçün mütəmadi yenilə.</p>
+                <p className="font-medium text-slate-900">Parolu dəyiş</p>
+                <p className="text-sm text-slate-500">Hesab təhlükəsizliyi üçün mütəmadi yenilə.</p>
               </div>
             </div>
             <Button variant="outline" onClick={() => setPasswordModalOpen(true)}>
@@ -935,14 +935,14 @@ export default function ProfileSettingsPage() {
       >
         <div className="space-y-4">
           {emailPolicyLoading ? (
-            <p className="text-sm text-gray-500">Yüklənir...</p>
+            <p className="text-sm text-slate-500">Yüklənir...</p>
           ) : (
             <>
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-slate-700">
                 Yeni e-poçtu daxil et. Dəyişiklik təsdiq linki ilə tamamlanacaq.
               </p>
 
-              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+              <div className="rounded-md border border-slate-200 bg-gray-50 px-3 py-2 text-sm text-slate-700">
                 Cari e-poçt: <strong>{emailPolicy.currentEmail || session?.user?.email || "-"}</strong>
               </div>
 
@@ -1004,7 +1004,7 @@ export default function ProfileSettingsPage() {
         size="md"
       >
         <div className="space-y-4">
-          <p className="text-sm text-gray-700">Təhlükəsizlik üçün cari parolu təsdiqlə və yeni parol daxil et.</p>
+          <p className="text-sm text-slate-700">Təhlükəsizlik üçün cari parolu təsdiqlə və yeni parol daxil et.</p>
 
           <div className="grid grid-cols-1 gap-4">
             <Input
@@ -1047,10 +1047,10 @@ export default function ProfileSettingsPage() {
       >
         <div className="space-y-4">
           {deletePolicyLoading ? (
-            <p className="text-sm text-gray-500">Yüklənir...</p>
+            <p className="text-sm text-slate-500">Yüklənir...</p>
           ) : (
             <>
-              <p className="text-sm text-gray-700">
+              <p className="text-sm text-slate-700">
                 Bu əməliyyat geri qaytarılmır. Davam etmək üçün təsdiq mətni və mövcud parolu daxil et.
               </p>
 

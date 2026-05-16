@@ -1,21 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
+import { Modal } from '@/components/ui/Modal'
 import {
   CheckCircle,
   Edit,
   Search,
   Shield,
+  User,
   Trash2,
   UserCheck,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { LoadingState } from "@/components/shared";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
+import { Card } from "@/components/ui/Card";
 import AdminListLayout from "@/components/admin/AdminListLayout";
+import { Badge } from '@/components/ui/Badge'
 
 type User = {
   _id: string;
@@ -184,10 +188,10 @@ export default function UsersAdminPage() {
     <AdminListLayout title="İstifadəçi İdarəetməsi" description="İstifadəçi hesablarını və rollarını idarə edin.">
       <div className="py-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="rounded-xl border border-gray-200 border-l-4 border-l-blue-500 bg-white p-6 shadow-sm">
+          <Card className="border-l-4 border-l-blue-500 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-sm font-medium text-slate-600">
                   {"Cəmi İstifadəçilər"}
                 </p>
                 <p className="text-3xl font-bold text-blue-600">
@@ -196,11 +200,11 @@ export default function UsersAdminPage() {
               </div>
               <Users className="w-8 h-8 text-blue-500" />
             </div>
-          </div>
-          <div className="rounded-xl border border-gray-200 border-l-4 border-l-green-500 bg-white p-6 shadow-sm">
+          </Card>
+          <Card className="border-l-4 border-l-green-500 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-sm font-medium text-slate-600">
                   {"Təsdiqlənmiş İstifadəçilər"}
                 </p>
                 <p className="text-3xl font-bold text-green-600">
@@ -209,11 +213,11 @@ export default function UsersAdminPage() {
               </div>
               <CheckCircle className="w-8 h-8 text-green-500" />
             </div>
-          </div>
-          <div className="rounded-xl border border-gray-200 border-l-4 border-l-cyan-500 bg-white p-6 shadow-sm">
+          </Card>
+          <Card className="border-l-4 border-l-cyan-500 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-sm font-medium text-slate-600">
                   {"Admin İstifadəçiləri"}
                 </p>
                 <p className="text-3xl font-bold text-blue-600">
@@ -222,34 +226,35 @@ export default function UsersAdminPage() {
               </div>
               <Shield className="w-8 h-8 text-blue-500" />
             </div>
-          </div>
+          </Card>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <Card className="p-6">
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
+                <Input
                   type="text"
+                  icon={Search}
                   placeholder={"Ad və ya e-poçt ilə istifadəçi axtar..."}
                   value={userSearch}
                   onChange={(e) => setUserSearch(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && handleUserSearch()}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 />
               </div>
             </div>
             <div className="flex gap-2">
-              <select
+              <Select
                 value={userRoleFilter}
                 onChange={(e) => setUserRoleFilter(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white text-gray-900"
-              >
-                <option value="all">{"Bütün Rollar"}</option>
-                <option value="user">{"İstifadəçilər"}</option>
-                <option value="admin">{"İdarəçi"}</option>
-              </select>
+                options={[
+                  { value: "all", label: "Bütün Rollar" },
+                  { value: "user", label: "İstifadəçilər" },
+                  { value: "admin", label: "İdarəçi" },
+                ]}
+                variant="default"
+              />
               <Button
                 onClick={handleUserSearch}
                 variant="primary"
@@ -261,21 +266,21 @@ export default function UsersAdminPage() {
               </Button>
             </div>
           </div>
-        </div>
+        </Card>
 
-        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <div className="flex items-center gap-2 px-6 py-4 border-b border-gray-200">
+        <Card>
+          <div className="flex items-center gap-2 px-6 py-4 border-b border-slate-200">
             <Users className="w-6 h-6 text-blue-500" />
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-xl font-semibold text-slate-900">
               {"İstifadəçi İdarəetməsi"}{" "}
-              <span className="ml-2 text-base font-normal text-gray-500">
+              <span className="ml-2 text-base font-normal text-slate-500">
                 ({`${userPagination.total} istifadəçi`})
               </span>
             </h2>
           </div>
           <div className="px-6 py-6">
             {users.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">
+              <p className="text-slate-500 text-center py-8">
                 {"İstifadəçi tapılmadı"}
               </p>
             ) : (
@@ -283,7 +288,7 @@ export default function UsersAdminPage() {
                 {users.map((user) => (
                   <div
                     key={user._id}
-                    className="border border-gray-200 rounded-xl p-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-gray-50 hover:shadow-md transition-shadow"
+                    className="border border-slate-200 rounded-xl p-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-gray-50 hover:shadow-md transition-shadow"
                   >
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -300,17 +305,17 @@ export default function UsersAdminPage() {
                         </span>
 
                         {user.emailVerified && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                          <Badge variant="success" size="sm">
                             <UserCheck className="w-3 h-3 mr-1" />
                             {"Təsdiqlənmiş"}
-                          </span>
+                          </Badge>
                         )}
                       </div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-1">
+                      <h3 className="text-lg font-bold text-slate-900 mb-1">
                         {user.name}
                       </h3>
-                      <p className="text-sm text-gray-600 mb-2">{user.email}</p>
-                      <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                      <p className="text-sm text-slate-600 mb-2">{user.email}</p>
+                      <div className="flex flex-wrap gap-4 text-xs text-slate-500">
                         <span>
                           {"Bloqlar"}: {user.stats?.blogs || 0}
                         </span>
@@ -320,7 +325,7 @@ export default function UsersAdminPage() {
                         </span>
                       </div>
                       {user.profile?.bio && (
-                        <p className="text-sm text-gray-600 mt-2 italic">
+                        <p className="text-sm text-slate-600 mt-2 italic">
                           {user.profile.bio}
                         </p>
                       )}
@@ -353,9 +358,9 @@ export default function UsersAdminPage() {
           </div>
 
           {userPagination.totalPages > 1 && (
-            <div className="px-6 py-4 border-t border-gray-200">
+            <div className="px-6 py-4 border-t border-slate-200">
               <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-700">
+                <div className="text-sm text-slate-700">
                   {"Səhifə"} {userPagination.page} {"/"}{" "}
                   {userPagination.totalPages}
                 </div>
@@ -380,53 +385,24 @@ export default function UsersAdminPage() {
               </div>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {showUserModal && selectedUser && (
-        <Dialog.Root
-          open={showUserModal}
-          onOpenChange={(open) => {
-            if (!open) setShowUserModal(false);
-          }}
+        <Modal
+          isOpen={showUserModal}
+          onClose={() => setShowUserModal(false)}
+          title={
+            userAction === "role" ? "İstifadəçi Rolunu Dəyiş" : "İstifadəçini Sil"
+          }
+          size="sm"
+          className="max-h-[90vh] overflow-y-auto"
         >
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
-            <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-gray-200 bg-white shadow-md max-h-[90vh] overflow-y-auto">
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                <Dialog.Title className="text-lg font-semibold text-gray-900">
-                  {userAction === "role" && "İstifadəçi Rolunu Dəyiş"}
-                  {userAction === "delete" && "İstifadəçini Sil"}
-                </Dialog.Title>
-                <Dialog.Close asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <svg
-                      className="w-6 h-6"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </Button>
-                </Dialog.Close>
-              </div>
-
-              <div className="p-6">
                 <div className="mb-4">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h4 className="text-lg font-semibold text-slate-900 mb-2">
                     {selectedUser.name}
                   </h4>
-                  <p className="text-sm text-gray-600 mb-2">
+                  <p className="text-sm text-slate-600 mb-2">
                     {selectedUser.email}
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -451,7 +427,7 @@ export default function UsersAdminPage() {
 
                 {userAction === "role" && (
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
                       {"Yeni rolu seç"}
                     </label>
                     <Select
@@ -506,11 +482,13 @@ export default function UsersAdminPage() {
                 )}
 
                 <div className="flex justify-end space-x-3">
-                  <Dialog.Close asChild>
-                    <Button variant="outline" size="sm">
-                      {"Ləğv Et"}
-                    </Button>
-                  </Dialog.Close>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowUserModal(false)}
+                  >
+                    {"Ləğv Et"}
+                  </Button>
                   <Button
                     onClick={executeUserAction}
                     disabled={isProcessing}
@@ -524,10 +502,7 @@ export default function UsersAdminPage() {
                         : "İstifadəçini Sil"}
                   </Button>
                 </div>
-              </div>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
+        </Modal>
       )}
     </AdminListLayout>
   );

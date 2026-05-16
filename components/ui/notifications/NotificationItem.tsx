@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import { Check, CheckCheck, Loader2, Trash2 } from "lucide-react";
+import { Button } from '@/components/ui/Button';
 
 type NotificationItem = {
   id: string;
@@ -153,8 +154,9 @@ const NotificationItemComponent = memo(function NotificationItemComponent({
     >
       <div className={compact ? "group px-4 py-3" : "group p-4"}>
         <div className="flex justify-between items-start gap-3">
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            className="flex-1 min-w-0 text-left rounded-md focus-visible:ring-2 focus-visible:ring-blue-300"
             onClick={() => onOpen(notification)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
@@ -162,7 +164,6 @@ const NotificationItemComponent = memo(function NotificationItemComponent({
                 onOpen(notification)
               }
             }}
-            className="flex-1 min-w-0 text-left rounded-md outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
             aria-describedby={`notif-time-${notification.id}`}
           >
             <div className="flex items-start gap-2">
@@ -186,10 +187,18 @@ const NotificationItemComponent = memo(function NotificationItemComponent({
                 </div>
               </div>
             </div>
-          </button>
+          </Button>
 
           <div className="flex items-center gap-1.5 flex-shrink-0 pl-1" role="group" aria-label="Bildiriş əməliyyatları">
-            <button
+            <Button
+              variant="ghost"
+              size="xs"
+              className={[
+                "p-1.5 rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed",
+                notification.isRead
+                  ? "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                  : "text-blue-700 hover:text-blue-800 hover:bg-blue-100",
+              ].join(" ")}
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleRead(notification.id, !notification.isRead);
@@ -202,26 +211,17 @@ const NotificationItemComponent = memo(function NotificationItemComponent({
                 }
               }}
               disabled={isActionLoading}
-              className={[
-                "p-1.5 rounded-md transition-colors disabled:opacity-60 disabled:cursor-not-allowed",
-                notification.isRead
-                  ? "text-slate-400 hover:text-slate-600 hover:bg-slate-100"
-                  : "text-blue-700 hover:text-blue-800 hover:bg-blue-100",
-              ].join(" ")}
+              loading={isActionLoading}
+              icon={notification.isRead ? CheckCheck : Check}
               title={notification.isRead ? "Oxunmamış kimi işarələ" : "Oxunmuş kimi işarələ"}
               aria-label={notification.isRead ? "Oxunmamış kimi işarələ" : "Oxunmuş kimi işarələ"}
-            >
-              {isActionLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : notification.isRead ? (
-                <CheckCheck className="h-4 w-4" />
-              ) : (
-                <Check className="h-4 w-4" />
-              )}
-            </button>
+            />
 
             {onDelete && (
-              <button
+              <Button
+                variant="ghost"
+                size="xs"
+                className="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-60"
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete(notification.id);
@@ -234,12 +234,11 @@ const NotificationItemComponent = memo(function NotificationItemComponent({
                   }
                 }}
                 disabled={isDeleting}
-                className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                loading={isDeleting}
+                icon={Trash2}
                 title="Sil"
                 aria-label="Sil"
-              >
-                {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-              </button>
+              />
             )}
           </div>
         </div>

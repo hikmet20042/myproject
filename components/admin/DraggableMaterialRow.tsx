@@ -3,6 +3,8 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, Eye, Edit, Trash2, Tag } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
+import { Badge } from '@/components/ui/Badge'
 
 interface DraggableMaterialRowProps {
   material: any
@@ -41,31 +43,23 @@ export default function DraggableMaterialRow({
       className={`hover:bg-slate-50 ${isDragging ? 'bg-blue-50 shadow-lg' : ''}`}
     >
       <td className="px-6 py-4 whitespace-nowrap">
-        <button
-          {...attributes}
-          {...listeners}
-          className="cursor-move text-gray-400 hover:text-gray-600 focus:outline-none"
-        >
-          <GripVertical className="w-5 h-5" />
-        </button>
+        <Button variant="ghost" size="xs" className="cursor-move text-slate-400 hover:text-slate-600" {...attributes} {...listeners} icon={GripVertical} />
       </td>
       <td className="px-6 py-4">
         <div className="flex items-center">
           <div>
-            <div className="text-sm font-medium text-gray-900">{material.title}</div>
-            <div className="text-sm text-gray-500 truncate max-w-xs">{material.description}</div>
+            <div className="text-sm font-medium text-slate-900">{material.title}</div>
+            <div className="text-sm text-slate-500 truncate max-w-xs">{material.description}</div>
           </div>
         </div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
-        <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 capitalize">
-          {material.category}
-        </span>
+        <Badge variant="primary" size="sm" className="capitalize">{material.category}</Badge>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
         {material.type}
       </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
         <div className="flex items-center">
           <Eye className="w-4 h-4 mr-1" />
           {material.views || 0}
@@ -73,46 +67,17 @@ export default function DraggableMaterialRow({
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex flex-col gap-1">
-          <button
-            onClick={() => onTogglePublish(material)}
-            className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-              material.isPublished
-                ? 'bg-green-100 text-green-800'
-                : 'bg-slate-100 text-gray-800'
-            }`}
-          >
-            {material.isPublished ? 'Nəşr olunub' : 'Nəşr olunmayıb'}
-          </button>
+          <Button variant="ghost" size="xs" className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${material.isPublished ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-800'}`} onClick={() => onTogglePublish(material)}>{material.isPublished ? 'Nəşr olunub' : 'Nəşr olunmayıb'}</Button>
           {material.featured && (
-            <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-              Önə çıxarılıb
-            </span>
+            <Badge variant="primary" size="sm">Önə çıxarılıb</Badge>
           )}
         </div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => onToggleFeatured(material)}
-            className="text-blue-600 hover:text-blue-900"
-            title={material.featured ? 'Önə çıxarmanı ləğv et' : 'Önə çıxar'}
-          >
-            <Tag className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => onEdit(material)}
-            className="text-cyan-600 hover:text-cyan-900"
-            title="Redaktə et"
-          >
-            <Edit className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => onDelete(material._id)}
-            className="text-red-600 hover:text-red-900"
-            title="Sil"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          <Button variant="ghost" size="xs" className="text-blue-600 hover:text-blue-900" onClick={() => onToggleFeatured(material)} title={material.featured ? 'Önə çıxarmanı ləğv et' : 'Önə çıxar'} icon={Tag} />
+          <Button variant="ghost" size="xs" className="text-cyan-600 hover:text-cyan-900" onClick={() => onEdit(material)} title="Redaktə et" icon={Edit} />
+          <Button variant="ghost" size="xs" className="text-red-600 hover:text-red-900" onClick={() => onDelete(material._id)} title="Sil" icon={Trash2} />
         </div>
       </td>
     </tr>

@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Upload, X, Loader } from 'lucide-react'
+import { Upload, X } from 'lucide-react'
+import { Loading } from '@/components/ui/Loading'
+import { Button } from '@/components/ui/Button'
 import Image from 'next/image'
 
 interface ImageUploadContainerProps {
@@ -98,17 +100,17 @@ export default function ImageUploadContainer({
       />
 
       {!preview ? (
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          className="w-full border-2 border-dashed border-blue-200 rounded-md p-8 hover:border-blue-500 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={() => fileInputRef.current?.click()}
           disabled={uploading}
-          className="w-full border-2 border-dashed border-blue-200 rounded-lg p-8 hover:border-blue-500 hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <div className="flex flex-col items-center justify-center gap-3">
             {uploading ? (
               <>
-                <Loader className="w-12 h-12 text-blue-500 animate-spin" />
-                <p className="text-sm text-gray-600">{'Yüklənir...'}</p>
+                <Loading size="lg" variant="spinner" color="primary" />
+                <p className="text-sm text-slate-600">{'Yüklənir...'}</p>
               </>
             ) : (
               <>
@@ -116,33 +118,20 @@ export default function ImageUploadContainer({
                   <Upload className="w-8 h-8 text-blue-600" />
                 </div>
                 <div className="text-center">
-                  <p className="text-sm font-medium text-gray-700">{'Şəkil yükləmək üçün klikləyin'}</p>
-                  <p className="text-xs text-gray-500 mt-1">{`PNG, JPG, GIF ${maxSize}MB-a qədər`}</p>
+                  <p className="text-sm font-medium text-slate-700">{'Şəkil yükləmək üçün klikləyin'}</p>
+                  <p className="text-xs text-slate-500 mt-1">{`PNG, JPG, GIF ${maxSize}MB-a qədər`}</p>
                 </div>
               </>
             )}
           </div>
-        </button>
+        </Button>
       ) : (
         <div className="relative group">
-          <div className="relative w-full h-64 rounded-lg overflow-hidden border-2 border-blue-100">
+          <div className="relative w-full h-64 rounded-md overflow-hidden border-2 border-blue-100">
             <Image src={preview} alt="Önizləmə" fill className="object-cover" unoptimized />
           </div>
-          <button
-            type="button"
-            onClick={handleRemove}
-            className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg opacity-0 group-hover:opacity-100"
-          >
-            <X className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="absolute bottom-2 right-2 px-3 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors shadow-lg opacity-0 group-hover:opacity-100 disabled:opacity-50"
-          >
-            {'Şəkli dəyişdir'}
-          </button>
+          <Button variant="ghost" size="xs" className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg opacity-0 group-hover:opacity-100" onClick={handleRemove} icon={X} />
+          <Button variant="ghost" size="xs" className="absolute bottom-2 right-2 px-3 py-2 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 shadow-lg opacity-0 group-hover:opacity-100 disabled:opacity-50" onClick={() => fileInputRef.current?.click()} disabled={uploading}>{'Şəkli dəyişdir'}</Button>
         </div>
       )}
 

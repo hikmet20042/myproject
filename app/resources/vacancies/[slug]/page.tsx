@@ -117,12 +117,12 @@ export default function VacancyDetailPage() {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  const getTypeColor = (type: string) => {
-    if (type === "full_time") return "bg-green-100 text-green-800";
-    if (type === "part_time") return "bg-emerald-100 text-emerald-800";
-    if (type === "volunteer") return "bg-blue-100 text-blue-800";
-    if (type === "intern") return "bg-orange-100 text-orange-800";
-    return "bg-gray-100 text-gray-800";
+  const getTypeVariant = (type: string): 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info' => {
+    if (type === "full_time") return 'success';
+    if (type === "part_time") return 'secondary';
+    if (type === "volunteer") return 'primary';
+    if (type === "intern") return 'warning';
+    return 'primary';
   };
   const getTypeLabel = (type: string) => {
     if (type === "full_time") return "Full-time";
@@ -324,9 +324,9 @@ export default function VacancyDetailPage() {
                 <ButtonLink
                   href={methodValue}
                   external
-                  variant="secondary"
+                  variant="white-on-dark"
                   size="lg"
-                  className="w-full md:w-auto rounded-2xl px-12 py-4 font-black bg-white text-slate-900 border-none hover:bg-slate-100"
+                  className="w-full md:w-auto rounded-2xl px-12 py-4 font-black"
                 >
                   Dərhal müraciət et
                 </ButtonLink>
@@ -338,9 +338,9 @@ export default function VacancyDetailPage() {
                       ? `mailto:${methodValue}`
                       : `tel:${methodValue}`
                   }
-                  variant="secondary"
+                  variant="white-on-dark"
                   size="lg"
-                  className="w-full md:w-auto rounded-2xl px-12 py-4 font-black bg-white text-slate-900 border-none hover:bg-slate-100"
+                  className="w-full md:w-auto rounded-2xl px-12 py-4 font-black"
                 >
                   {method === "email"
                     ? "E-poçt ilə müraciət"
@@ -355,7 +355,7 @@ export default function VacancyDetailPage() {
         }
         sidebar={
           <div className="space-y-8">
-            <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
+            <Card className="p-8">
               <h3 className="text-xl font-black text-slate-900 mb-8 flex items-center gap-3">
                 <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
                   <Clock className="h-5 w-5" />
@@ -399,7 +399,7 @@ export default function VacancyDetailPage() {
                   />
                 </div>
               </div>
-            </div>
+            </Card>
           </div>
         }
       />

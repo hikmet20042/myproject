@@ -8,7 +8,7 @@ type AdminAction = {
   label: string;
   onClick: () => void;
   variant?: "primary" | "secondary" | "outline" | "ghost" | "danger";
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  size?: "xs" | "sm" | "md" | "lg";
   disabled?: boolean;
   loading?: boolean;
 };
@@ -36,7 +36,7 @@ export default function AdminActionModal({
 }: AdminActionModalProps) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="lg">
-      {description && <p className="text-sm text-gray-600 mb-4">{description}</p>}
+      {description && <p className="text-sm text-slate-600 mb-4">{description}</p>}
       {children}
       <div className="flex justify-end gap-3 pt-6">
         {showCancel && (

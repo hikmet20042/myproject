@@ -11,7 +11,7 @@ import { signInWithOAuth, signInWithPassword } from "@/lib/auth/client";
 import { normalizeInternalCallbackUrl } from "@/lib/auth/redirect";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Input, Button } from "@/components/ui";
+import { Input, Button, Card } from "@/components/ui";
 import { useLocalizedPath } from "@/hooks/useLocalizedPath";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import Logo from "@/components/Logo";
@@ -112,45 +112,46 @@ function SignInContent() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground px-4 py-10">
-      <div className="mx-auto grid w-full max-w-6xl items-center gap-8 lg:grid-cols-2">
-        <div className="hidden lg:block">
-          <div className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50 via-cyan-50 to-white p-8 shadow-sm">
-          
-            <h2 className="mt-4 text-2xl font-black text-gray-900">Yenidən xoş gəldin</h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Hesabına daxil ol və sənə uyğun imkanlara bir addım daha yaxın ol.
-            </p>
-          </div>
-        </div>
+    <div className="relative min-h-screen overflow-hidden bg-slate-50 px-4 py-8 text-slate-900 sm:py-12">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute -top-24 left-1/2 h-[420px] w-[820px] -translate-x-1/2 rounded-full bg-blue-100/70 blur-3xl" />
+        <div className="absolute bottom-[-4rem] right-[-4rem] h-72 w-72 rounded-full bg-indigo-100/70 blur-3xl" />
+      </div>
 
-        <div className="w-full max-w-md justify-self-center">
-        <div className="mb-6 text-center">
-          <div className="flex justify-center">
-            <Logo
-              href={localePath("/")}
-              size="md"
-              variant="dark"
-              showText={false}
-              showTagline={false}
-            />
-          </div>
-          <h1 className="mt-6 text-3xl font-black text-gray-900">
-            {"Hesabına daxil ol"}
-          </h1>
-          <p className="mt-2 text-sm text-gray-600">
-            {"icma360 ilə əlaqə qur, öyrən və inkişaf et"}
-          </p>
-        </div>
+      <Card className="mx-auto w-full max-w-5xl rounded-3xl shadow-xl shadow-slate-200/60">
+        <div className="grid lg:grid-cols-[1.1fr_1fr]">
+          <aside className="hidden border-r border-slate-200 bg-gradient-to-br from-blue-50 via-white to-indigo-50 p-10 lg:flex lg:flex-col lg:justify-between">
+            <div>
+              <Logo href={localePath("/")} size="lg" variant="dark" showText={false} showTagline={false} />
+              <h2 className="mt-8 text-4xl font-black leading-tight text-slate-900">Yenidən xoş gəldin</h2>
+              <p className="mt-4 max-w-sm text-base leading-relaxed text-slate-600">
+                Hesabına daxil ol, icmanı izləməyə davam et və yeni imkanları qaçırma.
+              </p>
+            </div>
+            <Card className="rounded-2xl bg-white/90 p-5 backdrop-blur">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">icma360 platforması</p>
+              <p className="mt-2 text-sm text-slate-600">
+                Fürsətlər, bloqlar və icma əlaqələri üçün vahid mərkəz.
+              </p>
+            </Card>
+          </aside>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+          <section className="p-6 sm:p-10">
+            <div className="mb-8 text-center">
+              <div className="flex justify-center lg:hidden">
+                <Logo href={localePath("/")} size="md" variant="dark" showText={false} showTagline={false} />
+              </div>
+              <h1 className="mt-6 text-3xl font-black text-slate-900">{"Hesabına daxil ol"}</h1>
+              <p className="mt-2 text-sm text-slate-600">{"icma360 ilə əlaqə qur, öyrən və inkişaf et"}</p>
+            </div>
+
             {verificationRequired && (
-              <div className="mb-4 rounded-md border border-yellow-300 bg-yellow-50 p-4 text-sm text-yellow-800">
+              <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
                 <strong>{"E-poçt təsdiqlənməyib."}</strong>{" "}
                 {"Daxil olmadan əvvəl e-poçtunu təsdiqləməlisən. "}
                 <Link
                   href={localePath("/auth/verify-request")}
-                  className="underline text-blue-700"
+                  className="font-bold text-blue-700 underline"
                 >
                   {"Təsdiq e-poçtunu yenidən göndər"}
                 </Link>
@@ -190,10 +191,10 @@ function SignInContent() {
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
+                <div className="w-full border-t border-slate-200" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
+                <span className="bg-white px-2 text-slate-500">
                   {"Və ya e-poçt ilə daxil ol"}
                 </span>
               </div>
@@ -209,7 +210,7 @@ function SignInContent() {
                 <div>
                   <label
                     htmlFor="email"
-                    className="block text-sm font-medium text-gray-700"
+                     className="block text-sm font-bold text-slate-700"
                   >
                     {"E-poçt ünvanı"}
                   </label>
@@ -231,7 +232,7 @@ function SignInContent() {
                 <div>
                   <label
                     htmlFor="password"
-                    className="block text-sm font-medium text-gray-700"
+                     className="block text-sm font-bold text-slate-700"
                   >
                     {"Şifrə"}
                   </label>
@@ -248,14 +249,14 @@ function SignInContent() {
                       icon={Lock}
                       inputSize="md"
                     />
-                    <button
+                    <Button
                       type="button"
-                      tabIndex={-1}
-                      className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                      variant="ghost"
+                      size="xs"
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
                       onClick={() => setShowPassword((v) => !v)}
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
+                      icon={showPassword ? EyeOff : Eye}
+                    />
                   </div>
                 </div>
               </div>
@@ -263,7 +264,7 @@ function SignInContent() {
               <div className="flex items-center justify-end mt-4">
                 <Link
                   href={localePath("/auth/forgot-password")}
-                  className="text-sm text-blue-600 hover:text-blue-500"
+                   className="text-sm font-bold text-blue-600 hover:text-blue-500"
                 >
                   {"Şifrəni unutmusunuz?"}
                 </Link>
@@ -284,11 +285,11 @@ function SignInContent() {
 
             <div className="mt-6">
               <div className="text-center">
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-slate-600">
                   {"Hesabın yoxdur?"}{" "}
                   <Link
                     href={localePath("/auth/register")}
-                    className="font-medium text-blue-600 hover:text-blue-500"
+                    className="font-bold text-blue-600 hover:text-blue-500"
                   >
                     {"Buradan yarat"}
                   </Link>
@@ -296,10 +297,9 @@ function SignInContent() {
               </div>
             </div>
 
-            
+          </section>
         </div>
-      </div>
-      </div>
+      </Card>
     </div>
   );
 }

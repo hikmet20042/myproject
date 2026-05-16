@@ -7,6 +7,7 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { LoadingState, ErrorState } from '@/components/shared'
 import { Button } from '@/components/ui/Button'
 import { ArrowLeft, Calendar, MapPin, Phone, User } from 'lucide-react'
+import { Card } from '@/components/ui/Card'
 
 type UserProfile = {
   id: string
@@ -76,16 +77,18 @@ export default function PublicUserProfilePage() {
     <div className="min-h-screen bg-slate-50/50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back button */}
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => router.back()}
-          className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition-colors mb-6 group"
+          className="gap-2 text-slate-600 hover:text-blue-600 mb-6"
         >
-          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+          <ArrowLeft className="h-4 w-4" />
           Geri
-        </button>
+        </Button>
 
         {/* Profile Header */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <Card className="overflow-hidden">
           {/* Banner */}
           <div className="h-32 bg-gradient-to-r from-blue-500 via-cyan-500 to-emerald-500" />
 
@@ -102,13 +105,13 @@ export default function PublicUserProfilePage() {
             </div>
 
             {/* Name & Handle */}
-            <h1 className="mt-4 text-2xl font-bold text-gray-900">{profile.name}</h1>
-            <p className="text-sm text-gray-500">
+            <h1 className="mt-4 text-2xl font-bold text-slate-900">{profile.name}</h1>
+            <p className="text-sm text-slate-500">
               <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">/u/{profile.urlHandle}</code>
             </p>
 
             {profile.occupation && (
-              <p className="mt-1 text-gray-600">{profile.occupation}</p>
+              <p className="mt-1 text-slate-600">{profile.occupation}</p>
             )}
 
             {isOwnProfile && (
@@ -122,31 +125,31 @@ export default function PublicUserProfilePage() {
               </Button>
             )}
           </div>
-        </div>
+        </Card>
 
         {/* Details */}
         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* About */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Haqqında</h2>
+          <Card className="p-6">
+            <h2 className="text-lg font-bold text-slate-900 mb-4">Haqqında</h2>
             <div className="space-y-3 text-sm">
               {profile.bio && (
-                <p className="text-gray-700">{profile.bio}</p>
+                <p className="text-slate-700">{profile.bio}</p>
               )}
               {profile.location && (
-                <div className="flex items-center gap-2 text-gray-600">
+                <div className="flex items-center gap-2 text-slate-600">
                   <MapPin className="w-4 h-4" />
                   <span>{profile.location}</span>
                 </div>
               )}
               {profile.phone && (
-                <div className="flex items-center gap-2 text-gray-600">
+                <div className="flex items-center gap-2 text-slate-600">
                   <Phone className="w-4 h-4" />
                   <span>{profile.phone}</span>
                 </div>
               )}
               {profile.website && (
-                <div className="flex items-center gap-2 text-gray-600">
+                <div className="flex items-center gap-2 text-slate-600">
                   <User className="w-4 h-4" />
                   <a href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                     {profile.website}
@@ -163,28 +166,28 @@ export default function PublicUserProfilePage() {
                 </div>
               )}
               {!profile.bio && !profile.location && !profile.phone && !profile.website && !profile.interests && (
-                <p className="text-gray-400">Bu istifadəçi hələ profilini doldurmayıb.</p>
+                <p className="text-slate-400">Bu istifadəçi hələ profilini doldurmayıb.</p>
               )}
             </div>
-          </div>
+          </Card>
 
           {/* Stats */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Statistika</h2>
+          <Card className="p-6">
+            <h2 className="text-lg font-bold text-slate-900 mb-4">Statistika</h2>
             <div className="space-y-3 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Bloqlar</span>
-                <span className="font-semibold text-gray-900">{profile.blogCount || 0}</span>
+                <span className="text-slate-600">Bloqlar</span>
+                <span className="font-semibold text-slate-900">{profile.blogCount || 0}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-600">Qoşulub</span>
-                <span className="font-semibold text-gray-900 flex items-center gap-1.5">
+                <span className="text-slate-600">Qoşulub</span>
+                <span className="font-semibold text-slate-900 flex items-center gap-1.5">
                   <Calendar className="w-4 h-4" />
                   {new Date(profile.createdAt).toLocaleDateString('az-AZ', { year: 'numeric', month: 'long' })}
                 </span>
               </div>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     </div>

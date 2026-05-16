@@ -88,7 +88,7 @@ export default function Logo({
             icma360
           </span>
           {showTagline && taglineKey && (
-            <span className={`text-[10px] ${variant === 'light' ? 'text-white/80' : 'text-gray-500'} -mt-1 tracking-wide`}>
+            <span className={`text-[10px] ${variant === 'light' ? 'text-white/80' : 'text-slate-500'} -mt-1 tracking-wide`}>
               {tagline}
             </span>
           )}
@@ -107,7 +107,7 @@ export function LogoText({
 }: { className?: string, variant?: 'light' | 'dark' | 'gradient', href?: string, ariaLabel?: string, onClick?: () => void }) {
   const textStyles = {
     light: 'text-white',
-    dark: 'text-gray-900',
+    dark: 'text-slate-900',
     gradient: 'bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-500 bg-clip-text text-transparent'
   }
 

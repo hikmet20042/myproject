@@ -117,7 +117,7 @@ export default function SavedItemsPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                   {[...Array(4)].map((_, idx) => (
-                    <div key={idx} className="animate-pulse rounded-xl border border-gray-200 p-3">
+                    <div key={idx} className="animate-pulse rounded-xl border border-slate-200 p-3">
                       <div className="h-3 w-1/2 rounded bg-gray-200" />
                       <div className="mt-2 h-5 w-1/4 rounded bg-gray-100" />
                     </div>
@@ -125,7 +125,7 @@ export default function SavedItemsPage() {
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {[...Array(3)].map((_, idx) => (
-                    <div key={idx} className="animate-pulse rounded-xl border border-gray-200 p-4">
+                    <div key={idx} className="animate-pulse rounded-xl border border-slate-200 p-4">
                       <div className="h-4 w-2/3 rounded bg-gray-200" />
                       <div className="mt-3 h-3 w-full rounded bg-gray-100" />
                       <div className="mt-2 h-3 w-5/6 rounded bg-gray-100" />
@@ -144,9 +144,9 @@ export default function SavedItemsPage() {
             ) : (
               <div className="space-y-5">
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                  <div className="rounded-xl border border-gray-200 bg-gray-50/40 p-3">
-                    <p className="text-xs text-gray-500">Ümumi</p>
-                    <p className="text-xl font-semibold text-gray-900">{counts.total}</p>
+                  <div className="rounded-xl border border-slate-200 bg-gray-50/40 p-3">
+                    <p className="text-xs text-slate-500">Ümumi</p>
+                    <p className="text-xl font-semibold text-slate-900">{counts.total}</p>
                   </div>
                   <div className="rounded-xl border border-blue-200 bg-blue-50 p-3">
                     <p className="text-xs text-blue-700">Tədbirlər</p>
@@ -193,8 +193,8 @@ export default function SavedItemsPage() {
                         icon={icon}
                         metadata={
                           <>
-                            {item.metaOne && <p className="text-sm text-gray-600">{item.metaOne}</p>}
-                            {item.metaTwo && <p className="text-sm text-gray-500">{item.metaTwo}</p>}
+                            {item.metaOne && <p className="text-sm text-slate-600">{item.metaOne}</p>}
+                            {item.metaTwo && <p className="text-sm text-slate-500">{item.metaTwo}</p>}
                           </>
                         }
                         actionText={item.itemType === 'vacancy' ? 'Müraciət et' : item.itemType === 'event' ? 'Qoşul' : 'Oxu'}

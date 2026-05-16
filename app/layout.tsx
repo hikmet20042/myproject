@@ -107,7 +107,7 @@ export default function RootLayout({
         <link rel="alternate" type="application/rss+xml" title="icma360 Bloq RSS Lenti" href={`${siteUrl}/api/rss`} />
         <link rel="alternate" type="application/atom+xml" title="icma360 Bloq Atom Lenti" href={`${siteUrl}/api/rss`} />
       </head>
-      <body className="min-h-screen bg-gray-50 text-gray-900 transition-colors duration-200" suppressHydrationWarning={true}>
+      <body className="min-h-screen bg-gray-50 text-slate-900 transition-colors duration-200" suppressHydrationWarning={true}>
         <Suspense fallback={null}>
           <GoogleAnalytics />
         </Suspense>

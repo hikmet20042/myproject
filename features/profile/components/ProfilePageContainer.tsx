@@ -103,7 +103,7 @@ export default function ProfilePageContainer({ variant = "dashboard" }: ProfileP
   function renderContent() {
     return (
     <>
-      <header className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-start sm:justify-between">
+      <Card className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-indigo-200 bg-indigo-100 text-indigo-700">
             <User className="h-5 w-5" />
@@ -122,7 +122,7 @@ export default function ProfilePageContainer({ variant = "dashboard" }: ProfileP
           {showProfileEdit ? <ArrowLeft className="mr-1 h-4 w-4" /> : <PencilLine className="mr-1 h-4 w-4" />}
           {editButtonText}
         </Button>
-      </header>
+      </Card>
 
       {showProfileEdit ? (
         <Card interactive className="overflow-hidden border border-slate-200 shadow-sm">

@@ -5,6 +5,7 @@ import { Suspense } from 'react'
 import Link from 'next/link'
 import { AlertTriangle, ArrowLeft } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { Card, ButtonLink } from '@/components/ui'
 
 function ErrorContent() {
   const localePath = useLocalizedPath()
@@ -30,15 +31,15 @@ function ErrorContent() {
       <div className="absolute left-1/2 top-24 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-200/30 blur-3xl" />
 
       <div className="relative z-10 mx-auto flex min-h-[80vh] w-full max-w-lg items-center justify-center px-4 sm:px-6">
-        <div className="w-full rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+        <Card className="w-full rounded-3xl p-6 sm:p-8">
           <div className="text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
               <AlertTriangle className="h-6 w-6 text-red-700" />
             </div>
 
-            <h1 className="text-2xl font-black text-gray-900">{'Avtorizasiya xətası'}</h1>
+            <h1 className="text-2xl font-black text-slate-900">{'Avtorizasiya xətası'}</h1>
 
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-2 text-sm text-slate-600">
               {errorMessage}
             </p>
 
@@ -51,16 +52,18 @@ function ErrorContent() {
             )}
 
             <div className="mt-6 space-y-3">
-              <Link
+              <ButtonLink
                 href={localePath('/auth/signin')}
-                className="block w-full rounded-xl bg-blue-600 px-4 py-2.5 text-center text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                variant="primary"
+                size="md"
+                fullWidth
               >
                 {'Yenidən daxil olmağa cəhd edin'}
-              </Link>
+              </ButtonLink>
 
               <Link
                 href={localePath('/')}
-                className="inline-flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-blue-600"
+                className="inline-flex items-center gap-2 text-sm text-slate-600 transition-colors hover:text-blue-600"
               >
                 <ArrowLeft className="h-4 w-4" />
                 {'Ana səhifəyə qayıt'}
@@ -69,13 +72,13 @@ function ErrorContent() {
 
             {process.env.NODE_ENV === 'development' && (
               <div className="mt-6 rounded-xl bg-gray-100 p-3 text-left">
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-slate-600">
                   <strong>{'Diaqnostika məlumatı:'}</strong> {error || 'naməlum'}
                 </p>
               </div>
             )}
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   )
@@ -85,7 +88,7 @@ export default function AuthError() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-background flex items-center justify-center text-gray-600">
+        <div className="min-h-screen bg-background flex items-center justify-center text-slate-600">
           {'Yüklənir...'}
         </div>
       }

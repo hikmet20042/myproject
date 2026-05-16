@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Card } from '@/components/ui/Card'
 import { ProgressIndicator } from '@/components/shared'
 
 type FormLayoutProps = {
@@ -35,15 +36,15 @@ export default function FormLayout({
           </div>
         )}
 
-        <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <Card className="mb-6 p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-gray-900">{title}</h1>
-              {subtitle && <p className="mt-2 text-gray-600">{subtitle}</p>}
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900">{title}</h1>
+              {subtitle && <p className="mt-2 text-slate-600">{subtitle}</p>}
             </div>
             {rightAction}
           </div>
-        </div>
+        </Card>
 
         {infoBanner}
         {children}

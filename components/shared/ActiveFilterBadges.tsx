@@ -1,6 +1,7 @@
 'use client';
 
 import { X, Filter } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 
 export interface FilterBadge { /** Unique identifier for the filter */
   id: string;
@@ -64,7 +65,7 @@ export function ActiveFilterBadges({ badges,
 
   return (
     <div className="flex flex-wrap items-center gap-3 p-4 bg-gradient-to-r from-blue-50 to-emerald-50 rounded-xl border border-blue-200">
-      <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
+      <span className="text-sm font-medium text-slate-700 flex items-center gap-2">
         <Filter className="w-4 h-4 text-blue-600" />
         {'Aktiv filtrlər'}:
       </span>
@@ -76,25 +77,13 @@ export function ActiveFilterBadges({ badges,
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full ${colors.bg} ${colors.text} text-sm font-medium border ${colors.border} shadow-sm`}
           >
             {badge.label}: {badge.value}
-            <button
-              onClick={badge.onRemove}
-              className={`p-0.5 ${colors.hover} rounded-full transition-colors`}
-              aria-label={`${badge.label} filtrini sil`}
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
+            <Button variant="ghost" size="xs" className={`p-0.5 ${colors.hover} rounded-full transition-colors`} onClick={badge.onRemove} aria-label={`${badge.label} filtrini sil`} icon={X} />
           </span>
         ); })}
 
       {showClearAll && badges.length > 1 && (
         <div className="ml-auto">
-          <button
-            onClick={onClearAll}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg border-2 border-blue-200 text-gray-700 hover:bg-slate-100 hover:border-blue-300 font-medium transition-all duration-300"
-          >
-            <X className="w-4 h-4" />
-            {'Hamısını təmizlə'}
-          </button>
+          <Button variant="outline" size="xs" className="inline-flex items-center gap-2 px-4 py-1.5 rounded-md border-2 border-blue-200 text-slate-700 hover:bg-slate-100 hover:border-blue-300 font-medium transition-all duration-300" onClick={onClearAll} icon={X}>Hamısını təmizlə</Button>
         </div>
       )}
     </div>

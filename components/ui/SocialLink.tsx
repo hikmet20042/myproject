@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
 
 export interface SocialLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
-  platform: 'facebook' | 'twitter' | 'instagram' | 'linkedin' | 'youtube' | 'tiktok';
+  platform: 'facebook' | 'twitter' | 'instagram' | 'linkedin' | 'youtube' | 'tiktok' | 'github';
   icon?: LucideIcon;
   label?: string;
   variant?: 'default' | 'compact' | 'icon-only';
@@ -79,13 +79,23 @@ const SocialLink = React.forwardRef<HTMLAnchorElement, SocialLinkProps>(
             <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
           </svg>
         )
+      },
+      github: {
+        name: 'GitHub',
+        bgColor: 'border border-slate-200 bg-slate-50 hover:bg-slate-100',
+        textColor: 'text-slate-700 group-hover:text-slate-900',
+        icon: (
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.57.1.78-.25.78-.56 0-.27-.01-1.16-.02-2.1-3.2.7-3.88-1.36-3.88-1.36-.52-1.34-1.28-1.69-1.28-1.69-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.2 1.77 1.2 1.03 1.77 2.69 1.26 3.35.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.73 0-1.27.45-2.31 1.2-3.12-.12-.29-.52-1.47.12-3.07 0 0 .98-.31 3.2 1.19a11.05 11.05 0 0 1 5.84 0c2.22-1.5 3.2-1.19 3.2-1.19.64 1.6.24 2.78.12 3.07.75.81 1.2 1.85 1.2 3.12 0 4.46-2.7 5.43-5.28 5.72.41.36.78 1.05.78 2.12 0 1.53-.01 2.76-.01 3.13 0 .31.2.67.79.56A11.52 11.52 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z" />
+          </svg>
+        )
       }
     };
     
     const config = platformConfig[platform];
     const displayLabel = label || config.name;
     
-    const baseClasses = 'inline-flex items-center rounded-lg transition-colors duration-200 group';
+    const baseClasses = 'inline-flex items-center rounded-md transition-colors duration-200 group';
     
     const variants = {
       default: 'p-3',

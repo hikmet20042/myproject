@@ -2,6 +2,8 @@
 
 import { useState, ReactNode } from 'react';
 import { Filter, SlidersHorizontal, X } from 'lucide-react';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 
 interface ResourceFilterContainerProps {
   /** The search input element - always visible */
@@ -33,25 +35,26 @@ export function ResourceFilterContainer({
       {/* Main Bar: Search + Filter Toggle */}
       <div className="relative group">
         <div className="absolute -inset-1 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-[2rem] blur opacity-25 group-hover:opacity-75 transition duration-1000"></div>
-        <div className="relative flex flex-col md:flex-row items-center gap-3 bg-white border border-slate-100 rounded-[1.5rem] md:rounded-full p-2 pl-2 md:pl-6 shadow-xl shadow-slate-200/40 backdrop-blur-xl">
+        <Card className="relative flex flex-col md:flex-row items-center gap-3 rounded-[1.5rem] md:rounded-full p-2 pl-2 md:pl-6 shadow-xl shadow-slate-200/40 backdrop-blur-xl">
           <div className="flex-1 w-full">
             {searchInput}
           </div>
           
           {hasAdditionalFilters && (
-            <button
+            <Button
+              variant="outline"
               onClick={() => setIsExpanded(!isExpanded)}
-              className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl md:rounded-full font-black text-sm transition-all whitespace-nowrap w-full md:w-auto ${
+              className={`gap-2 px-6 py-3 rounded-xl md:rounded-full text-sm font-black w-full md:w-auto ${
                 isExpanded 
-                  ? 'bg-slate-900 text-white shadow-lg' 
+                  ? 'bg-slate-900 text-white shadow-lg border-slate-900' 
                   : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
               }`}
             >
               {isExpanded ? <X className="w-4 h-4" /> : <SlidersHorizontal className="w-4 h-4" />}
               {isExpanded ? 'Bağla' : 'Filtrlər'}
-            </button>
+            </Button>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* Collapsible Panel */}
@@ -61,7 +64,7 @@ export function ResourceFilterContainer({
             isExpanded ? 'max-h-[1000px] opacity-100 translate-y-0' : 'max-h-0 opacity-0 -translate-y-4 pointer-events-none'
           }`}
         >
-          <div className="bg-white/80 backdrop-blur-md border border-slate-100 rounded-[2rem] p-8 shadow-lg shadow-slate-200/30">
+          <Card className="bg-white/80 backdrop-blur-md rounded-[2rem] p-8 shadow-lg shadow-slate-200/30">
             <div className="flex items-center gap-3 mb-6 pb-6 border-b border-slate-50">
                <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
                   <Filter className="w-5 h-5" />
@@ -72,7 +75,7 @@ export function ResourceFilterContainer({
                </div>
             </div>
             {filterControls}
-          </div>
+          </Card>
         </div>
       )}
 

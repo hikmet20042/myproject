@@ -3,29 +3,25 @@ import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 
-    | 'primary' 
-    | 'secondary' 
-    | 'outline' 
-    | 'ghost' 
-    | 'danger' 
+  variant?:
+    | 'primary'
+    | 'secondary'
+    | 'outline'
+    | 'ghost'
+    | 'danger'
     | 'add'
     | 'gradient-blue'
     | 'gradient-green'
-    | 'gradient-indigo'
-    | 'gradient-purple'
-    | 'gradient-pink'
-    | 'gradient-teal'
     | 'white-on-dark';
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   loading?: boolean;
   icon?: LucideIcon;
   iconPosition?: 'left' | 'right';
   fullWidth?: boolean;
   rounded?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
-  shadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+  shadow?: 'none' | 'sm' | 'md' | 'lg';
   hoverEffect?: 'scale' | 'lift' | 'glow' | 'none';
-  gradient?: 'blue' | 'green' | 'indigo' | 'purple' | 'pink' | 'teal' | 'orange';
+  gradient?: 'blue' | 'green';
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -37,83 +33,71 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     icon: Icon,
     iconPosition = 'left',
     fullWidth = false,
-    rounded = 'xl',
-    shadow = 'md',
+    rounded = 'md',
+    shadow = 'sm',
     hoverEffect = 'scale',
     gradient,
     children,
     disabled,
     ...props
   }, ref) => {
-    const baseClasses = 'inline-flex items-center justify-center whitespace-nowrap font-semibold transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none';
-    
+    const baseClasses = 'inline-flex items-center justify-center whitespace-nowrap font-bold transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none';
+
     const gradientAliases = {
       blue: 'border border-blue-600 bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-200',
       green: 'border border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-200',
-      indigo: 'border border-cyan-600 bg-cyan-600 text-white hover:bg-cyan-700 focus:ring-cyan-200',
-      purple: 'border border-blue-600 bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-200',
-      pink: 'border border-cyan-600 bg-cyan-600 text-white hover:bg-cyan-700 focus:ring-cyan-200',
-      teal: 'border border-teal-600 bg-teal-600 text-white hover:bg-teal-700 focus:ring-teal-200',
-      orange: 'border border-amber-600 bg-amber-600 text-white hover:bg-amber-700 focus:ring-amber-200',
     };
-    
+
     const variants = {
-      primary: 'brand-primary-btn border border-transparent text-white focus-visible:ring-blue-200',
-      secondary: 'border border-slate-300 bg-white text-slate-800 shadow-sm hover:bg-slate-50 focus-visible:ring-slate-200',
-      outline: 'border border-blue-300 bg-white text-blue-700 hover:border-blue-600 hover:bg-blue-600 hover:text-white focus:ring-blue-200',
+      primary: 'border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus-visible:ring-blue-200',
+      secondary: 'border border-slate-200 bg-white text-slate-800 shadow-sm hover:bg-slate-50 focus-visible:ring-slate-200',
+      outline: 'border border-slate-300 bg-white text-slate-700 hover:border-blue-500 hover:text-blue-600 focus:ring-blue-200',
       ghost: 'border border-transparent bg-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-slate-200',
-      danger: 'border border-transparent bg-rose-600 text-white hover:bg-rose-700 focus:ring-rose-200',
-      add: 'border border-dashed border-blue-300 bg-blue-50/40 text-blue-700 hover:border-blue-400 hover:bg-blue-50 focus:ring-blue-200',
+      danger: 'border border-transparent bg-red-600 text-white hover:bg-red-700 focus:ring-red-200',
+      add: 'border border-dashed border-slate-300 bg-slate-50/40 text-slate-700 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-600 focus:ring-blue-200',
       'gradient-blue': gradientAliases.blue,
       'gradient-green': gradientAliases.green,
-      'gradient-indigo': gradientAliases.indigo,
-      'gradient-purple': gradientAliases.purple,
-      'gradient-pink': gradientAliases.pink,
-      'gradient-teal': gradientAliases.teal,
-      'white-on-dark': 'border border-white bg-white text-blue-900 hover:border-blue-100 hover:bg-blue-100 focus:ring-blue-100',
+      'white-on-dark': 'border border-white/20 bg-white/10 text-white backdrop-blur hover:bg-white/20 focus:ring-white/30',
     };
-    
+
     const sizes = {
       xs: 'h-8 px-3 text-xs',
       sm: 'h-9 px-3.5 text-sm',
-      md: 'h-10 px-4 text-sm',
-      lg: 'h-11 px-5 text-base',
-      xl: 'h-12 px-6 text-base'
+      md: 'h-10 px-5 text-sm',
+      lg: 'h-12 px-6 text-base',
     };
-    
+
     const roundedClasses = {
-      sm: 'rounded-md',
-      md: 'rounded-lg',
-      lg: 'rounded-xl',
+      sm: 'rounded-sm',
+      md: 'rounded-md',
+      lg: 'rounded-md',
       xl: 'rounded-xl',
       full: 'rounded-full',
     };
-    
+
     const shadowClasses = {
       none: '',
-      sm: 'shadow-sm',
-      md: 'shadow',
-      lg: 'shadow-md',
-      xl: 'shadow-xl',
+      sm: 'shadow-card',
+      md: 'shadow-md',
+      lg: 'shadow-elevated',
     };
-    
+
     const hoverEffects = {
-      scale: 'hover:scale-[1.01] active:scale-[0.98]',
+      scale: 'hover:scale-[1.02] active:scale-[0.98]',
       lift: 'hover:-translate-y-0.5 active:translate-y-0',
-      glow: 'hover:shadow-xl',
+      glow: 'hover:shadow-lg',
       none: '',
     };
-    
+
     const iconSizes = {
-      xs: 'w-3 h-3',
+      xs: 'w-3.5 h-3.5',
       sm: 'w-4 h-4',
-      md: 'w-5 h-5',
+      md: 'w-4 h-4',
       lg: 'w-5 h-5',
-      xl: 'w-6 h-6'
     };
-    
+
     const isDisabled = disabled || loading;
-    
+
     return (
       <button
         className={cn(
@@ -131,19 +115,15 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
       >
         {loading ? (
-          <div className="flex items-center space-x-2">
-            <div className={cn(iconSizes[size], "border-2 border-current border-t-transparent rounded-full animate-spin")} />
+          <div className="flex items-center gap-2">
+            <div className={cn(iconSizes[size], "animate-spin rounded-full border-2 border-current border-t-transparent")} />
             {children && <span>{children}</span>}
           </div>
         ) : (
           <>
-            {Icon && iconPosition === 'left' && (
-              <Icon className={cn(iconSizes[size], children && 'mr-2')} />
-            )}
+            {Icon && iconPosition === 'left' && <Icon className={cn(iconSizes[size], children && 'mr-2')} />}
             {children}
-            {Icon && iconPosition === 'right' && (
-              <Icon className={cn(iconSizes[size], children && 'ml-2')} />
-            )}
+            {Icon && iconPosition === 'right' && <Icon className={cn(iconSizes[size], children && 'ml-2')} />}
           </>
         )}
       </button>

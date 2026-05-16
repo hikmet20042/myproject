@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
+import { Modal } from '@/components/ui/Modal'
 import {
   AlertCircle,
   Bell,
@@ -11,12 +11,17 @@ import {
   Send,
   Trash2,
 } from "lucide-react";
+import { Loading } from '@/components/ui/Loading'
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
+import { Input } from "@/components/ui/Input";
+import { TextArea } from "@/components/ui/Textarea";
 import { PageStateGuard } from "@/components/shared";
 import AdminActionModal from "@/components/admin/AdminActionModal";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
+import { Card } from "@/components/ui/Card";
 import AdminListLayout from "@/components/admin/AdminListLayout";
+import { Badge } from '@/components/ui/Badge'
 
 type Notification = {
   _id: string;
@@ -235,15 +240,15 @@ export default function NotificationsAdminPage() {
     >
     <AdminListLayout title="Bildiriş İdarəetməsi" description="Elanları və bildiriş axınını mərkəzləşdirilmiş qaydada idarə edin.">
       <div className="py-6 space-y-6">
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <Card className="p-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="flex items-center gap-3">
               <Bell className="w-8 h-8 text-blue-500" />
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">
+                <h2 className="text-2xl font-bold text-slate-900">
                   {"Bildiriş İdarəetməsi"}
                 </h2>
-                <p className="text-gray-600">{"Təsvir"}</p>
+                <p className="text-slate-600">{"Təsvir"}</p>
               </div>
             </div>
             <Button
@@ -258,32 +263,32 @@ export default function NotificationsAdminPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6">
-            <div className="rounded-xl border border-gray-200 border-l-4 border-l-blue-500 bg-white p-6 shadow-sm">
+            <Card className="border-l-4 border-l-blue-500 p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">{"Cəmi"}</p>
+                  <p className="text-sm font-medium text-slate-600">{"Cəmi"}</p>
                   <p className="text-3xl font-bold text-blue-600">
                     {notificationStats.total}
                   </p>
                 </div>
                 <BookOpen className="w-8 h-8 text-blue-500" />
               </div>
-            </div>
-            <div className="rounded-xl border border-gray-200 border-l-4 border-l-green-500 bg-white p-6 shadow-sm">
+            </Card>
+            <Card className="border-l-4 border-l-green-500 p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">{"Oxu"}</p>
+                  <p className="text-sm font-medium text-slate-600">{"Oxu"}</p>
                   <p className="text-3xl font-bold text-green-600">
                     {notificationStats.read}
                   </p>
                 </div>
                 <CheckCircle className="w-8 h-8 text-green-500" />
               </div>
-            </div>
-            <div className="rounded-xl border border-gray-200 border-l-4 border-l-yellow-500 bg-white p-6 shadow-sm">
+            </Card>
+            <Card className="border-l-4 border-l-yellow-500 p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">
+                  <p className="text-sm font-medium text-slate-600">
                     {"Oxunmamış"}
                   </p>
                   <p className="text-3xl font-bold text-yellow-600">
@@ -292,11 +297,11 @@ export default function NotificationsAdminPage() {
                 </div>
                 <AlertCircle className="w-8 h-8 text-yellow-500" />
               </div>
-            </div>
-            <div className="rounded-xl border border-gray-200 border-l-4 border-l-cyan-500 bg-white p-6 shadow-sm">
+            </Card>
+            <Card className="border-l-4 border-l-cyan-500 p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">
+                  <p className="text-sm font-medium text-slate-600">
                     {"Bu gün"}
                   </p>
                   <p className="text-3xl font-bold text-blue-600">
@@ -305,14 +310,14 @@ export default function NotificationsAdminPage() {
                 </div>
                 <Bell className="w-8 h-8 text-blue-500" />
               </div>
-            </div>
+            </Card>
           </div>
-        </div>
+        </Card>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <Card className="p-6">
           <div className="flex items-center gap-3 mb-6">
             <Send className="w-6 h-6 text-blue-500" />
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-slate-900">
               {"Yeni Elan Yarat"}
             </h3>
           </div>
@@ -324,11 +329,9 @@ export default function NotificationsAdminPage() {
             className="space-y-4"
           >
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {"Başlıq etiketi"} *
-              </label>
-              <input
+              <Input
                 type="text"
+                label="Başlıq"
                 value={announcementForm.title}
                 onChange={(e) =>
                   setAnnouncementForm((prev) => ({
@@ -337,15 +340,13 @@ export default function NotificationsAdminPage() {
                   }))
                 }
                 placeholder={"Elan başlığını daxil edin..."}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-slate-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {"Mesaj etiketi"} *
-              </label>
-              <textarea
+              <TextArea
+                label="Mesaj etiketi"
                 rows={4}
                 value={announcementForm.message}
                 onChange={(e) =>
@@ -355,15 +356,12 @@ export default function NotificationsAdminPage() {
                   }))
                 }
                 placeholder={"Elan mesajını daxil edin..."}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {"Hədəf Auditoriya"}
-              </label>
               <Select
+                label="Hədəf Auditoriya"
                 value={announcementForm.targetUsers}
                 onChange={(e) =>
                   setAnnouncementForm((prev) => ({
@@ -409,15 +407,15 @@ export default function NotificationsAdminPage() {
               </Button>
             </div>
           </form>
-        </div>
+        </Card>
 
-        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <Card>
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-slate-900">
                 {`Göndərilənlər siyahısı`}
               </h3>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-slate-600 mt-1">
                 {"Göndərilənlərin təsviri"}
               </p>
             </div>
@@ -448,38 +446,38 @@ export default function NotificationsAdminPage() {
           <div className="px-6 py-6">
             {notifications.length === 0 ? (
               <div className="text-center py-12">
-                <Bell className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">{"Hələ elan yoxdur"}</p>
-                <p className="text-gray-400 text-sm mt-2">
+                <Bell className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-500">{"Hələ elan yoxdur"}</p>
+                <p className="text-slate-400 text-sm mt-2">
                   {"İlk Elanı Yarat"}
                 </p>
               </div>
             ) : (
               <div className="space-y-4">
                 {notifications.map((notification) => (
-                  <div
+                  <Card
                     key={notification._id}
-                    className="border border-gray-200 rounded-xl p-4 bg-white hover:shadow-md transition-all"
+                    className="p-4 hover:shadow-md transition-all" interactive
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          <Badge variant="primary" size="sm">
                             {"Nişan"}
-                          </span>
-                          <span className="text-xs text-gray-500">
+                          </Badge>
+                          <span className="text-xs text-slate-500">
                             {new Date(
                               notification.createdAt,
                             ).toLocaleDateString()}
                           </span>
                         </div>
-                        <h4 className="font-semibold text-gray-900 mb-2">
+                        <h4 className="font-semibold text-slate-900 mb-2">
                           {notification.title}
                         </h4>
-                        <p className="text-gray-600 text-sm mb-3">
+                        <p className="text-slate-600 text-sm mb-3">
                           {notification.message}
                         </p>
-                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                        <div className="flex items-center gap-4 text-xs text-slate-500">
                           <span>
                             {"Alıcılar"}:{" "}
                             {notification.userId
@@ -533,16 +531,16 @@ export default function NotificationsAdminPage() {
                         </Button>
                       </div>
                     </div>
-                  </div>
+                  </Card>
                 ))}
               </div>
             )}
           </div>
 
           {notificationPagination.totalPages > 1 && (
-            <div className="px-6 py-4 border-t border-gray-200">
+            <div className="px-6 py-4 border-t border-slate-200">
               <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-700">
+                <div className="text-sm text-slate-700">
                   {"Səhifə"} {notificationPagination.page} {"/"}{" "}
                   {notificationPagination.totalPages}
                 </div>
@@ -656,45 +654,16 @@ export default function NotificationsAdminPage() {
               </div>
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {showAnnouncementModal && (
-        <Dialog.Root
-          open={showAnnouncementModal}
-          onOpenChange={(open) => {
-            if (!open) setShowAnnouncementModal(false);
-          }}
+        <Modal
+          isOpen={showAnnouncementModal}
+          onClose={() => setShowAnnouncementModal(false)}
+          title="Elan Göndər"
+          size="lg"
         >
-          <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40" />
-            <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-gray-200 bg-white p-6 shadow-md">
-              <div className="flex items-center justify-between mb-6">
-                <Dialog.Title className="text-xl font-semibold text-gray-900">
-                  {"Elan Göndər"}
-                </Dialog.Title>
-                <Dialog.Close asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <svg
-                      className="w-6 h-6"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
-                  </Button>
-                </Dialog.Close>
-              </div>
 
               <form
                 onSubmit={(e) => {
@@ -704,11 +673,9 @@ export default function NotificationsAdminPage() {
                 className="space-y-4"
               >
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {"Başlıq"}
-                  </label>
-                  <input
+                  <Input
                     type="text"
+                    label="Başlıq"
                     value={announcementForm.title}
                     onChange={(e) =>
                       setAnnouncementForm((prev) => ({
@@ -716,17 +683,15 @@ export default function NotificationsAdminPage() {
                         title: e.target.value,
                       }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder={"Elan başlığını daxil edin..."}
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {"Mesaj"}
-                  </label>
-                  <textarea
+                  <TextArea
+                    label="Mesaj"
                     value={announcementForm.message}
                     onChange={(e) =>
                       setAnnouncementForm((prev) => ({
@@ -735,17 +700,14 @@ export default function NotificationsAdminPage() {
                       }))
                     }
                     rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder={"Elan mesajını daxil edin..."}
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {"Hədəf Auditoriya"}
-                  </label>
                   <Select
+                    label="Hədəf Auditoriya"
                     value={announcementForm.targetUsers}
                     onChange={(e) =>
                       setAnnouncementForm((prev) => ({
@@ -764,11 +726,9 @@ export default function NotificationsAdminPage() {
 
                 {announcementForm.targetUsers === "specific" && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {"İstifadəçi ID-ləri (vergüllə ayrılmış)"}
-                    </label>
-                    <input
+                    <Input
                       type="text"
+                      label="İstifadəçi ID-ləri (vergüllə ayrılmış)"
                       value={announcementForm.userIds}
                       onChange={(e) =>
                         setAnnouncementForm((prev) => ({
@@ -776,7 +736,7 @@ export default function NotificationsAdminPage() {
                           userIds: e.target.value,
                         }))
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-slate-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder={
                         "Vergüllə ayrılmış istifadəçi ID-lərini daxil edin..."
                       }
@@ -785,11 +745,14 @@ export default function NotificationsAdminPage() {
                 )}
 
                 <div className="flex justify-end gap-3 pt-4">
-                  <Dialog.Close asChild>
-                    <Button type="button" variant="outline" size="sm">
-                      {"Ləğv Et"}
-                    </Button>
-                  </Dialog.Close>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAnnouncementModal(false)}
+                  >
+                    {"Ləğv Et"}
+                  </Button>
                   <Button
                     type="submit"
                     disabled={sendingAnnouncement}
@@ -798,8 +761,7 @@ export default function NotificationsAdminPage() {
                   >
                     {sendingAnnouncement ? (
                       <>
-                        <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white inline-block mr-2"></span>
-                        {"Göndərilir..."}
+                        <span className="inline-flex items-center gap-2"><Loading size="sm" color="white" />Göndərilir...</span>
                       </>
                     ) : (
                       <>
@@ -810,9 +772,7 @@ export default function NotificationsAdminPage() {
                   </Button>
                 </div>
               </form>
-            </Dialog.Content>
-          </Dialog.Portal>
-        </Dialog.Root>
+        </Modal>
       )}
 
       <AdminActionModal

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { Input } from "@/components/ui/Input";
 import { TextArea } from "@/components/ui/Textarea";
+import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/feedback";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
@@ -16,6 +17,7 @@ import {
 import { updateMyOrganization } from "@/lib/organizationQueries";
 import { logError } from "@/lib/logger";
 import { ImageCropper } from "@/components/shared";
+import { Select } from '@/components/ui/Select'
 
 interface ProfileFormContainerProps {
   organizationProfile: any;
@@ -228,8 +230,7 @@ export default function ProfileFormContainer({
             <label className="block text-sm font-medium text-gray-700">{"Profil keçidi"}</label>
             <div className="mt-1 flex items-center gap-2">
               <span className="text-gray-500 text-sm">/o/</span>
-              <input
-                type="text"
+              <Input
                 value={formData.urlHandle}
                 onChange={(e) =>
                   setFormData((prev) => ({
@@ -238,15 +239,15 @@ export default function ProfileFormContainer({
                   }))
                 }
                 placeholder="təşkilat-adı"
-                className="flex-1 rounded-xl border border-gray-200 bg-white py-2.5 pl-3 pr-3 text-sm text-gray-800 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-4 focus:ring-blue-100"
+                className="flex-1 py-2.5 pl-3 pr-3"
                 maxLength={50}
               />
             </div>
             <p className="mt-1 text-xs text-slate-500">Kiçik hərflər, rəqəmlər, defis və alt xətt. Boş buraxılsa, ad avtomatik istifadə olunacaq.</p>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">{"Təşkilat növü"}</label>
-            <select
+            <Select
+              label="Təşkilat növü"
               value={formData.organizationType}
               onChange={(e) =>
                 setFormData((prev) => ({
@@ -254,16 +255,12 @@ export default function ProfileFormContainer({
                   organizationType: (e.target as HTMLSelectElement).value,
                 }))
               }
-              className="mt-1 block w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-3 pr-10 text-sm text-gray-800 shadow-sm focus:border-blue-400 focus:outline-none focus:ring-4 focus:ring-blue-100"
+              options={[
+                { value: '', label: 'Təşkilat növünü seçin' },
+                ...ORGANIZATION_TYPE_VALUES.map((value) => ({ value, label: ORGANIZATION_TYPE_LABELS[value] })),
+              ]}
               required
-            >
-              <option value="">{"Təşkilat növünü seçin"}</option>
-              {ORGANIZATION_TYPE_VALUES.map((value) => (
-                <option key={value} value={value}>
-                  {ORGANIZATION_TYPE_LABELS[value]}
-                </option>
-              ))}
-            </select>
+            />
           </div>
           <div className="md:col-span-2">
             <TextArea
@@ -465,7 +462,7 @@ export default function ProfileFormContainer({
         </div>
       </section>
 
-      <div className="sticky bottom-4 z-10 flex justify-end gap-3 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur">
+      <Card className="sticky bottom-4 z-10 flex justify-end gap-3 rounded-2xl bg-white/95 p-4 backdrop-blur">
         <Button onClick={onCancel} variant="outline" disabled={saving}>
           {"Ləğv et"}
         </Button>
@@ -478,7 +475,7 @@ export default function ProfileFormContainer({
         >
           {saving ? "Saxlanılır..." : uploadingImage ? "Şəkil yüklənir..." : "Dəyişiklikləri Saxla"}
         </Button>
-      </div>
+      </Card>
 
       {cropModalOpen && pendingImage && (
         <ImageCropper

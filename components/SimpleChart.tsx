@@ -60,7 +60,7 @@ export default function SimpleChart({ type, data, options }: SimpleChartProps) {
       return (
         <div style={{ position: 'relative', height: '400px', width: '100%' }}>
           {!hasData ? (
-            <div className="flex items-center justify-center h-80 text-gray-500">{'Məlumat yoxdur'}</div>
+            <div className="flex items-center justify-center h-80 text-slate-500">{'Məlumat yoxdur'}</div>
           ) : (
             <Line {...commonProps} />
           )}
@@ -70,7 +70,7 @@ export default function SimpleChart({ type, data, options }: SimpleChartProps) {
       return (
         <div style={{ position: 'relative', height: '400px', width: '100%' }}>
           {!hasData ? (
-            <div className="flex items-center justify-center h-80 text-gray-500">{'Məlumat yoxdur'}</div>
+            <div className="flex items-center justify-center h-80 text-slate-500">{'Məlumat yoxdur'}</div>
           ) : (
             <Bar {...commonProps} />
           )}
@@ -80,7 +80,7 @@ export default function SimpleChart({ type, data, options }: SimpleChartProps) {
       return (
         <div style={{ position: 'relative', height: '400px', width: '100%' }}>
           {!hasData ? (
-            <div className="flex items-center justify-center h-80 text-gray-500">{'Məlumat yoxdur'}</div>
+            <div className="flex items-center justify-center h-80 text-slate-500">{'Məlumat yoxdur'}</div>
           ) : (
             <Pie {...commonProps} />
           )}

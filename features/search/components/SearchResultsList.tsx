@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { Building2, Clock3, MapPin } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/Badge'
+import { Card } from '@/components/ui/Card'
 import type { GlobalSearchItem } from '@/features/search/types/search.types'
 import {
   formatSearchResultDate,
@@ -25,9 +27,9 @@ export function SearchResultsList({ items, className }: SearchResultsListProps) 
         const Icon = getSearchTypeIcon(item.type)
 
         return (
-          <article
+          <Card
             key={`${item.type}-${item.id}`}
-            className="group rounded-2xl border border-white/60 bg-white/70 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_32px_rgb(0,0,0,0.06)]"
+            className="group rounded-2xl border-white/60 bg-white/70 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_32px_rgb(0,0,0,0.06)]"
           >
             <div className="flex items-start gap-4">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
@@ -35,9 +37,7 @@ export function SearchResultsList({ items, className }: SearchResultsListProps) 
               </div>
               <div className="min-w-0 flex-1">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <span className="inline-flex rounded-full border border-blue-200 bg-blue-100/80 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-blue-700">
-                    {SEARCH_TYPE_LABELS[item.type]}
-                  </span>
+                  <Badge variant="primary" size="sm" className="text-[10px] font-black uppercase tracking-wider border-blue-200 bg-blue-100/80">{SEARCH_TYPE_LABELS[item.type]}</Badge>
                 </div>
 
                 <Link href={localePath(item.href)} className="block">
@@ -77,7 +77,7 @@ export function SearchResultsList({ items, className }: SearchResultsListProps) 
                 Bax
               </Link>
             </div>
-          </article>
+          </Card>
         )
       })}
     </div>

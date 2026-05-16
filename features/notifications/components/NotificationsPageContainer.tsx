@@ -4,8 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Alert } from "@/components/feedback";
 import { EmptyState } from "@/components/shared";
 import { Button } from "@/components/ui/Button";
+import { Tabs } from "@/components/ui/Tabs";
 import NotificationModal from "@/components/ui/notifications/NotificationModal";
 import NotificationItemRow from "@/components/ui/notifications/NotificationItem";
+import { Card } from "@/components/ui/Card";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import { useNotificationContext } from "@/features/notifications/context/NotificationContext";
 
@@ -93,7 +95,7 @@ export default function NotificationsPageContainer() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+      <Card className="rounded-2xl p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">Bildirişlər</h1>
@@ -105,11 +107,11 @@ export default function NotificationsPageContainer() {
             </Button>
           ) : null}
         </div>
-      </div>
+      </Card>
 
       {error && <Alert variant="error">{error}</Alert>}
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+      <Card className="rounded-2xl p-5">
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Bildiriş siyahısı</h2>
           <p className="mt-1 text-sm text-gray-600">Filtrlə və vacib bildirişləri daha sürətli tap.</p>
@@ -135,10 +137,18 @@ export default function NotificationsPageContainer() {
           </div>
         </div>
 
-        <div className="mb-4 flex flex-wrap gap-2">
-          <Button variant={filter === "all" ? "primary" : "outline"} size="sm" onClick={() => setFilter("all")}>Hamısı</Button>
-          <Button variant={filter === "unread" ? "primary" : "outline"} size="sm" onClick={() => setFilter("unread")}>Oxunmamış</Button>
-          <Button variant={filter === "read" ? "primary" : "outline"} size="sm" onClick={() => setFilter("read")}>Oxunmuş</Button>
+        <div className="mb-4">
+          <Tabs
+            tabs={[
+              { id: 'all', label: 'Hamısı' },
+              { id: 'unread', label: 'Oxunmamış' },
+              { id: 'read', label: 'Oxunmuş' },
+            ]}
+            activeTab={filter}
+            onTabChange={(tabId) => setFilter(tabId as FilterValue)}
+            variant="pills"
+            size="sm"
+          />
         </div>
 
         {isLoading ? (
@@ -172,7 +182,7 @@ export default function NotificationsPageContainer() {
             ))}
           </div>
         )}
-      </section>
+      </Card>
 
       <NotificationModal
         open={modalOpen && !!modalNotification}

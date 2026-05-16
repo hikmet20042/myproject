@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Briefcase, Calendar, Loader2, Phone, Plus, Trash2, Upload } from 'lucide-react'
+import { Briefcase, Calendar, Phone, Plus, Trash2, Upload } from 'lucide-react'
+import { Loading } from '@/components/ui/Loading'
 import { Button, Input, Select, TextArea } from '@/components/ui'
+import { Card } from '@/components/ui/Card'
 import { useFormState } from '@/features/forms/useFormState'
 import { buildVacancySubmitPayload } from '@/features/forms/payloadBuilders/vacancy'
 import { validateVacancyForm } from '@/features/forms/validation/vacancy'
@@ -164,12 +166,12 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
   return (
     <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <Card className="rounded-2xl p-6">
           <h1 className="text-2xl font-black text-gray-900">{isEditMode ? 'Vakansiyanı redaktə et' : 'Yeni vakansiya yarat'}</h1>
           <p className="mt-2 text-sm text-gray-600">Vəzifə məlumatlarını doldurun və müraciət axınını qurun.</p>
-        </div>
+        </Card>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
+        <Card className="rounded-2xl p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input label="Vəzifə başlığı" name="title" value={formData.title} onChange={handleInputChange} required />
             <Select
@@ -192,10 +194,10 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
             />
           </div>
           <TextArea label="Təsvir" name="description" value={formData.description} onChange={handleInputChange} required rows={5} />
-        </div>
+        </Card>
 
         {isInternOrVolunteer(formData.type) && (
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
+          <Card className="rounded-2xl p-6 space-y-4">
             <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Calendar className="h-5 w-5" /> Proqram aralığı</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Select
@@ -231,10 +233,10 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
                 required
               />
             </div>
-          </div>
+          </Card>
         )}
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
+        <Card className="rounded-2xl p-6 space-y-4">
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Briefcase className="h-5 w-5" /> Odenis modeli</h2>
           <label className="inline-flex items-center gap-2">
             <input type="checkbox" name="isPaid" checked={formData.isPaid} onChange={handleInputChange} />
@@ -269,9 +271,9 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
               )}
             </div>
           )}
-        </div>
+        </Card>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
+        <Card className="rounded-2xl p-6 space-y-4">
           <h2 className="text-lg font-bold text-gray-900">Requirements</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input type="number" label="Yas min" name="ageMin" min="0" max="99" value={formData.ageMin} onChange={handleInputChange} required />
@@ -286,14 +288,14 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
           </div>
           <div className="flex flex-wrap gap-2">
             {formData.requirements.map((item, idx) => (
-              <button key={`${item}-${idx}`} type="button" onClick={() => removeListItem('requirements', idx)} className="rounded-full border border-gray-300 px-3 py-1 text-xs">
+              <Button key={`${item}-${idx}`} variant="outline" size="xs" className="rounded-full px-3 py-1 text-xs border-gray-300" onClick={() => removeListItem('requirements', idx)}>
                 {item} x
-              </button>
+              </Button>
             ))}
           </div>
-        </div>
+        </Card>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
+        <Card className="rounded-2xl p-6 space-y-4">
           <h2 className="text-lg font-bold text-gray-900">Benefits</h2>
           <div className="flex gap-2">
             <Input label="Yeni benefit" value={benefitInput} onChange={(e) => setBenefitInput(e.target.value)} />
@@ -303,14 +305,14 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
           </div>
           <div className="flex flex-wrap gap-2">
             {formData.benefits.map((item, idx) => (
-              <button key={`${item}-${idx}`} type="button" onClick={() => removeListItem('benefits', idx)} className="rounded-full border border-gray-300 px-3 py-1 text-xs">
+              <Button key={`${item}-${idx}`} variant="outline" size="xs" className="rounded-full px-3 py-1 text-xs border-gray-300" onClick={() => removeListItem('benefits', idx)}>
                 {item} x
-              </button>
+              </Button>
             ))}
           </div>
-        </div>
+        </Card>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
+        <Card className="rounded-2xl p-6 space-y-4">
           <h2 className="text-lg font-bold text-gray-900">Responsibilities</h2>
           <div className="flex gap-2">
             <Input label="Yeni responsibility" value={responsibilityInput} onChange={(e) => setResponsibilityInput(e.target.value)} />
@@ -320,14 +322,14 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
           </div>
           <div className="flex flex-wrap gap-2">
             {formData.responsibilities.map((item, idx) => (
-              <button key={`${item}-${idx}`} type="button" onClick={() => removeListItem('responsibilities', idx)} className="rounded-full border border-gray-300 px-3 py-1 text-xs">
+              <Button key={`${item}-${idx}`} variant="outline" size="xs" className="rounded-full px-3 py-1 text-xs border-gray-300" onClick={() => removeListItem('responsibilities', idx)}>
                 {item} x
-              </button>
+              </Button>
             ))}
           </div>
-        </div>
+        </Card>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
+        <Card className="rounded-2xl p-6 space-y-4">
           <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Phone className="h-5 w-5" /> Muraciet metodu</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             {VACANCY_APPLICATION_METHOD_VALUES.map((method) => (
@@ -367,13 +369,13 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
             onChange={handleInputChange}
             required
           />
-        </div>
+        </Card>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
+        <Card className="rounded-2xl p-6 space-y-4">
           <h2 className="text-lg font-bold text-gray-900">Cover image (optional)</h2>
           <div className="flex items-center gap-3">
             <label className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 cursor-pointer">
-              {uploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              {uploadingImage ? <Loading size="sm" variant="spinner" color="primary" /> : <Upload className="h-4 w-4" />}
               <span>{uploadingImage ? 'Yuklenir...' : 'Sekil sec'}</span>
               <input type="file" accept="image/*" className="hidden" onChange={onImageFileChange} disabled={uploadingImage} />
             </label>
@@ -386,7 +388,7 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
           {formData.imageUrl && (
             <img src={formData.imageUrl} alt="Vakansiya örtük şəkli" className="h-40 w-full max-w-md rounded-xl object-cover border border-gray-200" />
           )}
-        </div>
+        </Card>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-end">
           <Button type="button" variant="outline" onClick={() => router.push(localePath('/dashboard/vacancies'))}>

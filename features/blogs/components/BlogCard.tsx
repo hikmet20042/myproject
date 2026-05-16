@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { BookOpen, Calendar, Eye, ThumbsUp, ThumbsDown, Bookmark } from 'lucide-react'
 import Image from 'next/image'
+import { Badge } from '@/components/ui/Badge'
 import { ResourceCard } from '@/components/shared'
 import SaveItemButtonContainer from '@/components/containers/SaveItemButtonContainer'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
@@ -55,9 +56,7 @@ export default function BlogCard({ blog }: BlogCardProps) {
       topRight={
         <div className="flex items-center gap-2">
           {blog.status === 'pending' && (
-            <span className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-full font-bold shadow-sm animate-pulse whitespace-nowrap">
-              {'Sənin Təqdimatın'}
-            </span>
+            <Badge variant="primary" size="sm" className="bg-blue-600 text-white animate-pulse">{'Sənin Təqdimatın'}</Badge>
           )}
           <SaveItemButtonContainer itemId={String(blog.id)} itemType="blog" itemTitle={blog.title} size="sm" showText={false} />
         </div>

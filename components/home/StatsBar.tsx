@@ -1,5 +1,7 @@
 'use client'
 
+import { Card } from '@/components/ui/Card'
+
 interface StatsBarProps {
   stats: {
     totalEvents: number
@@ -19,7 +21,7 @@ export const StatsBar = ({ stats }: StatsBarProps) => {
 
   return (
     <div className="container mx-auto px-4 -mt-12 relative z-20">
-      <div className="bg-white/80 backdrop-blur-xl border border-white rounded-[2.5rem] p-8 md:p-12 shadow-[0_20px_50px_rgba(0,0,0,0.05)]">
+      <Card className="bg-white/80 backdrop-blur-xl border-white rounded-[2.5rem] p-8 md:p-12 shadow-[0_20px_50px_rgba(0,0,0,0.05)]">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4 divide-x-0 md:divide-x divide-slate-100">
           {items.map((item, index) => (
             <div key={index} className="flex flex-col items-center text-center px-4 group">
@@ -32,7 +34,7 @@ export const StatsBar = ({ stats }: StatsBarProps) => {
             </div>
           ))}
         </div>
-      </div>
+      </Card>
     </div>
   )
 }

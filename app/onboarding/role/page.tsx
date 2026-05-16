@@ -7,6 +7,7 @@ import { useSession } from '@/lib/auth/client'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { LoadingState } from '@/components/shared'
 import { Button } from '@/components/ui'
+import { Card } from '@/components/ui/Card'
 import { FormLayout } from '@/components/forms'
 
 export default function OnboardingRolePage() {
@@ -28,31 +29,31 @@ export default function OnboardingRolePage() {
       subtitle="Davama keçmək üçün hesab tipinizi seçin."
     >
       
-      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+      <Card className="p-6 sm:p-8">
         <div className="grid gap-4 md:grid-cols-2">
-          <button
-            type="button"
+          <Button
+            variant="ghost"
             onClick={() => router.push(localePath('/onboarding/user'))}
-            className="group rounded-2xl border border-gray-200 bg-slate-50 p-6 text-left transition-all hover:border-blue-300 hover:bg-blue-50"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-6 text-left hover:border-blue-300 hover:bg-blue-50"
           >
             <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
               <User className="h-6 w-6" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Fərdi istifadəçi</h2>
-            <p className="mt-2 text-sm text-gray-600">Maraq sahələrini seç və fərdi təcrübə ilə davam et.</p>
-          </button>
+            <h2 className="text-xl font-bold text-slate-900">Fərdi istifadəçi</h2>
+            <p className="mt-2 text-sm text-slate-600">Maraq sahələrini seç və fərdi təcrübə ilə davam et.</p>
+          </Button>
 
-          <button
-            type="button"
+          <Button
+            variant="ghost"
             onClick={() => router.push(localePath('/onboarding/organization'))}
-            className="group rounded-2xl border border-gray-200 bg-slate-50 p-6 text-left transition-all hover:border-blue-300 hover:bg-blue-50"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-6 text-left hover:border-blue-300 hover:bg-blue-50"
           >
             <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
               <Building2 className="h-6 w-6" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Təşkilat</h2>
-            <p className="mt-2 text-sm text-gray-600">Təşkilat məlumatını əlavə et və dashboard istifadəsini aç.</p>
-          </button>
+            <h2 className="text-xl font-bold text-slate-900">Təşkilat</h2>
+            <p className="mt-2 text-sm text-slate-600">Təşkilat məlumatını əlavə et və dashboard istifadəsini aç.</p>
+          </Button>
         </div>
 
         <div className="mt-6 flex justify-end">
@@ -60,7 +61,7 @@ export default function OnboardingRolePage() {
             Hesab dəyiş
           </Button>
         </div>
-      </div>
+      </Card>
     </FormLayout>
   )
 }

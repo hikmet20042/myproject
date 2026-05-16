@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
+import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/utils";
 
@@ -22,12 +23,7 @@ export default function AdminFilters({
   className,
 }: AdminFiltersProps) {
   return (
-    <div
-      className={cn(
-        "rounded-2xl border border-gray-200 bg-white p-6 shadow-sm",
-        className,
-      )}
-    >
+    <Card className={cn("p-6", className)}>
       <div className="flex flex-col lg:flex-row gap-4 mb-4">
         {onSearchChange && (
           <div className="flex-1">
@@ -42,6 +38,6 @@ export default function AdminFilters({
         {actions && <div className="flex items-center gap-2">{actions}</div>}
       </div>
       {children}
-    </div>
+    </Card>
   );
 }

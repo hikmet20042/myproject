@@ -186,7 +186,7 @@ export default function ImageCropper({
     >
       <div className="space-y-4">
         {error && (
-          <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+          <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
             {error}
           </div>
         )}
@@ -209,7 +209,7 @@ export default function ImageCropper({
         </div>
 
         <div className="flex items-center gap-3">
-          <ZoomIn className="h-4 w-4 text-gray-500" />
+          <ZoomIn className="h-4 w-4 text-slate-500" />
           <input
             type="range"
             min={0.5}

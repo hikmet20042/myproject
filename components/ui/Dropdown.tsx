@@ -92,7 +92,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
                   }
                 }}
                 className={cn(
-                  'flex w-full cursor-pointer select-none items-center space-x-2 rounded-md px-4 py-2 text-left text-sm text-gray-700 outline-none focus:bg-blue-50 focus:text-blue-700 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50'
+                  'flex w-full cursor-pointer select-none items-center space-x-2 rounded-md px-4 py-2 text-left text-sm text-slate-700 outline-none focus:bg-blue-50 focus:text-blue-700 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50'
                 )}
               >
                 {ItemIcon && <ItemIcon className="h-4 w-4" />}
