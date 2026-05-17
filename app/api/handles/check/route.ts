@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
-import { applyRateLimit } from '@/lib/rateLimit'
+import { handleApiRequest, withRateLimitHeaders } from '@/lib/apiHelpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,66 +35,46 @@ function validateHandle(handle: string): string | null {
 }
 
 export async function GET(request: NextRequest) {
-  try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
-      request,
-      preset: 'publicRead',
-      endpoint: '/api/handles/check',
-    })
+  const result = await handleApiRequest(request, {
+    rateLimit: 'publicRead',
+    endpoint: '/api/handles/check',
+  })
+  if (result instanceof Response) return result
 
-    if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
-      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
-      return response
-    }
+  const { rateLimitHeaders } = result
+  const { searchParams } = new URL(request.url)
+  const handle = searchParams.get('handle')
 
-    const { searchParams } = new URL(request.url)
-    const handle = searchParams.get('handle')
-
-    if (!handle) {
-      const response = errorResponse('Handle parameter is required', 'VALIDATION_ERROR', {}, 400)
-      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
-      return response
-    }
-
-    const validationError = validateHandle(handle)
-    if (validationError) {
-      const response = successResponse({ available: false, reason: validationError })
-      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
-      return response
-    }
-
-    const supabase = createSupabaseAdminClient()
-
-    const { data: accountMatch } = await supabase
-      .from('accounts')
-      .select('id')
-      .eq('url_handle', handle.toLowerCase().trim())
-      .maybeSingle()
-
-    if (accountMatch) {
-      const response = successResponse({ available: false, reason: 'Handle is already taken' })
-      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
-      return response
-    }
-
-    const { data: orgMatch } = await supabase
-      .from('organization_profiles')
-      .select('account_id')
-      .eq('url_handle', handle.toLowerCase().trim())
-      .maybeSingle()
-
-    if (orgMatch) {
-      const response = successResponse({ available: false, reason: 'Handle is already taken' })
-      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
-      return response
-    }
-
-    const response = successResponse({ available: true })
-    for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
-    return response
-  } catch (error) {
-    console.error('Handle check error:', error)
-    return errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500)
+  if (!handle) {
+    return withRateLimitHeaders(errorResponse('Handle parameter is required', 'VALIDATION_ERROR', {}, 400), rateLimitHeaders)
   }
+
+  const validationError = validateHandle(handle)
+  if (validationError) {
+    return withRateLimitHeaders(successResponse({ available: false, reason: validationError }), rateLimitHeaders)
+  }
+
+  const supabase = createSupabaseAdminClient()
+
+  const { data: accountMatch } = await supabase
+    .from('accounts')
+    .select('id')
+    .eq('url_handle', handle.toLowerCase().trim())
+    .maybeSingle()
+
+  if (accountMatch) {
+    return withRateLimitHeaders(successResponse({ available: false, reason: 'Handle is already taken' }), rateLimitHeaders)
+  }
+
+  const { data: orgMatch } = await supabase
+    .from('organization_profiles')
+    .select('account_id')
+    .eq('url_handle', handle.toLowerCase().trim())
+    .maybeSingle()
+
+  if (orgMatch) {
+    return withRateLimitHeaders(successResponse({ available: false, reason: 'Handle is already taken' }), rateLimitHeaders)
+  }
+
+  return withRateLimitHeaders(successResponse({ available: true }), rateLimitHeaders)
 }
