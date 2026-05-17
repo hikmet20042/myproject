@@ -235,13 +235,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { title, content, contentHtml, tags, abstract, isAnonymous, authorName, media, featuredImage } = body;
-    if (!title || title.length < 5 || title.length > 200) {
-      const response = errorResponse('Title must be between 5 and 200 characters', 'VALIDATION_ERROR', {}, 400)
-      for (const [key, value] of Object.entries(rateLimitHeaders)) {
-        response.headers.set(key, value)
-      }
-      return response
-    }
+
     // Extract plain text from content for validation
     let textContent = '';
     if (typeof content === 'string') {
@@ -263,15 +257,6 @@ export async function POST(request: NextRequest) {
     
     if (!textContent || textContent.trim().length < 100) {
       const response = errorResponse('Your blog must be at least 100 characters long', 'VALIDATION_ERROR', {}, 400)
-      for (const [key, value] of Object.entries(rateLimitHeaders)) {
-        response.headers.set(key, value)
-      }
-      return response
-    }
-
-    // Validate tags if provided
-    if (tags && !Array.isArray(tags)) {
-      const response = errorResponse('Tags must be an array of strings', 'VALIDATION_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }

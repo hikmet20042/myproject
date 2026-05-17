@@ -5,22 +5,7 @@ import { canAccessAdmin, canCreateVacancy, isAdmin, isApprovedOrganization } fro
 import { NotificationService } from '@/features/notifications/services/notificationService'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { buildVacancyDbPayload, mapVacancyRow, validateVacancyPayload } from '@/app/api/vacancies/helpers'
-import { applyRateLimit, RATE_LIMIT_PRESETS } from '@/lib/rateLimit'
-import { validateRequestBody } from '@/lib/validation'
-
-const vacancyCreateSchema = {
-  title: { required: true, type: 'string' as const, minLength: 3, maxLength: 200 },
-  description: { required: true, type: 'string' as const, minLength: 10 },
-  type: { required: true, type: 'string' as const, enum: ['full-time', 'part-time', 'internship', 'freelance', 'contract', 'volunteer'] as const },
-  location: { type: 'string' as const, maxLength: 200 },
-  isRemote: { type: 'boolean' as const },
-  salary: { type: 'string' as const, maxLength: 100 },
-  applicationDeadline: { type: 'date' as const },
-  requirements: { type: 'string' as const },
-  contactEmail: { type: 'email' as const },
-  contactPhone: { type: 'string' as const, maxLength: 50 },
-  tags: { type: 'array' as const, max: 20 },
-}
+import { applyRateLimit } from '@/lib/rateLimit'
 
 // GET /api/vacancies - Get vacancies with filtering
 export async function GET(request: NextRequest) {
@@ -313,15 +298,6 @@ export async function POST(request: NextRequest) {
     }
     
     const body = await request.json()
-    
-    const validationError = validateRequestBody(body, vacancyCreateSchema)
-    if (validationError) {
-      const response = validationError
-      for (const [key, value] of Object.entries(rateLimitHeaders)) {
-        response.headers.set(key, value)
-      }
-      return response
-    }
     
     const validation = validateVacancyPayload(body)
     if (!validation.valid) {
