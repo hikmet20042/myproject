@@ -100,6 +100,9 @@ export function buildRateLimitKey(options: {
  * Check if a request is within rate limits.
  */
 export function checkRateLimit(options: RateLimitOptions): RateLimitResult {
+  // Lazy cleanup for serverless environments
+  cleanupRateLimitStore()
+  
   const { maxRequests, windowMs, key } = options
   const now = Date.now()
   
@@ -175,9 +178,15 @@ export function applyRateLimit(options: {
 
 /**
  * Clean up expired entries from the store.
+ * Note: In serverless environments (Netlify, Vercel), cleanup runs
+ * lazily on each request instead of via setInterval.
  */
+let lastCleanup = 0
 export function cleanupRateLimitStore(): void {
   const now = Date.now()
+  if (now - lastCleanup < CLEANUP_INTERVAL) return
+  lastCleanup = now
+  
   rateLimitStore.forEach((window, key) => {
     if (now >= window.resetAt) {
       rateLimitStore.delete(key)
@@ -185,5 +194,10 @@ export function cleanupRateLimitStore(): void {
   })
 }
 
-// Auto-cleanup
-setInterval(cleanupRateLimitStore, CLEANUP_INTERVAL)
+// Only use setInterval in long-running server processes, not serverless
+// Check for VERCEL, NETLIFY, or AWS_LAMBDA environment variables
+const isServerless = !!(process.env.VERCEL || process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_VERSION || process.env.LAMBDA_TASK_ROOT)
+
+if (!isServerless) {
+  setInterval(cleanupRateLimitStore, CLEANUP_INTERVAL)
+}
