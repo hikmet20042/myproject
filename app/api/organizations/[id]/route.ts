@@ -4,6 +4,9 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { canAccessAdmin, isAdmin } from '@/lib/auth/permissions'
 import { normalizeOrganizationProfile, validateOrganizationUpdatePayload } from '@/lib/organizationProfile'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { applyRateLimit } from '@/lib/rateLimit'
+
+const rlh = (r: Response, h: Record<string, string>) => { for (const [k,v] of Object.entries(h)) r.headers.set(k,v); return r }
 
 export const dynamic = 'force-dynamic'
 
@@ -13,6 +16,10 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/organizations/[id]' })
+    if (!rlResult.allowed) {
+      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+    }
     const supabase = createSupabaseAdminClient()
 
     const { data: profile, error: profileError } = await supabase
@@ -53,31 +60,7 @@ export async function GET(
         .maybeSingle(),
     ])
 
-    return successResponse({
-      organization: normalizeOrganizationProfile({
-        ...profile,
-        follower_count: followerCountResult.count || 0,
-      }),
-      featuredEvent: featuredEventResult.data
-        ? {
-            id: featuredEventResult.data.id,
-            title: featuredEventResult.data.title,
-            eventDate: featuredEventResult.data.event_date,
-            applicationLink: featuredEventResult.data.application_link,
-            createdAt: featuredEventResult.data.created_at,
-          }
-        : null,
-      featuredVacancy: featuredVacancyResult.data
-        ? {
-            id: featuredVacancyResult.data.id,
-            title: featuredVacancyResult.data.title,
-            applicationDeadline: featuredVacancyResult.data.application_deadline,
-            applicationMethod: featuredVacancyResult.data.application_method,
-            applicationValue: featuredVacancyResult.data.application_value,
-            createdAt: featuredVacancyResult.data.created_at,
-          }
-        : null,
-    })
+    return rlh(successResponse({ organization: normalizeOrganizationProfile({ ...profile, follower_count: followerCountResult.count || 0, }), featuredEvent: featuredEventResult.data ? { id: featuredEventResult.data.id, title: featuredEventResult.data.title, eventDate: featuredEventResult.data.event_date, applicationLink: featuredEventResult.data.application_link, createdAt: featuredEventResult.data.created_at, } : null, featuredVacancy: featuredVacancyResult.data ? { id: featuredVacancyResult.data.id, title: featuredVacancyResult.data.title, applicationDeadline: featuredVacancyResult.data.application_deadline, applicationMethod: featuredVacancyResult.data.application_method, applicationValue: featuredVacancyResult.data.application_value, createdAt: featuredVacancyResult.data.created_at, } : null, }), rlHeaders)
   } catch (error) {
     console.error('Error fetching organization:', error)
     return errorResponse('Internal server error', "API_ERROR", {}, 500)
@@ -90,6 +73,10 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/organizations/[id]' })
+    if (!rlResult.allowed) {
+      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+    }
     const supabase = createSupabaseAdminClient()
 
     const { data: organization, error: fetchError } = await supabase
@@ -166,10 +153,7 @@ export async function PUT(
       return errorResponse(updateError?.message || 'Update failed', "API_ERROR", {}, 500)
     }
 
-    return successResponse({
-      message: 'Organization updated successfully',
-      organization: normalizeOrganizationProfile(updatedOrganization)
-    })
+    return rlh(successResponse({ message: 'Organization updated successfully', organization: normalizeOrganizationProfile(updatedOrganization) }), rlHeaders)
   } catch (error) {
     console.error('Error updating organization:', error)
     return errorResponse('Internal server error', "API_ERROR", {}, 500)
@@ -182,6 +166,10 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/organizations/[id]' })
+    if (!rlResult.allowed) {
+      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+    }
     const session = await getServerSession()
     if (!session?.user?.id) {
       return errorResponse('Unauthorized', "API_ERROR", {}, 401)

@@ -7,6 +7,7 @@ import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { getBlogStats } from '@/lib/blogStats'
 import { NotificationService } from '@/features/notifications/services/notificationService'
 import { processContentImages, isCloudinaryUrl } from '@/lib/utils/imageUtils'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,6 +27,10 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/blogs/[id]' })
+    if (!rlResult.allowed) {
+      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+    }
     const supabase = createSupabaseAdminClient()
 
     const { data: blog, error } = await supabase
@@ -41,7 +46,7 @@ export async function GET(
       const session = await getServerSession()
       const stats = await getBlogStats(supabase, blog.id, session?.user?.id)
       const authorUrlHandle = await getAuthorUrlHandle(supabase, blog.author_id)
-      return successResponse({ blog: { ...blog, ...stats, authorUrlHandle } })
+      const r = successResponse({ blog: { ...blog, ...stats, authorUrlHandle } })
     }
 
     const session = await getServerSession()
@@ -55,7 +60,7 @@ export async function GET(
 
     const stats = await getBlogStats(supabase, blog.id, session?.user?.id)
     const authorUrlHandle = await getAuthorUrlHandle(supabase, blog.author_id)
-    return successResponse({ blog: { ...blog, ...stats, authorUrlHandle } })
+    const r = successResponse({ blog: { ...blog, ...stats, authorUrlHandle } })
   } catch (error) {
     console.error('GET /api/blogs/[id] error:', error)
     return errorResponse('Failed to fetch blog', 'FETCH_BLOG_FAILED', {}, 500)
@@ -68,6 +73,10 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'write', endpoint: '/api/blogs/[id]' })
+    if (!rlResult.allowed) {
+      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+    }
     const supabase = createSupabaseAdminClient()
     const session = await getServerSession()
     if (!session?.user?.id) {
@@ -307,6 +316,10 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'write', endpoint: '/api/blogs/[id]' })
+    if (!rlResult.allowed) {
+      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+    }
     const session = await getServerSession()
     if (!session?.user) {
       return errorResponse('Unauthorized', 'AUTH_REQUIRED', {}, 401)
@@ -342,7 +355,7 @@ export async function DELETE(
       .eq('id', blog.id)
 
     cache.blogs.clear()
-    return successResponse({ id: blog.id }, { message: 'Story deleted successfully' })
+    const _r = successResponse({ id: blog.id }, { message: 'Story deleted successfully' })
   } catch (error) {
     console.error('DELETE /api/blogs/[id] error:', error)
     return errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500)

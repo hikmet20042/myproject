@@ -13,6 +13,9 @@ import {
   validateEventInput,
 } from "@/app/api/events/helpers";
 import { getContentViewCounts } from "@/lib/viewTracking";
+import { applyRateLimit } from '@/lib/rateLimit'
+
+const rlh = (r: Response, h: Record<string, string>) => { for (const [k,v] of Object.entries(h)) r.headers.set(k,v); return r }
 
 const hydrateEventRowWithOrganizationHandles = async (supabase: any, eventRow: any) => {
   const orgId = eventRow?.created_by_organization
@@ -61,6 +64,10 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/events/[id]' })
+    if (!rlResult.allowed) {
+      return errorResponse('Too many requests. Please try again later.', 429)
+    }
     const supabase = createSupabaseAdminClient();
     const eventId = String(params.id || '').trim()
 
@@ -71,12 +78,12 @@ export async function GET(
       .single();
 
     if (error || !eventRow) {
-      return errorResponse("Event not found", 404);
+      return errorResponse("Event not found", 404)
     }
 
     const session = await getServerSession();
     if (!canViewEventRecord(session, eventRow)) {
-      return errorResponse("Unauthorized", 403);
+      return errorResponse("Unauthorized", 403)
     }
 
     const stats = await getContentViewCounts(supabase, 'event', eventRow.id);
@@ -89,22 +96,10 @@ export async function GET(
     const hydratedEventRow = await hydrateEventRowWithOrganizationHandles(supabase, eventRow)
     const event = mapEventToResponse(hydratedEventRow);
 
-    return successResponse({ 
-      event: { 
-        ...event, 
-        views: stats.views,
-        uniqueViews: stats.uniqueViews,
-        saves: savesCount || 0,
-        analytics: {
-          ...event.analytics,
-          views: stats.views,
-          uniqueViews: stats.uniqueViews
-        }
-      } 
-    });
+    return successResponse({ event: { ...event, views: stats.views, uniqueViews: stats.uniqueViews, saves: savesCount || 0, analytics: { ...event.analytics, views: stats.views, uniqueViews: stats.uniqueViews } } })
   } catch (error) {
     console.error('GET /api/events/[id] error:', error);
-    return errorResponse("Failed to fetch event", 500);
+    return errorResponse("Failed to fetch event", 500)
   }
 }
 
@@ -113,9 +108,13 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/events/[id]' })
+    if (!rlResult.allowed) {
+      return errorResponse('Too many requests. Please try again later.', 429)
+    }
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return errorResponse("Authentication required", 401);
+      return errorResponse("Authentication required", 401)
     }
 
     const supabase = createSupabaseAdminClient();
@@ -128,36 +127,36 @@ export async function PUT(
       .single();
 
     if (eventError || !eventRow) {
-      return errorResponse("Event not found", 404);
+      return errorResponse("Event not found", 404)
     }
 
     const owner = isOwner(session, eventRow);
     const admin = isAdmin(session);
 
     if (!owner && !admin) {
-      return errorResponse("Permission denied", 403);
+      return errorResponse("Permission denied", 403)
     }
 
     const lifecycleState = validateLifecycleState(eventRow);
     if (!lifecycleState.valid) {
-      return errorResponse(lifecycleState.error || "Invalid lifecycle state", 409);
+      return errorResponse(lifecycleState.error || "Invalid lifecycle state", 409)
     }
 
     const body = await request.json();
     const validation = validateEventInput(body, { partial: true });
     if (!validation.valid) {
-      return errorResponse(validation.error || "Invalid event data", 400);
+      return errorResponse(validation.error || "Invalid event data", 400)
     }
 
     const updateData = mapEventInputToDbPayload(body, { partial: true }) as Record<string, any>;
     const nextApplicationLink = updateData.application_link ?? eventRow.application_link;
     if (!nextApplicationLink) {
-      return errorResponse("applicationLink is required", 400);
+      return errorResponse("applicationLink is required", 400)
     }
     if (eventRow.status === "approved" && eventRow.is_published === true && owner) {
       const lifecycleResult = applyEventLifecycleRules(eventRow, "ownerEditApproved", { role: "owner", id: session.user.id });
       if (!lifecycleResult.ok) {
-        return errorResponse(lifecycleResult.error || "Invalid lifecycle transition", 409);
+        return errorResponse(lifecycleResult.error || "Invalid lifecycle transition", 409)
       }
       Object.assign(updateData, lifecycleResult.updateData);
     }
@@ -172,17 +171,14 @@ export async function PUT(
       .single();
 
     if (updateError || !updatedRow) {
-      return errorResponse("Failed to update event", 500);
+      return errorResponse("Failed to update event", 500)
     }
 
     const hydratedUpdatedRow = await hydrateEventRowWithOrganizationHandles(supabase, updatedRow)
 
-    return successResponse(
-      { event: mapEventToResponse(hydratedUpdatedRow) },
-      { message: "Event updated successfully" }
-    );
+    return rlh(successResponse( { event: mapEventToResponse(hydratedUpdatedRow) }, { message: "Event updated successfully" } ), rlHeaders)
   } catch (error) {
-    return errorResponse("Failed to update event", 500);
+    return errorResponse("Failed to update event", 500)
   }
 }
 
@@ -191,9 +187,13 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/events/[id]' })
+    if (!rlResult.allowed) {
+      return errorResponse('Too many requests. Please try again later.', 429)
+    }
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return errorResponse("Authentication required", 401);
+      return errorResponse("Authentication required", 401)
     }
 
     const supabase = createSupabaseAdminClient();
@@ -206,11 +206,11 @@ export async function DELETE(
       .single();
 
     if (eventError || !eventRow) {
-      return errorResponse("Event not found", 404);
+      return errorResponse("Event not found", 404)
     }
 
     if (!isAdminOrOwner(session, eventRow)) {
-      return errorResponse("Permission denied", 403);
+      return errorResponse("Permission denied", 403)
     }
 
     const { error: deleteError } = await supabase
@@ -219,14 +219,11 @@ export async function DELETE(
       .eq("id", eventId);
 
     if (deleteError) {
-      return errorResponse("Failed to delete event", 500);
+      return errorResponse("Failed to delete event", 500)
     }
 
-    return successResponse(
-      { id: eventId },
-      { message: "Event deleted successfully" }
-    );
+    return successResponse( { id: eventId }, { message: "Event deleted successfully" } )
   } catch (error) {
-    return errorResponse("Failed to delete event", 500);
+    return errorResponse("Failed to delete event", 500)
   }
 }

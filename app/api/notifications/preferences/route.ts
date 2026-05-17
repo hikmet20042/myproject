@@ -7,88 +7,98 @@ import { handleApiRequest, withRateLimitHeaders } from '@/lib/apiHelpers'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
-  const result = await handleApiRequest(request, {
-    rateLimit: 'authenticatedRead',
-    requireAuth: true,
-    endpoint: '/api/notifications/preferences',
-  })
-  if (result instanceof Response) return result
+  try {
+    const result = await handleApiRequest(request, {
+      rateLimit: 'authenticatedRead',
+      requireAuth: true,
+      endpoint: '/api/notifications/preferences',
+    })
+    if (result instanceof Response) return result
 
-  const { session, rateLimitHeaders } = result
-  const supabase = createSupabaseAdminClient()
+    const { session, rateLimitHeaders } = result
+    const supabase = createSupabaseAdminClient()
 
-  const isOrg = isApprovedOrganization(session!)
-  const column = isOrg ? 'organization_id' : 'user_id'
-  
-  const { data: preferences, error } = await supabase
-    .from('notification_preferences')
-    .select('*')
-    .eq(column, session!.user.id)
-    .single()
+    const isOrg = isApprovedOrganization(session!)
+    const column = isOrg ? 'organization_id' : 'user_id'
+    
+    const { data: preferences, error } = await supabase
+      .from('notification_preferences')
+      .select('*')
+      .eq(column, session!.user.id)
+      .single()
 
-  if (error && error.code !== 'PGRST116') {
-    return withRateLimitHeaders(errorResponse('Failed to fetch preferences', 'API_ERROR', {}, 500), rateLimitHeaders)
+    if (error && error.code !== 'PGRST116') {
+      return withRateLimitHeaders(errorResponse('Failed to fetch preferences', 'API_ERROR', {}, 500), rateLimitHeaders)
+    }
+
+    return withRateLimitHeaders(
+      successResponse(preferences || {
+        user_id: isOrg ? null : session!.user.id,
+        organization_id: isOrg ? session!.user.id : null,
+        engagement_enabled: true,
+        frequency: 'instant',
+      }),
+      rateLimitHeaders
+    )
+  } catch (error) {
+    console.error('Notification preferences fetch error:', error)
+    return errorResponse('Internal server error', 'API_ERROR', {}, 500)
   }
-
-  return withRateLimitHeaders(
-    successResponse(preferences || {
-      user_id: isOrg ? null : session!.user.id,
-      organization_id: isOrg ? session!.user.id : null,
-      engagement_enabled: true,
-      frequency: 'instant',
-    }),
-    rateLimitHeaders
-  )
 }
 
 export async function PUT(request: NextRequest) {
-  const result = await handleApiRequest(request, {
-    rateLimit: 'write',
-    requireAuth: true,
-    endpoint: '/api/notifications/preferences',
-  })
-  if (result instanceof Response) return result
+  try {
+    const result = await handleApiRequest(request, {
+      rateLimit: 'write',
+      requireAuth: true,
+      endpoint: '/api/notifications/preferences',
+    })
+    if (result instanceof Response) return result
 
-  const { session, rateLimitHeaders } = result
-  const supabase = createSupabaseAdminClient()
+    const { session, rateLimitHeaders } = result
+    const supabase = createSupabaseAdminClient()
 
-  const body = await request.json()
-  
-  const validKeys = ['engagement_enabled', 'frequency']
-  const invalidKeys = Object.keys(body).filter((key) => !validKeys.includes(key))
-  if (invalidKeys.length > 0) {
-    return withRateLimitHeaders(errorResponse(`Invalid preference keys: ${invalidKeys.join(', ')}`, 'API_ERROR', {}, 400), rateLimitHeaders)
-  }
+    const body = await request.json()
+    
+    const validKeys = ['engagement_enabled', 'frequency']
+    const invalidKeys = Object.keys(body).filter((key) => !validKeys.includes(key))
+    if (invalidKeys.length > 0) {
+      return withRateLimitHeaders(errorResponse(`Invalid preference keys: ${invalidKeys.join(', ')}`, 'API_ERROR', {}, 400), rateLimitHeaders)
+    }
 
-  const isOrg = isApprovedOrganization(session!)
-  const column = isOrg ? 'organization_id' : 'user_id'
-  
-  const { data: existing } = await supabase
-    .from('notification_preferences')
-    .select('id')
-    .eq(column, session!.user.id)
-    .single()
-
-  let data, error
-  
-  if (existing) {
-    ({ data, error } = await supabase
+    const isOrg = isApprovedOrganization(session!)
+    const column = isOrg ? 'organization_id' : 'user_id'
+    
+    const { data: existing } = await supabase
       .from('notification_preferences')
-      .update({ ...body, updated_at: new Date().toISOString() })
+      .select('id')
       .eq(column, session!.user.id)
-      .select('*')
-      .single())
-  } else {
-    ({ data, error } = await supabase
-      .from('notification_preferences')
-      .insert({ [column]: session!.user.id, ...body })
-      .select('*')
-      .single())
-  }
+      .single()
 
-  if (error || !data) {
-    return withRateLimitHeaders(errorResponse('Failed to update preferences', 'API_ERROR', {}, 500), rateLimitHeaders)
-  }
+    let data, error
+    
+    if (existing) {
+      ({ data, error } = await supabase
+        .from('notification_preferences')
+        .update({ ...body, updated_at: new Date().toISOString() })
+        .eq(column, session!.user.id)
+        .select('*')
+        .single())
+    } else {
+      ({ data, error } = await supabase
+        .from('notification_preferences')
+        .insert({ [column]: session!.user.id, ...body })
+        .select('*')
+        .single())
+    }
 
-  return withRateLimitHeaders(successResponse({ message: 'Notification preferences updated successfully', preferences: data }), rateLimitHeaders)
+    if (error || !data) {
+      return withRateLimitHeaders(errorResponse('Failed to update preferences', 'API_ERROR', {}, 500), rateLimitHeaders)
+    }
+
+    return withRateLimitHeaders(successResponse({ message: 'Notification preferences updated successfully', preferences: data }), rateLimitHeaders)
+  } catch (error) {
+    console.error('Notification preferences update error:', error)
+    return errorResponse('Internal server error', 'API_ERROR', {}, 500)
+  }
 }

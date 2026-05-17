@@ -4,12 +4,19 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { normalizeOrganizationProfile, validateOrganizationUpdatePayload } from '@/lib/organizationProfile'
 import { isOrganization } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { applyRateLimit } from '@/lib/rateLimit'
+
+const rlh = (r: Response, h: Record<string, string>) => { for (const [k,v] of Object.entries(h)) r.headers.set(k,v); return r }
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export async function GET(request: NextRequest) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'authenticatedRead', endpoint: '/api/organizations/me' })
+    if (!rlResult.allowed) {
+      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+    }
     const session = await getServerSession()
     if (!session?.user?.id) {
       return errorResponse('Unauthorized', "API_ERROR", {}, 401)
@@ -39,15 +46,7 @@ export async function GET(request: NextRequest) {
       .select('id', { count: 'exact', head: true })
       .eq('organization_id', session.user.id)
 
-    return successResponse({
-      organization: {
-        ...normalizeOrganizationProfile({
-          ...organizationProfile,
-          follower_count: followerCount || 0,
-        }),
-        urlHandle: organizationProfile.url_handle || null,
-      },
-    })
+    return rlh(successResponse({ organization: { ...normalizeOrganizationProfile({ ...organizationProfile, follower_count: followerCount || 0, }), urlHandle: organizationProfile.url_handle || null, }, }), rlHeaders)
   } catch (error) {
     console.error('Organization profile fetch error:', error)
     return errorResponse('Internal server error', "API_ERROR", {}, 500)
@@ -56,6 +55,10 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'authenticatedRead', endpoint: '/api/organizations/me' })
+    if (!rlResult.allowed) {
+      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+    }
     const session = await getServerSession()
     if (!session?.user?.id) {
       return errorResponse('Unauthorized', "API_ERROR", {}, 401)
@@ -131,10 +134,7 @@ export async function PUT(request: NextRequest) {
     }
 
     if (Object.keys(updateData).length === 0) {
-      return successResponse({
-        message: 'No organization profile changes provided',
-        organization: current,
-      })
+      return successResponse({ message: 'No organization profile changes provided', organization: current, })
     }
 
     updateData.updated_at = new Date().toISOString()
@@ -150,13 +150,7 @@ export async function PUT(request: NextRequest) {
       return errorResponse(updateError?.message || 'Failed to update organization profile', "API_ERROR", {}, 500)
     }
 
-    return successResponse({
-      message: 'Organization profile updated successfully',
-      organization: {
-        ...normalizeOrganizationProfile(updatedOrganization),
-        urlHandle: updatedOrganization.url_handle || null,
-      },
-    })
+    return rlh(successResponse({ message: 'Organization profile updated successfully', organization: { ...normalizeOrganizationProfile(updatedOrganization), urlHandle: updatedOrganization.url_handle || null, }, }), rlHeaders)
   } catch (error) {
     console.error('Organization profile update error:', error)
     return errorResponse('Internal server error', "API_ERROR", {}, 500)

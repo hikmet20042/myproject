@@ -48,6 +48,12 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/events/[id]' })
+    if (!rlResult.allowed) {
+      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
+    }
     const supabase = createSupabaseAdminClient()
     
     const session = await getServerSession()
@@ -125,6 +131,12 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/events/[id]' })
+    if (!rlResult.allowed) {
+      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
+    }
     const supabase = createSupabaseAdminClient()
     
     const session = await getServerSession()

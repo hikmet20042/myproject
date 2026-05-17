@@ -35,46 +35,51 @@ function validateHandle(handle: string): string | null {
 }
 
 export async function GET(request: NextRequest) {
-  const result = await handleApiRequest(request, {
-    rateLimit: 'publicRead',
-    endpoint: '/api/handles/check',
-  })
-  if (result instanceof Response) return result
+  try {
+    const result = await handleApiRequest(request, {
+      rateLimit: 'publicRead',
+      endpoint: '/api/handles/check',
+    })
+    if (result instanceof Response) return result
 
-  const { rateLimitHeaders } = result
-  const { searchParams } = new URL(request.url)
-  const handle = searchParams.get('handle')
+    const { rateLimitHeaders } = result
+    const { searchParams } = new URL(request.url)
+    const handle = searchParams.get('handle')
 
-  if (!handle) {
-    return withRateLimitHeaders(errorResponse('Handle parameter is required', 'VALIDATION_ERROR', {}, 400), rateLimitHeaders)
+    if (!handle) {
+      return withRateLimitHeaders(errorResponse('Handle parameter is required', 'VALIDATION_ERROR', {}, 400), rateLimitHeaders)
+    }
+
+    const validationError = validateHandle(handle)
+    if (validationError) {
+      return withRateLimitHeaders(successResponse({ available: false, reason: validationError }), rateLimitHeaders)
+    }
+
+    const supabase = createSupabaseAdminClient()
+
+    const { data: accountMatch } = await supabase
+      .from('accounts')
+      .select('id')
+      .eq('url_handle', handle.toLowerCase().trim())
+      .maybeSingle()
+
+    if (accountMatch) {
+      return withRateLimitHeaders(successResponse({ available: false, reason: 'Handle is already taken' }), rateLimitHeaders)
+    }
+
+    const { data: orgMatch } = await supabase
+      .from('organization_profiles')
+      .select('account_id')
+      .eq('url_handle', handle.toLowerCase().trim())
+      .maybeSingle()
+
+    if (orgMatch) {
+      return withRateLimitHeaders(successResponse({ available: false, reason: 'Handle is already taken' }), rateLimitHeaders)
+    }
+
+    return withRateLimitHeaders(successResponse({ available: true }), rateLimitHeaders)
+  } catch (error) {
+    console.error('Handle check error:', error)
+    return errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500)
   }
-
-  const validationError = validateHandle(handle)
-  if (validationError) {
-    return withRateLimitHeaders(successResponse({ available: false, reason: validationError }), rateLimitHeaders)
-  }
-
-  const supabase = createSupabaseAdminClient()
-
-  const { data: accountMatch } = await supabase
-    .from('accounts')
-    .select('id')
-    .eq('url_handle', handle.toLowerCase().trim())
-    .maybeSingle()
-
-  if (accountMatch) {
-    return withRateLimitHeaders(successResponse({ available: false, reason: 'Handle is already taken' }), rateLimitHeaders)
-  }
-
-  const { data: orgMatch } = await supabase
-    .from('organization_profiles')
-    .select('account_id')
-    .eq('url_handle', handle.toLowerCase().trim())
-    .maybeSingle()
-
-  if (orgMatch) {
-    return withRateLimitHeaders(successResponse({ available: false, reason: 'Handle is already taken' }), rateLimitHeaders)
-  }
-
-  return withRateLimitHeaders(successResponse({ available: true }), rateLimitHeaders)
 }

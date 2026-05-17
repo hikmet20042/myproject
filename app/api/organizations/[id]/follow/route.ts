@@ -3,6 +3,7 @@ import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { NotificationService } from '@/features/notifications/services/notificationService'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,6 +33,12 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/organizations/[id]/follow' })
+    if (!rlResult.allowed) {
+      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
+    }
     const supabase = createSupabaseAdminClient()
 
     const { data: profile } = await supabase
@@ -41,7 +48,9 @@ export async function GET(
       .maybeSingle()
 
     if (!profile || profile.moderation_status !== 'approved') {
-      return errorResponse('Organization not found', "API_ERROR", {}, 404)
+      const r = errorResponse('Organization not found', "API_ERROR", {}, 404)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const session = await getServerSession()
@@ -58,11 +67,13 @@ export async function GET(
       isFollowing = Boolean(followRow)
     }
 
-    return successResponse({
+    const r = successResponse({
       organizationId: profile.account_id,
       isFollowing,
       followerCount,
     })
+    for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+    return r
   } catch (error) {
     console.error('Failed to fetch follow state:', error)
     return errorResponse('Failed to fetch follow state', "API_ERROR", {}, 500)
@@ -75,13 +86,23 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'write', endpoint: '/api/organizations/[id]/follow' })
+    if (!rlResult.allowed) {
+      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
+    }
     const session = await getServerSession()
     if (!session?.user?.id) {
-      return errorResponse('Authentication required', "API_ERROR", {}, 401)
+      const r = errorResponse('Authentication required', "API_ERROR", {}, 401)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     if (session.user.accountType === 'organization') {
-      return errorResponse('Organization accounts cannot follow organizations', "API_ERROR", {}, 403)
+      const r = errorResponse('Organization accounts cannot follow organizations', "API_ERROR", {}, 403)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const supabase = createSupabaseAdminClient()
@@ -93,7 +114,9 @@ export async function POST(
       .maybeSingle()
 
     if (!profile || profile.moderation_status !== 'approved') {
-      return errorResponse('Organization not found', "API_ERROR", {}, 404)
+      const r = errorResponse('Organization not found', "API_ERROR", {}, 404)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const body = await request.json().catch(() => ({}))
@@ -140,11 +163,13 @@ export async function POST(
       console.error('Failed to notify organization follow change:', notificationError)
     }
 
-    return successResponse({
+    const r = successResponse({
       organizationId: profile.account_id,
       isFollowing: shouldFollow,
       followerCount,
     })
+    for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+    return r
   } catch (error) {
     console.error('Failed to update follow state:', error)
     return errorResponse('Failed to update follow state', "API_ERROR", {}, 500)

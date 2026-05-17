@@ -1,3 +1,4 @@
+import { NextRequest } from 'next/server';
 import { getServerSession } from '@/lib/auth/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { successResponse, errorResponse } from '@/lib/apiResponse'
@@ -7,12 +8,26 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 // GET: Fetch all materials for admin (including unpublished)
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'admin',
+      endpoint: '/api/admin/materials',
+    })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
+    }
+
     const session = await getServerSession();
 
     if (!session || session.user?.role !== 'admin') {
-      return errorResponse('Unauthorized. Admin access required.', "API_ERROR", {}, 403);
+      const response = errorResponse('Unauthorized. Admin access required.', "API_ERROR", {}, 403)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
 
     const supabase = createSupabaseAdminClient();
@@ -23,7 +38,6 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '10');
     const page = parseInt(searchParams.get('page') || '1');
 
-    // Build query - NO isPublished filter for admin
     let query = supabase
       .from('materials')
       .select('*', { count: 'exact' })
@@ -38,11 +52,12 @@ export async function GET(request: Request) {
       query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%,provider.ilike.%${search}%`);
     }
 
-    // Fetch materials
     const { data: materials, error, count: total } = await query;
 
     if (error) {
-      return errorResponse('Failed to fetch materials', "API_ERROR", {}, 500);
+      const response = errorResponse('Failed to fetch materials', "API_ERROR", {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
 
     const [publishedResult, featuredResult] = await Promise.all([
@@ -54,24 +69,16 @@ export async function GET(request: Request) {
     const totalCount = total || 0
     const unpublished = Math.max(totalCount - published, 0)
 
-    return successResponse({
+    const response = successResponse({
       materials,
       page,
       totalPages: Math.ceil(totalCount / limit),
       total: totalCount,
-      stats: {
-        total: totalCount,
-        published,
-        unpublished,
-        featured
-      },
-      pagination: {
-        page,
-        limit,
-        total: totalCount,
-        pages: Math.ceil(totalCount / limit)
-      }
-    });
+      stats: { total: totalCount, published, unpublished, featured },
+      pagination: { page, limit, total: totalCount, pages: Math.ceil(totalCount / limit) }
+    })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+    return response
   } catch (error: any) {
     console.error('Error fetching materials:', error);
     return errorResponse('Failed to fetch materials', "API_ERROR", {}, 500);

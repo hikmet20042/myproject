@@ -6,12 +6,19 @@ import { isAdmin, isAdminOrOwner, isOwner } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { buildVacancyDbPayload, mapVacancyRow, validateVacancyPayload } from '@/app/api/vacancies/helpers'
 import { getContentViewCounts } from '@/lib/viewTracking'
+import { applyRateLimit } from '@/lib/rateLimit'
+
+const rlh = (r: Response, h: Record<string, string>) => { for (const [k,v] of Object.entries(h)) r.headers.set(k,v); return r }
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/vacancies/[id]' })
+    if (!rlResult.allowed) {
+      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+    }
     const vacancyId = String(params.id || '').trim()
     const supabase = createSupabaseAdminClient()
 
@@ -61,6 +68,10 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/vacancies/[id]' })
+    if (!rlResult.allowed) {
+      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+    }
     const vacancyId = String(params.id || '').trim()
     const session = await getServerSession()
 
@@ -120,10 +131,7 @@ export async function PUT(
 
     const updatedVacancy = mapVacancyRow(updatedRow)
 
-    return successResponse({
-      message: 'Vacancy updated successfully',
-      vacancy: updatedVacancy
-    })
+    return successResponse({ message: 'Vacancy updated successfully', vacancy: updatedVacancy })
   } catch (error) {
     console.error('Error updating vacancy:', error)
     return errorResponse('Failed to update vacancy', "API_ERROR", {}, 500)
@@ -135,6 +143,10 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/vacancies/[id]' })
+    if (!rlResult.allowed) {
+      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+    }
     const vacancyId = String(params.id || '').trim()
     const session = await getServerSession()
 
@@ -229,10 +241,7 @@ export async function PATCH(
 
     const updatedVacancy = mapVacancyRow(updatedRow)
 
-    return successResponse({
-      message: `Vacancy ${action}d successfully`,
-      vacancy: updatedVacancy
-    })
+    return successResponse({ message: `Vacancy ${action}d successfully`, vacancy: updatedVacancy })
   } catch (error) {
     console.error('Error updating vacancy status:', error)
     return errorResponse('Failed to update vacancy status', "API_ERROR", {}, 500)
@@ -244,6 +253,10 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/vacancies/[id]' })
+    if (!rlResult.allowed) {
+      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+    }
     const vacancyId = String(params.id || '').trim()
     const session = await getServerSession()
 
@@ -275,9 +288,7 @@ export async function DELETE(
       return errorResponse('Failed to delete vacancy', "API_ERROR", {}, 500)
     }
 
-    return successResponse({
-      message: 'Vacancy deleted successfully'
-    })
+    return successResponse({ message: 'Vacancy deleted successfully' })
   } catch (error) {
     console.error('Error deleting vacancy:', error)
     return errorResponse('Failed to delete vacancy', "API_ERROR", {}, 500)

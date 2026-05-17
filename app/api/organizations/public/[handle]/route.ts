@@ -2,6 +2,9 @@ import { NextRequest } from 'next/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { getOrganizationImagePath, resolveProfileImageUrl } from '@/lib/profileImageUrls'
+import { applyRateLimit } from '@/lib/rateLimit'
+
+const rlh = (r: Response, h: Record<string, string>) => { for (const [k,v] of Object.entries(h)) r.headers.set(k,v); return r }
 
 export const dynamic = 'force-dynamic'
 
@@ -10,6 +13,10 @@ export async function GET(
   { params }: { params: { handle: string } }
 ) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/organizations/public/[handle]' })
+    if (!rlResult.allowed) {
+      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+    }
     const supabase = createSupabaseAdminClient()
     const handle = decodeURIComponent(params.handle).toLowerCase().trim()
 
@@ -50,25 +57,7 @@ export async function GET(
       .select('id', { count: 'exact', head: true })
       .eq('organization_id', orgProfile.account_id)
 
-    return successResponse({
-      organization: {
-        id: orgProfile.account_id,
-        organizationName: orgProfile.organization_name || 'Təşkilat',
-        urlHandle: orgProfile.url_handle,
-        description: orgProfile.description || '',
-        organizationType: orgProfile.organization_type || '',
-        website: orgProfile.website || null,
-        contactPhone: orgProfile.contact_phone || null,
-        address: orgProfile.address || null,
-        profileImage: profileImageUrl,
-        isVerified: orgProfile.is_verified || false,
-        focusAreas: orgProfile.focus_areas || [],
-        socialLinks: orgProfile.social_links || null,
-        eventCount: eventCount || 0,
-        vacancyCount: vacancyCount || 0,
-        followerCount: followerCount || 0,
-      },
-    })
+    return successResponse({ organization: { id: orgProfile.account_id, organizationName: orgProfile.organization_name || 'Təşkilat', urlHandle: orgProfile.url_handle, description: orgProfile.description || '', organizationType: orgProfile.organization_type || '', website: orgProfile.website || null, contactPhone: orgProfile.contact_phone || null, address: orgProfile.address || null, profileImage: profileImageUrl, isVerified: orgProfile.is_verified || false, focusAreas: orgProfile.focus_areas || [], socialLinks: orgProfile.social_links || null, eventCount: eventCount || 0, vacancyCount: vacancyCount || 0, followerCount: followerCount || 0, }, })
   } catch (error) {
     console.error('Public org profile error:', error)
     return errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500)

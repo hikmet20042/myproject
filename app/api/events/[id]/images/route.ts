@@ -4,6 +4,9 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import cloudinaryService from '@/lib/services/cloudinaryService';
 import { canCreateEvent, isAdminOrOwner } from '@/lib/auth/permissions';
 import { successResponse, errorResponse } from '@/lib/apiResponse';
+import { applyRateLimit } from '@/lib/rateLimit'
+
+const rlh = (r: Response, h: Record<string, string>) => { for (const [k,v] of Object.entries(h)) r.headers.set(k,v); return r }
 
 export const dynamic = 'force-dynamic';
 
@@ -12,16 +15,20 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/events/[id]/images' })
+    if (!rlResult.allowed) {
+      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+    }
     const session = await getServerSession();
 
     if (!session?.user?.id) {
-      return errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401);
+      return errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401)
     }
 
     const supabase = createSupabaseAdminClient();
 
     if (!canCreateEvent(session)) {
-      return errorResponse('Only approved organizations can upload event images', 'FORBIDDEN', {}, 403);
+      return errorResponse('Only approved organizations can upload event images', 'FORBIDDEN', {}, 403)
     }
 
     const eventId = String(params.id || '').trim()
@@ -33,11 +40,11 @@ export async function POST(
       .single();
 
     if (eventError || !event) {
-      return errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404);
+      return errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404)
     }
 
     if (!isAdminOrOwner(session, event)) {
-      return errorResponse('You can only upload images to your own events', 'FORBIDDEN', {}, 403);
+      return errorResponse('You can only upload images to your own events', 'FORBIDDEN', {}, 403)
     }
 
     const formData = await request.formData();
@@ -45,7 +52,7 @@ export async function POST(
     const imageFiles = files.filter((file): file is File => file instanceof File);
 
     if (imageFiles.length === 0) {
-      return errorResponse('No images provided', 'VALIDATION_ERROR', {}, 400);
+      return errorResponse('No images provided', 'VALIDATION_ERROR', {}, 400)
     }
 
     const uploadedImages: any[] = [];
@@ -105,15 +112,7 @@ export async function POST(
         .eq('id', eventId);
     }
 
-    return successResponse({
-      uploadedImages,
-      errors: errors.length > 0 ? errors : undefined,
-      event: {
-        id: event.id,
-        images: updatedImages,
-        imageUrl: updatedImageUrl,
-      },
-    }, { message: `${uploadedImages.length} image(s) uploaded successfully` });
+    return successResponse({ uploadedImages, errors: errors.length > 0 ? errors : undefined, event: { id: event.id, images: updatedImages, imageUrl: updatedImageUrl, }, }, { message: `${uploadedImages.length} image(s) uploaded successfully` });
   } catch (error) {
     console.error('Error uploading event images:', error);
     return errorResponse('Failed to upload event images', 'UPLOAD_EVENT_IMAGES_FAILED', {}, 500);
@@ -125,16 +124,20 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/events/[id]/images' })
+    if (!rlResult.allowed) {
+      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+    }
     const session = await getServerSession();
 
     if (!session?.user?.id) {
-      return errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401);
+      return errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401)
     }
 
     const supabase = createSupabaseAdminClient();
 
     if (!canCreateEvent(session)) {
-      return errorResponse('Only approved organizations can manage event images', 'FORBIDDEN', {}, 403);
+      return errorResponse('Only approved organizations can manage event images', 'FORBIDDEN', {}, 403)
     }
 
     const eventId = String(params.id || '').trim()
@@ -146,18 +149,18 @@ export async function DELETE(
       .single();
 
     if (eventError || !event) {
-      return errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404);
+      return errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404)
     }
 
     if (!isAdminOrOwner(session, event)) {
-      return errorResponse('You can only delete images from your own events', 'FORBIDDEN', {}, 403);
+      return errorResponse('You can only delete images from your own events', 'FORBIDDEN', {}, 403)
     }
 
     const body = await request.json();
     const { publicIds } = body;
 
     if (!publicIds || !Array.isArray(publicIds) || publicIds.length === 0) {
-      return errorResponse('No image public IDs provided', 'VALIDATION_ERROR', {}, 400);
+      return errorResponse('No image public IDs provided', 'VALIDATION_ERROR', {}, 400)
     }
 
     const deleteResults = await cloudinaryService.deleteImages(publicIds);
@@ -181,18 +184,10 @@ export async function DELETE(
       .update({ images: updatedImages, image_url: updatedImageUrl, updated_at: new Date().toISOString() })
       .eq('id', eventId);
 
-    return successResponse({
-      deletedCount: deleteResults.deletedCount,
-      errors: deleteResults.errors.length > 0 ? deleteResults.errors : undefined,
-      event: {
-        id: event.id,
-        images: updatedImages,
-        imageUrl: updatedImageUrl,
-      },
-    }, { message: `${deleteResults.deletedCount} image(s) deleted successfully` });
+    return rlh(successResponse({ deletedCount: deleteResults.deletedCount, errors: deleteResults.errors.length > 0 ? deleteResults.errors : undefined, event: { id: event.id, images: updatedImages, imageUrl: updatedImageUrl, }, }, { message: `${deleteResults.deletedCount} image(s) deleted successfully` }), rlHeaders)
   } catch (error) {
     console.error('Error deleting event images:', error);
-    return errorResponse('Failed to delete event images', 'DELETE_EVENT_IMAGES_FAILED', {}, 500);
+    return errorResponse('Failed to delete event images', 'DELETE_EVENT_IMAGES_FAILED', {}, 500)
   }
 }
 
@@ -201,16 +196,20 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/events/[id]/images' })
+    if (!rlResult.allowed) {
+      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+    }
     const session = await getServerSession();
 
     if (!session?.user?.id) {
-      return errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401);
+      return errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401)
     }
 
     const supabase = createSupabaseAdminClient();
 
     if (!canCreateEvent(session)) {
-      return errorResponse('Only approved organizations can manage event images', 'FORBIDDEN', {}, 403);
+      return errorResponse('Only approved organizations can manage event images', 'FORBIDDEN', {}, 403)
     }
 
     const eventId = String(params.id || '').trim()
@@ -222,18 +221,18 @@ export async function PATCH(
       .single();
 
     if (eventError || !event) {
-      return errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404);
+      return errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404)
     }
 
     if (!isAdminOrOwner(session, event)) {
-      return errorResponse('You can only update images for your own events', 'FORBIDDEN', {}, 403);
+      return errorResponse('You can only update images for your own events', 'FORBIDDEN', {}, 403)
     }
 
     const body = await request.json();
     const { publicId, updates } = body;
 
     if (!publicId || !updates) {
-      return errorResponse('Public ID and updates are required', 'VALIDATION_ERROR', {}, 400);
+      return errorResponse('Public ID and updates are required', 'VALIDATION_ERROR', {}, 400)
     }
 
     let updatedImages = Array.isArray(event.images) ? event.images : [];
@@ -241,7 +240,7 @@ export async function PATCH(
       const imageIndex = updatedImages.findIndex((img: any) => img.publicId === publicId);
 
       if (imageIndex === -1) {
-        return errorResponse('Image not found in event', 'IMAGE_NOT_FOUND', {}, 404);
+        return errorResponse('Image not found in event', 'IMAGE_NOT_FOUND', {}, 404)
       }
 
       if (updates.isPrimary) {
@@ -263,15 +262,9 @@ export async function PATCH(
         .eq('id', eventId);
     }
 
-    return successResponse({
-      event: {
-        id: event.id,
-        images: updatedImages,
-        imageUrl: updatedImages.find((img: any) => img.isPrimary)?.url || event.image_url,
-      },
-    }, { message: 'Image updated successfully' });
+    return rlh(successResponse({ event: { id: event.id, images: updatedImages, imageUrl: updatedImages.find((img: any) => img.isPrimary)?.url || event.image_url, }, }, { message: 'Image updated successfully' }), rlHeaders)
   } catch (error) {
     console.error('Error updating event image:', error);
-    return errorResponse('Failed to update event image', 'UPDATE_EVENT_IMAGE_FAILED', {}, 500);
+    return errorResponse('Failed to update event image', 'UPDATE_EVENT_IMAGE_FAILED', {}, 500)
   }
 }

@@ -11,6 +11,12 @@ export const dynamic = 'force-dynamic'
 // Get site settings
 export async function GET(request: NextRequest) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/settings' })
+    if (!rlResult.allowed) {
+      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
+    }
     const session = await getServerSession()
     if (!session?.user || !canAccessAdmin(session)) {
       return errorResponse('Unauthorized', "API_ERROR", {}, 401)
@@ -54,6 +60,12 @@ export async function GET(request: NextRequest) {
 // Update site settings
 export async function PUT(request: NextRequest) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/settings' })
+    if (!rlResult.allowed) {
+      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
+    }
     const session = await getServerSession()
     if (!session?.user || !canAccessAdmin(session)) {
       return errorResponse('Unauthorized', "API_ERROR", {}, 401)
@@ -164,6 +176,12 @@ export async function PUT(request: NextRequest) {
 // Reset settings to defaults
 export async function DELETE(request: NextRequest) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/settings' })
+    if (!rlResult.allowed) {
+      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
+    }
     const session = await getServerSession()
     if (!session?.user || !canAccessAdmin(session)) {
       return errorResponse('Unauthorized', "API_ERROR", {}, 401)
@@ -252,6 +270,12 @@ export async function DELETE(request: NextRequest) {
 // Get settings history/versions
 export async function PATCH(request: NextRequest) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/settings' })
+    if (!rlResult.allowed) {
+      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
+    }
     const session = await getServerSession()
     if (!session?.user || !canAccessAdmin(session)) {
       return errorResponse('Unauthorized', "API_ERROR", {}, 401)

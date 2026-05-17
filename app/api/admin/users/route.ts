@@ -32,6 +32,12 @@ type UserUpdatePayload = {
 // Get all users with pagination, search, and filtering
 export async function GET(request: NextRequest) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/users' })
+    if (!rlResult.allowed) {
+      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
+    }
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
     if (!isAdmin(session)) {
@@ -167,6 +173,12 @@ export async function GET(request: NextRequest) {
 // Update user (role, status, etc.)
 export async function PUT(request: NextRequest) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/users' })
+    if (!rlResult.allowed) {
+      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
+    }
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
     if (!isAdmin(session)) {
@@ -256,6 +268,12 @@ export async function PUT(request: NextRequest) {
 // Delete user (soft delete)
 export async function DELETE(request: NextRequest) {
   try {
+    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/users' })
+    if (!rlResult.allowed) {
+      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
+    }
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
     if (!isAdmin(session)) {
