@@ -1,4 +1,5 @@
-// import './globals.css'
+// @ts-ignore: allow side-effect import of global CSS without type declarations
+import "./globals.css"
 import type { Metadata, Viewport } from 'next'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
