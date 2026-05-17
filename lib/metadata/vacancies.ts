@@ -1,17 +1,29 @@
 import { Metadata } from 'next'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { generateSEOMetadata, generateJobPostingSchema, getLocationKeywords } from '@/lib/seo'
+import { resolveEntityBySlugOrId } from '@/lib/identifier'
 
 /**
  * Generate metadata for individual vacancy pages
  */
-export async function generateVacancyMetadata(id: string): Promise<Metadata> {
+export async function generateVacancyMetadata(identifier: string): Promise<Metadata> {
   try {
     const supabase = createSupabaseAdminClient()
+    const { data: resolved } = await resolveEntityBySlugOrId(supabase, 'vacancies', identifier, 'id,slug')
+    const vacancyId = resolved?.id
+
+    if (!vacancyId) {
+      return generateSEOMetadata({
+        title: 'Vacancy Not Found | icma360',
+        description: 'The vacancy you are looking for could not be found.',
+        noindex: true,
+      })
+    }
+
     const { data: vacancyRow, error } = await supabase
       .from('vacancies')
-      .select('id, title, description, work_type, type, location, application_deadline, organization, tags, focus_areas, created_at, submitted_at, updated_at, compensation')
-      .eq('id', id)
+      .select('id, slug, title, description, work_type, type, location, application_deadline, organization, tags, focus_areas, created_at, submitted_at, updated_at, compensation')
+      .eq('id', vacancyId)
       .single()
 
     if (error) {
@@ -73,7 +85,7 @@ export async function generateVacancyMetadata(id: string): Promise<Metadata> {
         ...(vacancy.tags || []),
         ...(vacancy.focusAreas || []),
       ],
-      canonical: `/resources/vacancies/${id}`,
+      canonical: `/resources/vacancies/${vacancyRow.slug || identifier}`,
       ogType: 'article',
       publishedTime: vacancy.createdAt || vacancy.submittedAt,
       modifiedTime: vacancy.updatedAt,

@@ -63,6 +63,18 @@ export const GlobalFeedbackProvider = ({
     setMessages((prev) => prev.filter((msg) => msg.id !== id));
   }, []);
 
+  const showSuccess = useCallback((message: string) => {
+    push("success", message);
+  }, [push]);
+
+  const showError = useCallback((message: string) => {
+    push("error", message);
+  }, [push]);
+
+  const showInfo = useCallback((message: string) => {
+    push("info", message);
+  }, [push]);
+
   useEffect(() => {
     const onGlobalFeedback = (event: Event) => {
       const customEvent = event as CustomEvent<GlobalFeedbackEventPayload>;
@@ -80,15 +92,15 @@ export const GlobalFeedbackProvider = ({
   const value = useMemo(
     () => ({
       messages,
-      showSuccess: (message: string) => push("success", message),
-      showError: (message: string) => push("error", message),
-      showInfo: (message: string) => push("info", message),
-      success: (message: string) => push("success", message),
-      error: (message: string) => push("error", message),
-      info: (message: string) => push("info", message),
+      showSuccess,
+      showError,
+      showInfo,
+      success: showSuccess,
+      error: showError,
+      info: showInfo,
       clear,
     }),
-    [messages, push, clear],
+    [messages, showSuccess, showError, showInfo, clear],
   );
 
   return (

@@ -5,10 +5,45 @@ import { canAccessAdmin, canCreateVacancy, isAdmin, isApprovedOrganization } fro
 import { NotificationService } from '@/features/notifications/services/notificationService'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { buildVacancyDbPayload, mapVacancyRow, validateVacancyPayload } from '@/app/api/vacancies/helpers'
+import { applyRateLimit, RATE_LIMIT_PRESETS } from '@/lib/rateLimit'
+import { validateRequestBody } from '@/lib/validation'
+
+const vacancyCreateSchema = {
+  title: { required: true, type: 'string' as const, minLength: 3, maxLength: 200 },
+  description: { required: true, type: 'string' as const, minLength: 10 },
+  type: { required: true, type: 'string' as const, enum: ['full-time', 'part-time', 'internship', 'freelance', 'contract', 'volunteer'] as const },
+  location: { type: 'string' as const, maxLength: 200 },
+  isRemote: { type: 'boolean' as const },
+  salary: { type: 'string' as const, maxLength: 100 },
+  applicationDeadline: { type: 'date' as const },
+  requirements: { type: 'string' as const },
+  contactEmail: { type: 'email' as const },
+  contactPhone: { type: 'string' as const, maxLength: 50 },
+  tags: { type: 'array' as const, max: 20 },
+}
 
 // GET /api/vacancies - Get vacancies with filtering
 export async function GET(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'publicRead',
+      endpoint: '/api/vacancies',
+    })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse(
+        'Too many requests. Please try again later.',
+        'RATE_LIMIT_EXCEEDED',
+        { retryAfter: Math.ceil((rateLimitResult.resetAt - Date.now()) / 1000) },
+        429
+      )
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+
     const supabase = createSupabaseAdminClient()
     
     const { searchParams } = new URL(request.url)
@@ -52,7 +87,7 @@ export async function GET(request: NextRequest) {
     // Admin view shows all vacancies, regular view shows only approved
     if (!adminView) {
       // Regular view: only show approved vacancies unless filtering by creator
-      if (!createdBy) {
+      if (!actualCreatedBy) {
         filter.status = 'approved'
       }
     } else {
@@ -117,7 +152,7 @@ export async function GET(request: NextRequest) {
       query = query.eq('status', filter.status)
     }
 
-    if (!adminView && !createdBy) {
+    if (!adminView && !actualCreatedBy) {
       query = query.eq('is_published', true)
     }
 
@@ -142,7 +177,11 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Error fetching vacancies:', error)
-      return errorResponse('Failed to fetch vacancies', "API_ERROR", {}, 500)
+      const response = errorResponse('Failed to fetch vacancies', "API_ERROR", {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const vacancies = (vacancyRows || []).map(mapVacancyRow)
@@ -211,7 +250,11 @@ export async function GET(request: NextRequest) {
       response.stats = stats
     }
     
-    return successResponse(response)
+    const successResp = successResponse(response)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      successResp.headers.set(key, value)
+    }
+    return successResp
     
   } catch (error) {
     console.error('Error fetching vacancies:', error)
@@ -222,10 +265,33 @@ export async function GET(request: NextRequest) {
 // POST /api/vacancies - Create new vacancy
 export async function POST(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'write',
+      endpoint: '/api/vacancies',
+    })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse(
+        'Too many requests. Please try again later.',
+        'RATE_LIMIT_EXCEEDED',
+        { retryAfter: Math.ceil((rateLimitResult.resetAt - Date.now()) / 1000) },
+        429
+      )
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+
     const session = await getServerSession()
     
     if (!session?.user?.id) {
-      return errorResponse('Authentication required', "API_ERROR", {}, 401)
+      const response = errorResponse('Authentication required', "API_ERROR", {}, 401)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
     
     const supabase = createSupabaseAdminClient()
@@ -239,14 +305,31 @@ export async function POST(request: NextRequest) {
     
     // Allow admin or approved organization only
     if (!canCreateVacancy(session)) {
-      return errorResponse('Only approved organizations can create vacancies', "API_ERROR", {}, 403)
+      const response = errorResponse('Only approved organizations can create vacancies', "API_ERROR", {}, 403)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
     
     const body = await request.json()
     
+    const validationError = validateRequestBody(body, vacancyCreateSchema)
+    if (validationError) {
+      const response = validationError
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+    
     const validation = validateVacancyPayload(body)
     if (!validation.valid) {
-      return errorResponse(validation.error, "API_ERROR", {}, 400)
+      const response = errorResponse(validation.error, "API_ERROR", {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const vacancyData = buildVacancyDbPayload(body)
@@ -262,15 +345,37 @@ export async function POST(request: NextRequest) {
         is_featured: false,
         is_urgent: false,
       })
-      .select('*, created_by (id, name, email), created_by_organization (id, organization_name, url_handle)')
+      .select('*, created_by (id, name, email)')
       .single()
 
     if (error || !vacancyRow) {
       console.error('Error creating vacancy:', error)
-      return errorResponse('Failed to create vacancy', "API_ERROR", {}, 500)
+      const response = errorResponse('Failed to create vacancy', "API_ERROR", {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
-    const populatedVacancy = mapVacancyRow(vacancyRow)
+    // Fetch organization profile separately if created by org
+    let orgProfile = null
+    if (vacancyRow.created_by_organization) {
+      const { data: orgData } = await supabase
+        .from('organization_profiles')
+        .select('account_id, organization_name, url_handle')
+        .eq('account_id', vacancyRow.created_by_organization)
+        .single()
+      orgProfile = orgData
+    }
+
+    const populatedVacancy = mapVacancyRow({
+      ...vacancyRow,
+      created_by_organization: orgProfile ? {
+        id: orgProfile.account_id,
+        organization_name: orgProfile.organization_name,
+        url_handle: orgProfile.url_handle,
+      } : vacancyRow.created_by_organization,
+    })
 
     if (isApprovedOrganization(session) && organizationProfile?.data?.organization_name) {
       await NotificationService.notifyOrganizationFollowersAboutNewContent({
@@ -301,14 +406,18 @@ export async function POST(request: NextRequest) {
         title: populatedVacancy.title,
         description: populatedVacancy.description,
         tags: [],
-        actionUrl: `/resources/vacancies/${populatedVacancy.id}`,
+        actionUrl: `/resources/vacancies/${populatedVacancy.slug || populatedVacancy.id}`,
       })
     }
     
-    return successResponse({
+    const successResp = successResponse({
       message: 'Vacancy created successfully',
       vacancy: populatedVacancy
     }, {}, 201)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      successResp.headers.set(key, value)
+    }
+    return successResp
     
   } catch (error) {
     console.error('Error creating vacancy:', error)

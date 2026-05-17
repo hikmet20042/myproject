@@ -170,7 +170,7 @@ export default function EventRow({ event, onRequestDelete }: EventRowProps) {
                 className="rounded-xl hover:border-blue-200 hover:bg-blue-50"
               />
             </Link>
-            <Link href={localePath(`/dashboard/events/${event.slug}/edit`)} onMouseEnter={prefetchDetail} onFocus={prefetchDetail}>
+            <Link href={localePath(`/dashboard/events/${event._id || event.id}/edit`)} onMouseEnter={prefetchDetail} onFocus={prefetchDetail}>
               <Button
                 variant="ghost"
                 size="sm"

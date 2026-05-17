@@ -6,8 +6,21 @@ import { cache, generateCacheKey, withCache } from '@/lib/cache';
 import { successResponse, errorResponse } from '@/lib/apiResponse';
 import { NotificationService } from '@/features/notifications/services/notificationService';
 import { getBlogStats } from '@/lib/blogStats';
+import { applyRateLimit, RATE_LIMIT_PRESETS } from '@/lib/rateLimit';
+import { validateRequestBody } from '@/lib/validation';
 
 const MAX_PAGE_SIZE = 50;
+
+const blogCreateSchema = {
+  title: { required: true, type: 'string' as const, minLength: 5, maxLength: 200 },
+  content: { required: true, type: 'object' as const },
+  contentHtml: { type: 'string' as const },
+  tags: { type: 'array' as const, max: 20 },
+  abstract: { type: 'string' as const, maxLength: 500 },
+  isAnonymous: { type: 'boolean' as const },
+  media: { type: 'array' as const, max: 10 },
+  featuredImage: { type: 'string' as const },
+};
 
 function containsLegacyBlobUrl(content: any): boolean {
   const { imageReferences } = processContentImages(content);
@@ -33,6 +46,25 @@ function normalizeMediaUrls(media: any): Array<{ type: string; url: string; alt?
 
 export async function GET(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'publicRead',
+      endpoint: '/api/blogs',
+    })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse(
+        'Too many requests. Please try again later.',
+        'RATE_LIMIT_EXCEEDED',
+        { retryAfter: Math.ceil((rateLimitResult.resetAt - Date.now()) / 1000) },
+        429
+      )
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+
     const supabase = createSupabaseAdminClient();
     const { searchParams } = new URL(request.url);
 
@@ -112,7 +144,7 @@ export async function GET(request: NextRequest) {
       })
     )
 
-    return successResponse(
+    const successResp = successResponse(
       { items: blogsWithStats },
       {
         pagination: {
@@ -122,7 +154,11 @@ export async function GET(request: NextRequest) {
           pages: Math.ceil(total / limit),
         },
       }
-    );
+    )
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      successResp.headers.set(key, value)
+    }
+    return successResp;
   } catch (error) {
     console.error('GET /api/blogs error:', error);
     return errorResponse('Failed to fetch blogs', 'FETCH_BLOGS_FAILED', {}, 500);
@@ -131,32 +167,80 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'write',
+      endpoint: '/api/blogs',
+    })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse(
+        'Too many requests. Please try again later.',
+        'RATE_LIMIT_EXCEEDED',
+        { retryAfter: Math.ceil((rateLimitResult.resetAt - Date.now()) / 1000) },
+        429
+      )
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
     if (!session || !session.user) {
-      return errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401);
+      const response = errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
     if (session.user.accountType === 'organization') {
-      return errorResponse(
+      const response = errorResponse(
         'Organization accounts cannot submit blogs. Blog sharing is available for individual users only.',
         'FORBIDDEN_ACCOUNT_TYPE',
         {},
         403
-      );
+      )
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
     // Check email verification
     if (!('emailVerified' in session.user) || !session.user.emailVerified) {
-      return errorResponse('You must verify your email before submitting blogs.', 'EMAIL_NOT_VERIFIED', {}, 403);
+      const response = errorResponse('You must verify your email before submitting blogs.', 'EMAIL_NOT_VERIFIED', {}, 403)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
     let body: any;
     try {
       body = await request.json();
     } catch {
-      return errorResponse('Invalid JSON body', 'VALIDATION_ERROR', {}, 400);
+      const response = errorResponse('Invalid JSON body', 'VALIDATION_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
+
+    const validationError = validateRequestBody(body, blogCreateSchema)
+    if (validationError) {
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        validationError.headers.set(key, value)
+      }
+      return validationError
+    }
+
     const { title, content, contentHtml, tags, abstract, isAnonymous, authorName, media, featuredImage } = body;
     if (!title || title.length < 5 || title.length > 200) {
-      return errorResponse('Title must be between 5 and 200 characters', 'VALIDATION_ERROR', {}, 400);
+      const response = errorResponse('Title must be between 5 and 200 characters', 'VALIDATION_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
     // Extract plain text from content for validation
     let textContent = '';
@@ -178,39 +262,71 @@ export async function POST(request: NextRequest) {
     }
     
     if (!textContent || textContent.trim().length < 100) {
-      return errorResponse('Your blog must be at least 100 characters long', 'VALIDATION_ERROR', {}, 400);
+      const response = errorResponse('Your blog must be at least 100 characters long', 'VALIDATION_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     // Validate tags if provided
     if (tags && !Array.isArray(tags)) {
-      return errorResponse('Tags must be an array of strings', 'VALIDATION_ERROR', {}, 400);
+      const response = errorResponse('Tags must be an array of strings', 'VALIDATION_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const { processedContent } = processContentImages(content);
 
     if (containsLegacyBlobUrl(processedContent)) {
-      return errorResponse('Legacy blob image URLs are no longer supported. Please re-upload images.', 'VALIDATION_ERROR', {}, 400);
+      const response = errorResponse('Legacy blob image URLs are no longer supported. Please re-upload images.', 'VALIDATION_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     if (containsNonCloudinaryImages(processedContent)) {
-      return errorResponse('Blog content images must be Cloudinary URLs.', 'VALIDATION_ERROR', {}, 400);
+      const response = errorResponse('Blog content images must be Cloudinary URLs.', 'VALIDATION_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     if (featuredImage && String(featuredImage).startsWith('/api/images/')) {
-      return errorResponse('Legacy blob featured images are no longer supported. Please upload to Cloudinary.', 'VALIDATION_ERROR', {}, 400);
+      const response = errorResponse('Legacy blob featured images are no longer supported. Please upload to Cloudinary.', 'VALIDATION_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     if (featuredImage && !isCloudinaryUrl(String(featuredImage))) {
-      return errorResponse('Featured image must be a Cloudinary URL.', 'VALIDATION_ERROR', {}, 400);
+      const response = errorResponse('Featured image must be a Cloudinary URL.', 'VALIDATION_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const processedMedia = normalizeMediaUrls(media);
     if (Array.isArray(media) && processedMedia.length !== media.length) {
-      return errorResponse('Legacy blob media URLs are no longer supported. Please re-upload media to Cloudinary.', 'VALIDATION_ERROR', {}, 400);
+      const response = errorResponse('Legacy blob media URLs are no longer supported. Please re-upload media to Cloudinary.', 'VALIDATION_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     if (processedMedia.some((item) => !isCloudinaryUrl(item.url))) {
-      return errorResponse('Blog media URLs must be Cloudinary URLs.', 'VALIDATION_ERROR', {}, 400);
+      const response = errorResponse('Blog media URLs must be Cloudinary URLs.', 'VALIDATION_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     // Handle author name assignment securely
@@ -261,7 +377,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error || !blog) {
-      return errorResponse('Failed to submit blog', 'CREATE_BLOG_FAILED', {}, 500);
+      const response = errorResponse('Failed to submit blog', 'CREATE_BLOG_FAILED', {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     if (blog.status === 'pending') {
@@ -284,16 +404,20 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    return successResponse({
+    const successResp = successResponse({
       blog: {
         id: blog.id,
         title: blog.title,
         status: blog.status,
         authorName: blog.author_name
       }
-    }, { message: 'Story submitted successfully' }, 201);
+    }, { message: 'Story submitted successfully' }, 201)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      successResp.headers.set(key, value)
+    }
+    return successResp
   } catch (error) {
-    console.error('POST /api/blogs error:', error);
-    return errorResponse('Failed to submit blog', 'CREATE_BLOG_FAILED', {}, 500);
+    console.error('POST /api/blogs error:', error)
+    return errorResponse('Failed to submit blog', 'CREATE_BLOG_FAILED', {}, 500)
   }
 }

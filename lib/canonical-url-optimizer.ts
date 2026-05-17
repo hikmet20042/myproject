@@ -334,21 +334,17 @@ export function getContentCanonicalURL(
   locale: 'az' | 'en' = 'az'
 ): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'
+  const routeKey = slug || id
   
   const paths: Record<string, string> = {
-    vacancy: `/resources/vacancies/${id}`,
-    event: `/resources/events/${id}`,
-    blog: `/blogs/${id}`,
-    organization: `/o/${id}`,
-    material: `/resources/materials/${id}`,
+    vacancy: `/resources/vacancies/${routeKey}`,
+    event: `/resources/events/${routeKey}`,
+    blog: `/blogs/${routeKey}`,
+    organization: `/o/${routeKey}`,
+    material: `/resources/materials/${routeKey}`,
   }
 
   let path = paths[contentType] || `/${contentType}/${id}`
-
-  // Add slug if provided
-  if (slug) {
-    path += `-${slug}`
-  }
 
   return `${baseUrl}/${locale}${path}`
 }

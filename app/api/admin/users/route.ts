@@ -3,6 +3,7 @@ import { getServerSession } from '@/lib/auth/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { isAdmin } from '@/lib/auth/permissions';
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic';
 

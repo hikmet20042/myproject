@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
-import { checkRateLimit } from '@/lib/rateLimit'
+import { applyRateLimit } from '@/lib/rateLimit'
 import { isUuid, resolveEntityBySlugOrId } from '@/lib/identifier'
 
 const ALLOWED_TYPES = ['event', 'vacancy', 'blog'] as const
@@ -41,22 +41,36 @@ async function resolveContentBySlugOrId(
 
 export async function POST(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'write',
+      endpoint: '/api/saved',
+    })
+
     const session = await getServerSession()
-    if (!session?.user?.id) return errorResponse('Unauthorized', 'API_ERROR', {}, 401)
+    if (!session?.user?.id) {
+      const response = errorResponse('Unauthorized', 'API_ERROR', {}, 401)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
     if (session.user.accountType === 'organization') {
-      return errorResponse('Organization accounts cannot save content', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+      const response = errorResponse('Organization accounts cannot save content', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
-    // Rate limiting: max 10 save/unsave actions per minute per user
-    const rateLimit = checkRateLimit({
-      maxRequests: 10,
-      windowMs: 60 * 1000, // 1 minute
-      key: `save-content:${session.user.id}`,
-    })
-    if (!rateLimit.allowed) {
-      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {
-        retryAfter: rateLimit.resetAt,
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {
+        retryAfter: rateLimitResult.resetAt,
       }, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const body = await request.json()
@@ -64,7 +78,11 @@ export async function POST(request: NextRequest) {
     const itemType = String(body?.itemType || '').trim()
 
     if (!itemId || !isValidType(itemType)) {
-      return errorResponse('Invalid save payload', 'API_ERROR', {}, 400)
+      const response = errorResponse('Invalid save payload', 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const supabase = createSupabaseAdminClient()
@@ -77,7 +95,11 @@ export async function POST(request: NextRequest) {
     )
 
     if (contentError || !content) {
-      return errorResponse(`${itemType.charAt(0).toUpperCase() + itemType.slice(1)} not found`, 'CONTENT_NOT_FOUND', {}, 404)
+      const response = errorResponse(`${itemType.charAt(0).toUpperCase() + itemType.slice(1)} not found`, 'CONTENT_NOT_FOUND', {}, 404)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const { data: existing } = await supabase
@@ -90,8 +112,18 @@ export async function POST(request: NextRequest) {
 
     if (existing?.id) {
       const { error } = await supabase.from('content_saves').delete().eq('id', existing.id)
-      if (error) return errorResponse(error.message, 'API_ERROR', {}, 500)
-      return successResponse({ action: 'unsaved', hasSaved: false })
+      if (error) {
+        const response = errorResponse(error.message, 'API_ERROR', {}, 500)
+        for (const [key, value] of Object.entries(rateLimitHeaders)) {
+          response.headers.set(key, value)
+        }
+        return response
+      }
+      const response = successResponse({ action: 'unsaved', hasSaved: false })
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const { error } = await supabase.from('content_saves').insert({
@@ -99,21 +131,56 @@ export async function POST(request: NextRequest) {
       content_id: content.id,
       content_type: itemType,
     })
-    if (error) return errorResponse(error.message, 'API_ERROR', {}, 500)
+    if (error) {
+      const response = errorResponse(error.message, 'API_ERROR', {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
 
-    return successResponse({ action: 'saved', hasSaved: true })
+    const response = successResponse({ action: 'saved', hasSaved: true })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   } catch (error) {
     console.error('Save POST error:', error)
-    return errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    const response = errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    return response
   }
 }
 
 export async function DELETE(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'write',
+      endpoint: '/api/saved',
+    })
+
     const session = await getServerSession()
-    if (!session?.user?.id) return errorResponse('Unauthorized', 'API_ERROR', {}, 401)
+    if (!session?.user?.id) {
+      const response = errorResponse('Unauthorized', 'API_ERROR', {}, 401)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
     if (session.user.accountType === 'organization') {
-      return errorResponse('Organization accounts cannot save content', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+      const response = errorResponse('Organization accounts cannot save content', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const body = await request.json().catch(() => ({}))
@@ -121,7 +188,11 @@ export async function DELETE(request: NextRequest) {
     const itemType = String(body?.itemType || '').trim()
 
     if (!itemId || !isValidType(itemType)) {
-      return errorResponse('Invalid unsave payload', 'API_ERROR', {}, 400)
+      const response = errorResponse('Invalid unsave payload', 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const supabase = createSupabaseAdminClient()
@@ -133,12 +204,20 @@ export async function DELETE(request: NextRequest) {
     )
 
     if (contentError) {
-      return errorResponse('Failed to resolve content', 'API_ERROR', {}, 500)
+      const response = errorResponse('Failed to resolve content', 'API_ERROR', {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const contentIdToDelete = content?.id || (isUuid(itemId) ? itemId : null)
     if (!contentIdToDelete) {
-      return errorResponse('Content not found', 'CONTENT_NOT_FOUND', {}, 404)
+      const response = errorResponse('Content not found', 'CONTENT_NOT_FOUND', {}, 404)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const { error } = await supabase
@@ -148,20 +227,55 @@ export async function DELETE(request: NextRequest) {
       .eq('content_id', contentIdToDelete)
       .eq('content_type', itemType)
 
-    if (error) return errorResponse(error.message, 'API_ERROR', {}, 500)
-    return successResponse({ action: 'unsaved', hasSaved: false })
+    if (error) {
+      const response = errorResponse(error.message, 'API_ERROR', {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+    const response = successResponse({ action: 'unsaved', hasSaved: false })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   } catch (error) {
     console.error('Save DELETE error:', error)
-    return errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    const response = errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    return response
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'authenticatedRead',
+      endpoint: '/api/saved',
+    })
+
     const session = await getServerSession()
-    if (!session?.user?.id) return errorResponse('Unauthorized', 'API_ERROR', {}, 401)
+    if (!session?.user?.id) {
+      const response = errorResponse('Unauthorized', 'API_ERROR', {}, 401)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
     if (session.user.accountType === 'organization') {
-      return errorResponse('Organization accounts cannot access saved content', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+      const response = errorResponse('Organization accounts cannot access saved content', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const supabase = createSupabaseAdminClient()
@@ -178,11 +292,19 @@ export async function GET(request: NextRequest) {
       )
 
       if (contentError) {
-        return errorResponse('Failed to fetch save status', 'API_ERROR', {}, 500)
+        const response = errorResponse('Failed to fetch save status', 'API_ERROR', {}, 500)
+        for (const [key, value] of Object.entries(rateLimitHeaders)) {
+          response.headers.set(key, value)
+        }
+        return response
       }
 
       if (!content) {
-        return successResponse({ hasSaved: false })
+        const response = successResponse({ hasSaved: false })
+        for (const [key, value] of Object.entries(rateLimitHeaders)) {
+          response.headers.set(key, value)
+        }
+        return response
       }
 
       const { data } = await supabase
@@ -192,7 +314,11 @@ export async function GET(request: NextRequest) {
         .eq('content_id', content.id)
         .eq('content_type', itemType)
         .maybeSingle()
-      return successResponse({ hasSaved: Boolean(data?.id) })
+      const response = successResponse({ hasSaved: Boolean(data?.id) })
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const { data: rows, error } = await supabase
@@ -201,7 +327,13 @@ export async function GET(request: NextRequest) {
       .eq('user_id', session.user.id)
       .order('created_at', { ascending: false })
 
-    if (error) return errorResponse(error.message, 'API_ERROR', {}, 500)
+    if (error) {
+      const response = errorResponse(error.message, 'API_ERROR', {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
     const savedRows = rows || []
 
     const idsByType = {
@@ -235,7 +367,11 @@ export async function GET(request: NextRequest) {
     ])
 
     if (eventsResult.error || vacanciesResult.error || blogsResult.error) {
-      return errorResponse('Failed to fetch saved content details', 'API_ERROR', {}, 500)
+      const response = errorResponse('Failed to fetch saved content details', 'API_ERROR', {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const eventMap = new Map<string, any>(((eventsResult.data || []) as any[]).map((e: any) => [String(e.id), e]))
@@ -296,9 +432,14 @@ export async function GET(request: NextRequest) {
       })
       .filter(Boolean)
 
-    return successResponse({ items })
+    const response = successResponse({ items })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   } catch (error) {
     console.error('Save GET error:', error)
-    return errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    const response = errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    return response
   }
 }

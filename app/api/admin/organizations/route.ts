@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { isAdmin } from '@/lib/auth/permissions';
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { NotificationService } from '@/features/notifications/services/notificationService'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 type OrganizationProfileRow = {
   account_id: string;
@@ -41,10 +42,20 @@ type OrganizationBulkActionBody = {
 // GET - Fetch all organization registrations for admin review
 export async function GET(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'admin',
+      endpoint: '/api/admin/organizations',
+    })
+
     const session = await getServerSession();
     
     if (!isAdmin(session)) {
-      return errorResponse('Admin access required', "API_ERROR", {}, 403);
+      const response = errorResponse('Admin access required', "API_ERROR", {}, 403);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response;
     }
 
     const supabase = createSupabaseAdminClient();
@@ -85,7 +96,6 @@ export async function GET(request: NextRequest) {
     const total = count || 0;
     const totalPages = Math.ceil(total / limit);
 
-    // Get counts for different statuses from organization collection
     const { count: pendingCount = 0 } = await supabase
       .from('organization_profiles')
       .select('*', { count: 'exact', head: true })
@@ -99,7 +109,7 @@ export async function GET(request: NextRequest) {
       .select('*', { count: 'exact', head: true })
       .eq('moderation_status', 'rejected');
 
-    return successResponse({
+    const successResp = successResponse({
       organizations: (organizationRows as OrganizationProfileRow[]).map((org) => ({
         _id: org.account_id,
         organizationName: org.organization_name,
@@ -127,20 +137,38 @@ export async function GET(request: NextRequest) {
         total
       }
     });
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      successResp.headers.set(key, value)
+    }
+    return successResp;
 
   } catch (error) {
     console.error('GET /api/admin/organizations error:', error);
-    return errorResponse('Failed to fetch organizations', "API_ERROR", {}, 500);
+    const response = errorResponse('Failed to fetch organizations', "API_ERROR", {}, 500);
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response;
   }
 }
 
 // PUT - Approve or reject organization registration
 export async function PUT(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'admin',
+      endpoint: '/api/admin/organizations',
+    })
+
     const session = await getServerSession();
     
     if (!isAdmin(session)) {
-      return errorResponse('Admin access required', "API_ERROR", {}, 403);
+      const response = errorResponse('Admin access required', "API_ERROR", {}, 403);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response;
     }
 
     const supabase = createSupabaseAdminClient();
@@ -151,13 +179,21 @@ export async function PUT(request: NextRequest) {
     const userId = id || organizationId;
     
     if (!userId || !action || !['approve', 'reject'].includes(action)) {
-      return errorResponse('Invalid request data', "API_ERROR", {}, 400);
+      const response = errorResponse('Invalid request data', "API_ERROR", {}, 400);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response;
     }
 
     const rejectionReasonText = rejectionReason?.trim() || '';
 
     if (action === 'reject' && !rejectionReasonText) {
-      return errorResponse('Rejection reason is required', "API_ERROR", {}, 400);
+      const response = errorResponse('Rejection reason is required', "API_ERROR", {}, 400);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response;
     }
 
     const { data: organization, error: orgError } = await supabase
@@ -167,13 +203,20 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (orgError || !organization) {
-      return errorResponse('Organization not found', "API_ERROR", {}, 404);
+      const response = errorResponse('Organization not found', "API_ERROR", {}, 404);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response;
     }
 
-    // reviewed_by references public.users(id); admin may exist only in accounts after a reset.
     const adminUserId = session?.user?.id;
     if (!adminUserId) {
-      return errorResponse('Admin access required', "API_ERROR", {}, 403);
+      const response = errorResponse('Admin access required', "API_ERROR", {}, 403);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response;
     }
 
     const { data: reviewerProfile } = await supabase
@@ -204,7 +247,11 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (updateError || !updatedOrganization) {
-      return errorResponse(updateError?.message || 'Failed to update organization', "API_ERROR", {}, 500);
+      const response = errorResponse(updateError?.message || 'Failed to update organization', "API_ERROR", {}, 500);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response;
     }
 
     // Send notification to organization
@@ -229,7 +276,7 @@ export async function PUT(request: NextRequest) {
       actionUrl: '/profile',
     })
 
-    return successResponse({ 
+    const successResp = successResponse({ 
       message: `Organization ${action}d successfully`,
       organization: {
         _id: updatedOrganization.account_id,
@@ -240,10 +287,18 @@ export async function PUT(request: NextRequest) {
         approvedBy: updatedOrganization.reviewed_by
       }
     });
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      successResp.headers.set(key, value)
+    }
+    return successResp;
 
   } catch (error) {
     console.error('PUT /api/admin/organizations error:', error);
-    return errorResponse('Failed to update organization status', "API_ERROR", {}, 500);
+    const response = errorResponse('Failed to update organization status', "API_ERROR", {}, 500);
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response;
   }
 }
 

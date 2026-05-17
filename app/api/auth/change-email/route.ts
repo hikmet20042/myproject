@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
-import { checkRateLimit, getRequestIp } from '@/lib/security/rateLimit'
+import { applyRateLimit } from '@/lib/rateLimit'
 import { NotificationService } from '@/features/notifications/services/notificationService'
 
 type ProviderInfo = {
@@ -11,8 +11,6 @@ type ProviderInfo = {
   isGoogleOnly: boolean
 }
 
-const CHANGE_EMAIL_LIMIT = 5
-const CHANGE_EMAIL_WINDOW_MS = 15 * 60 * 1000
 const RECENT_REAUTH_WINDOW_MS = 5 * 60 * 1000
 
 function getAuthProviderInfo(user: any): ProviderInfo {
@@ -46,52 +44,81 @@ function hasRecentSignIn(user: any) {
   return Date.now() - lastSignInAt <= RECENT_REAUTH_WINDOW_MS
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    request,
+    preset: 'auth',
+    endpoint: '/api/auth/change-email',
+  })
+
+  if (!rateLimitResult.allowed) {
+    const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
+  }
+
   try {
     const supabase = createSupabaseServerClient()
     const { data: authData } = await supabase.auth.getUser()
 
     if (!authData?.user?.id) {
-      return errorResponse('Authentication required', 'API_ERROR', {}, 401)
+      const response = errorResponse('Authentication required', 'API_ERROR', {}, 401)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const providerInfo = getAuthProviderInfo(authData.user)
     const recentlyReauthenticated = hasRecentSignIn(authData.user)
 
-    return successResponse({
+    const response = successResponse({
       currentEmail: authData.user.email || null,
       requiresCurrentPassword: !providerInfo.isGoogleOnly,
       requiresGoogleReauth: providerInfo.isGoogleOnly && !recentlyReauthenticated,
       providers: providerInfo.providers,
     })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   } catch (error) {
     console.error('GET /api/auth/change-email error:', error)
-    return errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    const response = errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   }
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const ip = getRequestIp(request.headers)
-    const ipRateLimit = checkRateLimit(`auth:change-email:ip:${ip}`, CHANGE_EMAIL_LIMIT, CHANGE_EMAIL_WINDOW_MS)
-    if (!ipRateLimit.allowed) {
-      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
-    }
+  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    request,
+    preset: 'auth',
+    endpoint: '/api/auth/change-email',
+  })
 
+  if (!rateLimitResult.allowed) {
+    const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
+  }
+
+  try {
     const supabase = createSupabaseServerClient()
     const { data: authData } = await supabase.auth.getUser()
 
     if (!authData?.user?.id || !authData.user.email) {
-      return errorResponse('Authentication required', 'API_ERROR', {}, 401)
-    }
-
-    const userRateLimit = checkRateLimit(
-      `auth:change-email:user:${authData.user.id}`,
-      CHANGE_EMAIL_LIMIT,
-      CHANGE_EMAIL_WINDOW_MS,
-    )
-    if (!userRateLimit.allowed) {
-      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+      const response = errorResponse('Authentication required', 'API_ERROR', {}, 401)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const body = await request.json().catch(() => ({}))
@@ -99,35 +126,59 @@ export async function POST(request: NextRequest) {
     const currentPassword = String(body?.currentPassword || '').trim()
 
     if (!newEmail) {
-      return errorResponse('New email is required', 'API_ERROR', {}, 400)
+      const response = errorResponse('New email is required', 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(newEmail)) {
-      return errorResponse('Invalid email format', 'API_ERROR', {}, 400)
+      const response = errorResponse('Invalid email format', 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     if (newEmail === String(authData.user.email || '').toLowerCase()) {
-      return errorResponse('Yeni e-poçt mövcud e-poçtla eyni ola bilməz', 'API_ERROR', {}, 400)
+      const response = errorResponse('Yeni e-poçt mövcud e-poçtla eyni ola bilməz', 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const providerInfo = getAuthProviderInfo(authData.user)
     const recentlyReauthenticated = hasRecentSignIn(authData.user)
 
     if (providerInfo.isGoogleOnly && !recentlyReauthenticated) {
-      return errorResponse('E-poçtu dəyişmək üçün əvvəlcə Google ilə yenidən daxil ol.', 'REAUTH_REQUIRED', {}, 400)
+      const response = errorResponse('E-poçtu dəyişmək üçün əvvəlcə Google ilə yenidən daxil ol.', 'REAUTH_REQUIRED', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     if (!providerInfo.isGoogleOnly) {
       if (!currentPassword) {
-        return errorResponse('Current password is required', 'API_ERROR', {}, 400)
+        const response = errorResponse('Current password is required', 'API_ERROR', {}, 400)
+        for (const [key, value] of Object.entries(rateLimitHeaders)) {
+          response.headers.set(key, value)
+        }
+        return response
       }
 
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
       const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
       if (!supabaseUrl || !supabaseAnonKey) {
-        return errorResponse('Supabase configuration missing', 'API_ERROR', {}, 500)
+        const response = errorResponse('Supabase configuration missing', 'API_ERROR', {}, 500)
+        for (const [key, value] of Object.entries(rateLimitHeaders)) {
+          response.headers.set(key, value)
+        }
+        return response
       }
 
       const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -140,7 +191,11 @@ export async function POST(request: NextRequest) {
       })
 
       if (signInError) {
-        return errorResponse('Current password is incorrect', 'API_ERROR', {}, 400)
+        const response = errorResponse('Current password is incorrect', 'API_ERROR', {}, 400)
+        for (const [key, value] of Object.entries(rateLimitHeaders)) {
+          response.headers.set(key, value)
+        }
+        return response
       }
     }
 
@@ -153,7 +208,11 @@ export async function POST(request: NextRequest) {
     )
 
     if (updateError) {
-      return errorResponse(updateError.message || 'E-poçt dəyişdirilə bilmədi', 'API_ERROR', {}, 400)
+      const response = errorResponse(updateError.message || 'E-poçt dəyişdirilə bilmədi', 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     // Send email change notification
@@ -163,11 +222,19 @@ export async function POST(request: NextRequest) {
       console.error('Failed to send email change notification:', notificationError)
     }
 
-    return successResponse({
+    const response = successResponse({
       message: 'Təsdiq linki yeni e-poçta göndərildi. Dəyişikliyi tamamla və sonra yenidən daxil ol.',
     })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   } catch (error) {
     console.error('POST /api/auth/change-email error:', error)
-    return errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    const response = errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { canAccessAdmin } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
 

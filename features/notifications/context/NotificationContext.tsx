@@ -60,9 +60,9 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
       raw.actionUrl ||
       (raw.related_item_id && raw.related_item_type
         ? raw.related_item_type === 'event'
-          ? `/resources/events/${raw.related_item_id}`
+          ? `/resources/events/${raw.data?.contentSlug || raw.related_item_id}`
           : raw.related_item_type === 'vacancy'
-            ? `/resources/vacancies/${raw.related_item_id}`
+            ? `/resources/vacancies/${raw.data?.contentSlug || raw.related_item_id}`
             : `/blogs/${raw.related_item_id}`
         : undefined),
     data: raw.data || {},

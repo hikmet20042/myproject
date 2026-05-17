@@ -3,6 +3,7 @@ import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { canAccessAdmin } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { applyRateLimit } from '@/lib/rateLimit'
 import {
   applyEventLifecycleRules,
   mapEventToResponse,

@@ -2,17 +2,29 @@ import { Metadata } from 'next'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { generateSEOMetadata, generateEventSchema, getLocationKeywords } from '@/lib/seo'
 import { EVENT_TYPE_LABELS, type EventTypeValue } from '@/lib/events/eventConfig'
+import { resolveEntityBySlugOrId } from '@/lib/identifier'
 
 /**
  * Generate metadata for individual event pages
  */
-export async function generateEventMetadata(id: string): Promise<Metadata> {
+export async function generateEventMetadata(identifier: string): Promise<Metadata> {
   try {
     const supabase = createSupabaseAdminClient()
+    const { data: resolved } = await resolveEntityBySlugOrId(supabase, 'events', identifier, 'id,slug')
+    const eventId = resolved?.id
+
+    if (!eventId) {
+      return generateSEOMetadata({
+        title: 'Event Not Found | icma360',
+        description: 'The event you are looking for could not be found.',
+        noindex: true,
+      })
+    }
+
     const { data: eventRow, error } = await supabase
       .from('events')
-      .select('id, title, description, event_date, end_date, location, application_link, organization_name, image_url, created_at, updated_at, tags, event_type')
-      .eq('id', id)
+      .select('id, slug, title, description, event_date, end_date, location, application_link, organization_name, image_url, created_at, updated_at, tags, event_type')
+      .eq('id', eventId)
       .single()
 
     if (error) {
@@ -82,7 +94,7 @@ export async function generateEventMetadata(id: string): Promise<Metadata> {
         'təlim imkanları Azərbaycan',
         'networking Azərbaycan',
       ],
-      canonical: `/resources/events/${id}`,
+      canonical: `/resources/events/${eventRow.slug || identifier}`,
       ogType: 'article',
       publishedTime: event.createdAt || event.submittedAt,
       modifiedTime: event.updatedAt,

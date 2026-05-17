@@ -1,9 +1,24 @@
 import { getServerSession } from '@/lib/auth/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 // GET: Fetch all materials (with optional filters)
 export async function GET(request: Request) {
+  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    request,
+    preset: 'publicRead',
+    endpoint: '/api/materials',
+  })
+
+  if (!rateLimitResult.allowed) {
+    const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
+  }
+
   try {
     const supabase = createSupabaseAdminClient();
 
@@ -37,12 +52,16 @@ export async function GET(request: Request) {
     const { data: materials, error, count } = await query;
 
     if (error) {
-      return errorResponse('Failed to fetch materials', "API_ERROR", {}, 500);
+      const response = errorResponse('Failed to fetch materials', "API_ERROR", {}, 500);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response;
     }
 
     const total = count || 0;
 
-    return successResponse({
+    const response = successResponse({
       materials,
       pagination: {
         page,
@@ -51,9 +70,17 @@ export async function GET(request: Request) {
         pages: Math.ceil(total / limit)
       }
     });
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response;
   } catch (error: any) {
     console.error('Error fetching materials:', error);
-    return errorResponse('Failed to fetch materials', "API_ERROR", {}, 500);
+    const response = errorResponse('Failed to fetch materials', "API_ERROR", {}, 500);
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response;
   }
 }
 

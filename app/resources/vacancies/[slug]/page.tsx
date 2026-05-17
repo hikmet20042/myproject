@@ -83,9 +83,15 @@ export default function VacancyDetailPage() {
     if (error) showError(error);
   }, [error, showError]);
 
-  const fetchVacancy = async (id: string) => {
+  const fetchVacancy = async (slugOrId: string) => {
     try {
-      const response = await fetch(`/api/vacancies/${id}`);
+      const resolveResponse = await fetch(`/api/vacancies/resolve/${slugOrId}`);
+      if (!resolveResponse.ok) throw new Error("Vakansiya tapılmadı");
+      const resolvedPayload = await resolveResponse.json();
+      const vacancyId = String(resolvedPayload?.data?.id || resolvedPayload?.id || "");
+      if (!vacancyId) throw new Error("Vakansiya tapılmadı");
+
+      const response = await fetch(`/api/vacancies/${vacancyId}`);
       if (!response.ok) throw new Error("Vakansiya tapılmadı");
       const data = await response.json();
       setVacancy(
@@ -152,13 +158,14 @@ export default function VacancyDetailPage() {
   const isDeadlineNear = daysUntilDeadline > 0 && daysUntilDeadline <= 7;
   const method = vacancy.applicationMethod;
   const methodValue = vacancy.applicationValue;
+  const vacancyDescription = vacancy.description || "";
 
   return (
     <>
       {vacancy.status === "approved" && (
         <ViewTracker
           itemType="vacancy"
-          itemId={vacancy.slug}
+          itemId={vacancy.id}
           minTimeMs={10000}
           selector="#vacancy-content"
         />
@@ -257,7 +264,7 @@ export default function VacancyDetailPage() {
               <h2 className="text-3xl font-black text-slate-900 mb-6">
                 İş təsviri
               </h2>
-              {vacancy.description.split("\n").map((paragraph, index) => (
+              {vacancyDescription.split("\n").map((paragraph, index) => (
                 <p key={index}>{paragraph}</p>
               ))}
             </div>

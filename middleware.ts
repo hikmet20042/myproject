@@ -180,6 +180,20 @@ async function checkAuthorization(pathWithoutLanguage: string, pathname: string,
       if (isOrganizationOnlyRoute && accountType === 'user') {
         return NextResponse.redirect(new URL('/', req.url))
       }
+
+      // Admin-only routes: block non-admin users and redirect to home
+      const isAdminRoute = pathWithoutLanguage.startsWith('/admin')
+      if (isAdminRoute) {
+        const { data: adminAccount } = await supabase
+          .from('accounts')
+          .select('is_admin')
+          .eq('id', user.id)
+          .maybeSingle()
+
+        if (!adminAccount?.is_admin) {
+          return NextResponse.redirect(new URL('/', req.url))
+        }
+      }
     }
 
   }

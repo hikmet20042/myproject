@@ -3,18 +3,41 @@ import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { getOrganizationImagePath, resolveProfileImageUrl } from '@/lib/profileImageUrls'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'authenticatedRead',
+      endpoint: '/api/users/organizations/followed',
+    })
+
     const session = await getServerSession()
     if (!session?.user?.id) {
-      return errorResponse('Unauthorized', 'API_ERROR', {}, 401)
+      const response = errorResponse('Unauthorized', 'API_ERROR', {}, 401)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     if (session.user.accountType === 'organization') {
-      return errorResponse('Organization accounts cannot access followed organizations list', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+      const response = errorResponse('Organization accounts cannot access followed organizations list', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const supabase = createSupabaseAdminClient()
@@ -31,7 +54,11 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
 
     if (followsError) {
-      return errorResponse('Failed to load followed organizations', 'API_ERROR', {}, 500)
+      const response = errorResponse('Failed to load followed organizations', 'API_ERROR', {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const organizationIds = Array.from(
@@ -39,7 +66,7 @@ export async function GET(request: NextRequest) {
     )
 
     if (organizationIds.length === 0) {
-      return successResponse(
+      const response = successResponse(
         { items: [] },
         {
           page,
@@ -48,6 +75,10 @@ export async function GET(request: NextRequest) {
           pages: 0,
         }
       )
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const { data: profileRows, error: profilesError } = await supabase
@@ -57,7 +88,11 @@ export async function GET(request: NextRequest) {
       .eq('moderation_status', 'approved')
 
     if (profilesError) {
-      return errorResponse('Failed to load organization profiles', 'API_ERROR', {}, 500)
+      const response = errorResponse('Failed to load organization profiles', 'API_ERROR', {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const followedAtByOrganization = new Map<string, string>(
@@ -106,7 +141,7 @@ export async function GET(request: NextRequest) {
     const end = start + limit
     const items = allItems.slice(start, end)
 
-    return successResponse(
+    const response = successResponse(
       { items },
       {
         page,
@@ -115,8 +150,13 @@ export async function GET(request: NextRequest) {
         pages,
       }
     )
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   } catch (error) {
     console.error('GET /api/users/organizations/followed error:', error)
-    return errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    const response = errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    return response
   }
 }

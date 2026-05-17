@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { isAdmin, isApprovedOrganization } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { getUserAvatarPath, resolveProfileImageUrl } from '@/lib/profileImageUrls'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -58,34 +59,57 @@ async function ensureUserRow(
 
 export async function GET(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'authenticatedRead',
+      endpoint: '/api/users/profile',
+    })
+
     const supabase = createSupabaseAdminClient()
   
-  const session = await getServerSession()
+    const session = await getServerSession()
     
     if (!session?.user?.id) {
       console.log('Profile GET - No session or user ID');
-      return errorResponse('Unauthorized', "API_ERROR", {}, 401);
+      const response = errorResponse('Unauthorized', "API_ERROR", {}, 401);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
+    }
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
     }
 
     console.log('Profile GET - Session user ID:', session.user.id, 'Type:', typeof session.user.id);
     console.log('Profile GET - Session is admin:', isAdmin(session));
     console.log('Profile GET - Is Organization:', isApprovedOrganization(session));
 
-    // Block ALL organizations - /profile routes are for regular users only
     if (session.user.accountType === 'organization') {
-      return errorResponse('Organization accounts cannot access user profile endpoints. Use /api/organizations/me instead.', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403);
+      const response = errorResponse('Organization accounts cannot access user profile endpoints. Use /api/organizations/me instead.', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
     }
 
-    // Handle regular users
     const user = await ensureUserRow(supabase, session)
     console.log('Profile GET - User query result:', user ? 'Found' : 'Not found');
     
     if (!user) {
       console.log('Profile GET - User not found. Searched for ID:', session.user.id);
-      return errorResponse('User not found', "API_ERROR", {}, 404);
+      const response = errorResponse('User not found', "API_ERROR", {}, 404);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
     }
 
-    // Use the user's _id for profile lookup
     const { data: profile } = await supabase
       .from('user_profiles')
       .select('*')
@@ -95,14 +119,13 @@ export async function GET(request: NextRequest) {
     const avatarPath = getUserAvatarPath((profile as any)?.avatar_metadata)
     const avatarUrl = await resolveProfileImageUrl(supabase, avatarPath, profile?.avatar || null)
 
-    // Get url_handle from accounts
     const { data: account } = await supabase
       .from('accounts')
       .select('url_handle')
       .eq('id', user.id)
       .single();
 
-    return successResponse({
+    const response = successResponse({
       user: {
         id: user.id,
         email: user.email,
@@ -121,31 +144,55 @@ export async function GET(request: NextRequest) {
         : null,
       isOrganization: false,
     });
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value);
+    }
+    return response;
   } catch (error) {
     console.error('Profile fetch error:', error);
-    return errorResponse('Internal server error', "API_ERROR", {}, 500);
+    const response = errorResponse('Internal server error', "API_ERROR", {}, 500);
+    return response;
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'write',
+      endpoint: '/api/users/profile',
+    })
+
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return errorResponse('Unauthorized', "API_ERROR", {}, 401);
+      const response = errorResponse('Unauthorized', "API_ERROR", {}, 401);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
+    }
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
     }
 
     const body = await request.json();
 
-    // Block ALL organizations - /profile routes are for regular users only
     if (session.user.accountType === 'organization') {
-      return errorResponse('Organization accounts cannot access user profile endpoints. Use /api/organizations/me instead.', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403);
+      const response = errorResponse('Organization accounts cannot access user profile endpoints. Use /api/organizations/me instead.', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
     }
 
-    // Handle regular user profile updates
     const { name, bio, location, website, phone, dateOfBirth, gender, occupation, organization, interests, avatar, socialLinks, socialMedia, urlHandle } = body;
 
-    // Update user basic info
     if (name) {
       await supabase
         .from('users')
@@ -153,7 +200,6 @@ export async function PUT(request: NextRequest) {
         .eq('id', session.user.id);
     }
 
-    // Update URL handle on accounts if provided
     if (urlHandle !== undefined) {
       const normalizedHandle = urlHandle === '' ? null : String(urlHandle).toLowerCase().trim()
       const { error: handleError } = await supabase
@@ -163,13 +209,20 @@ export async function PUT(request: NextRequest) {
       if (handleError) {
         const msg = handleError.message || ''
         if (msg.includes('reserved') || msg.includes('Handle') || msg.includes('duplicate')) {
-          return errorResponse(msg, 'HANDLE_UNAVAILABLE', {}, 400)
+          const response = errorResponse(msg, 'HANDLE_UNAVAILABLE', {}, 400)
+          for (const [key, value] of Object.entries(rateLimitHeaders)) {
+            response.headers.set(key, value)
+          }
+          return response
         }
-        return errorResponse('Failed to update handle', 'HANDLE_UPDATE_FAILED', {}, 500)
+        const response = errorResponse('Failed to update handle', 'HANDLE_UPDATE_FAILED', {}, 500)
+        for (const [key, value] of Object.entries(rateLimitHeaders)) {
+          response.headers.set(key, value)
+        }
+        return response
       }
     }
 
-    // Upsert profile - use the user's _id as userId
     const updateData: any = {
       bio,
       location,
@@ -186,7 +239,11 @@ export async function PUT(request: NextRequest) {
 
     if (avatar !== undefined) {
       if (typeof avatar === 'string' && avatar.startsWith('/api/images/')) {
-        return errorResponse('Legacy blob image URLs are no longer supported. Upload profile image again.', 'VALIDATION_ERROR', {}, 400)
+        const response = errorResponse('Legacy blob image URLs are no longer supported. Upload profile image again.', 'VALIDATION_ERROR', {}, 400)
+        for (const [key, value] of Object.entries(rateLimitHeaders)) {
+          response.headers.set(key, value)
+        }
+        return response
       }
       updateData.avatar = avatar || null;
     }
@@ -215,12 +272,17 @@ export async function PUT(request: NextRequest) {
       updatedProfile = data || null;
     }
 
-    return successResponse({
+    const response = successResponse({
       message: 'Profile updated successfully',
       profile: updatedProfile
     });
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value);
+    }
+    return response;
   } catch (error) {
     console.error('Profile update error:', error);
-    return errorResponse('Internal server error', "API_ERROR", {}, 500);
+    const response = errorResponse('Internal server error', "API_ERROR", {}, 500);
+    return response;
   }
 }

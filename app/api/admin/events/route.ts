@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { mapEventToResponse } from '@/lib/events/mapEventToResponse'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 const hydrateEventRowsWithOrganizationHandles = async (supabase: any, rows: any[]) => {
   const organizationIds = Array.from(
@@ -70,11 +71,21 @@ export const dynamic = 'force-dynamic'
 // GET /api/admin/events - Get all events for admin management
 export async function GET(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'admin',
+      endpoint: '/api/admin/events',
+    })
+
     const supabase = createSupabaseAdminClient()
     
     const session = await getServerSession()
     if (!isAdmin(session)) {
-      return errorResponse('Admin access required', 'ADMIN_ACCESS_REQUIRED', {}, 403)
+      const response = errorResponse('Admin access required', 'ADMIN_ACCESS_REQUIRED', {}, 403)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
     
     const { searchParams } = new URL(request.url)
@@ -159,7 +170,7 @@ export async function GET(request: NextRequest) {
 
     let queryBuilder = supabase
       .from('events')
-      .select('*, created_by (id, name, email), created_by_organization (id, organization_name, email), approved_by (id, name)', { count: 'exact' })
+      .select('*, created_by (id, name, email)', { count: 'exact' })
       .order(orderField, { ascending })
       .range(skip, skip + limit - 1)
 
@@ -202,7 +213,11 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('GET /api/admin/events error:', error)
-      return errorResponse('Failed to fetch events', 'FETCH_EVENTS_FAILED', {}, 500)
+      const response = errorResponse('Failed to fetch events', 'FETCH_EVENTS_FAILED', {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const hydratedRows = await hydrateEventRowsWithOrganizationHandles(supabase, eventRows || [])
@@ -224,7 +239,7 @@ export async function GET(request: NextRequest) {
       total: totalResult.count || 0
     }
     
-    return successResponse({
+    const successResp = successResponse({
       events,
       stats,
       pagination: {
@@ -234,8 +249,16 @@ export async function GET(request: NextRequest) {
         pages: Math.ceil(total / limit)
       }
     })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      successResp.headers.set(key, value)
+    }
+    return successResp
   } catch (error) {
     console.error('GET /api/admin/events error:', error)
-    return errorResponse('Failed to fetch events', 'FETCH_EVENTS_FAILED', {}, 500)
+    const response = errorResponse('Failed to fetch events', 'FETCH_EVENTS_FAILED', {}, 500)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   }
 }

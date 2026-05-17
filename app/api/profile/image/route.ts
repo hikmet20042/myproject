@@ -3,6 +3,7 @@ import { getServerSession } from '@/lib/auth/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { isApprovedOrganization } from '@/lib/auth/permissions';
 import { successResponse, errorResponse } from '@/lib/apiResponse';
+import { applyRateLimit } from '@/lib/rateLimit';
 import sharp from 'sharp';
 
 export const dynamic = 'force-dynamic';
@@ -88,9 +89,27 @@ const optimizeProfileImage = async (buffer: Buffer, mimeType: string) => {
 // POST /api/profile/image
 export async function POST(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'write',
+      endpoint: '/api/profile/image',
+    })
+
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return errorResponse('Authentication required', 'API_ERROR', {}, 401);
+      const response = errorResponse('Authentication required', 'API_ERROR', {}, 401);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
+    }
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
     }
 
     const supabase = createSupabaseAdminClient();
@@ -98,12 +117,20 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as unknown as File | null;
 
     if (!file) {
-      return errorResponse('No file provided', 'API_ERROR', {}, 400);
+      const response = errorResponse('No file provided', 'API_ERROR', {}, 400);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
     }
 
     const validationError = validateImage(file);
     if (validationError) {
-      return errorResponse(validationError, 'API_ERROR', {}, 400);
+      const response = errorResponse(validationError, 'API_ERROR', {}, 400);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
     }
 
     const bytes = await file.arrayBuffer();
@@ -122,12 +149,20 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      return errorResponse('Failed to upload profile image', 'API_ERROR', {}, 500);
+      const response = errorResponse('Failed to upload profile image', 'API_ERROR', {}, 500);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
     }
 
     const imageUrl = await getSignedUrl(supabase, storagePath);
     if (!imageUrl) {
-      return errorResponse('Failed to generate profile image URL', 'API_ERROR', {}, 500);
+      const response = errorResponse('Failed to generate profile image URL', 'API_ERROR', {}, 500);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
     }
 
     let oldStoragePath: string | null = null;
@@ -186,7 +221,7 @@ export async function POST(request: NextRequest) {
       await supabase.storage.from(PROFILE_BUCKET).remove([oldStoragePath]);
     }
 
-    return successResponse({
+    const response = successResponse({
       success: true,
       message: 'Profile image updated successfully',
       profileImage: {
@@ -197,18 +232,41 @@ export async function POST(request: NextRequest) {
       url: imageUrl,
       thumbnailUrl: imageUrl,
     });
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value);
+    }
+    return response;
   } catch (error) {
     console.error('Error uploading profile image:', error);
-    return errorResponse('Failed to upload profile image', 'API_ERROR', {}, 500);
+    const response = errorResponse('Failed to upload profile image', 'API_ERROR', {}, 500);
+    return response;
   }
 }
 
 // DELETE /api/profile/image
 export async function DELETE(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'write',
+      endpoint: '/api/profile/image',
+    })
+
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return errorResponse('Authentication required', 'API_ERROR', {}, 401);
+      const response = errorResponse('Authentication required', 'API_ERROR', {}, 401);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
+    }
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
     }
 
     const supabase = createSupabaseAdminClient();
@@ -247,22 +305,45 @@ export async function DELETE(request: NextRequest) {
       await supabase.storage.from(PROFILE_BUCKET).remove([oldStoragePath]);
     }
 
-    return successResponse({
+    const response = successResponse({
       success: true,
       message: 'Profile image deleted successfully',
     });
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value);
+    }
+    return response;
   } catch (error) {
     console.error('Error deleting profile image:', error);
-    return errorResponse('Failed to delete profile image', 'API_ERROR', {}, 500);
+    const response = errorResponse('Failed to delete profile image', 'API_ERROR', {}, 500);
+    return response;
   }
 }
 
 // GET /api/profile/image
 export async function GET(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'authenticatedRead',
+      endpoint: '/api/profile/image',
+    })
+
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return errorResponse('Authentication required', 'API_ERROR', {}, 401);
+      const response = errorResponse('Authentication required', 'API_ERROR', {}, 401);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
+    }
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
     }
 
     const supabase = createSupabaseAdminClient();
@@ -276,7 +357,11 @@ export async function GET(request: NextRequest) {
         .maybeSingle();
 
       if (!orgProfile) {
-        return errorResponse('User not found', 'API_ERROR', {}, 404);
+        const response = errorResponse('User not found', 'API_ERROR', {}, 404);
+        for (const [key, value] of Object.entries(rateLimitHeaders)) {
+          response.headers.set(key, value);
+        }
+        return response;
       }
 
       const storagePath = extractStoragePathFromOrganizationImage(orgProfile.profile_image);
@@ -285,17 +370,25 @@ export async function GET(request: NextRequest) {
         : null;
 
       if (!storagePath && !currentUrl) {
-        return successResponse({ hasImage: false, url: null });
+        const response = successResponse({ hasImage: false, url: null });
+        for (const [key, value] of Object.entries(rateLimitHeaders)) {
+          response.headers.set(key, value);
+        }
+        return response;
       }
 
       const signedUrl = storagePath ? await getSignedUrl(supabase, storagePath) : currentUrl;
 
-      return successResponse({
+      const response = successResponse({
         hasImage: true,
         url: signedUrl,
         path: storagePath,
         thumbnailUrl: signedUrl,
       });
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
     }
 
     const { data: userProfile } = await supabase
@@ -305,25 +398,38 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
 
     if (!userProfile) {
-      return errorResponse('User not found', 'API_ERROR', {}, 404);
+      const response = errorResponse('User not found', 'API_ERROR', {}, 404);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
     }
 
     const storagePath = extractStoragePathFromUserMetadata(userProfile.avatar_metadata);
 
     if (!userProfile.avatar && !storagePath) {
-      return successResponse({ hasImage: false, url: null });
+      const response = successResponse({ hasImage: false, url: null });
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
     }
 
     const signedUrl = storagePath ? await getSignedUrl(supabase, storagePath) : userProfile.avatar;
 
-    return successResponse({
+    const response = successResponse({
       hasImage: true,
       url: signedUrl,
       path: storagePath,
       thumbnailUrl: signedUrl,
     });
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value);
+    }
+    return response;
   } catch (error) {
     console.error('Error fetching profile image:', error);
-    return errorResponse('Failed to fetch profile image', 'API_ERROR', {}, 500);
+    const response = errorResponse('Failed to fetch profile image', 'API_ERROR', {}, 500);
+    return response;
   }
 }

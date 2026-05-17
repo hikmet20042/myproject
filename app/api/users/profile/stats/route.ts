@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { cache, generateCacheKey, withCache } from '@/lib/cache'
 import { isApprovedOrganization } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,33 +46,55 @@ async function ensureUserRow(
 
 export async function GET(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'authenticatedRead',
+      endpoint: '/api/users/profile/stats',
+    })
+
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
     console.log('Profile Stats GET - Session:', { userId: session?.user?.id, email: session?.user?.email, role: session?.user?.role });
     
     if (!session?.user?.id) {
-      return errorResponse('Unauthorized', "API_ERROR", {}, 401);
+      const response = errorResponse('Unauthorized', "API_ERROR", {}, 401);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
     }
     
-    // Block ALL organizations - /profile routes are for regular users only
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
+    }
+
     if (session.user.accountType === 'organization') {
-      return errorResponse('Organization accounts cannot access user profile stats. Use /api/organization/stats instead.', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403);
+      const response = errorResponse('Organization accounts cannot access user profile stats. Use /api/organization/stats instead.', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
     }
 
     const user = await ensureUserRow(supabase, session)
     if (!user) {
-      return errorResponse('User not found', "API_ERROR", {}, 404);
+      const response = errorResponse('User not found', "API_ERROR", {}, 404);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
     }
 
-    // Generate cache key for user stats
     const cacheKey = generateCacheKey.userStats(session.user.id);
     
-    // Try to get from cache first
     const cachedStats = await withCache(
       cache.userStats,
       cacheKey,
       async () => {
-        // Optimized: Use fewer, more efficient aggregation queries
         const { data: blogs } = await supabase
           .from('blogs')
           .select('id, status')
@@ -122,7 +145,6 @@ export async function GET(request: NextRequest) {
           totalSaves = savesCountRes.count || 0;
         }
 
-        // Fetch user's events and vacancies and count their views and saves
         const [{ data: userEvents }, { data: userVacancies }] = await Promise.all([
           supabase
             .from('events')
@@ -187,16 +209,13 @@ export async function GET(request: NextRequest) {
 
         const recentActivity: string[] = [];
 
-    // Calculate metrics from aggregated data
     const totalWordCount = 0;
 
-    // Calculate writing streak from activity data
     const activityDates = recentActivity.map(item =>
       new Date(item).toDateString()
     );
     const uniqueActivityDays = Array.from(new Set(activityDates)).length;
 
-    // Calculate consecutive writing streak
     let writingStreak = 0;
     const today = new Date();
     for (let i = 0; i < 30; i++) {
@@ -207,18 +226,13 @@ export async function GET(request: NextRequest) {
       if (activityDates.includes(dateString)) {
         writingStreak++;
       } else if (i > 0) {
-        // Break streak if no activity (but allow for today)
         break;
       }
     }
 
-    // Calculate productivity score using the UserAnalytics static method
     const productivityScore = 0;
 
-    // Generate achievements
     const achievements = [];
-
-    // Removed first article achievement
 
     if (writingStreak >= 7) {
       achievements.push({
@@ -254,9 +268,8 @@ export async function GET(request: NextRequest) {
     }
 
         return {
-          // Basic counts from aggregated data
-          totalBlogs: blogRows.length || 0, // Count ALL blogs (not just approved)
-          totalStories: approvedStories || 0, // Keep for backward compatibility
+          totalBlogs: blogRows.length || 0,
+          totalStories: approvedStories || 0,
 
           totalViews,
           totalUniqueViews,
@@ -264,38 +277,37 @@ export async function GET(request: NextRequest) {
           totalDislikes,
           totalSaves,
 
-          // User info
           joinedDate: user.created_at,
           lastActive: user.updated_at,
 
-          // Writing metrics
           writingStreak,
           totalWordCount,
           productivityScore,
 
-          // Engagement metrics
           avgEngagementRate: totalViews > 0 ? ((totalLikes / totalViews) * 100).toFixed(2) : 0,
 
-          // Content breakdown from aggregated data
           contentByStatus: {
             approved: approvedStories || 0,
-            pending: 0, // Would need separate query if needed
-            rejected: 0 // Would need separate query if needed
+            pending: 0,
+            rejected: 0
           },
 
-          // Recent activity summary
           recentActivityCount: recentActivity.length,
           lastContentUpdate: recentActivity[0] || null,
 
-          // Achievements
           achievements
         };
       }
     );
 
-    return successResponse({ stats: cachedStats });
+    const response = successResponse({ stats: cachedStats });
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value);
+    }
+    return response;
   } catch (error) {
     console.error('Profile stats error:', error);
-    return errorResponse('Internal server error', "API_ERROR", {}, 500);
+    const response = errorResponse('Internal server error', "API_ERROR", {}, 500);
+    return response;
   }
 }

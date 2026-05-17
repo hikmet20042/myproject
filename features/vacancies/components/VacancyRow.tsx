@@ -139,7 +139,7 @@ export default function VacancyRow({ vacancy, onRequestDelete }: VacancyRowProps
                 className="rounded-xl hover:border-blue-200 hover:bg-blue-50"
               />
             </Link>
-            <Link href={localePath(`/dashboard/vacancies/${vacancy.slug}/edit`)}>
+            <Link href={localePath(`/dashboard/vacancies/${vacancy._id || vacancy.id}/edit`)}>
               <Button
                 variant="ghost"
                 size="sm"

@@ -4,21 +4,39 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { isApprovedOrganization } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { getOrganizationImagePath, getUserAvatarPath, resolveProfileImageUrl } from '@/lib/profileImageUrls'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 // Force dynamic rendering due to session usage
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'authenticatedRead',
+      endpoint: '/api/profile',
+    })
+
     const session = await getServerSession()
     
     if (!session?.user?.id) {
-      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
+      const response = errorResponse('Unauthorized', "API_ERROR", {}, 401)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const supabase = createSupabaseAdminClient()
 
-    // If session is organization, fetch from Organization collection
     if (isApprovedOrganization(session)) {
       const { data: organizationProfile } = await supabase
         .from('organization_profiles')
@@ -27,7 +45,11 @@ export async function GET(request: NextRequest) {
         .maybeSingle()
 
       if (!organizationProfile) {
-        return errorResponse('Organization not found', "API_ERROR", {}, 404)
+        const response = errorResponse('Organization not found', "API_ERROR", {}, 404)
+        for (const [key, value] of Object.entries(rateLimitHeaders)) {
+          response.headers.set(key, value)
+        }
+        return response
       }
 
       const profileImagePath = getOrganizationImagePath(organizationProfile.profile_image)
@@ -37,21 +59,24 @@ export async function GET(request: NextRequest) {
           : (organizationProfile.profile_image as any)?.url || null
       const profileImageUrl = await resolveProfileImageUrl(supabase, profileImagePath, profileImageFallback)
 
-      return successResponse({
+      const response = successResponse({
         user: {
           _id: organizationProfile.account_id,
           name: organizationProfile.organization_name,
           email: organizationProfile.email,
-          role: undefined, // Organizations don't have role in User collection
+          role: undefined,
           organizationStatus: organizationProfile.moderation_status,
           createdAt: organizationProfile.created_at,
           profileImage: profileImageUrl ? { url: profileImageUrl, path: profileImagePath, storage: 'supabase_storage' } : null,
           image: profileImageUrl || undefined
         }
       })
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
-    // Fetch regular user
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('id, name, email, role, created_at')
@@ -59,7 +84,11 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (userError || !user) {
-      return errorResponse('User not found', 'USER_NOT_FOUND', {}, 404)
+      const response = errorResponse('User not found', 'USER_NOT_FOUND', {}, 404)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const { data: userProfile } = await supabase
@@ -71,7 +100,7 @@ export async function GET(request: NextRequest) {
     const avatarPath = getUserAvatarPath((userProfile as any)?.avatar_metadata)
     const avatarUrl = await resolveProfileImageUrl(supabase, avatarPath, userProfile?.avatar || null)
 
-    return successResponse({
+    const response = successResponse({
       user: {
         _id: user.id,
         name: user.name,
@@ -84,9 +113,14 @@ export async function GET(request: NextRequest) {
         image: avatarUrl || null
       }
     })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
 
   } catch (error) {
     console.error('Error fetching user profile:', error)
-    return errorResponse('Failed to fetch profile', 'FETCH_PROFILE_FAILED', {}, 500)
+    const response = errorResponse('Failed to fetch profile', 'FETCH_PROFILE_FAILED', {}, 500)
+    return response
   }
 }

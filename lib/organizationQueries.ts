@@ -50,6 +50,11 @@ const assertOrganization = (data: any, endpoint: string) => {
   return data.organization;
 };
 
+export const resolveOrganizationIdentifier = async (identifier: string) => {
+  const { data } = await apiFetch<{ id?: string; slug?: string }>(`/api/organizations/resolve/${identifier}`);
+  return { id: data?.id || '', slug: data?.slug || '' };
+};
+
 export const fetchOrganizations = async (params: OrganizationListParams = {}) => {
   const endpoint = `/api/organizations${toQueryString(params) ? `?${toQueryString(params)}` : ""}`;
   const query = toQueryString(params);
@@ -62,8 +67,8 @@ export const fetchOrganizations = async (params: OrganizationListParams = {}) =>
   };
 };
 
-export const fetchOrganizationBySlug = async (slug: string) => {
-  const endpoint = `/api/organizations/${slug}`;
+export const fetchOrganizationById = async (id: string) => {
+  const endpoint = `/api/organizations/${id}`;
   const { data } = await apiFetch<{
     organization: any;
     featuredEvent?: any;
@@ -79,8 +84,14 @@ export const fetchOrganizationBySlug = async (slug: string) => {
   };
 };
 
-/** @deprecated Use fetchOrganizationBySlug instead */
-export const fetchOrganizationById = fetchOrganizationBySlug;
+export const fetchOrganizationBySlug = async (slug: string) => {
+  const { id } = await resolveOrganizationIdentifier(slug);
+  if (!id) throw new Error('Organization not found');
+  return fetchOrganizationById(id);
+};
+
+/** @deprecated Use fetchOrganizationById instead */
+export const fetchOrganizationBySlugDeprecated = fetchOrganizationBySlug;
 
 export const fetchMyOrganization = async () => {
   const endpoint = "/api/organizations/me";
@@ -105,8 +116,8 @@ export const updateMyOrganization = async (payload: Record<string, any>) => {
   };
 };
 
-export const fetchOrganizationFollowState = async (organizationIdentifier: string) => {
-  const endpoint = `/api/organizations/${organizationIdentifier}/follow`;
+export const fetchOrganizationFollowState = async (organizationId: string) => {
+  const endpoint = `/api/organizations/${organizationId}/follow`;
   const { data } = await apiFetch<{
     organizationId: string;
     isFollowing: boolean;
@@ -121,10 +132,10 @@ export const fetchOrganizationFollowState = async (organizationIdentifier: strin
 };
 
 export const toggleOrganizationFollow = async (
-  organizationIdentifier: string,
+  organizationId: string,
   action: 'follow' | 'unfollow' | 'toggle' = 'toggle'
 ) => {
-  const endpoint = `/api/organizations/${organizationIdentifier}/follow`;
+  const endpoint = `/api/organizations/${organizationId}/follow`;
   const { data } = await apiFetch<{
     organizationId: string;
     isFollowing: boolean;

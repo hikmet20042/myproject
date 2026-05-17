@@ -57,18 +57,20 @@ export default function VacanciesPage() {
   };
 
   const vacancies = useMemo(() => {
-    return rawVacancies.map((vacancy: any) => ({
-      id: vacancy._id || vacancy.id,
-      kind: 'vacancy' as const,
-      title: vacancy.title,
-      href: localePath(`/resources/vacancies/${vacancy.slug}`),
-      badge: VACANCY_TYPE_LABELS_AZ[vacancy.type] || vacancy.type || 'Vakansiya',
-      coverImage: vacancy.imageUrl || vacancy.image_url,
-      dateLabel: vacancy.applicationDeadline ? new Date(vacancy.applicationDeadline).toLocaleDateString('az-AZ') : 'Tarix qeyd olunmayıb',
-      locationLabel: vacancy.city || 'Bakı',
-      ownerLabel: vacancy.createdByOrganization?.organizationName || vacancy.createdBy?.name || 'Təşkilat',
-      type: vacancy.type
-    }));
+    return rawVacancies
+      .filter((vacancy: any) => Boolean(vacancy?.slug))
+      .map((vacancy: any) => ({
+        id: vacancy._id || vacancy.id,
+        kind: 'vacancy' as const,
+        title: vacancy.title,
+        href: localePath(`/resources/vacancies/${vacancy.slug}`),
+        badge: VACANCY_TYPE_LABELS_AZ[vacancy.type] || vacancy.type || 'Vakansiya',
+        coverImage: vacancy.imageUrl || vacancy.image_url,
+        dateLabel: vacancy.applicationDeadline ? new Date(vacancy.applicationDeadline).toLocaleDateString('az-AZ') : 'Tarix qeyd olunmayıb',
+        locationLabel: vacancy.city || 'Bakı',
+        ownerLabel: vacancy.createdByOrganization?.organizationName || vacancy.createdBy?.name || 'Təşkilat',
+        type: vacancy.type
+      }));
   }, [rawVacancies, localePath]);
 
   const typesOptions = [

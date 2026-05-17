@@ -1,4 +1,5 @@
 import { getServerSession } from '@/lib/auth/server'
+import { applyRateLimit } from '@/lib/rateLimit'
 import cloudinaryService from '@/lib/services/cloudinaryService'
 import sharp from 'sharp'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
@@ -84,10 +85,28 @@ async function optimizeImage(buffer: Buffer, mimeType: string, context: string):
 }
 
 export async function POST(request: Request) {
+  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    request,
+    preset: 'upload',
+    endpoint: '/api/upload',
+  })
+
+  if (!rateLimitResult.allowed) {
+    const response = errorResponse('Too many requests. Please try again later.', 429)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
+  }
+
   try {
     const session = await getServerSession()
     if (!session?.user?.id) {
-      return errorResponse('Unauthorized', 'API_ERROR', {}, 401)
+      const response = errorResponse('Unauthorized', 'API_ERROR', {}, 401)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     // Block organizations from uploading blog content images
@@ -96,7 +115,11 @@ export async function POST(request: Request) {
     const isBlog = context === 'blog'
 
     if (isBlog && session.user.accountType === 'organization') {
-      return errorResponse('Organization accounts cannot upload blog content images', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+      const response = errorResponse('Organization accounts cannot upload blog content images', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const file = formData.get('file') as unknown as File | null
@@ -105,18 +128,30 @@ export async function POST(request: Request) {
     const tags = (formData.get('tags') as string) || ''
 
     if (!file) {
-      return errorResponse('No file provided', 'API_ERROR', {}, 400)
+      const response = errorResponse('No file provided', 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     if (!ALLOWED_IMAGE_TYPES.has(file.type.toLowerCase())) {
-      return errorResponse('Invalid file type. Only image files are allowed.', 'API_ERROR', {}, 400)
+      const response = errorResponse('Invalid file type. Only image files are allowed.', 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const maxFileSize = isBlog ? MAX_FILE_SIZE_BLOG : MAX_FILE_SIZE_GENERAL
 
     if (file.size > maxFileSize) {
       const sizeMB = (maxFileSize / (1024 * 1024)).toFixed(0)
-      return errorResponse(`File is too large. Maximum allowed size is ${sizeMB}MB.`, 'API_ERROR', {}, 400)
+      const response = errorResponse(`File is too large. Maximum allowed size is ${sizeMB}MB.`, 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const originalBytes = await file.arrayBuffer()
@@ -131,7 +166,11 @@ export async function POST(request: Request) {
       : []
 
     if (!cloudinaryService.isConfigured()) {
-      return errorResponse('Cloudinary is not configured for content uploads', 'API_ERROR', {}, 503)
+      const response = errorResponse('Cloudinary is not configured for content uploads', 'API_ERROR', {}, 503)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const uploadResult = await cloudinaryService.uploadImage(optimized.buffer, {
@@ -146,10 +185,14 @@ export async function POST(request: Request) {
 
     if (!uploadResult.success || !uploadResult.secureUrl || !uploadResult.publicId) {
       console.error('Cloudinary upload failed:', uploadResult.error)
-      return errorResponse('Failed to save image', 'API_ERROR', {}, 500)
+      const response = errorResponse('Failed to save image', 'API_ERROR', {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
-    return successResponse({
+    const successResp = successResponse({
       id: uploadResult.publicId,
       filename: file.name,
       originalName: file.name,
@@ -177,8 +220,16 @@ export async function POST(request: Request) {
         },
       },
     })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      successResp.headers.set(key, value)
+    }
+    return successResp
   } catch (error) {
     console.error('Upload error:', error)
-    return errorResponse('Upload failed', 'API_ERROR', {}, 500)
+    const response = errorResponse('Upload failed', 'API_ERROR', {}, 500)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   }
 }

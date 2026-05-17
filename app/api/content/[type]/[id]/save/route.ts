@@ -3,7 +3,7 @@ import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { NotificationService } from '@/features/notifications/services/notificationService'
-import { checkRateLimit } from '@/lib/rateLimit'
+import { applyRateLimit } from '@/lib/rateLimit'
 import { resolveEntityBySlugOrId } from '@/lib/identifier'
 
 const CONTENT_TABLE_BY_TYPE = {
@@ -71,37 +71,59 @@ async function getContentOwnerAndTitle(supabase: any, contentType: ContentType, 
 }
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: { type: string; id: string } },
 ) {
   try {
-    const session = await getServerSession()
-    if (!session?.user?.id) return errorResponse('Unauthorized', 'API_ERROR', {}, 401)
-    if (session.user.accountType === 'organization') {
-      return errorResponse('Organization accounts cannot save content', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'write',
+      endpoint: '/api/content/[type]/[id]/save',
+    })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
-    // Rate limiting: max 10 save/unsave actions per minute per user
-    const rateLimit = checkRateLimit({
-      maxRequests: 10,
-      windowMs: 60 * 1000, // 1 minute
-      key: `save-content:${session.user.id}`,
-    })
-    if (!rateLimit.allowed) {
-      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {
-        retryAfter: rateLimit.resetAt,
-      }, 429)
+    const session = await getServerSession()
+    if (!session?.user?.id) {
+      const response = errorResponse('Unauthorized', 'API_ERROR', {}, 401)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+    if (session.user.accountType === 'organization') {
+      const response = errorResponse('Organization accounts cannot save content', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const contentType = String(params.type || '').trim().toLowerCase()
     const contentId = String(params.id || '').trim()
     if (!contentId || !isContentType(contentType)) {
-      return errorResponse('Invalid save payload', 'API_ERROR', {}, 400)
+      const response = errorResponse('Invalid save payload', 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const supabase = createSupabaseAdminClient()
     const canonicalContentId = await resolveApprovedContentId(supabase, contentType, contentId)
-    if (!canonicalContentId) return errorResponse('Content not found', 'API_ERROR', {}, 404)
+    if (!canonicalContentId) {
+      const response = errorResponse('Content not found', 'API_ERROR', {}, 404)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
 
     const { data: existing } = await supabase
       .from('content_saves')
@@ -119,7 +141,13 @@ export async function POST(
         .from('content_saves')
         .delete()
         .eq('id', existing.id)
-      if (deleteError) return errorResponse(deleteError.message, 'API_ERROR', {}, 500)
+      if (deleteError) {
+        const response = errorResponse(deleteError.message, 'API_ERROR', {}, 500)
+        for (const [key, value] of Object.entries(rateLimitHeaders)) {
+          response.headers.set(key, value)
+        }
+        return response
+      }
       action = 'unsaved'
       saved = false
     } else {
@@ -130,7 +158,13 @@ export async function POST(
           content_type: contentType,
           content_id: canonicalContentId,
         })
-      if (insertError) return errorResponse(insertError.message, 'API_ERROR', {}, 500)
+      if (insertError) {
+        const response = errorResponse(insertError.message, 'API_ERROR', {}, 500)
+        for (const [key, value] of Object.entries(rateLimitHeaders)) {
+          response.headers.set(key, value)
+        }
+        return response
+      }
 
       if (contentType !== 'event') {
         try {
@@ -163,7 +197,11 @@ export async function POST(
       .eq('content_type', contentType)
       .eq('content_id', canonicalContentId)
 
-    return successResponse({ action, saved, hasSaved: saved, totalSaves: totalSaves || 0 })
+    const response = successResponse({ action, saved, hasSaved: saved, totalSaves: totalSaves || 0 })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   } catch (error) {
     console.error('Content save POST error:', error)
     return errorResponse('Internal server error', 'API_ERROR', {}, 500)
@@ -171,19 +209,43 @@ export async function POST(
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: { type: string; id: string } },
 ) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'write',
+      endpoint: '/api/content/[type]/[id]/save',
+    })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+
     const contentType = String(params.type || '').trim().toLowerCase()
     const contentId = String(params.id || '').trim()
     if (!contentId || !isContentType(contentType)) {
-      return errorResponse('Invalid save query', 'API_ERROR', {}, 400)
+      const response = errorResponse('Invalid save query', 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const supabase = createSupabaseAdminClient()
     const canonicalContentId = await resolveApprovedContentId(supabase, contentType, contentId)
-    if (!canonicalContentId) return errorResponse('Content not found', 'API_ERROR', {}, 404)
+    if (!canonicalContentId) {
+      const response = errorResponse('Content not found', 'API_ERROR', {}, 404)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
 
     const session = await getServerSession()
     let saved = false
@@ -205,8 +267,18 @@ export async function GET(
       .eq('content_type', contentType)
       .eq('content_id', canonicalContentId)
 
-    if (countError) return errorResponse(countError.message, 'API_ERROR', {}, 500)
-    return successResponse({ saved, hasSaved: saved, totalSaves: totalSaves || 0 })
+    if (countError) {
+      const response = errorResponse(countError.message, 'API_ERROR', {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+    const response = successResponse({ saved, hasSaved: saved, totalSaves: totalSaves || 0 })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   } catch (error) {
     console.error('Content save GET error:', error)
     return errorResponse('Internal server error', 'API_ERROR', {}, 500)

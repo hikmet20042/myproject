@@ -5,6 +5,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { isApprovedOrganization } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 const RECENT_REAUTH_WINDOW_MS = 5 * 60 * 1000
 const PROFILE_BUCKET = process.env.SUPABASE_PROFILE_IMAGES_BUCKET || 'profile-images'
@@ -40,25 +41,47 @@ function hasRecentSignIn(user: any) {
   return Date.now() - lastSignInAt <= RECENT_REAUTH_WINDOW_MS
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'authenticatedRead',
+      endpoint: '/api/users/account',
+    })
+
     const session = await getServerSession()
     if (!session?.user?.id) {
-      return errorResponse('Authentication required', 'API_ERROR', {}, 401)
+      const response = errorResponse('Authentication required', 'API_ERROR', {}, 401)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const supabaseServer = createSupabaseServerClient()
     const { data: authData } = await supabaseServer.auth.getUser()
 
     if (!authData?.user?.id || authData.user.id !== session.user.id) {
-      return errorResponse('Authentication required', 'API_ERROR', {}, 401)
+      const response = errorResponse('Authentication required', 'API_ERROR', {}, 401)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const providerInfo = getAuthProviderInfo(authData.user)
     const recentlyReauthenticated = hasRecentSignIn(authData.user)
     const requiresGoogleReauth = providerInfo.isGoogleOnly && !recentlyReauthenticated
 
-    return successResponse({
+    const response = successResponse({
       requiresCurrentPassword: !providerInfo.isGoogleOnly,
       requiresPasswordSetup: false,
       requiresGoogleReauth,
@@ -66,22 +89,48 @@ export async function GET() {
       providers: providerInfo.providers,
       deleteConfirmationText: 'DELETE',
     })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   } catch (error) {
     console.error('GET /api/users/account error:', error)
-    return errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    const response = errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    return response
   }
 }
 
 export async function DELETE(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'write',
+      endpoint: '/api/users/account',
+    })
+
     const session = await getServerSession()
     if (!session?.user?.id) {
-      return errorResponse('Authentication required', 'API_ERROR', {}, 401)
+      const response = errorResponse('Authentication required', 'API_ERROR', {}, 401)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
-    // Block ALL organizations - account deletion is for regular users only
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+
     if (session.user.accountType === 'organization') {
-      return errorResponse('Organization accounts must be deleted through organization settings', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403);
+      const response = errorResponse('Organization accounts must be deleted through organization settings', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response;
     }
 
     const body = await request.json().catch(() => ({}))
@@ -89,23 +138,39 @@ export async function DELETE(request: NextRequest) {
     const currentPassword = String(body?.currentPassword || '').trim()
 
     if (confirmText !== 'DELETE') {
-      return errorResponse('Confirmation text is invalid', 'API_ERROR', {}, 400)
+      const response = errorResponse('Confirmation text is invalid', 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     if (!currentPassword) {
-      return errorResponse('Current password is required', 'API_ERROR', {}, 400)
+      const response = errorResponse('Current password is required', 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const supabaseServer = createSupabaseServerClient()
     const { data: authData } = await supabaseServer.auth.getUser()
 
     if (!authData?.user?.id || authData.user.id !== session.user.id) {
-      return errorResponse('Authentication required', 'API_ERROR', {}, 401)
+      const response = errorResponse('Authentication required', 'API_ERROR', {}, 401)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const providerInfo = getAuthProviderInfo(authData.user)
     if (providerInfo.isGoogleOnly && !hasRecentSignIn(authData.user)) {
-      return errorResponse('Hesabı silmək üçün Google ilə yenidən daxil ol və yenidən cəhd et.', 'API_ERROR', {}, 400)
+      const response = errorResponse('Hesabı silmək üçün Google ilə yenidən daxil ol və yenidən cəhd et.', 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     if (!providerInfo.isGoogleOnly) {
@@ -113,7 +178,11 @@ export async function DELETE(request: NextRequest) {
       const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
       if (!supabaseUrl || !supabaseAnonKey || !authData.user.email) {
-        return errorResponse('Password verification is currently unavailable', 'API_ERROR', {}, 500)
+        const response = errorResponse('Password verification is currently unavailable', 'API_ERROR', {}, 500)
+        for (const [key, value] of Object.entries(rateLimitHeaders)) {
+          response.headers.set(key, value)
+        }
+        return response
       }
 
       const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -126,29 +195,22 @@ export async function DELETE(request: NextRequest) {
       })
 
       if (signInError) {
-        return errorResponse('Current password is incorrect', 'API_ERROR', {}, 400)
+        const response = errorResponse('Current password is incorrect', 'API_ERROR', {}, 400)
+        for (const [key, value] of Object.entries(rateLimitHeaders)) {
+          response.headers.set(key, value)
+        }
+        return response
       }
     }
 
     const supabase = createSupabaseAdminClient()
     const userId = session.user.id
-
-    // Comprehensive cleanup of ALL user-related data
-    // Execute in order to respect foreign key constraints
     
-    // 1. Delete user's reactions (likes/dislikes) on blogs
     await supabase.from('blog_reactions').delete().eq('user_id', userId)
-
-    // 2. Delete user's saved content (bookmarks)
     await supabase.from('content_saves').delete().eq('user_id', userId)
-
-    // 3. Delete user's organization follows
     await supabase.from('organization_followers').delete().eq('user_id', userId)
-
-    // 4. Delete user's notifications
     await supabase.from('notifications').delete().eq('user_id', userId)
 
-    // 5. Delete user's profile image object from Supabase Storage (if any)
     const { data: userProfile } = await supabase
       .from('user_profiles')
       .select('avatar_metadata')
@@ -164,7 +226,6 @@ export async function DELETE(request: NextRequest) {
       await supabase.storage.from(PROFILE_BUCKET).remove([profilePath])
     }
 
-    // 6. Delete user's blogs and their related data
     const { data: userBlogs } = await supabase
       .from('blogs')
       .select('id')
@@ -173,39 +234,35 @@ export async function DELETE(request: NextRequest) {
     if (userBlogs && userBlogs.length > 0) {
       const blogIds = userBlogs.map(b => b.id)
       
-      // Delete reactions and views on user's own blogs
       await supabase.from('blog_reactions').delete().in('blog_id', blogIds)
       await supabase.from('blog_views').delete().in('blog_id', blogIds)
-      
-      // Delete saves of user's blogs by other users
       await supabase.from('content_saves').delete().in('content_id', blogIds).eq('content_type', 'blog')
-      
-      // Delete the blogs themselves
       await supabase.from('blogs').delete().eq('author_id', userId)
     }
 
-    // 7. Delete user's profile (extended data)
     await supabase.from('user_profiles').delete().eq('user_id', userId)
-
-    // 8. Delete user's events (if any)
     await supabase.from('events').delete().eq('created_by', userId)
-
-    // 9. Delete user's vacancies (if any)
     await supabase.from('vacancies').delete().eq('created_by', userId)
-
-    // 10. Delete user's materials (if any)
     await supabase.from('materials').delete().eq('created_by', userId)
 
-    // 11. Finally, delete the user's auth account (this cascades to accounts table)
     const { error: deleteError } = await supabase.auth.admin.deleteUser(userId)
     if (deleteError) {
       console.error('Failed to delete auth user:', deleteError)
-      return errorResponse(deleteError.message || 'Failed to delete account', 'API_ERROR', {}, 500)
+      const response = errorResponse(deleteError.message || 'Failed to delete account', 'API_ERROR', {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
-    return successResponse({ message: 'Account deleted successfully' })
+    const response = successResponse({ message: 'Account deleted successfully' })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   } catch (error) {
     console.error('DELETE /api/users/account error:', error)
-    return errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    const response = errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    return response
   }
 }

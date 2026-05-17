@@ -65,17 +65,19 @@ export default function EventsPage() {
     })
   }
 
-  const allEvents = (eventsQuery.data?.items || []).map((event: any) => ({
-    id: event._id || event.id,
-    kind: 'event' as const,
-    title: event.title,
-    href: localePath(`/resources/events/${event.slug}`),
-    badge: getEventTypeLabel(event.eventType || 'training_workshop'),
-    coverImage: event.imageUrl || event.image_url,
-    dateLabel: formatDate(event.eventDate),
-    locationLabel: event.location?.type === 'online' ? 'Onlayn' : event.location?.city || 'Bakı',
-    ownerLabel: event.organizationName || event.createdByOrganization?.organizationName || 'Təşkilat',
-  }))
+  const allEvents = (eventsQuery.data?.items || [])
+    .filter((event: any) => Boolean(event?.slug))
+    .map((event: any) => ({
+      id: event._id || event.id,
+      kind: 'event' as const,
+      title: event.title,
+      href: localePath(`/resources/events/${event.slug}`),
+      badge: getEventTypeLabel(event.eventType || 'training_workshop'),
+      coverImage: event.imageUrl || event.image_url,
+      dateLabel: formatDate(event.eventDate),
+      locationLabel: event.location?.type === 'online' ? 'Onlayn' : event.location?.city || 'Bakı',
+      ownerLabel: event.organizationName || event.createdByOrganization?.organizationName || 'Təşkilat',
+    }))
 
   const hasActiveFilters = searchTerm.trim() !== '' || selectedCity !== 'all' || selectedEventType !== 'all';
 

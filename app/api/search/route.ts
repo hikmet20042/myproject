@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { cache, generateCacheKey, withCache } from '@/lib/cache'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 type SearchType = 'event' | 'vacancy' | 'blog' | 'organization'
 
@@ -86,6 +87,20 @@ const parsePage = (raw: string | null): number => {
 }
 
 export async function GET(request: NextRequest) {
+  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    request,
+    preset: 'publicRead',
+    endpoint: '/api/search',
+  })
+
+  if (!rateLimitResult.allowed) {
+    const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
+  }
+
   try {
     const supabase = createSupabaseAdminClient()
     const { searchParams } = new URL(request.url)
@@ -95,15 +110,23 @@ export async function GET(request: NextRequest) {
     const types = normalizeTypeList(searchParams.get('types'))
 
     if (!query) {
-      return successResponse({
+      const response = successResponse({
         items: [],
         pagination: { page, limit, total: 0, pages: 0 },
         totalsByType: { event: 0, vacancy: 0, blog: 0, organization: 0 },
       })
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     if (query.length > 100) {
-      return errorResponse('Sorğu maksimum 100 simvol ola bilər', 'VALIDATION_ERROR', {}, 400)
+      const response = errorResponse('Sorğu maksimum 100 simvol ola bilər', 'VALIDATION_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const cacheKey = generateCacheKey.search(query, types, page, limit)
@@ -267,9 +290,17 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return successResponse(payload)
+    const response = successResponse(payload)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   } catch (error) {
     console.error('GET /api/search error:', error)
-    return errorResponse('Qlobal axtarış zamanı xəta baş verdi', 'SEARCH_FAILED', {}, 500)
+    const response = errorResponse('Qlobal axtarış zamanı xəta baş verdi', 'SEARCH_FAILED', {}, 500)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   }
 }

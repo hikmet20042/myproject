@@ -2,55 +2,71 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
-import { checkRateLimit, getRequestIp } from '@/lib/security/rateLimit'
+import { applyRateLimit } from '@/lib/rateLimit'
 import { NotificationService } from '@/features/notifications/services/notificationService'
 
-const CHANGE_PASSWORD_LIMIT = 10
-const CHANGE_PASSWORD_WINDOW_MS = 15 * 60 * 1000
-
 export async function POST(request: NextRequest) {
-  try {
-    const ip = getRequestIp(request.headers)
-    const ipRateLimit = checkRateLimit(`auth:change-password:ip:${ip}`, CHANGE_PASSWORD_LIMIT, CHANGE_PASSWORD_WINDOW_MS)
-    if (!ipRateLimit.allowed) {
-      return errorResponse('Too many requests. Please try again later.', "RATE_LIMITED", {}, 429)
-    }
+  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    request,
+    preset: 'auth',
+    endpoint: '/api/auth/change-password',
+  })
 
+  if (!rateLimitResult.allowed) {
+    const response = errorResponse('Too many requests. Please try again later.', "RATE_LIMITED", {}, 429)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
+  }
+
+  try {
     const supabase = createSupabaseServerClient()
     const { data: authData } = await supabase.auth.getUser()
 
     if (!authData?.user?.id || !authData.user.email) {
-      return errorResponse('Authentication required', "API_ERROR", {}, 401)
-    }
-
-    const userRateLimit = checkRateLimit(
-      `auth:change-password:user:${authData.user.id}`,
-      CHANGE_PASSWORD_LIMIT,
-      CHANGE_PASSWORD_WINDOW_MS,
-    )
-    if (!userRateLimit.allowed) {
-      return errorResponse('Too many requests. Please try again later.', "RATE_LIMITED", {}, 429)
+      const response = errorResponse('Authentication required', "API_ERROR", {}, 401)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const { currentPassword, newPassword } = await request.json()
 
     if (!currentPassword || !newPassword) {
-      return errorResponse('Current password and new password are required', "API_ERROR", {}, 400)
+      const response = errorResponse('Current password and new password are required', "API_ERROR", {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     if (newPassword.length < 6) {
-      return errorResponse('New password must be at least 6 characters long', "API_ERROR", {}, 400)
+      const response = errorResponse('New password must be at least 6 characters long', "API_ERROR", {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     if (newPassword === currentPassword) {
-      return errorResponse('New password must be different from current password', "API_ERROR", {}, 400)
+      const response = errorResponse('New password must be different from current password', "API_ERROR", {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      return errorResponse('Supabase configuration missing', "API_ERROR", {}, 500)
+      const response = errorResponse('Supabase configuration missing', "API_ERROR", {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const anonClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -63,13 +79,21 @@ export async function POST(request: NextRequest) {
     })
 
     if (signInError) {
-      return errorResponse('Current password is incorrect', "API_ERROR", {}, 400)
+      const response = errorResponse('Current password is incorrect', "API_ERROR", {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const { error: updateError } = await supabase.auth.updateUser({ password: newPassword })
 
     if (updateError) {
-      return errorResponse(updateError.message, "API_ERROR", {}, 500)
+      const response = errorResponse(updateError.message, "API_ERROR", {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     // Send password changed notification
@@ -79,10 +103,18 @@ export async function POST(request: NextRequest) {
       console.error('Failed to send password change notification:', notificationError)
     }
 
-    return successResponse({ message: 'Password changed successfully' }, {}, 200)
+    const response = successResponse({ message: 'Password changed successfully' }, {}, 200)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
 
   } catch (error) {
     console.error('Error changing password:', error)
-    return errorResponse('Internal server error', "API_ERROR", {}, 500)
+    const response = errorResponse('Internal server error', "API_ERROR", {}, 500)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   }
 }

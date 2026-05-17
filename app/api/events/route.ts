@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import cloudinaryService from "@/lib/services/cloudinaryService";
 import { canAccessAdmin, canCreateEvent, isApprovedOrganization } from "@/lib/auth/permissions";
 import { NotificationService } from "@/features/notifications/services/notificationService";
+import { applyRateLimit } from "@/lib/rateLimit";
 import {
   applyEventLifecycleRules,
   errorResponse,
@@ -16,7 +17,21 @@ import {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createSupabaseAdminClient();
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'publicRead',
+      endpoint: '/api/events',
+    })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+
+    const supabase = createSupabaseAdminClient()
     const { searchParams } = new URL(request.url);
     const pageParam = parseInt(searchParams.get("page") || "1", 10);
     const limitParam = parseInt(searchParams.get("limit") || "20", 10);
@@ -125,7 +140,11 @@ export async function GET(request: NextRequest) {
     const { data: eventRows, error, count } = await query;
 
     if (error) {
-      return errorResponse("Failed to fetch events", 500);
+      const response = errorResponse("Failed to fetch events", 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const rows = eventRows || []
@@ -238,21 +257,47 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    return successResponse(payload);
+    const successResp = successResponse(payload)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      successResp.headers.set(key, value)
+    }
+    return successResp
   } catch (error) {
-    return errorResponse("Failed to fetch events", 500);
+    return errorResponse("Failed to fetch events", 500)
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'write',
+      endpoint: '/api/events',
+    })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return errorResponse("Authentication required", 401);
+      const response = errorResponse("Authentication required", 401)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     if (!canCreateEvent(session)) {
-      return errorResponse("Only approved organizations can create events", 403);
+      const response = errorResponse("Only approved organizations can create events", 403)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const supabase = createSupabaseAdminClient();
@@ -272,7 +317,11 @@ export async function POST(request: NextRequest) {
 
     const validation = validateEventInput(body);
     if (!validation.valid) {
-      return errorResponse(validation.error || "Invalid event data", 400);
+      const response = errorResponse(validation.error || "Invalid event data", 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const organization = isApprovedOrganization(session)
@@ -284,13 +333,21 @@ export async function POST(request: NextRequest) {
       : { data: null, error: null };
 
     if (isApprovedOrganization(session) && (organization.error || !organization.data)) {
-      return errorResponse("Organization profile not found", 404);
+      const response = errorResponse("Organization profile not found", 404)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const insertPayload = mapEventInputToDbPayload(body);
     const lifecycleResult = applyEventLifecycleRules(null, "create", { role: "system" });
     if (!lifecycleResult.ok) {
-      return errorResponse(lifecycleResult.error || "Failed to initialize lifecycle", 400);
+      const response = errorResponse(lifecycleResult.error || "Failed to initialize lifecycle", 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const { data: eventRow, error: insertError } = await supabase
@@ -307,7 +364,12 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (insertError || !eventRow) {
-      return errorResponse("Failed to create event", 500);
+      console.error('Error creating event (insert):', insertError)
+      const response = errorResponse("Failed to create event", 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     if (imageFiles.length > 0) {
@@ -349,30 +411,59 @@ export async function POST(request: NextRequest) {
 
     const { data: updatedEventRow, error: fetchError } = await supabase
       .from("events")
-      .select("*, created_by (id, name, email), created_by_organization (id, organization_name, email), approved_by (id, name)")
+      .select("*, created_by (id, name, email)")
       .eq("id", eventRow.id)
       .single();
 
     if (fetchError) {
-      return errorResponse("Failed to create event", 500);
+      console.error('Error creating event (fetch):', fetchError)
+      const response = errorResponse("Failed to create event", 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
-    if (updatedEventRow.status === 'pending') {
+    // Fetch organization profile separately if created by org
+    let orgProfile = null
+    if (updatedEventRow.created_by_organization) {
+      const { data: orgData } = await supabase
+        .from('organization_profiles')
+        .select('account_id, organization_name, email')
+        .eq('account_id', updatedEventRow.created_by_organization)
+        .single()
+      orgProfile = orgData
+    }
+
+    const eventWithOrg = {
+      ...updatedEventRow,
+      created_by_organization: orgProfile ? {
+        id: orgProfile.account_id,
+        organization_name: orgProfile.organization_name,
+        email: orgProfile.email,
+      } : updatedEventRow.created_by_organization,
+    }
+
+    if (eventWithOrg.status === 'pending') {
       await NotificationService.notifyAdminsAboutSubmission(
         'event',
-        updatedEventRow.id,
-        updatedEventRow.title,
+        eventWithOrg.id,
+        eventWithOrg.title,
         isApprovedOrganization(session)
           ? organization?.data?.organization_name || 'Unknown organization'
           : session.user.name || 'Unknown submitter'
       )
     }
 
-    return successResponse(
-      { event: mapEventToResponse(updatedEventRow || eventRow) },
+    const successResp = successResponse(
+      { event: mapEventToResponse(eventWithOrg || eventRow) },
       { message: "Event created successfully. Awaiting admin approval.", status: 201 }
-    );
+    )
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      successResp.headers.set(key, value)
+    }
+    return successResp
   } catch (error) {
-    return errorResponse("Failed to create event", 500);
+    return errorResponse("Failed to create event", 500)
   }
 }

@@ -3,24 +3,46 @@ import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { isAdmin } from '@/lib/auth/permissions'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'authenticatedRead',
+      endpoint: '/api/users/[id]',
+    })
+
     const session = await getServerSession();
     if (!session?.user) {
-      return errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401);
+      const response = errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
+    }
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
     }
 
     const targetId = params.id;
     const isAdminUser = isAdmin(session);
     const isOwnProfile = session.user.id === targetId;
 
-    // Only allow viewing your own profile or admin access
     if (!isOwnProfile && !isAdminUser) {
-      return errorResponse('You can only view your own profile', 'FORBIDDEN', {}, 403);
+      const response = errorResponse('You can only view your own profile', 'FORBIDDEN', {}, 403);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
     }
 
     const supabase = createSupabaseAdminClient();
@@ -30,24 +52,32 @@ export async function GET(
       .eq('id', targetId)
       .single();
     if (error || !user) {
-      return errorResponse('User not found', "API_ERROR", {}, 404);
+      const response = errorResponse('User not found', "API_ERROR", {}, 404);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
     }
     const { data: profile } = await supabase
       .from('user_profiles')
       .select('avatar')
       .eq('user_id', targetId)
       .single();
-    return successResponse({
+    const response = successResponse({
       user: {
         id: user.id,
         name: user.name,
         image: profile?.avatar || null,
         email: user.email,
-        // Legacy display field only; never use users.role for authorization.
         role: user.role,
       },
     });
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value);
+    }
+    return response;
   } catch (error) {
-    return errorResponse('Internal server error', "API_ERROR", {}, 500);
+    const response = errorResponse('Internal server error', "API_ERROR", {}, 500);
+    return response;
   }
 }

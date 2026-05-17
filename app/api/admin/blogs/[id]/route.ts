@@ -5,6 +5,7 @@ import { NotificationService } from '@/features/notifications/services/notificat
 import { isAdmin } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { cache, invalidateUserCache } from '@/lib/cache'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
 

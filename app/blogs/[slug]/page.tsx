@@ -25,7 +25,7 @@ import ViewTracker from '@/components/ViewTracker'
 import { useSession } from '@/lib/auth/client'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
-import { blogQueryKeys, fetchBlogById } from '@/lib/blogQueries'
+import { blogQueryKeys, fetchBlogById, resolveBlogIdentifier } from '@/lib/blogQueries'
 
 function BlogContentSkeleton() {
   return (
@@ -109,10 +109,18 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
 
   const targetSlug = useMemo(() => params.slug, [params.slug])
 
+  const resolveQuery = useQuery({
+    queryKey: ['blog-resolve', targetSlug],
+    queryFn: () => resolveBlogIdentifier(targetSlug),
+    enabled: !!targetSlug,
+    retry: false,
+  })
+  const blogId = resolveQuery.data?.id || ''
+
   const blogQuery = useQuery({
-    queryKey: blogQueryKeys.detail(targetSlug),
+    queryKey: blogQueryKeys.detail(blogId),
     queryFn: async () => {
-      const apiBlog = await fetchBlogById(targetSlug)
+      const apiBlog = await fetchBlogById(blogId)
       const apiBlogId = apiBlog.id || apiBlog._id
       return {
         id: apiBlogId,
@@ -136,6 +144,7 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
         featuredImage: apiBlog.featuredImage || apiBlog.featured_image || null,
       } as Blog
     },
+    enabled: !!blogId,
     retry: false,
   })
 
@@ -167,16 +176,20 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
   }, [])
 
   useEffect(() => {
-    if (blogQuery.isError) {
-      showError('Bloq yüklənərkən xəta baş verdi')
+    if (resolveQuery.isError || blogQuery.isError) {
+      showError(
+        (resolveQuery.error instanceof Error && resolveQuery.error.message) ||
+          (blogQuery.error instanceof Error && blogQuery.error.message) ||
+          'Bloq yüklənərkən xəta baş verdi'
+      )
     }
-  }, [blogQuery.isError, showError])
+  }, [resolveQuery.isError, resolveQuery.error, blogQuery.isError, blogQuery.error, showError])
 
-  if (blogQuery.isLoading) {
+  if (resolveQuery.isLoading || blogQuery.isLoading) {
     return <LoadingState text="Bloq yüklənir…" />
   }
 
-  if (!blog || blogQuery.isError) {
+  if (!blog || resolveQuery.isError || blogQuery.isError) {
     return (
       <ErrorState
         title="Bloq tapılmadı"
@@ -228,7 +241,7 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
     <>
       {/* View tracking side-effect */}
       {blog?.status === 'approved' && (
-        <ViewTracker itemType="blog" itemId={blog.slug} minTimeMs={10000} selector="#blog-content" />
+        <ViewTracker itemType="blog" itemId={blog.id || blog._id} minTimeMs={10000} selector="#blog-content" />
       )}
 
       {/* Reading progress bar */}

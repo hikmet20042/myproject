@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { siteSettingsDefaults } from '@/lib/supabase/siteSettingsDefaults'
 import { canAccessAdmin } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
 

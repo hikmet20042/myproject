@@ -1,19 +1,24 @@
 import { NextRequest } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
-import { checkRateLimit, getRequestIp } from '@/lib/security/rateLimit'
-
-const VERIFY_RESEND_LIMIT = 5
-const VERIFY_RESEND_WINDOW_MS = 15 * 60 * 1000
+import { applyRateLimit } from '@/lib/rateLimit'
 
 export async function POST(request: NextRequest) {
-  try {
-    const ip = getRequestIp(request.headers)
-    const rateLimit = checkRateLimit(`auth:verify-request:${ip}`, VERIFY_RESEND_LIMIT, VERIFY_RESEND_WINDOW_MS)
-    if (!rateLimit.allowed) {
-      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
-    }
+  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    request,
+    preset: 'auth',
+    endpoint: '/api/auth/verify-request',
+  })
 
+  if (!rateLimitResult.allowed) {
+    const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
+  }
+
+  try {
     const supabase = createSupabaseServerClient()
     const body = await request.json().catch(() => ({}))
     const requestedEmail = String(body?.email || '').trim().toLowerCase()
@@ -21,18 +26,30 @@ export async function POST(request: NextRequest) {
     const targetEmail = authData?.user?.email || requestedEmail
 
     if (!targetEmail) {
-      return errorResponse('Email is required', 'API_ERROR', {}, 400)
+      const response = errorResponse('Email is required', 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(targetEmail)) {
-      return errorResponse('Invalid email format', 'API_ERROR', {}, 400)
+      const response = errorResponse('Invalid email format', 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     if (authData?.user?.email_confirmed_at) {
-      return successResponse({
+      const response = successResponse({
         message: 'Email is already verified.',
       })
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin
@@ -46,14 +63,26 @@ export async function POST(request: NextRequest) {
 
     // Keep response generic to avoid email/provider enumeration for unauthenticated callers.
     if (error && authData?.user?.email) {
-      return errorResponse(error.message || 'Failed to send verification email', 'API_ERROR', {}, 400)
+      const response = errorResponse(error.message || 'Failed to send verification email', 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
-    return successResponse({
+    const response = successResponse({
       message: 'Verification email sent.',
     })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   } catch (error) {
     console.error('Verify request error:', error)
-    return errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    const response = errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   }
 }

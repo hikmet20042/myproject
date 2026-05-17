@@ -1,30 +1,44 @@
 import { NextRequest } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
-import { checkRateLimit, getRequestIp } from '@/lib/security/rateLimit'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 const GENERIC_SUCCESS_MESSAGE = 'If an account with that email exists, a password reset link has been sent.'
-const FORGOT_PASSWORD_LIMIT = 5
-const FORGOT_PASSWORD_WINDOW_MS = 15 * 60 * 1000
 
 export async function POST(request: NextRequest) {
-  try {
-    const ip = getRequestIp(request.headers)
-    const rateLimit = checkRateLimit(`auth:forgot-password:${ip}`, FORGOT_PASSWORD_LIMIT, FORGOT_PASSWORD_WINDOW_MS)
-    if (!rateLimit.allowed) {
-      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
-    }
+  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    request,
+    preset: 'auth',
+    endpoint: '/api/auth/forgot-password',
+  })
 
+  if (!rateLimitResult.allowed) {
+    const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
+  }
+
+  try {
     const { email } = await request.json()
     const normalizedEmail = String(email || '').trim().toLowerCase()
 
     if (!normalizedEmail) {
-      return errorResponse('Email is required', 'API_ERROR', {}, 400)
+      const response = errorResponse('Email is required', 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(normalizedEmail)) {
-      return errorResponse('Invalid email format', 'API_ERROR', {}, 400)
+      const response = errorResponse('Invalid email format', 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin
@@ -35,11 +49,19 @@ export async function POST(request: NextRequest) {
       redirectTo: `${appUrl}/auth/reset-password`,
     })
 
-    return successResponse({
+    const response = successResponse({
       message: GENERIC_SUCCESS_MESSAGE,
     })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   } catch (error) {
     console.error('Forgot password error:', error)
-    return errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    const response = errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   }
 }

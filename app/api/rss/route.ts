@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 /**
  * RSS Feed for Blog Posts
@@ -7,6 +8,32 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
  * Access at: /api/rss
  */
 export async function GET(request: NextRequest) {
+  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    request,
+    preset: 'publicRead',
+    endpoint: '/api/rss',
+  })
+
+  if (!rateLimitResult.allowed) {
+    const response = NextResponse.json(
+      {
+        success: false,
+        data: null,
+        error: {
+          code: 'RATE_LIMITED',
+          message: 'Too many requests. Please try again later.',
+          details: {},
+        },
+        meta: {},
+      },
+      { status: 429 }
+    )
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
+  }
+
   try {
     const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'
     const currentDate = new Date().toUTCString()
@@ -35,12 +62,16 @@ export async function GET(request: NextRequest) {
   </channel>
 </rss>`
 
-      return new NextResponse(emptyRss, {
+      const response = new NextResponse(emptyRss, {
         headers: {
           'Content-Type': 'application/xml; charset=utf-8',
           'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200',
         },
       })
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const supabase = createSupabaseAdminClient()
@@ -55,7 +86,11 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('RSS Feed Query Error:', error)
-      return new NextResponse('Error generating RSS feed', { status: 500 })
+      const response = new NextResponse('Error generating RSS feed', { status: 500 })
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     // Generate RSS XML
@@ -92,14 +127,22 @@ export async function GET(request: NextRequest) {
   </channel>
 </rss>`
 
-    return new NextResponse(rss, {
+    const response = new NextResponse(rss, {
       headers: {
         'Content-Type': 'application/xml; charset=utf-8',
         'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=7200',
       },
     })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   } catch (error) {
     console.error('RSS Feed Error:', error)
-    return new NextResponse('Error generating RSS feed', { status: 500 })
+    const response = new NextResponse('Error generating RSS feed', { status: 500 })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   }
 }

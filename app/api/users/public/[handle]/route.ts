@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { getUserAvatarPath, resolveProfileImageUrl } from '@/lib/profileImageUrls'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,10 +11,23 @@ export async function GET(
   { params }: { params: { handle: string } }
 ) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'publicRead',
+      endpoint: '/api/users/public/[handle]',
+    })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+
     const supabase = createSupabaseAdminClient()
     const handle = decodeURIComponent(params.handle).toLowerCase().trim()
 
-    // Look up account by url_handle
     const { data: account, error: accountError } = await supabase
       .from('accounts')
       .select('id, url_handle, created_at')
@@ -22,10 +36,13 @@ export async function GET(
       .maybeSingle()
 
     if (accountError || !account) {
-      return errorResponse('User not found', 'USER_NOT_FOUND', {}, 404)
+      const response = errorResponse('User not found', 'USER_NOT_FOUND', {}, 404)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
-    // Get user details
     const { data: user } = await supabase
       .from('users')
       .select('id, name, email, created_at')
@@ -33,10 +50,13 @@ export async function GET(
       .single()
 
     if (!user) {
-      return errorResponse('User not found', 'USER_NOT_FOUND', {}, 404)
+      const response = errorResponse('User not found', 'USER_NOT_FOUND', {}, 404)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
-    // Get profile details
     const { data: profile } = await supabase
       .from('user_profiles')
       .select('*')
@@ -46,14 +66,13 @@ export async function GET(
     const avatarPath = getUserAvatarPath((profile as any)?.avatar_metadata)
     const avatarUrl = await resolveProfileImageUrl(supabase, avatarPath, profile?.avatar || null)
 
-    // Count blogs
     const { count: blogCount } = await supabase
       .from('blogs')
       .select('id', { count: 'exact', head: true })
       .eq('author_id', account.id)
       .eq('status', 'approved')
 
-    return successResponse({
+    const response = successResponse({
       user: {
         id: user.id,
         name: user.name,
@@ -71,8 +90,13 @@ export async function GET(
         blogCount: blogCount || 0,
       },
     })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   } catch (error) {
     console.error('Public user profile error:', error)
-    return errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500)
+    const response = errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500)
+    return response
   }
 }

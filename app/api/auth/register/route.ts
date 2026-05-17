@@ -3,9 +3,24 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { NotificationService } from '@/features/notifications/services/notificationService'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 export async function POST(request: NextRequest) {
   let createdAuthUserId: string | null = null
+
+  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    request,
+    preset: 'auth',
+    endpoint: '/api/auth/register',
+  })
+
+  if (!rateLimitResult.allowed) {
+    const response = errorResponse('Too many requests. Please try again later.', 429)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
+  }
 
   try {
     const adminSupabase = createSupabaseAdminClient()
@@ -14,16 +29,28 @@ export async function POST(request: NextRequest) {
     const normalizedEmail = String(email || '').toLowerCase().trim()
 
     if (!normalizedEmail || !password) {
-      return errorResponse('E-poçt və şifrə tələb olunur', 'API_ERROR', {}, 400)
+      const response = errorResponse('E-poçt və şifrə tələb olunur', 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     if (password.length < 6) {
-      return errorResponse('Şifrə ən azı 6 simvol olmalıdır', 'API_ERROR', {}, 400)
+      const response = errorResponse('Şifrə ən azı 6 simvol olmalıdır', 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(normalizedEmail)) {
-      return errorResponse('Etibarlı e-poçt ünvanı daxil et', 'API_ERROR', {}, 400)
+      const response = errorResponse('Etibarlı e-poçt ünvanı daxil et', 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin
@@ -48,13 +75,25 @@ export async function POST(request: NextRequest) {
 
     if (createError) {
       if (/already\s*registered/i.test(createError.message || '')) {
-        return errorResponse('Bu e-poçt ilə hesab artıq mövcuddur', 'API_ERROR', {}, 400)
+        const response = errorResponse('Bu e-poçt ilə hesab artıq mövcuddur', 'API_ERROR', {}, 400)
+        for (const [key, value] of Object.entries(rateLimitHeaders)) {
+          response.headers.set(key, value)
+        }
+        return response
       }
-      return errorResponse(createError.message || 'Qeydiyyat alınmadı', 'API_ERROR', {}, 500)
+      const response = errorResponse(createError.message || 'Qeydiyyat alınmadı', 'API_ERROR', {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     if (!signUpData.user) {
-      return errorResponse('Qeydiyyat alınmadı', 'API_ERROR', {}, 500)
+      const response = errorResponse('Qeydiyyat alınmadı', 'API_ERROR', {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     createdAuthUserId = signUpData.user.id
@@ -73,7 +112,11 @@ export async function POST(request: NextRequest) {
 
     if (accountError) {
       await rollbackCreatedAuthUser()
-      return errorResponse(accountError.message, 'API_ERROR', {}, 500)
+      const response = errorResponse(accountError.message, 'API_ERROR', {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     createdAuthUserId = null
@@ -86,9 +129,13 @@ export async function POST(request: NextRequest) {
       // Don't fail registration if welcome notification fails
     }
 
-    return successResponse({
+    const response = successResponse({
       message: 'Qeydiyyat uğurludur',
     })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   } catch (error) {
     if (createdAuthUserId) {
       try {
@@ -100,7 +147,11 @@ export async function POST(request: NextRequest) {
       }
     }
     console.error('Registration error:', error)
-    return errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
+    const response = errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   }
 }
 

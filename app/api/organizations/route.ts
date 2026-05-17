@@ -6,6 +6,7 @@ import { canAccessAdmin } from '@/lib/auth/permissions'
 import { normalizeOrganizationProfile } from '@/lib/organizationProfile'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { getOrganizationImagePath, resolveProfileImageUrl } from '@/lib/profileImageUrls'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 // Force dynamic rendering due to request.url usage
 export const dynamic = 'force-dynamic'
@@ -13,6 +14,25 @@ export const dynamic = 'force-dynamic'
 // GET /api/organizations - Get organizations
 export async function GET(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'publicRead',
+      endpoint: '/api/organizations',
+    })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse(
+        'Too many requests. Please try again later.',
+        'RATE_LIMIT_EXCEEDED',
+        { retryAfter: Math.ceil((rateLimitResult.resetAt - Date.now()) / 1000) },
+        429
+      )
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+
     const supabase = createSupabaseAdminClient()
     const session = await getServerSession()
     const { searchParams } = new URL(request.url)
@@ -105,7 +125,7 @@ export async function GET(request: NextRequest) {
       }
     }))
 
-    return successResponse(
+    const successResp = successResponse(
       {
         items: transformedOrganizations,
       },
@@ -116,6 +136,10 @@ export async function GET(request: NextRequest) {
         pages: Math.ceil((count || 0) / limit),
       }
     )
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      successResp.headers.set(key, value)
+    }
+    return successResp
     
   } catch (error) {
     console.error('Error fetching organizations:', error)
@@ -126,9 +150,32 @@ export async function GET(request: NextRequest) {
 // POST - Create new organization (This endpoint is deprecated for independent organizations)
 export async function POST(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'auth',
+      endpoint: '/api/organizations',
+    })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse(
+        'Too many requests. Please try again later.',
+        'RATE_LIMIT_EXCEEDED',
+        { retryAfter: Math.ceil((rateLimitResult.resetAt - Date.now()) / 1000) },
+        429
+      )
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+
     // This endpoint is no longer used for creating organizations
     // Organizations are now created through the registration process
-    return errorResponse('Organization creation is handled through the registration process. Please use /api/auth/register with type=organization', "API_ERROR", {}, 400)
+    const response = errorResponse('Organization creation is handled through the registration process. Please use /api/auth/register with type=organization', "API_ERROR", {}, 400)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
+    return response
   } catch (error) {
     console.error('Error in deprecated organization creation endpoint:', error)
     return errorResponse('Internal server error', "API_ERROR", {}, 500)

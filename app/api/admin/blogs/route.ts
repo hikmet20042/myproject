@@ -5,6 +5,7 @@ import { isAdmin } from '@/lib/auth/permissions';
 import { cache, invalidateUserCache } from '@/lib/cache';
 import { NotificationService } from '@/features/notifications/services/notificationService';
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic';
 
@@ -12,10 +13,28 @@ const MAX_PAGE_SIZE = 100;
 
 export async function GET(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'admin',
+      endpoint: '/api/admin/blogs',
+    })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
     if (!session || !isAdmin(session)) {
-      return errorResponse('Admin giriş icazəsi tələb olunur', "API_ERROR", {}, 403);
+      const response = errorResponse('Admin giriş icazəsi tələb olunur', "API_ERROR", {}, 403)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
     const { searchParams } = new URL(request.url);
     const page = Number.parseInt(searchParams.get('page') || '1', 10);
@@ -29,10 +48,18 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sortBy') || 'createdAt';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
     if (!Number.isFinite(page) || page < 1) {
-      return errorResponse('Səhifə parametri yanlışdır', "API_ERROR", {}, 400);
+      const response = errorResponse('Səhifə parametri yanlışdır', "API_ERROR", {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
     if (!Number.isFinite(limit) || limit < 1 || limit > MAX_PAGE_SIZE) {
-      return errorResponse(`Limit 1 ilə ${MAX_PAGE_SIZE} arasında olmalıdır`, "API_ERROR", {}, 400);
+      const response = errorResponse(`Limit 1 ilə ${MAX_PAGE_SIZE} arasında olmalıdır`, "API_ERROR", {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const skip = (page - 1) * limit;
@@ -75,10 +102,14 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('GET /api/admin/blogs error:', error);
-      return errorResponse('Bloqları yükləmək alınmadı', "API_ERROR", {}, 500);
+      const response = errorResponse('Bloqları yükləmək alınmadı', "API_ERROR", {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
     
-    return successResponse({ 
+    const successResp = successResponse({ 
       total: total || 0, 
       page, 
       limit, 
@@ -92,7 +123,11 @@ export async function GET(request: NextRequest) {
             name: author.name || author.email || author.id.toString()
           }))
       }
-    });
+    })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      successResp.headers.set(key, value)
+    }
+    return successResp
   } catch (error) {
     console.error('GET /api/admin/blogs error:', error);
     return errorResponse('Bloqları yükləmək alınmadı', "API_ERROR", {}, 500);
@@ -101,27 +136,61 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'admin',
+      endpoint: '/api/admin/blogs',
+    })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
     if (!session || !isAdmin(session)) {
-      return errorResponse('Admin giriş icazəsi tələb olunur', "API_ERROR", {}, 403);
+      const response = errorResponse('Admin giriş icazəsi tələb olunur', "API_ERROR", {}, 403)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
     let body: any;
     try {
       body = await request.json();
     } catch {
-      return errorResponse('JSON formatı yanlışdır', "API_ERROR", {}, 400);
+      const response = errorResponse('JSON formatı yanlışdır', "API_ERROR", {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
     const { id, status, adminComment } = body;
     if (!id || !status) {
-      return errorResponse('Tələb olunan sahələr çatışmır', "API_ERROR", {}, 400);
+      const response = errorResponse('Tələb olunan sahələr çatışmır', "API_ERROR", {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
     if (!['approved', 'rejected'].includes(status)) {
-      return errorResponse('Yanlış status', "API_ERROR", {}, 400);
+      const response = errorResponse('Yanlış status', "API_ERROR", {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
     const normalizedAdminComment = typeof adminComment === 'string' ? adminComment.trim() : '';
     if (status === 'rejected' && !normalizedAdminComment) {
-      return errorResponse('Rədd səbəbi tələb olunur', "API_ERROR", {}, 400);
+      const response = errorResponse('Rədd səbəbi tələb olunur', "API_ERROR", {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
     const { data: blog, error: blogError } = await supabase
       .from('blogs')
@@ -129,14 +198,22 @@ export async function PUT(request: NextRequest) {
       .eq('id', id)
       .single();
     if (blogError || !blog) {
-      return errorResponse('Bloq tapılmadı', "API_ERROR", {}, 404);
+      const response = errorResponse('Bloq tapılmadı', "API_ERROR", {}, 404)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const previousComment = typeof blog.admin_comment === 'string' ? blog.admin_comment.trim() : '';
     const isStatusUnchanged = blog.status === status;
     const isCommentUnchanged = previousComment === normalizedAdminComment;
     if (isStatusUnchanged && isCommentUnchanged) {
-      return successResponse({ message: 'Bloqda dəyişiklik yoxdur' });
+      const response = successResponse({ message: 'Bloqda dəyişiklik yoxdur' })
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     const statusChanged = blog.status !== status;
@@ -172,7 +249,11 @@ export async function PUT(request: NextRequest) {
         console.error('Failed to send blog status notification:', notificationError);
       }
     }
-    return successResponse({ message: `Bloq uğurla ${status === 'approved' ? 'təsdiqləndi' : 'rədd edildi'}` });
+    const successResp = successResponse({ message: `Bloq uğurla ${status === 'approved' ? 'təsdiqləndi' : 'rədd edildi'}` })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      successResp.headers.set(key, value)
+    }
+    return successResp
   } catch (error) {
     console.error('PUT /api/admin/blogs error:', error);
     return errorResponse('Daxili server xətası', "API_ERROR", {}, 500);
@@ -181,26 +262,56 @@ export async function PUT(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'admin',
+      endpoint: '/api/admin/blogs',
+    })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
     if (!session || !isAdmin(session)) {
-      return errorResponse('Admin giriş icazəsi tələb olunur', "API_ERROR", {}, 403);
+      const response = errorResponse('Admin giriş icazəsi tələb olunur', "API_ERROR", {}, 403)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     let body: any;
     try {
       body = await request.json();
     } catch {
-      return errorResponse('JSON formatı yanlışdır', "API_ERROR", {}, 400);
+      const response = errorResponse('JSON formatı yanlışdır', "API_ERROR", {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
     const { action, storyIds, status, adminComment } = body;
 
     if (!action || !storyIds || !Array.isArray(storyIds)) {
-      return errorResponse('Tələb olunan sahələr çatışmır', "API_ERROR", {}, 400);
+      const response = errorResponse('Tələb olunan sahələr çatışmır', "API_ERROR", {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     if (storyIds.length === 0) {
-      return errorResponse('Ən azı bir bloq seçilməlidir', "API_ERROR", {}, 400);
+      const response = errorResponse('Ən azı bir bloq seçilməlidir', "API_ERROR", {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
     }
 
     let updateData: any = {};

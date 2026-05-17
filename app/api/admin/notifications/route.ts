@@ -3,6 +3,7 @@ import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { canAccessAdmin } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 const MASS_NOTIFICATION_RATE_LIMIT = 50 // Max 50 notifications per request
 const MASS_NOTIFICATION_COOLDOWN = 60000 // 1 minute cooldown between mass sends

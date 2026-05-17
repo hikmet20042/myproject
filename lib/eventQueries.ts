@@ -34,9 +34,9 @@ export const eventQueryKeys = {
   all: ['events'] as const,
   list: (params: EventListParams = {}) => ['events', params] as const,
   mine: (page = 1) => ['events', { author: 'me', page }] as const,
-  detail: (slug: string) => ['event', slug] as const,
-  save: (slug: string) => ['events', slug, 'save'] as const,
-  view: (slug: string) => ['events', slug, 'view'] as const
+  detail: (id: string) => ['event', id] as const,
+  save: (id: string) => ['events', id, 'save'] as const,
+  view: (id: string) => ['events', id, 'view'] as const
 }
 
 export const fetchEvents = async (params: EventListParams = {}): Promise<ListQueryResult> => {
@@ -60,13 +60,18 @@ export const fetchUserEvents = async (page = 1) => {
   return data.items || []
 }
 
-export const fetchEventBySlug = async (slug: string) => {
-  const { data } = await apiFetch<{ event?: any }>(`/api/events/${slug}`)
+export const resolveEventIdentifier = async (identifier: string) => {
+  const { data } = await apiFetch<{ id?: string; slug?: string }>(`/api/events/resolve/${identifier}`)
+  return { id: data?.id || '', slug: data?.slug || '' }
+}
+
+export const fetchEventById = async (id: string) => {
+  const { data } = await apiFetch<{ event?: any }>(`/api/events/${id}`)
   return data?.event || null
 }
 
-/** @deprecated Use fetchEventBySlug instead */
-export const fetchEventById = fetchEventBySlug
+/** @deprecated Use fetchEventById instead */
+export const fetchEventBySlug = fetchEventById
 
 export const createEvent = async (payload: Record<string, any> | FormData) => {
   const isFormData = payload instanceof FormData
@@ -78,8 +83,8 @@ export const createEvent = async (payload: Record<string, any> | FormData) => {
   return data
 }
 
-export const updateEvent = async (slug: string, payload: Record<string, any>) => {
-  const { data } = await apiFetch<{ event?: any }>(`/api/events/${slug}`, {
+export const updateEvent = async (id: string, payload: Record<string, any>) => {
+  const { data } = await apiFetch<{ event?: any }>(`/api/events/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
@@ -87,25 +92,25 @@ export const updateEvent = async (slug: string, payload: Record<string, any>) =>
   return data
 }
 
-export const deleteEvent = async (slug: string) => {
-  const { data } = await apiFetch<{ id?: string }>(`/api/events/${slug}`, { method: 'DELETE' })
+export const deleteEvent = async (id: string) => {
+  const { data } = await apiFetch<{ id?: string }>(`/api/events/${id}`, { method: 'DELETE' })
   return data
 }
 
-export const saveEvent = async (slug: string) => {
+export const saveEvent = async (id: string) => {
   const { data } = await apiFetch<{
     action?: string
     hasSaved?: boolean
-  }>(`/api/content/event/${slug}/save`, { method: 'POST' })
+  }>(`/api/content/event/${id}/save`, { method: 'POST' })
   return data
 }
 
-export const fetchEventSaveStatus = async (slug: string) => {
-  const { data } = await apiFetch<{ hasSaved?: boolean; canSave?: boolean }>(`/api/content/event/${slug}/save`)
+export const fetchEventSaveStatus = async (id: string) => {
+  const { data } = await apiFetch<{ hasSaved?: boolean; canSave?: boolean }>(`/api/content/event/${id}/save`)
   return data
 }
 
-export const trackView = async (slug: string, payload?: { isFirstView?: boolean }) => {
+export const trackView = async (id: string, payload?: { isFirstView?: boolean }) => {
   const { data } = await apiFetch<{
     views?: number
     uniqueViews?: number
@@ -114,7 +119,7 @@ export const trackView = async (slug: string, payload?: { isFirstView?: boolean 
     engagementScore?: number
     viewIncremented?: boolean
     message?: string
-  }>(`/api/events/${slug}/view`, {
+  }>(`/api/events/${id}/view`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload || {})
@@ -122,14 +127,14 @@ export const trackView = async (slug: string, payload?: { isFirstView?: boolean 
   return data
 }
 
-export const fetchEventViews = async (slug: string) => {
+export const fetchEventViews = async (id: string) => {
   const { data } = await apiFetch<{
     views?: number
     uniqueViews?: number
     likes?: number
     dislikes?: number
     engagementScore?: number
-  }>(`/api/events/${slug}/view`)
+  }>(`/api/events/${id}/view`)
   return data
 }
 

@@ -12,7 +12,7 @@ import { ArrowLeft, MapPin, Globe, Mail, Phone, ExternalLink, CheckCircle, Users
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { LoadingState, ErrorState } from '@/components/shared';
 import { ORGANIZATION_TYPE_LABELS } from '@/lib/organizationTypes'
-import { fetchOrganizationBySlug, fetchOrganizationById } from '@/lib/organizationQueries'
+import { fetchOrganizationById, resolveOrganizationIdentifier } from '@/lib/organizationQueries'
 import { logError } from '@/lib/logger'
 import OrganizationFollowButtonContainer from '@/components/containers/OrganizationFollowButtonContainer'
 
@@ -56,7 +56,9 @@ export default function OrganizationDetailPage() { const localePath = useLocaliz
   useEffect(() => { const loadOrganization = async () => { try {
       const slug = typeof params?.slug === 'string' ? params.slug : ''
       if (!slug) { throw new Error('Təşkilat tapılmadı') }
-      const result = await fetchOrganizationBySlug(slug)
+      const resolved = await resolveOrganizationIdentifier(slug)
+      if (!resolved.id) { throw new Error('Təşkilat tapılmadı') }
+      const result = await fetchOrganizationById(resolved.id)
       setOrganization(result.organization)
     } catch (err) {
       logError('Organization detail API error', err)

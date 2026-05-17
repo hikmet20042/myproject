@@ -23,7 +23,11 @@ import ViewTracker from "@/components/ViewTracker";
 import { LoadingState, ErrorState } from "@/components/shared";
 import { useLocalizedPath } from "@/hooks/useLocalizedPath";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
-import { eventQueryKeys, fetchEventById } from "@/lib/eventQueries";
+import {
+  eventQueryKeys,
+  fetchEventById,
+  resolveEventIdentifier,
+} from "@/lib/eventQueries";
 import { DetailPageLayout } from "@/components/layout";
 import {
   EVENT_TYPE_LABELS,
@@ -94,7 +98,14 @@ export default function EventDetailPage() {
   const { showError } = useGlobalFeedback();
 
   const params = useParams();
-  const eventId = String(params?.slug || "");
+  const eventSlug = String(params?.slug || "");
+  const resolveQuery = useQuery({
+    queryKey: ["event-resolve", eventSlug],
+    queryFn: () => resolveEventIdentifier(eventSlug),
+    enabled: !!eventSlug,
+    retry: false,
+  });
+  const eventId = resolveQuery.data?.id || "";
   const eventQuery = useQuery({
     queryKey: eventQueryKeys.detail(eventId),
     queryFn: () => fetchEventById(eventId),
@@ -104,14 +115,14 @@ export default function EventDetailPage() {
   const event = eventQuery.data as Event | undefined;
 
   useEffect(() => {
-    if (eventQuery.isError) {
+    if (resolveQuery.isError || eventQuery.isError) {
       showError(
-        eventQuery.error instanceof Error
-          ? eventQuery.error.message
-          : "Tədbir yüklənmədi",
+        (resolveQuery.error instanceof Error && resolveQuery.error.message) ||
+          (eventQuery.error instanceof Error && eventQuery.error.message) ||
+          "Tədbir yüklənmədi",
       );
     }
-  }, [eventQuery.isError, eventQuery.error, showError]);
+  }, [resolveQuery.isError, resolveQuery.error, eventQuery.isError, eventQuery.error, showError]);
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "Tarix müəyyən deyil";
@@ -205,21 +216,28 @@ export default function EventDetailPage() {
     return new Date(deadline) < new Date();
   };
   const hasActiveApplicationLink = !!event?.applicationLink;
+  const eventDescription = event?.description || "";
+  const locationType = event?.location?.type || "physical";
 
-  if (eventQuery.isLoading) {
+  if (resolveQuery.isLoading || eventQuery.isLoading) {
     return <LoadingState text={"Tədbir təfərrüatları yüklənir..."} />;
   }
 
-  if (eventQuery.isError || !event) {
+  if (resolveQuery.isError || eventQuery.isError || !eventId || !event) {
     return (
       <ErrorState
         title={"Tədbir tapılmadı"}
         message={
-          eventQuery.error instanceof Error
+          (resolveQuery.error instanceof Error && resolveQuery.error.message) ||
+          (eventQuery.error instanceof Error
             ? eventQuery.error.message
             : "Axtardığın tədbir mövcud deyil."
+          )
         }
-        onRetry={() => eventQuery.refetch()}
+        onRetry={() => {
+          void resolveQuery.refetch();
+          void eventQuery.refetch();
+        }}
         retryText={"Yenidən cəhd et"}
         gradientFrom="from-red-50"
         gradientVia="via-orange-50"
@@ -233,7 +251,7 @@ export default function EventDetailPage() {
       {event.status === "approved" && (
         <ViewTracker
           itemType="event"
-          itemId={event.slug}
+          itemId={event.id}
           minTimeMs={10000}
           selector="#event-content"
         />
@@ -320,7 +338,7 @@ export default function EventDetailPage() {
               <h2 className="text-3xl font-black text-slate-900 mb-6">
                 Tədbir haqqında
               </h2>
-              {event.description.split("\n").map((paragraph, index) => (
+              {eventDescription.split("\n").map((paragraph, index) => (
                 <p key={index}>{paragraph}</p>
               ))}
             </div>
@@ -410,7 +428,7 @@ export default function EventDetailPage() {
                     Format
                   </p>
                   <p className="text-slate-900 font-black">
-                    {getLocationTypeLabel(event.location.type)}
+                    {getLocationTypeLabel(locationType)}
                   </p>
                 </div>
                 {event.maxParticipants > 0 && (

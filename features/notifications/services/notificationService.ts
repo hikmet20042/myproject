@@ -366,8 +366,6 @@ export class NotificationService {
           data: GROUPABLE_NOTIFICATION_TYPES.has(params.type)
             ? { ...params.data, groupMessage: sanitizedMessage, groupCount: 1 }
             : params.data || {},
-          related_item_id: params.relatedItemId || null,
-          related_item_type: params.relatedItemType || null,
           is_read: false
         })
         .select('*')
@@ -657,7 +655,7 @@ export class NotificationService {
       for (const [userId, savedEvents] of Array.from(savesByUser.entries())) {
         const { data: upcomingEvents } = await supabase
           .from('events')
-          .select('id, title, application_deadline')
+          .select('id, slug, title, application_deadline')
           .in('id', savedEvents)
           .eq('status', 'approved')
           .gte('application_deadline', now.toISOString())
@@ -700,9 +698,10 @@ export class NotificationService {
             type: 'event_deadline',
             title: 'Tədbir müraciət son tarixi yaxınlaşır',
             message: `"${event.title}" tədbiri üçün müraciət son tarixi ${daysUntilDeadline} gün içindədir`,
-            actionUrl: `/resources/events/${event.id}`,
+            actionUrl: `/resources/events/${event.slug || event.id}`,
             data: {
               eventId: event.id,
+              eventSlug: event.slug || null,
               eventTitle: event.title,
               deadline: event.application_deadline,
               daysUntilDeadline
@@ -965,13 +964,15 @@ export class NotificationService {
     recipientOrganizationId: string
     contentType: 'event' | 'vacancy'
     contentId: string
+    contentSlug?: string
     contentTitle: string
   }) {
     const type = `${params.contentType}_liked`
+    const routeKey = params.contentSlug || params.contentId
     const actionUrl =
       params.contentType === 'event'
-        ? `/resources/events/${params.contentId}`
-        : `/resources/vacancies/${params.contentId}`
+        ? `/resources/events/${routeKey}`
+        : `/resources/vacancies/${routeKey}`
 
     const typeLabels = {
       event: 'tədbirini',
@@ -1001,6 +1002,7 @@ export class NotificationService {
     recipientOrganizationId: string
     contentType: 'event' | 'vacancy'
     contentId: string
+    contentSlug?: string
     contentTitle: string
     viewCount: number
   }) {
@@ -1018,10 +1020,11 @@ export class NotificationService {
     if (currentMilestone === 0) return // No milestone reached
 
     const type = 'content_view_milestone'
+    const routeKey = params.contentSlug || params.contentId
     const actionUrl =
       params.contentType === 'event'
-        ? `/resources/events/${params.contentId}`
-        : `/resources/vacancies/${params.contentId}`
+        ? `/resources/events/${routeKey}`
+        : `/resources/vacancies/${routeKey}`
 
     // Format milestone message
     const formattedCount = currentMilestone >= 1000 ? (currentMilestone / 1000).toFixed(0) + 'K' : currentMilestone.toString()
@@ -1074,7 +1077,7 @@ export class NotificationService {
       for (const [userId, savedVacancies] of Array.from(savesByUser.entries())) {
         const { data: upcomingVacancies } = await supabase
           .from('vacancies')
-          .select('id, title, application_deadline')
+          .select('id, slug, title, application_deadline')
           .in('id', savedVacancies)
           .eq('status', 'approved')
           .gte('application_deadline', now.toISOString())
@@ -1113,9 +1116,10 @@ export class NotificationService {
             type: 'vacancy_deadline',
             title: 'Vakansiya müraciət son tarixi yaxınlaşır',
             message: `"${vacancy.title}" vakansiyası üçün müraciət son tarixi ${daysUntilDeadline} gün içindədir`,
-            actionUrl: `/resources/vacancies/${vacancy.id}`,
+            actionUrl: `/resources/vacancies/${vacancy.slug || vacancy.id}`,
             data: {
               vacancyId: vacancy.id,
+              vacancySlug: vacancy.slug || null,
               vacancyTitle: vacancy.title,
               deadline: vacancy.application_deadline,
               daysUntilDeadline
