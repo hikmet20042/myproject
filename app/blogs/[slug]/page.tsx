@@ -241,7 +241,7 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
     <>
       {/* View tracking side-effect */}
       {blog?.status === 'approved' && (
-        <ViewTracker itemType="blog" itemId={blog.id || blog._id} minTimeMs={10000} selector="#blog-content" />
+        <ViewTracker itemType="blog" itemId={blog.id || blog._id || ''} minTimeMs={10000} selector="#blog-content" />
       )}
 
       {/* Reading progress bar */}

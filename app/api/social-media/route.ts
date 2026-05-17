@@ -3,21 +3,34 @@ import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { isApprovedOrganization } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { applyRateLimit } from '@/lib/rateLimit'
 
-// Force dynamic rendering due to session usage
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'authenticatedRead',
+      endpoint: '/api/social-media',
+    })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
+    }
+
     const session = await getServerSession()
     
     if (!session?.user?.id) {
-      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
+      const response = errorResponse('Unauthorized', "API_ERROR", {}, 401)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
 
     const supabase = createSupabaseAdminClient()
 
-    // Fetch the user's social media accounts
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('social_media, role')
@@ -25,7 +38,9 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (userError || !user) {
-      return errorResponse('User not found', "API_ERROR", {}, 404)
+      const response = errorResponse('User not found', "API_ERROR", {}, 404)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
 
     let organizationSocialMedia = null
@@ -39,10 +54,9 @@ export async function GET(request: NextRequest) {
       organizationSocialMedia = profile?.social_links || {}
     }
 
-    return successResponse({
-      socialMedia: user.social_media || {},
-      organizationSocialMedia
-    })
+    const response = successResponse({ socialMedia: user.social_media || {}, organizationSocialMedia })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+    return response
 
   } catch (error) {
     console.error('Error fetching social media:', error)
@@ -52,10 +66,24 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'write',
+      endpoint: '/api/social-media',
+    })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
+    }
+
     const session = await getServerSession()
     
     if (!session?.user?.id) {
-      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
+      const response = errorResponse('Unauthorized', "API_ERROR", {}, 401)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
 
     const supabase = createSupabaseAdminClient()
@@ -63,7 +91,6 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { socialMedia, organizationSocialMedia, type } = body
 
-    // Validate social media URLs
     const validateUrl = (url: string) => {
       if (!url) return true
       try {
@@ -77,12 +104,12 @@ export async function PUT(request: NextRequest) {
     const updateData: any = {}
 
     if (type === 'user' || !type) {
-      // Update user's personal social media
       if (socialMedia) {
-        // Validate URLs
         for (const [platform, url] of Object.entries(socialMedia)) {
           if (url && !validateUrl(url as string)) {
-            return errorResponse(`Invalid URL for ${platform}`, "API_ERROR", {}, 400)
+            const response = errorResponse(`Invalid URL for ${platform}`, "API_ERROR", {}, 400)
+            for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+            return response
           }
         }
         updateData.social_media = socialMedia
@@ -90,12 +117,12 @@ export async function PUT(request: NextRequest) {
     }
 
     if (type === 'organization' && isApprovedOrganization(session)) {
-      // Primary write to organization_profiles
       if (organizationSocialMedia) {
-        // Validate URLs
         for (const [platform, url] of Object.entries(organizationSocialMedia)) {
           if (url && !validateUrl(url as string)) {
-            return errorResponse(`Invalid URL for ${platform}`, "API_ERROR", {}, 400)
+            const response = errorResponse(`Invalid URL for ${platform}`, "API_ERROR", {}, 400)
+            for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+            return response
           }
         }
         
@@ -107,22 +134,27 @@ export async function PUT(request: NextRequest) {
           .single()
 
         if (organizationError || !organization) {
-          return errorResponse('Organization not found', "API_ERROR", {}, 404)
+          const response = errorResponse('Organization not found', "API_ERROR", {}, 404)
+          for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+          return response
         }
 
-        return successResponse({ 
+        const response = successResponse({ 
           message: 'Social media updated successfully',
           socialMedia: {},
           organizationSocialMedia: organization.social_links || {}
         })
+        for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+        return response
       }
     }
 
     if (Object.keys(updateData).length === 0) {
-      return errorResponse('No valid social media data provided', "API_ERROR", {}, 400)
+      const response = errorResponse('No valid social media data provided', "API_ERROR", {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
 
-    // Update the user
     const { data: updatedUser, error: updatedUserError } = await supabase
       .from('users')
       .update({ ...updateData, updated_at: new Date().toISOString() })
@@ -131,14 +163,18 @@ export async function PUT(request: NextRequest) {
       .single()
 
     if (updatedUserError || !updatedUser) {
-      return errorResponse('User not found', "API_ERROR", {}, 404)
+      const response = errorResponse('User not found', "API_ERROR", {}, 404)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
 
-    return successResponse({
+    const response = successResponse({
       message: 'Social media accounts updated successfully',
       socialMedia: updatedUser.social_media || {},
       organizationSocialMedia: null
     })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+    return response
 
   } catch (error) {
     console.error('Error updating social media:', error)

@@ -77,6 +77,14 @@ export async function GET(request: NextRequest) {
       endpoint: '/api/admin/events',
     })
 
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+
     const supabase = createSupabaseAdminClient()
     
     const session = await getServerSession()
@@ -255,10 +263,6 @@ export async function GET(request: NextRequest) {
     return successResp
   } catch (error) {
     console.error('GET /api/admin/events error:', error)
-    const response = errorResponse('Failed to fetch events', 'FETCH_EVENTS_FAILED', {}, 500)
-    for (const [key, value] of Object.entries(rateLimitHeaders)) {
-      response.headers.set(key, value)
-    }
-    return response
+    return errorResponse('Failed to fetch events', 'FETCH_EVENTS_FAILED', {}, 500)
   }
 }

@@ -144,11 +144,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('GET /api/admin/organizations error:', error);
-    const response = errorResponse('Failed to fetch organizations', "API_ERROR", {}, 500);
-    for (const [key, value] of Object.entries(rateLimitHeaders)) {
-      response.headers.set(key, value)
-    }
-    return response;
+    return errorResponse('Failed to fetch organizations', "API_ERROR", {}, 500);
   }
 }
 
@@ -294,21 +290,31 @@ export async function PUT(request: NextRequest) {
 
   } catch (error) {
     console.error('PUT /api/admin/organizations error:', error);
-    const response = errorResponse('Failed to update organization status', "API_ERROR", {}, 500);
-    for (const [key, value] of Object.entries(rateLimitHeaders)) {
-      response.headers.set(key, value)
-    }
-    return response;
+    return errorResponse('Failed to update organization status', "API_ERROR", {}, 500);
   }
 }
 
 // PATCH - Bulk operations on organizations
 export async function PATCH(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'admin',
+      endpoint: '/api/admin/organizations',
+    })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
+    }
+
     const session = await getServerSession();
     
     if (!isAdmin(session)) {
-      return errorResponse('Admin access required', "API_ERROR", {}, 403);
+      const response = errorResponse('Admin access required', "API_ERROR", {}, 403)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
 
     const supabase = createSupabaseAdminClient();
@@ -316,22 +322,30 @@ export async function PATCH(request: NextRequest) {
     const { action, organizationIds, rejectionReason } = await request.json() as OrganizationBulkActionBody;
     
     if (!action || !organizationIds || !Array.isArray(organizationIds) || organizationIds.length === 0) {
-      return errorResponse('Invalid request data', "API_ERROR", {}, 400);
+      const response = errorResponse('Invalid request data', "API_ERROR", {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
 
     if (!['approve', 'reject'].includes(action)) {
-      return errorResponse('Invalid action', "API_ERROR", {}, 400);
+      const response = errorResponse('Invalid action', "API_ERROR", {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
 
     const rejectionReasonText = rejectionReason?.trim() || '';
 
     if (action === 'reject' && !rejectionReasonText) {
-      return errorResponse('Rejection reason is required for bulk rejection', "API_ERROR", {}, 400);
+      const response = errorResponse('Rejection reason is required for bulk rejection', "API_ERROR", {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
 
     const adminUserId = session?.user?.id;
     if (!adminUserId) {
-      return errorResponse('Admin access required', "API_ERROR", {}, 403);
+      const response = errorResponse('Admin access required', "API_ERROR", {}, 403)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
 
     const { data: organizations = [] } = await supabase
@@ -341,7 +355,9 @@ export async function PATCH(request: NextRequest) {
     const organizationRows = (organizations || []) as OrganizationListRow[];
 
     if (organizationRows.length === 0) {
-      return errorResponse('No valid organizations found', "API_ERROR", {}, 404);
+      const response = errorResponse('No valid organizations found', "API_ERROR", {}, 404)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
 
     const updateData: Record<string, string | null> = {};
@@ -386,10 +402,12 @@ export async function PATCH(request: NextRequest) {
       })
     }
 
-    return successResponse({ 
+    const successResp = successResponse({ 
       message: `${organizationRows.length} organization(s) ${action}d successfully`,
       processedCount: organizationRows.length
-    });
+    })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) successResp.headers.set(key, value)
+    return successResp
 
   } catch (error) {
     console.error('PATCH /api/admin/organizations error:', error);

@@ -3,6 +3,7 @@ import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { isApprovedOrganization } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,10 +18,24 @@ const ALLOWED_TYPES = [
 
 export async function GET(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'authenticatedRead',
+      endpoint: '/api/notifications',
+    })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
+    }
+
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return errorResponse('Unauthorized', "API_ERROR", {}, 401);
+      const response = errorResponse('Unauthorized', "API_ERROR", {}, 401)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
     const url = new URL(request.url);
     const unreadOnly = url.searchParams.get('unread') === 'true';
@@ -55,7 +70,9 @@ export async function GET(request: NextRequest) {
     const { data: notifications, error, count } = await query;
     if (error) {
       console.error(`[notifications.GET] Query error:`, error)
-      return errorResponse('Internal server error', "API_ERROR", {}, 500);
+      const response = errorResponse('Internal server error', "API_ERROR", {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
     
     console.debug(`[notifications.GET] Retrieved ${notifications?.length || 0} notifications for ${isOrg ? 'organization' : 'user'}: ${session.user.id}`)
@@ -71,7 +88,7 @@ export async function GET(request: NextRequest) {
     
     const totalPages = Math.ceil((count || 0) / limit);
     
-    return successResponse({
+    const successResp = successResponse({
       notifications: notifications || [],
       unreadCount: unreadCount || 0,
       pagination: {
@@ -84,7 +101,9 @@ export async function GET(request: NextRequest) {
         unreadOnly,
         typeFilter: typeFilter || null
       }
-    });
+    })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) successResp.headers.set(key, value)
+    return successResp
   } catch (error) {
     console.error('Notifications fetch error:', error);
     return errorResponse('Internal server error', "API_ERROR", {}, 500);
@@ -93,10 +112,24 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'write',
+      endpoint: '/api/notifications',
+    })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
+    }
+
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return errorResponse('Unauthorized', "API_ERROR", {}, 401);
+      const response = errorResponse('Unauthorized', "API_ERROR", {}, 401)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
     const body = await request.json();
     const { notificationId, markAllAsRead, isRead } = body;
@@ -113,7 +146,9 @@ export async function PUT(request: NextRequest) {
         .eq('is_read', false)
         .select('id');
 
-      return successResponse({ message: 'All notifications marked as read' });
+      const response = successResponse({ message: 'All notifications marked as read' })
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     } else if (notificationId && typeof isRead === 'boolean') {
       const { data: updated, error } = await supabase
         .from('notifications')
@@ -123,15 +158,21 @@ export async function PUT(request: NextRequest) {
         .select('*')
         .single();
       if (error || !updated) {
-        return errorResponse('Notification not found', "API_ERROR", {}, 404);
+        const response = errorResponse('Notification not found', "API_ERROR", {}, 404)
+        for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+        return response
       }
 
-      return successResponse({
+      const response = successResponse({
         message: `Notification marked as ${isRead ? 'read' : 'unread'}`,
         notification: updated
-      });
+      })
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
-    return errorResponse('Invalid request', "API_ERROR", {}, 400);
+    const response = errorResponse('Invalid request', "API_ERROR", {}, 400)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+    return response
   } catch (error) {
     console.error('Notification update error:', error);
     return errorResponse('Internal server error', "API_ERROR", {}, 500);
@@ -140,15 +181,31 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'write',
+      endpoint: '/api/notifications',
+    })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
+    }
+
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return errorResponse('Unauthorized', "API_ERROR", {}, 401);
+      const response = errorResponse('Unauthorized', "API_ERROR", {}, 401)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
     const url = new URL(request.url);
     const notificationId = url.searchParams.get('id');
     if (!notificationId) {
-      return errorResponse('Notification ID required', "API_ERROR", {}, 400);
+      const response = errorResponse('Notification ID required', "API_ERROR", {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
     
     // Build query based on account type
@@ -158,7 +215,9 @@ export async function DELETE(request: NextRequest) {
       .delete()
       .eq('id', notificationId)
       .eq(ownerColumn, session.user.id);
-    return successResponse({ message: 'Notification deleted successfully' });
+    const response = successResponse({ message: 'Notification deleted successfully' })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+    return response
   } catch (error) {
     console.error('Notification delete error:', error);
     return errorResponse('Internal server error', "API_ERROR", {}, 500);

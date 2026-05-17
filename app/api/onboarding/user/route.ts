@@ -2,15 +2,30 @@ import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 const ALLOWED_INTERESTS = ['IT', 'Təhsil', 'Könüllülük', 'Sosial fəaliyyət', 'Digər'] as const
 type AllowedInterest = (typeof ALLOWED_INTERESTS)[number]
 
 export async function POST(request: NextRequest) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+      request,
+      preset: 'write',
+      endpoint: '/api/onboarding/user',
+    })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
+    }
+
     const session = await getServerSession()
     if (!session?.user?.id) {
-      return errorResponse('Unauthorized', 'API_ERROR', {}, 401)
+      const response = errorResponse('Unauthorized', 'API_ERROR', {}, 401)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
 
     const body = await request.json()
@@ -20,15 +35,18 @@ export async function POST(request: NextRequest) {
     )
 
     if (interests.length < 1) {
-      return errorResponse('Ən azı 1 maraq sahəsi seçin.', 'API_ERROR', {}, 400)
+      const response = errorResponse('Ən azı 1 maraq sahəsi seçin.', 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
     if (interests.length > 5) {
-      return errorResponse('Maksimum 5 maraq sahəsi seçilə bilər.', 'API_ERROR', {}, 400)
+      const response = errorResponse('Maksimum 5 maraq sahəsi seçilə bilər.', 'API_ERROR', {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
 
     const supabase = createSupabaseAdminClient()
 
-    // Use the provided name from onboarding, or fall back to existing name, then email prefix
     const providedName = typeof body?.name === 'string' && body.name.trim() ? body.name.trim() : null
     const fallbackName = session.user.name || session.user.email?.split('@')[0] || 'İstifadəçi'
     const userName = providedName || fallbackName
@@ -36,44 +54,40 @@ export async function POST(request: NextRequest) {
     const { error: userUpsertError } = await supabase
       .from('users')
       .upsert(
-        {
-          id: session.user.id,
-          email: session.user.email,
-          name: userName,
-          role: 'user',
-        },
+        { id: session.user.id, email: session.user.email, name: userName, role: 'user' },
         { onConflict: 'id' },
       )
     if (userUpsertError) {
-      return errorResponse(userUpsertError.message, 'API_ERROR', {}, 500)
+      const response = errorResponse(userUpsertError.message, 'API_ERROR', {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
 
     const { error: profileError } = await supabase
       .from('user_profiles')
       .upsert(
-        {
-          user_id: session.user.id,
-          interests,
-          updated_at: new Date().toISOString(),
-        },
+        { user_id: session.user.id, interests, updated_at: new Date().toISOString() },
         { onConflict: 'user_id' },
       )
     if (profileError) {
-      return errorResponse(profileError.message, 'API_ERROR', {}, 500)
+      const response = errorResponse(profileError.message, 'API_ERROR', {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
 
     const { error: accountError } = await supabase
       .from('accounts')
-      .update({
-        account_type: 'user',
-        updated_at: new Date().toISOString(),
-      })
+      .update({ account_type: 'user', updated_at: new Date().toISOString() })
       .eq('id', session.user.id)
     if (accountError) {
-      return errorResponse(accountError.message, 'API_ERROR', {}, 500)
+      const response = errorResponse(accountError.message, 'API_ERROR', {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
     }
 
-    return successResponse({ message: 'User onboarding completed' })
+    const response = successResponse({ message: 'User onboarding completed' })
+    for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+    return response
   } catch (error) {
     console.error('User onboarding error:', error)
     return errorResponse('Internal server error', 'API_ERROR', {}, 500)
