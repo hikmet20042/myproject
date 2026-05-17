@@ -1,0 +1,38 @@
+# *
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /edit
+Disallow: /submit
+Disallow: /profile
+
+# Googlebot
+User-agent: Googlebot
+Allow: /
+Disallow: /admin
+Disallow: /api
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /edit
+Disallow: /submit
+Disallow: /profile
+
+# bingbot
+User-agent: bingbot
+Allow: /
+Disallow: /admin
+Disallow: /api
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /edit
+Disallow: /submit
+Disallow: /profile
+
+# Host
+Host: https://icma360.org
+
+# Sitemaps
+Sitemap: https://icma360.org/sitemap.xml
