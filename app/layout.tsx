@@ -39,7 +39,7 @@ export const metadata: Metadata = {
       'peşəkar şəbəkə Azərbaycan',
     ],
     canonical: '/',
-    ogImage: '/og-image.png',
+    ogImage: '/opengraph-image',
     ogType: 'website',
     locale: 'az_AZ',
     alternateLocales: ['az_AZ'],
@@ -105,20 +105,90 @@ export default function RootLayout({
         <meta name="geo.position" content="40.4093;49.8671" />
         <meta name="ICBM" content="40.4093, 49.8671" />
         
+        {/* Additional SEO Meta Tags */}
+        <meta name="geo.region" content="AZ" />
+        <meta name="geo.placename" content="Baku" />
+        <meta name="geo.position" content="40.4093;49.8671" />
+        <meta name="ICBM" content="40.4093, 49.8671" />
+
         {/* Language and Content */}
         <meta httpEquiv="content-language" content="az" />
         <link rel="alternate" hrefLang="az" href={siteUrl} />
+        <link rel="alternate" hrefLang="en" href={siteUrl} />
         <link rel="alternate" hrefLang="x-default" href={siteUrl} />
-        
+
+        {/* Canonical Language Alternates for major pages */}
+        <link rel="alternate" hrefLang="az" href={`${siteUrl}/about`} />
+        <link rel="alternate" hrefLang="az" href={`${siteUrl}/resources`} />
+        <link rel="alternate" hrefLang="az" href={`${siteUrl}/blogs`} />
+        <link rel="alternate" hrefLang="az" href={`${siteUrl}/resources/vacancies`} />
+        <link rel="alternate" hrefLang="az" href={`${siteUrl}/resources/events`} />
+        <link rel="alternate" hrefLang="az" href={`${siteUrl}/resources/organizations`} />
+
+        {/* PWA App Install Banner / Related Application */}
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-title" content="icma360" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+        {/* Accessibility & Indexing */}
+        <meta name="format-detection" content="telephone=no" />
+
         {/* RSS Feed for Blog Content Discovery */}
         <link rel="alternate" type="application/rss+xml" title="icma360 Bloq RSS Lenti" href={`${siteUrl}/api/rss`} />
         <link rel="alternate" type="application/atom+xml" title="icma360 Bloq Atom Lenti" href={`${siteUrl}/api/rss`} />
+
+        {/* Preconnect to critical third-party origins */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://grainy-gradients.vercel.app" />
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
+
+        {/* FAQ Schema — helps earn Rich Snippet dropdowns */}
+        <Script
+          id="faq-schema"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'FAQPage',
+              mainEntity: [
+                {
+                  '@type': 'Question',
+                  name: 'icma360 nədir?',
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: 'icma360 Azərbaycanda gənclər üçün pulsuz imkan platformasıdır. Vakansiyalar, təcrübə proqramları, tədbirlər və QHT imkanlarını bir yerdə təqdim edərək gənclərin karyera inkişafına kömək edir.',
+                  },
+                },
+                {
+                  '@type': 'Question',
+                  name: 'icma360-da necə qeydiyyatdan keçə bilərəm?',
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: 'Həmçinn, icma360-da qeydiyyatdan keçməklə siz vakansiyalara müraciət edə, tədbirlərə qoşula, təhsil materiallarından yararlana və İcma Bloquna yazı yazıla bilərsiniz.',
+                  },
+                },
+                {
+                  '@type': 'Question',
+                  name: 'icma360 pulsuzdurmu?',
+                  acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: 'Bəli, icma360 tamamilə pulsuzdur. Gənclər və təşkilatlar qeydiyyatdan keçməklə bütün imkanlardan yararlana bilərlər.',
+                  },
+                },
+              ],
+            }),
+          }}
+        />
       </head>
       <body className="min-h-screen bg-gray-50 text-slate-900 transition-colors duration-200" suppressHydrationWarning={true}>
+        {/* eslint-disable-next-line no-restricted-syntax */}
         <Suspense fallback={null}>
           <GoogleAnalytics />
         </Suspense>
         <QueryProvider>
+          {/* eslint-disable-next-line no-restricted-syntax */}
           <Suspense fallback={null}>
             <AuthProvider>
               <SocketProvider>

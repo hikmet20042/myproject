@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { MapPin, ArrowRight, ShieldCheck } from 'lucide-react'
 import OrganizationFollowButtonContainer from '@/components/containers/OrganizationFollowButtonContainer'
 import { Card } from '@/components/ui/Card'
@@ -29,10 +30,11 @@ export const OrganizationCard = ({ org, localePath, focusLabel }: OrganizationCa
         <div className="relative">
           <div className="h-20 w-20 overflow-hidden rounded-md border border-slate-100 bg-slate-50 shadow-sm transition-transform duration-500 group-hover:scale-105">
             {org.profileImage ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
+              <Image
                 src={org.profileImage}
                 alt={org.organizationName}
+                fill
+                sizes="80px"
                 className="h-full w-full object-cover"
               />
             ) : (

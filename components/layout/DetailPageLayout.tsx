@@ -1,9 +1,12 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
+import Script from "next/script";
 import { ArrowLeft } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Breadcrumb, ButtonLink } from "@/components/ui";
 import type { BreadcrumbItem } from "@/components/ui/Breadcrumb";
+
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || "https://icma360.org"
 
 type DetailPageLayoutProps = {
   backHref: string;
@@ -44,6 +47,24 @@ export default function DetailPageLayout({
             <div className="mb-6">
               <Breadcrumb items={breadcrumbItems} />
             </div>
+
+            {/* JSON-LD BreadcrumbList */}
+            <Script
+              id="detail-page-breadcrumb-schema"
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{
+                __html: JSON.stringify({
+                  '@context': 'https://schema.org',
+                  '@type': 'BreadcrumbList',
+                  itemListElement: breadcrumbItems.map((item, i) => ({
+                    '@type': 'ListItem',
+                    position: i + 1,
+                    name: item.label,
+                    item: item.href?.startsWith('http') ? item.href : `${siteUrl}${item.href || '/'}`,
+                  })),
+                }),
+              }}
+            />
 
             <ButtonLink
               href={backHref}

@@ -16,6 +16,7 @@ import { getUserErrorMessage } from "@/lib/errorMessages";
 import { signInWithOAuth, signOut } from "@/lib/auth/client";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import { ImageCropper } from "@/components/shared";
+import Image from 'next/image'
 
 type ProfileFormState = {
   name: string;
@@ -752,7 +753,7 @@ export default function ProfileSettingsPage() {
           <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-gray-50/40 p-4">
             <div className="h-14 w-14 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
               {form.avatar ? (
-                <img src={form.avatar} alt="Profil şəkli" className="h-full w-full object-cover" />
+                <Image src={form.avatar} alt="Profil şəkli" fill sizes="56px" className="h-full w-full object-cover" />
               ) : (
                 <UserRound className="w-6 h-6 text-slate-500" />
               )}

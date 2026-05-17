@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Briefcase, Calendar, Phone, Plus, Trash2, Upload } from 'lucide-react'
+import Image from 'next/image'
 import { Loading } from '@/components/ui/Loading'
 import { Button, Input, Select, TextArea } from '@/components/ui'
 import { Card } from '@/components/ui/Card'
@@ -386,7 +387,7 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
             )}
           </div>
           {formData.imageUrl && (
-            <img src={formData.imageUrl} alt="Vakansiya örtük şəkli" className="h-40 w-full max-w-md rounded-xl object-cover border border-gray-200" />
+            <Image src={formData.imageUrl} alt="Vakansiya örtük şəkli" fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" className="h-40 w-full max-w-md rounded-xl object-cover border border-gray-200" />
           )}
         </Card>
 

@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/Button'
 import OrganizationFollowButtonContainer from '@/components/containers/OrganizationFollowButtonContainer'
 import Link from 'next/link'
 import { Card } from '@/components/ui/Card'
+import Image from 'next/image'
 import { SocialLink } from '@/components/ui'
 
 type OrgProfile = {
@@ -178,7 +179,7 @@ export default function PublicOrgProfilePage() {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
                 <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                   {org.profileImage ? (
-                    <img src={org.profileImage} alt={org.organizationName} className="h-full w-full object-cover" />
+                    <Image src={org.profileImage} alt={org.organizationName} fill sizes="64px" className="h-full w-full object-cover" />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-blue-50 text-2xl font-black text-blue-600">
                       {org.organizationName.charAt(0).toUpperCase()}

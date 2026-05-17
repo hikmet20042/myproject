@@ -51,6 +51,6 @@ export const homePageMetadata: Metadata = generateSEOMetadata({
     'etibarlı iş saytı Azərbaycan',
   ],
   canonical: '/',
-  ogImage: '/og-home.png',
+  ogImage: '/opengraph-image',
   ogType: 'website',
 })

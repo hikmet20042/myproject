@@ -153,13 +153,14 @@ const nextConfig = {
           },
         ],
       },
-      // Preconnect to external domains for performance
+      // Preconnect to external domains for performance + sitemap announcement
       {
         source: '/',
         headers: [
           {
             key: 'Link',
-            value: '<https://www.google-analytics.com>; rel=preconnect, <https://www.googletagmanager.com>; rel=preconnect'
+            // preconnect hints help browser establish earlier connections to 3rd-party origins
+            value: '<https://www.googletagmanager.com>; rel=preconnect, </sitemap-0.xml>; rel="sitemap"; type="application/xml"'
           }
         ]
       }

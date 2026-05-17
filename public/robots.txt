@@ -1,38 +1,22 @@
-# *
+# ─── robots.txt for icma360.org ───────────────────────────────────────────────
+# Next.js / next-sitemap generated sitemaps are served from /sitemap-0.xml
+# Sitemap index (primary)
+Sitemap: https://icma360.org/sitemap-0.xml
+# Fallback
+Sitemap: https://icma360.org/sitemap.xml
+
+# ── Crawl Rules ───────────────────────────────────────────────────────────────
 User-agent: *
 Allow: /
-Disallow: /admin
-Disallow: /api
-Disallow: /auth
-Disallow: /dashboard
-Disallow: /edit
-Disallow: /submit
-Disallow: /profile
+Disallow: /admin/
+Disallow: /api/
+Disallow: /auth/
+Disallow: /dashboard/
+Disallow: /edit/
+Disallow: /submit/
+Disallow: /profile/
 
-# Googlebot
-User-agent: Googlebot
-Allow: /
-Disallow: /admin
-Disallow: /api
-Disallow: /auth
-Disallow: /dashboard
-Disallow: /edit
-Disallow: /submit
-Disallow: /profile
+# ── Crawl-delay removed (supported by Yandex only) ──────────────────────────
 
-# bingbot
-User-agent: bingbot
-Allow: /
-Disallow: /admin
-Disallow: /api
-Disallow: /auth
-Disallow: /dashboard
-Disallow: /edit
-Disallow: /submit
-Disallow: /profile
-
-# Host
+# ── Preferred host (Yandex only — Google ignores) ───────────────────────────
 Host: https://icma360.org
-
-# Sitemaps
-Sitemap: https://icma360.org/sitemap.xml

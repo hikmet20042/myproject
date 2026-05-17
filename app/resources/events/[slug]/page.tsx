@@ -18,6 +18,7 @@ import {
 import { Button, ButtonLink } from "@/components/ui";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import Script from "next/script";
 import SaveItemButtonContainer from "@/components/containers/SaveItemButtonContainer";
 import ViewTracker from "@/components/ViewTracker";
 import { LoadingState, ErrorState } from "@/components/shared";
@@ -218,6 +219,40 @@ export default function EventDetailPage() {
   const hasActiveApplicationLink = !!event?.applicationLink;
   const eventDescription = event?.description || "";
   const locationType = event?.location?.type || "physical";
+  const eventUrl = localePath(`/resources/events/${event.slug}`);
+
+  const eventJsonLd = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'Event',
+    name: event.title,
+    description: event.description,
+    startDate: event.eventDate,
+    endDate: event.endDate || event.eventDate,
+    eventStatus: 'https://schema.org/EventScheduled',
+    eventAttendanceMode: event.location?.type === "online"
+      ? 'https://schema.org/OnlineEventAttendanceMode'
+      : event.location?.type === "hybrid"
+        ? 'https://schema.org/MixedEventAttendanceMode'
+        : 'https://schema.org/OfflineEventAttendanceMode',
+    location: event.location?.type === "online" ? {
+      '@type': 'VirtualLocation',
+      url: event.onlineLink,
+    } : {
+      '@type': 'Place',
+      name: event.location?.city,
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: event.location?.city || "Bakı",
+        addressCountry: 'AZ',
+      },
+    },
+    organizer: {
+      '@type': 'Organization',
+      name: event.organizationName || event.createdBy?.name || "Naməlum",
+    },
+    image: event.imageUrl || `${process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'}/og-image.png`,
+    url: eventUrl.startsWith('http') ? eventUrl : `${process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'}${eventUrl}`,
+  });
 
   if (resolveQuery.isLoading || eventQuery.isLoading) {
     return <LoadingState text={"Tədbir təfərrüatları yüklənir..."} />;
@@ -256,6 +291,9 @@ export default function EventDetailPage() {
           selector="#event-content"
         />
       )}
+      {/* JSON-LD Event Schema */}
+      <Script id="event-schema" type="application/ld+json" dangerouslySetInnerHTML={{ __html: eventJsonLd }} />
+
       <DetailPageLayout
         backHref={localePath("/resources/events")}
         backLabel="Bütün Tədbirlər"

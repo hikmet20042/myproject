@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { Card } from '@/components/ui/Card'
 import { MapPin, Clock3, Building2, Users, ArrowUpRight } from 'lucide-react'
 import SaveItemButtonContainer from '@/components/containers/SaveItemButtonContainer'
@@ -30,10 +31,11 @@ export const ContentCard = ({ item }: ContentCardProps) => {
       {/* Image Section */}
       <div className="relative h-56 w-full shrink-0 overflow-hidden bg-slate-50">
         {item.coverImage ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
+          <Image
             src={item.coverImage}
             alt={item.title}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
           />
         ) : (

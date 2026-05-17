@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import Script from 'next/script'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/Button'
@@ -100,6 +101,43 @@ export default function OrganizationDetailPage() { const localePath = useLocaliz
                 { label: 'Təşkilatlar', href: localePath('/resources/organizations') },
                 { label: organization.organizationName, current: true }
               ]}
+            />
+
+            {/* JSON-LD BreadcrumbList */}
+            <Script
+              id="org-breadcrumb-schema"
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{
+                __html: JSON.stringify({
+                  '@context': 'https://schema.org',
+                  '@type': 'BreadcrumbList',
+                  itemListElement: [
+                    { '@type': 'ListItem', position: 1, name: 'Ana səhifə', item: localePath('/') },
+                    { '@type': 'ListItem', position: 2, name: 'Resurslar', item: localePath('/resources') },
+                    { '@type': 'ListItem', position: 3, name: 'Təşkilatlar', item: localePath('/resources/organizations') },
+                    { '@type': 'ListItem', position: 4, name: organization.organizationName, item: localePath(`/o/${organization.slug || organization._id || ''}`) },
+                  ],
+                }),
+              }}
+            />
+
+            {/* JSON-LD Organization Profile */}
+            <Script
+              id="org-profile-schema"
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{
+                __html: JSON.stringify({
+                  '@context': 'https://schema.org',
+                  '@type': 'Organization',
+                  name: organization.organizationName,
+                  description: organization.description,
+                  url: organization.website,
+                  address: organization.address ? { '@type': 'PostalAddress', streetAddress: organization.address, addressCountry: 'AZ' } : undefined,
+                  areaServed: { '@type': 'Country', name: 'Azerbaijan' },
+                  knowsAbout: organization.focusAreas?.join(', '),
+                  sameAs: [organization.website, organization.socialMedia?.facebook, organization.socialMedia?.instagram, organization.socialMedia?.linkedin, organization.socialMedia?.twitter].filter(Boolean),
+                }),
+              }}
             />
 
             {/* Back Button */}

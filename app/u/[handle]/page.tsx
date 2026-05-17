@@ -6,6 +6,7 @@ import { useSession } from '@/lib/auth/client'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { LoadingState, ErrorState } from '@/components/shared'
 import { Button } from '@/components/ui/Button'
+import Image from 'next/image'
 import { ArrowLeft, Calendar, MapPin, Phone, User } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 
@@ -96,7 +97,7 @@ export default function PublicUserProfilePage() {
             {/* Avatar */}
             <div className="relative h-24 w-24 rounded-full border-4 border-white bg-white overflow-hidden shadow-md">
               {profile.avatar ? (
-                <img src={profile.avatar} alt={profile.name} className="h-full w-full object-cover" />
+                <Image src={profile.avatar} alt={profile.name} fill sizes="96px" className="h-full w-full object-cover" />
               ) : (
                 <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-emerald-500 text-white text-2xl font-bold">
                   {profile.name.charAt(0).toUpperCase()}

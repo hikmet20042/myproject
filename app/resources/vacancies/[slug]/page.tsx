@@ -16,6 +16,7 @@ import {
   Clock,
 } from "lucide-react";
 import { ButtonLink } from "@/components/ui";
+import Script from "next/script";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import SaveItemButtonContainer from "@/components/containers/SaveItemButtonContainer";
@@ -160,6 +161,48 @@ export default function VacancyDetailPage() {
   const methodValue = vacancy.applicationValue;
   const vacancyDescription = vacancy.description || "";
 
+  const vacancyUrl = localePath(`/resources/vacancies/${vacancy.slug}`);
+  const employmentType =
+    vacancy.type === "part_time" ? "PART_TIME"
+    : vacancy.type === "intern" ? "INTERN"
+    : vacancy.type === "volunteer" ? "VOLUNTEER"
+    : "FULL_TIME";
+
+  const salaryRange = vacancy.isPaid && vacancy.paymentMode === "range"
+    ? `${vacancy.paymentMin ?? 0}-${vacancy.paymentMax ?? 0}`
+    : vacancy.isPaid && vacancy.paymentMode === "fixed"
+      ? String(vacancy.paymentAmount ?? 0)
+      : undefined;
+
+  const jobPostingJsonLd = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'JobPosting',
+    title: vacancy.title,
+    description: vacancy.description,
+    datePosted: vacancy.createdAt,
+    validThrough: vacancy.applicationDeadline,
+    employmentType,
+    hiringOrganization: {
+      '@type': 'Organization',
+      name: vacancy.createdBy?.name || "Naməlum",
+    },
+    jobLocation: {
+      '@type': 'Place',
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: vacancy.address ?? undefined,
+        addressLocality: vacancy.city,
+        addressCountry: 'AZ',
+      },
+    },
+    baseSalary: salaryRange ? {
+      '@type': 'MonetaryAmount',
+      currency: 'AZN',
+      value: { '@type': 'QuantitativeValue', value: salaryRange, unitText: 'MONTH' },
+    } : undefined,
+    url: vacancyUrl.startsWith('http') ? vacancyUrl : `${process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'}${vacancyUrl}`,
+  });
+
   return (
     <>
       {vacancy.status === "approved" && (
@@ -170,6 +213,9 @@ export default function VacancyDetailPage() {
           selector="#vacancy-content"
         />
       )}
+      {/* JSON-LD JobPosting */}
+      <Script id="vacancy-jobposting-schema" type="application/ld+json" dangerouslySetInnerHTML={{ __html: jobPostingJsonLd }} />
+
       <DetailPageLayout
         backHref={localePath("/resources/vacancies")}
         backLabel="Bütün Vakansiyalar"

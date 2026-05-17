@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import Script from 'next/script'
 import DOMPurify from 'dompurify'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
@@ -15,6 +16,7 @@ import {
   ArrowLeft,
   Share2,
   Bookmark,
+  Home,
 } from 'lucide-react'
 import { Button, ButtonLink } from '@/components/ui'
 import { Card } from '@/components/ui/Card'
@@ -204,6 +206,51 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
 
   const hasBlocknoteContent = Boolean(blog.content && typeof blog.content === 'object')
 
+  const breadcrumbItems = [
+    { name: 'Ana səhifə', href: localePath('/') },
+    { name: 'Bloqlar', href: localePath('/blogs') },
+    { name: blog.title, href: localePath(`/blogs/${blog.slug}`) },
+  ]
+
+  const breadcrumbJsonLd = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: breadcrumbItems.map((item, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: item.name,
+      item: item.href,
+    })),
+  })
+
+  const articleJsonLd = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: blog.title,
+    description: blog.abstract || blog.title,
+    image: blog.featuredImage || `${process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'}/og-home.png`,
+    datePublished: publishedDate,
+    dateModified: blog.updatedAt || publishedDate,
+    author: {
+      '@type': 'Person',
+      name: blog.authorName || 'Anonim',
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'icma360',
+      logo: {
+        '@type': 'ImageObject',
+        url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'}/icma360_logo.png`,
+      },
+    },
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': `${process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'}/blogs/${blog.slug}`,
+    },
+    url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'}/blogs/${blog.slug}`,
+    keywords: blog.tags?.join(', '),
+  })
+
   const mainContent = (
     <div id="blog-content" ref={contentRef} className="prose prose-lg max-w-none space-y-8
       prose-h2:font-bold prose-h2:text-3xl prose-h2:text-slate-900 prose-h2:mt-12 prose-h2:mb-6
@@ -251,19 +298,23 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
 
       <div className="min-h-screen bg-white pt-20 pb-16 md:pb-20">
         <div className="max-w-4xl mx-auto px-4 md:px-6">
-          {/* Breadcrumbs & Back Button */}
-          <div className="flex items-center justify-between gap-6 mb-12 flex-col sm:flex-row">
-            <nav className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest order-2 sm:order-1">
-              <Link href={localePath('/')} className="hover:text-blue-600 transition-colors">
-                Ana səhifə
-              </Link>
-              <span className="text-slate-300">/</span>
-              <Link href={localePath('/blogs')} className="hover:text-blue-600 transition-colors">
-                Bloqlar
-              </Link>
-              <span className="text-slate-300">/</span>
-              <span className="text-slate-900 truncate">{blog.title}</span>
-            </nav>
+          {/* Breadcrumbs */}
+          <nav aria-label="Breadcrumb" className="flex items-center justify-between gap-6 mb-12 flex-col sm:flex-row">
+            <ol className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest order-2 sm:order-1" itemScope itemType="https://schema.org/BreadcrumbList">
+              {breadcrumbItems.map((item, i) => (
+                <li key={item.href} className="flex items-center gap-2" itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
+                  {i > 0 && <span className="text-slate-300" aria-hidden="true">/</span>}
+                  {i < breadcrumbItems.length - 1 ? (
+                    <Link href={item.href} className="hover:text-blue-600 transition-colors" itemProp="item">
+                      <span itemProp="name">{i === 0 && <Home className="inline w-3.5 h-3.5 mr-1" />}{item.name}</span>
+                    </Link>
+                  ) : (
+                    <span className="text-slate-900 truncate" itemProp="name">{item.name}</span>
+                  )}
+                  <meta itemProp="position" content={String(i + 1)} />
+                </li>
+              ))}
+            </ol>
             <ButtonLink
               href={backHref}
               variant="outline"
@@ -274,7 +325,13 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
             >
               Geri
             </ButtonLink>
-          </div>
+          </nav>
+
+          {/* JSON-LD Breadcrumbs */}
+          <Script id="blog-breadcrumb" type="application/ld+json" dangerouslySetInnerHTML={{ __html: breadcrumbJsonLd }} />
+
+          {/* JSON-LD Article Schema */}
+          <Script id="blog-article-schema" type="application/ld+json" dangerouslySetInnerHTML={{ __html: articleJsonLd }} />
 
           {/* Cover Image Card */}
           {blog.featuredImage && (
