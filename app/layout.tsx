@@ -1,6 +1,7 @@
 // @ts-ignore: allow side-effect import of global CSS without type declarations
 import "./globals.css"
 import type { Metadata, Viewport } from 'next'
+import { Inter } from 'next/font/google'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import AuthProvider from '@/components/AuthProvider'
@@ -16,6 +17,14 @@ import { ErrorBoundary } from '@/components/shared'
 import { generateSEOMetadata, generateOrganizationSchema, generateWebSiteSchema, generateLocalBusinessSchema, azerbaijanKeywords } from '@/lib/seo'
 import Script from 'next/script'
 import { Suspense } from 'react'
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+  preload: true,
+  fallback: ['system-ui', 'arial'],
+})
 
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'
 
@@ -63,7 +72,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="az" className="scroll-smooth">
+    <html lang="az" className={`${inter.variable} scroll-smooth`}>
       <head>
         {/* Structured Data - Organization */}
         <Script
@@ -99,17 +108,13 @@ export default function RootLayout({
         <meta name="theme-color" content="#2563eb" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         
-        {/* Additional SEO Meta Tags */}
-        <meta name="geo.region" content="AZ" />
-        <meta name="geo.placename" content="Baku" />
-        <meta name="geo.position" content="40.4093;49.8671" />
-        <meta name="ICBM" content="40.4093, 49.8671" />
-        
-        {/* Additional SEO Meta Tags */}
-        <meta name="geo.region" content="AZ" />
-        <meta name="geo.placename" content="Baku" />
-        <meta name="geo.position" content="40.4093;49.8671" />
-        <meta name="ICBM" content="40.4093, 49.8671" />
+         {/* Additional SEO Meta Tags */}
+         <meta name="geo.region" content="AZ" />
+         <meta name="geo.placename" content="Baku" />
+         <meta name="geo.position" content="40.4093;49.8671" />
+         <meta name="ICBM" content="40.4093, 49.8671" />
+         
+         {/* Language and Content */}
 
         {/* Language and Content */}
         <meta httpEquiv="content-language" content="az" />
@@ -141,7 +146,6 @@ export default function RootLayout({
         {/* Preconnect to critical third-party origins */}
         <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://grainy-gradients.vercel.app" />
         <link rel="preconnect" href="https://www.googletagmanager.com" />
 
         {/* FAQ Schema — helps earn Rich Snippet dropdowns */}

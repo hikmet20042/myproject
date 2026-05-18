@@ -23,7 +23,7 @@ export const Hero = ({ localePath, isOrganizationUser, stats }: HeroProps) => {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl">
           <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-blue-300 opacity-20 blur-[120px] animate-pulse" />
           <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-purple-300 opacity-20 blur-[120px]" />
-          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.2] mix-blend-overlay" />
+          <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.2] mix-blend-overlay" />
         </div>
       </div>
 
@@ -34,7 +34,7 @@ export const Hero = ({ localePath, isOrganizationUser, stats }: HeroProps) => {
               Gənclər üçün ən yeni platforma
             </Badge>
 
-            <h1 className="text-4xl font-black tracking-tight sm:text-6xl md:text-7xl lg:text-8xl mb-6 text-slate-900 leading-[1.05]">
+            <h1 className="text-[clamp(2rem,_3.4vw+1rem,_5rem)] font-black tracking-tight mb-6 text-slate-900 leading-[1.05]">
               Fürsətləri tap, <br />
               <span className="bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 bg-clip-text text-transparent drop-shadow-sm">
                 təşkilatlarla əlaqə qur,
@@ -42,7 +42,7 @@ export const Hero = ({ localePath, isOrganizationUser, stats }: HeroProps) => {
               təsirini böyüt.
             </h1>
 
-            <p className="max-w-2xl text-lg md:text-xl text-slate-600 font-medium mb-10 leading-relaxed">
+            <p className="max-w-2xl text-[clamp(1rem,_0.7vw+0.9rem,_1.25rem)] text-slate-600 font-medium mb-10 leading-relaxed">
               Vakansiyalar, tədbirlər və aktiv gənclər təşkilatları bir səhifədə. Karyerana və inkişafına dərhal başla!
             </p>
 

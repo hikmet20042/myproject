@@ -19,6 +19,7 @@ import OrganizationFollowButtonContainer from '@/components/containers/Organizat
 
 interface Organization { _id: string
   id?: string
+  slug?: string
   organizationName: string
   profileImage?: string
   organizationType?: string

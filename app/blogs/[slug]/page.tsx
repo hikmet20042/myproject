@@ -91,6 +91,7 @@ type Blog = {
   isAnonymous?: boolean
   submittedAt?: string
   date?: string
+  updatedAt?: string
   status?: string
   abstract?: string
   content?: any
@@ -343,6 +344,7 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
                   fill
                   className="object-cover"
                   priority
+                  decoding="async"
                 />
               </div>
             </Card>

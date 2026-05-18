@@ -206,7 +206,7 @@ export default function ListPageLayout({
             </div>
 
             {/* Grainy Texture for Premium Look */}
-            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.4] mix-blend-overlay" />
+            <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.4] mix-blend-overlay" />
           </div>
         </div>
 

@@ -25,7 +25,7 @@ export const StatsBar = ({ stats }: StatsBarProps) => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4 divide-x-0 md:divide-x divide-slate-100">
           {items.map((item, index) => (
             <div key={index} className="flex flex-col items-center text-center px-4 group">
-              <span className={`text-3xl md:text-4xl lg:text-5xl font-black mb-2 transition-transform duration-300 group-hover:scale-110 ${item.color}`}>
+              <span className="text-[clamp(2rem,_1.5vw_+_1.25rem,_2.5rem)] font-black mb-2 transition-transform duration-300 group-hover:scale-110 text-blue-600">
                 {item.value}+
               </span>
               <span className="text-xs md:text-sm font-bold text-slate-500 uppercase tracking-widest">

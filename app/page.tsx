@@ -681,7 +681,7 @@ export default function HomePage() {
       {/* How It Works - Restored Abstract Design */}
       <section className="relative z-10 py-32 container mx-auto px-4">
         <div className="relative overflow-hidden rounded-[4rem] bg-slate-900 p-10 md:p-20 shadow-2xl border border-white/10">
-          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.1] mix-blend-overlay" />
+            <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.1] mix-blend-overlay" />
           
           {/* Abstract glows inside dark container */}
           <div className="absolute -left-[10%] -top-[10%] h-[500px] w-[500px] rounded-full bg-blue-600 opacity-20 blur-[120px]" />

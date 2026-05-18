@@ -35,9 +35,9 @@ export default function Footer() {
   ]
 
   const socialLinks = [
-    { href: '#', platform: 'instagram' as const },
-    { href: '#', platform: 'twitter' as const },
-    { href: '#', platform: 'linkedin' as const },
+    { href: 'https://instagram.com/icma360', platform: 'instagram' as const },
+    { href: 'https://twitter.com/icma360', platform: 'twitter' as const },
+    { href: 'https://linkedin.com/company/icma360', platform: 'linkedin' as const },
     { href: 'https://github.com/hikmet20042/icma360', platform: 'github' as const },
   ]
 
@@ -133,7 +133,7 @@ export default function Footer() {
           <div className="flex flex-wrap items-center justify-center gap-6 md:gap-8">
              <div className="flex items-center gap-6">
                 <Link href={localePath('/privacy')} className="text-[10px] font-black text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest">Gizlilik</Link>
-                <Link href="#" className="text-[10px] font-black text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest">Şərtlər</Link>
+                 <Link href="#" className="text-[10px] font-black text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest" aria-label="Şərtlər (gələcək səhifə)">Şərtlər</Link>
              </div>
              <div className="h-5 w-px bg-slate-200 hidden sm:block" />
              <div className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-slate-50 border border-slate-200">
