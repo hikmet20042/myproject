@@ -1,24 +1,20 @@
 import { ImageResponse } from 'next/og'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { resolveEntityBySlugOrId } from '@/lib/identifier'
 
 export const runtime = 'edge'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
-export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params
+export default async function Image({ params }: { params: { slug: string } }) {
   try {
     const supabase = createSupabaseAdminClient()
-    const { data } = await supabase
-      .from('vacancies')
-      .select('title, organization, city, type')
-      .or(`slug.eq.${slug},id.eq.${slug}`)
-      .single()
+    const { data: resolved } = await resolveEntityBySlugOrId(supabase, 'vacancies', params.slug, 'id, title, organization, city, type')
 
-    const title = data?.title || 'Vakansiya'
-    const org = data?.organization || 'Təşkilat'
-    const city = data?.city || 'Bakı'
-    const type = data?.type || 'Tam ştat'
+    const title = resolved?.title || 'Vakansiya'
+    const org = (resolved as any)?.organization || 'Təşkilat'
+    const city = (resolved as any)?.city || 'Bakı'
+    const type = (resolved as any)?.type || 'Tam ştat'
 
     const typeLabels: Record<string, string> = {
       full_time: 'Tam ştat',

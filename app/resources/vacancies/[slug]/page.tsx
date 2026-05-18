@@ -3,23 +3,17 @@ import { notFound } from 'next/navigation'
 import { generateVacancyMetadata } from '@/lib/metadata/vacancies'
 import VacancyDetailClient from './VacancyDetailClient'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { resolveEntityBySlugOrId } from '@/lib/identifier'
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const { slug } = await params
-  return generateVacancyMetadata(slug)
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  return generateVacancyMetadata(params.slug)
 }
 
-export default async function VacancyDetailPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params
+export default async function VacancyDetailPage({ params }: { params: { slug: string } }) {
   const supabase = createSupabaseAdminClient()
+  const { data: resolved } = await resolveEntityBySlugOrId(supabase, 'vacancies', params.slug, 'id, slug, status, is_published')
 
-  const { data: resolved } = await supabase
-    .from('vacancies')
-    .select('id, slug, status, is_published')
-    .or(`slug.eq.${slug},id.eq.${slug}`)
-    .single()
-
-  if (!resolved || resolved.status !== 'approved' || !resolved.is_published) {
+  if (!resolved?.id || resolved.status !== 'approved' || !resolved.is_published) {
     notFound()
   }
 

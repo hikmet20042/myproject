@@ -1,27 +1,23 @@
 import { ImageResponse } from 'next/og'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { resolveEntityBySlugOrId } from '@/lib/identifier'
 
 export const runtime = 'edge'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
-export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params
+export default async function Image({ params }: { params: { slug: string } }) {
   try {
     const supabase = createSupabaseAdminClient()
-    const { data } = await supabase
-      .from('events')
-      .select('title, organization_name, event_date, event_type, location')
-      .or(`slug.eq.${slug},id.eq.${slug}`)
-      .single()
+    const { data: resolved } = await resolveEntityBySlugOrId(supabase, 'events', params.slug, 'id, title, organization_name, event_date, event_type, location')
 
-    const title = data?.title || 'Tədbir'
-    const org = data?.organization_name || 'Təşkilat'
-    const eventType = data?.event_type || 'Tədbir'
-    const location = data?.location?.city || 'Bakı'
+    const title = resolved?.title || 'Tədbir'
+    const org = (resolved as any)?.organization_name || 'Təşkilat'
+    const eventType = (resolved as any)?.event_type || 'Tədbir'
+    const location = ((resolved as any)?.location)?.city || 'Bakı'
     
-    const eventDate = data?.event_date 
-      ? new Date(data.event_date).toLocaleDateString('az-AZ', { day: 'numeric', month: 'long', year: 'numeric' })
+    const eventDate = (resolved as any)?.event_date 
+      ? new Date((resolved as any).event_date).toLocaleDateString('az-AZ', { day: 'numeric', month: 'long', year: 'numeric' })
       : ''
 
     const typeLabels: Record<string, string> = {

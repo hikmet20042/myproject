@@ -2,8 +2,8 @@ import { Metadata } from 'next'
 import { generateSEOMetadata, generateBreadcrumbSchema } from '@/lib/seo'
 import UserProfileClient from './UserProfileClient'
 
-export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }): Promise<Metadata> {
-  const { handle } = await params
+export async function generateMetadata({ params }: { params: { handle: string } }): Promise<Metadata> {
+  const { handle } = params
   return generateSEOMetadata({
     title: `İstifadəçi Profili | icma360`,
     description: `İstifadəçi profili haqqında məlumat. icma360 platformasında gənclərin profilləri və fəaliyyətləri.`,
@@ -23,7 +23,6 @@ export async function generateMetadata({ params }: { params: Promise<{ handle: s
   })
 }
 
-export default async function UserProfilePage({ params }: { params: Promise<{ handle: string }> }) {
-  await params
+export default function UserProfilePage({ params }: { params: { handle: string } }) {
   return <UserProfileClient />
 }

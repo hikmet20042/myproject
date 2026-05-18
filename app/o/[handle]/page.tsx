@@ -2,8 +2,8 @@ import { Metadata } from 'next'
 import { generateSEOMetadata, generateBreadcrumbSchema } from '@/lib/seo'
 import OrgProfileClient from './OrgProfileClient'
 
-export async function generateMetadata({ params }: { params: Promise<{ handle: string }> }): Promise<Metadata> {
-  const { handle } = await params
+export async function generateMetadata({ params }: { params: { handle: string } }): Promise<Metadata> {
+  const { handle } = params
   return generateSEOMetadata({
     title: `Təşkilat Profili | icma360`,
     description: `Təşkilat profili haqqında məlumat. icma360 platformasında təşkilatların fəaliyyəti, tədbirləri və vakansiyaları.`,
@@ -24,7 +24,6 @@ export async function generateMetadata({ params }: { params: Promise<{ handle: s
   })
 }
 
-export default async function OrgProfilePage({ params }: { params: Promise<{ handle: string }> }) {
-  await params
+export default function OrgProfilePage({ params }: { params: { handle: string } }) {
   return <OrgProfileClient />
 }

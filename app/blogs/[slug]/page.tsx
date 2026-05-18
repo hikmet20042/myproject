@@ -3,25 +3,19 @@ import { notFound } from 'next/navigation'
 import { generateBlogMetadata } from '@/lib/metadata/blogs'
 import BlogDetailClient from './BlogDetailClient'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { resolveEntityBySlugOrId } from '@/lib/identifier'
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const { slug } = await params
-  return generateBlogMetadata(slug)
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  return generateBlogMetadata(params.slug)
 }
 
-export default async function BlogDetailPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params
+export default async function BlogDetailPage({ params }: { params: { slug: string } }) {
   const supabase = createSupabaseAdminClient()
+  const { data: resolved } = await resolveEntityBySlugOrId(supabase, 'blogs', params.slug, 'id, slug, status')
 
-  const { data: resolved } = await supabase
-    .from('blogs')
-    .select('id, slug, status')
-    .or(`slug.eq.${slug},id.eq.${slug}`)
-    .single()
-
-  if (!resolved || resolved.status !== 'approved') {
+  if (!resolved?.id || resolved.status !== 'approved') {
     notFound()
   }
 
-  return <BlogDetailClient params={{ slug }} />
+  return <BlogDetailClient params={{ slug: params.slug }} />
 }

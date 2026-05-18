@@ -1,22 +1,18 @@
 import { ImageResponse } from 'next/og'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { resolveEntityBySlugOrId } from '@/lib/identifier'
 
 export const runtime = 'edge'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
-export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params
+export default async function Image({ params }: { params: { slug: string } }) {
   try {
     const supabase = createSupabaseAdminClient()
-    const { data } = await supabase
-      .from('blogs')
-      .select('title, author_name')
-      .or(`slug.eq.${slug},id.eq.${slug}`)
-      .single()
+    const { data: resolved } = await resolveEntityBySlugOrId(supabase, 'blogs', params.slug, 'id, title, author_name')
 
-    const title = data?.title || 'icma360 İcma Hekayəsi'
-    const author = data?.author_name || 'İcma Müəllifi'
+    const title = resolved?.title || 'icma360 İcma Hekayəsi'
+    const author = (resolved as any)?.author_name || 'İcma Müəllifi'
 
     return new ImageResponse(
       (
