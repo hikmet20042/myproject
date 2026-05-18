@@ -162,7 +162,7 @@ export default function OrganizationDetailPage() { const localePath = useLocaliz
                       alt={organization.organizationName}
                       fill
                       sizes="80px"
-                      className="object-cover"
+                      className="h-full w-full object-cover"
                     />
                   </div>
                 ) : (

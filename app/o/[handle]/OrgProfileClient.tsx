@@ -177,7 +177,7 @@ export default function PublicOrgProfilePage() {
           <Card className="mb-8 p-6 md:p-8">
             <div className="flex flex-col gap-6">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                   {org.profileImage ? (
                     <Image src={org.profileImage} alt={org.organizationName} fill sizes="64px" className="h-full w-full object-cover" />
                   ) : (
