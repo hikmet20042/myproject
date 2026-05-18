@@ -56,7 +56,9 @@ async function fetchDynamicPaths() {
 
 module.exports = {
   siteUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org',
-  generateRobotsTxt: true,
+  // ¬ next-sitemap will NOT write public/robots.txt — we manage it by hand
+  // in public/robots.txt so we can guarantee clean directives only.
+  generateRobotsTxt: false,
   sitemapSize: 5000,
   changefreq: 'daily',
   priority: 0.7,
