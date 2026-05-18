@@ -20,7 +20,7 @@ import { Suspense } from 'react'
 
 const inter = Inter({
   subsets: ['latin'],
-  display: 'swap',
+  display: 'optional',
   variable: '--font-inter',
   preload: true,
   fallback: ['system-ui', 'arial'],
