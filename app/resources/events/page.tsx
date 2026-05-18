@@ -15,18 +15,6 @@ import { useGlobalFeedback } from '@/hooks/useGlobalFeedback';
 import { useSession } from '@/lib/auth/client';
 import { AZERBAIJAN_CITIES, EVENT_TYPE_LABELS, EVENT_TYPE_VALUES, type EventTypeValue } from '@/lib/events/eventConfig';
 import { ContentCard } from '@/components/shared/ContentCard';
-import { generateSEOMetadata, azerbaijanKeywords } from '@/lib/seo';
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = generateSEOMetadata({
-  title: 'Tədbirlər — icma360 | Gənclər üçün Tədbirlər və Təlimlər',
-  description: 'Azərbaycanda gənclər üçün tədbirlər, təlimlər, konfranslar, vörkşoplar və networking imkanları. Öyrən, şəbəkələş və inkişaf et.',
-  keywords: [...azerbaijanKeywords, 'tədbirlər', 'təlimlər', 'konfranslar', 'vörkşoplar'],
-  canonical: '/resources/events',
-  ogImage: '/opengraph-image',
-  ogType: 'website',
-  locale: 'az_AZ',
-});
 
 export default function EventsPage() {
   const [searchTerm, setSearchTerm] = useState('');

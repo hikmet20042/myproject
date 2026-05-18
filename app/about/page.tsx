@@ -18,18 +18,6 @@ import { Shield,
   XCircle,
   ArrowRight,
   Users } from 'lucide-react'
-import { generateSEOMetadata, azerbaijanKeywords } from '@/lib/seo'
-import type { Metadata } from 'next'
-
-export const metadata: Metadata = generateSEOMetadata({
-  title: 'Haqqında — icma360 | Azərbaycanda Gənclər Platforması',
-  description: 'icma360 haqqında — Azərbaycanda gəncləri sosial təşəbbüslər, vakansiyalar, tədbirlər və inkişaf imkanları ilə birləşdirən rəqəmsal platforma.',
-  keywords: [...azerbaijanKeywords, 'haqqında', 'icma360 haqqında', 'platforma haqqında'],
-  canonical: '/about',
-  ogImage: '/opengraph-image',
-  ogType: 'website',
-  locale: 'az_AZ',
-})
 
 export default function About() { const localePath = useLocalizedPath()
   const { data: session } = useSession()

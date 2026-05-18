@@ -8,6 +8,7 @@ import { NotificationService } from '@/features/notifications/services/notificat
 import { getBlogStats } from '@/lib/blogStats';
 import { applyRateLimit, RATE_LIMIT_PRESETS } from '@/lib/rateLimit';
 import { validateRequestBody } from '@/lib/validation';
+import { submitBlogToIndexNow } from '@/lib/indexnow';
 
 const MAX_PAGE_SIZE = 50;
 
@@ -386,7 +387,9 @@ export async function POST(request: NextRequest) {
         description: blog.abstract || '',
         tags: Array.isArray(blog.tags) ? blog.tags : [],
         actionUrl: `/blogs/${blog.id}`,
-      })
+      });
+
+      void submitBlogToIndexNow(blog.slug || blog.id);
     }
 
     const successResp = successResponse({

@@ -6,6 +6,7 @@ import { NotificationService } from '@/features/notifications/services/notificat
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { buildVacancyDbPayload, mapVacancyRow, validateVacancyPayload } from '@/app/api/vacancies/helpers'
 import { applyRateLimit } from '@/lib/rateLimit'
+import { submitVacancyToIndexNow } from '@/lib/indexnow'
 
 // GET /api/vacancies - Get vacancies with filtering
 export async function GET(request: NextRequest) {
@@ -383,7 +384,9 @@ export async function POST(request: NextRequest) {
         description: populatedVacancy.description,
         tags: [],
         actionUrl: `/resources/vacancies/${populatedVacancy.slug || populatedVacancy.id}`,
-      })
+      });
+
+      void submitVacancyToIndexNow(populatedVacancy.slug || populatedVacancy.id);
     }
     
     const successResp = successResponse({

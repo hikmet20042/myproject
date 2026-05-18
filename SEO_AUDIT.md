@@ -11,6 +11,16 @@ This document outlines the SEO improvements made to the icma360 platform to maxi
 - **Fix**: Updated to `https://icma360.org/sitemap-0.xml`
 - **Impact**: Ensures search engines can properly crawl and index all pages
 
+### 2. IndexNow Integration (Bing, Yandex, etc.)
+- **Status**: ✅ Fully implemented
+- **Features**:
+  - Automatic URL submission when content is created/approved
+  - API endpoint for manual submissions: `/api/indexnow/submit`
+  - Key verification file: `/indexnow-key.txt`
+  - Integrated into blogs, vacancies, and events workflows
+- **Setup**: Run `npm run indexnow:setup` to generate API key
+- **Impact**: Instant indexing of new content by Bing, Yandex, and other IndexNow partners
+
 ### 2. Added Page-Specific Metadata
 Added comprehensive metadata to all key pages:
 
@@ -71,7 +81,14 @@ The site already has excellent structured data:
 
 ### High Priority
 
-1. **Google Search Console Setup**
+1. **IndexNow Setup** (✅ Implemented - needs activation)
+   - Run: `npm run indexnow:setup`
+   - This generates an API key and adds it to `.env.local`
+   - Register at https://www.bing.com/indexnow/getstarted
+   - Submit your site to Bing Webmaster Tools
+   - The key file will be available at: `https://icma360.org/indexnow-key.txt`
+
+2. **Google Search Console Setup**
    - Replace placeholder verification code in layout.tsx:
      ```html
      <meta name="google-site-verification" content="YOUR_GOOGLE_VERIFICATION_CODE" />

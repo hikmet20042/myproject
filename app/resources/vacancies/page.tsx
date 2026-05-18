@@ -12,18 +12,6 @@ import { ListPageLayout } from '@/components/layout';
 import { ApiError } from '@/lib/apiClient';
 import { getUserErrorMessage } from '@/lib/errorMessages';
 import { ContentCard } from '@/components/shared/ContentCard';
-import { generateSEOMetadata, azerbaijanKeywords } from '@/lib/seo';
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = generateSEOMetadata({
-  title: 'Vakansiyalar — icma360 | İş və Karyera İmkanları Azərbaycanda',
-  description: 'Azərbaycanda ən son iş elanları, könüllülük, təcrübə və tam/yarım ştat vakansiyalar. Karyerana başlamaq üçün ən yaxşı fürsətləri tap.',
-  keywords: [...azerbaijanKeywords, 'vakansiyalar', 'iş elanları', 'karyera', 'boş iş yerləri'],
-  canonical: '/resources/vacancies',
-  ogImage: '/opengraph-image',
-  ogType: 'website',
-  locale: 'az_AZ',
-});
 
 export default function VacanciesPage() {
   const localePath = useLocalizedPath();

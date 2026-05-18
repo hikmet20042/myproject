@@ -14,6 +14,7 @@ import {
   successResponse,
   validateEventInput,
 } from "@/app/api/events/helpers";
+import { submitEventToIndexNow } from "@/lib/indexnow";
 
 export async function GET(request: NextRequest) {
   try {
@@ -452,7 +453,12 @@ export async function POST(request: NextRequest) {
         isApprovedOrganization(session)
           ? organization?.data?.organization_name || 'Unknown organization'
           : session.user.name || 'Unknown submitter'
-      )
+      );
+    }
+
+    if (eventWithOrg.status === 'approved') {
+      const mappedEvent = mapEventToResponse(eventWithOrg || eventRow);
+      void submitEventToIndexNow(mappedEvent.slug || eventRow.id);
     }
 
     const successResp = successResponse(

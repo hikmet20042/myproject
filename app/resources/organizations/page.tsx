@@ -13,18 +13,6 @@ import { ListPageLayout } from '@/components/layout';
 import { useSession } from '@/lib/auth/client';
 import { OrganizationCard } from '@/components/shared/OrganizationCard';
 import { FOCUS_AREA_LABELS_AZ } from '@/lib/organizationTypes';
-import { generateSEOMetadata, azerbaijanKeywords } from '@/lib/seo';
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = generateSEOMetadata({
-  title: 'Təşkilatlar — icma360 | Azərbaycan Gənclər Təşkilatları və QHT-lər',
-  description: 'Azərbaycanda fəal gənclər təşkilatları və QHT-lər. Təşkilatları kəşf et, izlə və onlarla əlaqə qur.',
-  keywords: [...azerbaijanKeywords, 'təşkilatlar', 'QHT', 'qeyri-hökumət təşkilatları', 'gənclər təşkilatları'],
-  canonical: '/resources/organizations',
-  ogImage: '/opengraph-image',
-  ogType: 'website',
-  locale: 'az_AZ',
-});
 
 export default function OrganizationsPage() { 
   const localePath = useLocalizedPath();
