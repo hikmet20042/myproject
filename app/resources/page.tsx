@@ -7,6 +7,18 @@ import { ListPageLayout } from '@/components/layout'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useSession } from '@/lib/auth/client'
 import Link from 'next/link'
+import { generateSEOMetadata, azerbaijanKeywords } from '@/lib/seo'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = generateSEOMetadata({
+  title: 'Resurslar və İmkanlar — icma360 | İş, Təcrübə, Təlim və Tədbirlər',
+  description: 'Azərbaycanda gənclər üçün bütün iş, təcrübə, təlim, könüllülük və tədbir imkanları bir yerdə. Karyerana başlamaq üçün ən yaxşı resursları kəşf et.',
+  keywords: [...azerbaijanKeywords, 'resurslar', 'imkanlar', 'gənclər resursları'],
+  canonical: '/resources',
+  ogImage: '/opengraph-image',
+  ogType: 'website',
+  locale: 'az_AZ',
+})
 
 export default function ResourcesPage() {
   const localePath = useLocalizedPath()

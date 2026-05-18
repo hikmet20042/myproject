@@ -14,6 +14,18 @@ import { getUserErrorMessage } from '@/lib/errorMessages'
 import { logError } from '@/lib/logger'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { ContentCard } from '@/components/shared/ContentCard'
+import { generateSEOMetadata, azerbaijanKeywords } from '@/lib/seo'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = generateSEOMetadata({
+  title: 'İcma Bloqları — icma360 | Gənclərin Hekayələri və Təcrübələri',
+  description: 'Azərbaycan gənclərinin real təcrübələri, uğur hekayələri və faydalı məqalələri. Öz hekayəni paylaş və başqalarından öyrən.',
+  keywords: [...azerbaijanKeywords, 'bloq', 'hekayələr', 'gənc yazıları', 'təcrübə hekayələri'],
+  canonical: '/blogs',
+  ogImage: '/opengraph-image',
+  ogType: 'website',
+  locale: 'az_AZ',
+})
 
 interface CommunityBlog {
   id: string | number;

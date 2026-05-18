@@ -35,6 +35,23 @@ import {
   type EventTypeValue,
 } from "@/lib/events/eventConfig";
 
+// Note: Dynamic metadata for client components requires a server component wrapper.
+// For production, create a separate page.tsx (server component) that fetches data
+// and exports generateMetadata, then renders this client component as a child.
+// Example implementation in a server component:
+// export async function generateMetadata({ params }): Promise<Metadata> {
+//   const event = await fetchEventBySlug(params.slug)
+//   return generateSEOMetadata({
+//     title: `${event.title} — icma360`,
+//     description: event.description.substring(0, 160),
+//     keywords: [...azerbaijanKeywords, event.eventType, event.location?.city],
+//     canonical: `/resources/events/${event.slug}`,
+//     ogImage: event.imageUrl || '/opengraph-image',
+//     ogType: 'article',
+//     publishedTime: event.eventDate,
+//   })
+// }
+
 interface Event {
   _id: string;
   id: string;

@@ -28,5 +28,4 @@ Disallow: /edit/
 Disallow: /submit/
 Disallow: /profile/
 
-Sitemap: https://icma360.org/sitemap-0.xml
 Sitemap: https://icma360.org/sitemap.xml

@@ -96,10 +96,10 @@ export default function RootLayout({
         />
         
         {/* Google Search Console Verification */}
-        <meta name="google-site-verification" content="YOUR_GOOGLE_VERIFICATION_CODE" />
+        <meta name="google-site-verification" content="72jISXlnye8_KkJbfw1DULaxfUJaI33ZWBP3FkjImZU" />
         
         {/* Yandex Webmaster Verification (Important for Azerbaijan) */}
-        <meta name="yandex-verification" content="YOUR_YANDEX_VERIFICATION_CODE" />
+        <meta name="yandex-verification" content="e4d75a953ae18f65" />
         
         {/* Bing Webmaster Verification */}
         <meta name="msvalidate.01" content="YOUR_BING_VERIFICATION_CODE" />
@@ -119,7 +119,6 @@ export default function RootLayout({
         {/* Language and Content */}
         <meta httpEquiv="content-language" content="az" />
         <link rel="alternate" hrefLang="az" href={siteUrl} />
-        <link rel="alternate" hrefLang="en" href={siteUrl} />
         <link rel="alternate" hrefLang="x-default" href={siteUrl} />
 
         {/* Canonical Language Alternates for major pages */}
