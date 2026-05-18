@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
     // Fetch latest 50 published blog posts
     const { data: blogs, error } = await supabase
       .from('blogs')
-      .select('id, title, content_html, abstract, author_name, created_at, updated_at, tags')
+      .select('id, slug, title, content_html, abstract, author_name, created_at, updated_at, tags')
       .eq('status', 'approved')
       .order('created_at', { ascending: false })
       .limit(50)
@@ -115,8 +115,8 @@ export async function GET(request: NextRequest) {
     ${(blogs || []).map((blog: any) => `
     <item>
       <title><![CDATA[${blog.title}]]></title>
-      <link>${siteUrl}/blogs/${blog.id}</link>
-      <guid isPermaLink="true">${siteUrl}/blogs/${blog.id}</guid>
+      <link>${siteUrl}/blogs/${blog.slug}</link>
+      <guid isPermaLink="true">${siteUrl}/blogs/${blog.slug}</guid>
       <description><![CDATA[${blog.abstract || ''}]]></description>
       <content:encoded><![CDATA[${blog.content_html || ''}]]></content:encoded>
       <pubDate>${new Date(blog.created_at).toUTCString()}</pubDate>

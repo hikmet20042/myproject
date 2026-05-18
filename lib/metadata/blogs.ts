@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { generateSEOMetadata, generateArticleSchema } from '@/lib/seo'
+import { generateSEOMetadata, generateArticleSchema, generateSpeakableSchema } from '@/lib/seo'
 
 /**
  * Generate metadata for individual blog pages
@@ -83,7 +83,19 @@ export async function generateBlogMetadata(id: string): Promise<Metadata> {
       author: blog.authorName,
       publishedTime: blog.submittedAt || blog.createdAt,
       modifiedTime: blog.updatedAt,
-      structuredData: generateArticleSchema(blog),
+      structuredData: {
+        '@context': 'https://schema.org',
+        '@graph': [
+          generateArticleSchema(blog),
+          generateSpeakableSchema({
+            headline: blog.title,
+            text: excerpt,
+            url: `/blogs/${id}`,
+            datePublished: blog.submittedAt || blog.createdAt,
+            author: blog.authorName,
+          }),
+        ],
+      },
     })
   } catch (error) {
     console.error('Error generating blog metadata:', error)

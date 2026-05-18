@@ -17,7 +17,7 @@ async function fetchDynamicPaths() {
 
     const { data: vacancies, error: vacanciesError } = await supabase
       .from('vacancies')
-      .select('slug')
+      .select('slug, updated_at')
       .eq('status', 'approved')
       .limit(1000)
 
@@ -25,7 +25,7 @@ async function fetchDynamicPaths() {
 
     const { data: events, error: eventsError } = await supabase
       .from('events')
-      .select('slug')
+      .select('slug, updated_at')
       .eq('status', 'approved')
       .limit(1000)
 
@@ -33,7 +33,7 @@ async function fetchDynamicPaths() {
 
     const { data: blogs, error: blogsError } = await supabase
       .from('blogs')
-      .select('slug')
+      .select('slug, updated_at')
       .eq('status', 'approved')
       .limit(1000)
 
@@ -41,7 +41,7 @@ async function fetchDynamicPaths() {
 
     const { data: organizations, error: organizationsError } = await supabase
       .from('organization_profiles')
-      .select('slug')
+      .select('slug, updated_at')
       .eq('moderation_status', 'approved')
       .limit(1000)
 
@@ -56,12 +56,11 @@ async function fetchDynamicPaths() {
 
 module.exports = {
   siteUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org',
-  // ¬ next-sitemap will NOT write public/robots.txt — we manage it by hand
-  // in public/robots.txt so we can guarantee clean directives only.
   generateRobotsTxt: false,
   sitemapSize: 5000,
   changefreq: 'daily',
   priority: 0.7,
+  autoLastmod: true,
   exclude: [
     '/admin/*',
     '/api/*',
@@ -69,10 +68,16 @@ module.exports = {
     '/dashboard/*',
     '/edit/*',
     '/submit/*',
-    '/profile/*'
+    '/profile/*',
+    '/onboarding/*',
+    '/notifications/*',
+    '/saved/*',
+    '/organization/pending',
+    '/organization/profile',
+    '/search*',
+    '/indexnow-key.txt',
   ],
   
-  // Azerbaijani-only alternates
   alternateRefs: [
     {
       href: process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org',
@@ -86,42 +91,75 @@ module.exports = {
 
   additionalPaths: async (config) => {
     const paths = []
-    const siteUrl = config.siteUrl || 'https://icma360.org'
     
     // Static pages with high priority
     const staticPages = [
       { url: '/', priority: 1.0, changefreq: 'daily' },
       { url: '/resources', priority: 0.9, changefreq: 'daily' },
       { url: '/resources/organizations', priority: 0.8, changefreq: 'weekly' },
+      { url: '/resources/vacancies', priority: 0.9, changefreq: 'daily' },
+      { url: '/resources/events', priority: 0.8, changefreq: 'daily' },
+      { url: '/resources/materials', priority: 0.7, changefreq: 'weekly' },
       { url: '/blogs', priority: 0.8, changefreq: 'daily' },
-      { url: '/about', priority: 0.7, changefreq: 'weekly' },
+      { url: '/about', priority: 0.7, changefreq: 'monthly' },
+      { url: '/privacy', priority: 0.3, changefreq: 'monthly' },
     ]
     
     staticPages.forEach(page => {
-      paths.push(config.transform(config, page.url, page.priority, page.changefreq))
+      paths.push({
+        loc: page.url,
+        lastmod: new Date().toISOString(),
+        changefreq: page.changefreq,
+        priority: page.priority,
+        alternateRefs: config.alternateRefs ?? [],
+      })
     })
     
     // Fetch dynamic content
     const { vacancies, events, blogs, organizations } = await fetchDynamicPaths()
     
-    // Add vacancies (high priority for job listings)
+    // Add vacancies
     vacancies.forEach(vacancy => {
-      paths.push(config.transform(config, `/resources/vacancies/${vacancy.slug}`, 0.9, 'daily'))
+      paths.push({
+        loc: `/resources/vacancies/${vacancy.slug}`,
+        lastmod: vacancy.updated_at ? new Date(vacancy.updated_at).toISOString() : new Date().toISOString(),
+        changefreq: 'weekly',
+        priority: 0.9,
+        alternateRefs: config.alternateRefs ?? [],
+      })
     })
 
     // Add events
     events.forEach(event => {
-      paths.push(config.transform(config, `/resources/events/${event.slug}`, 0.8, 'daily'))
+      paths.push({
+        loc: `/resources/events/${event.slug}`,
+        lastmod: event.updated_at ? new Date(event.updated_at).toISOString() : new Date().toISOString(),
+        changefreq: 'weekly',
+        priority: 0.8,
+        alternateRefs: config.alternateRefs ?? [],
+      })
     })
 
     // Add blogs
     blogs.forEach(blog => {
-      paths.push(config.transform(config, `/blogs/${blog.slug}`, 0.7, 'weekly'))
+      paths.push({
+        loc: `/blogs/${blog.slug}`,
+        lastmod: blog.updated_at ? new Date(blog.updated_at).toISOString() : new Date().toISOString(),
+        changefreq: 'monthly',
+        priority: 0.7,
+        alternateRefs: config.alternateRefs ?? [],
+      })
     })
 
     // Add organizations
     organizations.forEach(organization => {
-      paths.push(config.transform(config, `/o/${organization.slug}`, 0.7, 'weekly'))
+      paths.push({
+        loc: `/o/${organization.slug}`,
+        lastmod: organization.updated_at ? new Date(organization.updated_at).toISOString() : new Date().toISOString(),
+        changefreq: 'monthly',
+        priority: 0.7,
+        alternateRefs: config.alternateRefs ?? [],
+      })
     })
     
     return paths
@@ -132,34 +170,23 @@ module.exports = {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/admin', '/api', '/auth', '/dashboard', '/edit', '/submit', '/profile']
+        disallow: ['/admin', '/api', '/auth', '/dashboard', '/edit', '/submit', '/profile', '/onboarding', '/notifications', '/saved']
       },
       {
         userAgent: 'Googlebot',
         allow: '/',
-        disallow: ['/admin', '/api', '/auth', '/dashboard', '/edit', '/submit', '/profile'],
+        disallow: ['/admin', '/api', '/auth', '/dashboard', '/edit', '/submit', '/profile', '/onboarding', '/notifications', '/saved'],
         crawlDelay: 0
       },
       {
         userAgent: 'bingbot',
         allow: '/',
-        disallow: ['/admin', '/api', '/auth', '/dashboard', '/edit', '/submit', '/profile'],
+        disallow: ['/admin', '/api', '/auth', '/dashboard', '/edit', '/submit', '/profile', '/onboarding', '/notifications', '/saved'],
         crawlDelay: 0
       }
     ],
     additionalSitemaps: [
       `${process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'}/sitemap.xml`,
     ]
-  },
-  
-  transform: async (config, path) => {
-    // Custom transform to add lastmod dates
-    return {
-      loc: path,
-      changefreq: config.changefreq,
-      priority: config.priority,
-      lastmod: config.autoLastmod ? new Date().toISOString() : undefined,
-      alternateRefs: config.alternateRefs ?? [],
-    }
   },
 }

@@ -1,5 +1,14 @@
 import { Metadata } from 'next'
 
+export {
+  validateSchemaData,
+  validateJsonLd,
+  validateSchemaGraph,
+  logSchemaValidation,
+  type SchemaValidationResult,
+  type SchemaValidationError,
+} from './seo/validate'
+
 export interface SEOConfig {
   title: string
   description: string
@@ -880,5 +889,28 @@ export function generateItemListSchema(data: {
         description: item.description,
       },
     })),
+  })
+}
+
+/**
+ * Generate Speakable structured data for voice assistants (Google Assistant, Alexa)
+ * Identifies content that can be read aloud
+ */
+export function generateSpeakableSchema(data: {
+  headline: string
+  text: string
+  url: string
+  datePublished?: string
+  author?: string
+}) {
+  return generateStructuredData('Article', {
+    headline: data.headline,
+    speakable: {
+      '@type': 'SpeakableSpecification',
+      cssSelector: ['article-headline', 'article-content'],
+    },
+    url: data.url,
+    datePublished: data.datePublished,
+    ...(data.author && { author: { '@type': 'Person', name: data.author } }),
   })
 }

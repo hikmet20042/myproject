@@ -102,7 +102,7 @@ export default function RootLayout({
         <meta name="yandex-verification" content="e4d75a953ae18f65" />
         
         {/* Bing Webmaster Verification */}
-        <meta name="msvalidate.01" content="YOUR_BING_VERIFICATION_CODE" />
+        <meta name="msvalidate.01" content={process.env.NEXT_PUBLIC_BING_VERIFICATION || ''} />
         
         {/* Theme Color */}
         <meta name="theme-color" content="#2563eb" />
@@ -115,19 +115,7 @@ export default function RootLayout({
          <meta name="ICBM" content="40.4093, 49.8671" />
          
          {/* Language and Content */}
-
-        {/* Language and Content */}
         <meta httpEquiv="content-language" content="az" />
-        <link rel="alternate" hrefLang="az" href={siteUrl} />
-        <link rel="alternate" hrefLang="x-default" href={siteUrl} />
-
-        {/* Canonical Language Alternates for major pages */}
-        <link rel="alternate" hrefLang="az" href={`${siteUrl}/about`} />
-        <link rel="alternate" hrefLang="az" href={`${siteUrl}/resources`} />
-        <link rel="alternate" hrefLang="az" href={`${siteUrl}/blogs`} />
-        <link rel="alternate" hrefLang="az" href={`${siteUrl}/resources/vacancies`} />
-        <link rel="alternate" hrefLang="az" href={`${siteUrl}/resources/events`} />
-        <link rel="alternate" hrefLang="az" href={`${siteUrl}/resources/organizations`} />
 
         {/* PWA App Install Banner / Related Application */}
         <meta name="mobile-web-app-capable" content="yes" />
