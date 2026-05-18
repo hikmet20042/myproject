@@ -125,15 +125,15 @@ export default function Footer() {
             <p className="text-slate-500 font-bold text-sm">
               © {currentYear} icma360. Bütün hüquqlar qorunur.
             </p>
-            <p className="text-xs text-slate-400 font-medium leading-relaxed">
+            <p className="text-xs text-slate-500 font-medium leading-relaxed">
               Gənclərin inkişafı və icma quruculuğu üçün <span className="text-slate-900 font-bold">Next.js</span> ilə hazırlanmışdır.
             </p>
           </div>
           
           <div className="flex flex-wrap items-center justify-center gap-6 md:gap-8">
              <div className="flex items-center gap-6">
-                <Link href={localePath('/privacy')} className="text-[10px] font-black text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest">Gizlilik</Link>
-                 <Link href="#" className="text-[10px] font-black text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-widest" aria-label="Şərtlər (gələcək səhifə)">Şərtlər</Link>
+                 <Link href={localePath('/privacy')} className="text-[10px] font-black text-slate-500 hover:text-blue-600 transition-colors uppercase tracking-widest">Gizlilik</Link>
+                 <Link href="#" className="text-[10px] font-black text-slate-500 hover:text-blue-600 transition-colors uppercase tracking-widest" aria-label="Şərtlər (gələcək səhifə)">Şərtlər</Link>
              </div>
              <div className="h-5 w-px bg-slate-200 hidden sm:block" />
              <div className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-slate-50 border border-slate-200">

@@ -63,7 +63,7 @@ export const OrganizationCard = ({ org, localePath, focusLabel }: OrganizationCa
             <ShieldCheck className="h-5 w-5 shrink-0 text-blue-500" />
           </h3>
         </Link>
-        <p className="mb-5 flex items-center gap-1.5 text-sm font-bold text-slate-400">
+        <p className="mb-5 flex items-center gap-1.5 text-sm font-bold text-slate-500">
           <MapPin className="h-4 w-4 text-blue-500" />
           {org.location?.city || 'Bakı, Azərbaycan'}
         </p>
@@ -82,7 +82,7 @@ export const OrganizationCard = ({ org, localePath, focusLabel }: OrganizationCa
             </Badge>
           ))}
           {org.focusAreas.length > 2 && (
-            <Badge variant="primary" size="sm" rounded={false} className="border-slate-100 bg-slate-50 px-2 text-[10px] font-black text-slate-400">
+            <Badge variant="primary" size="sm" rounded={false} className="border-slate-100 bg-slate-50 px-2 text-[10px] font-black text-slate-500">
               +{org.focusAreas.length - 2}
             </Badge>
           )}
