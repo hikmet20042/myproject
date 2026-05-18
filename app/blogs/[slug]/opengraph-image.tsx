@@ -5,13 +5,14 @@ export const runtime = 'edge'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
-export default async function Image({ params }: { params: { slug: string } }) {
+export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
   try {
     const supabase = createSupabaseAdminClient()
     const { data } = await supabase
       .from('blogs')
       .select('title, author_name')
-      .or(`slug.eq.${params.slug},id.eq.${params.slug}`)
+      .or(`slug.eq.${slug},id.eq.${slug}`)
       .single()
 
     const title = data?.title || 'icma360 İcma Hekayəsi'

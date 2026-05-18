@@ -161,6 +161,7 @@ export default function OrganizationDetailPage() { const localePath = useLocaliz
                       src={organization.profileImage}
                       alt={organization.organizationName}
                       fill
+                      sizes="80px"
                       className="object-cover"
                     />
                   </div>
