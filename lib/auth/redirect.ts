@@ -35,10 +35,20 @@ function isAllowedProtectedPath(session: ClientSession, path: string) {
   }
 
   if (path.startsWith('/dashboard')) {
+    if (session.user.organizationStatus === 'rejected') {
+      return false
+    }
     return canAccessDashboard(normalizedSession)
   }
 
   if (path.startsWith('/profile')) {
+    return true
+  }
+
+  if (path.startsWith('/organization')) {
+    if (session.user.organizationStatus === 'rejected' && !path.startsWith('/organization/pending')) {
+      return false
+    }
     return true
   }
 
@@ -48,6 +58,14 @@ function isAllowedProtectedPath(session: ClientSession, path: string) {
 function getDefaultAuthenticatedRedirect(session: ClientSession) {
   if (!session?.user?.accountType) {
     return '/onboarding/role'
+  }
+
+  if (session.user.accountType === 'organization' && session.user.organizationStatus === 'pending') {
+    return '/organization/pending'
+  }
+
+  if (session.user.accountType === 'organization' && session.user.organizationStatus === 'rejected') {
+    return '/organization/pending'
   }
 
   const normalizedSession = {
@@ -69,6 +87,16 @@ export function getPostLoginRedirect(session: ClientSession, callbackUrl?: strin
     return '/auth/signin'
   }
 
-  // Always redirect to home page after sign in
-  return '/'
+  if (!session.user.accountType) {
+    return '/onboarding/role'
+  }
+
+  const normalized = normalizeInternalCallbackUrl(callbackUrl)
+  if (normalized && normalized !== '/auth/signin' && normalized !== '/auth/register') {
+    if (isAllowedProtectedPath(session, normalized)) {
+      return normalized
+    }
+  }
+
+  return getDefaultAuthenticatedRedirect(session)
 }

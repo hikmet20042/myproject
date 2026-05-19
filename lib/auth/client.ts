@@ -71,16 +71,28 @@ export async function signInWithOAuth(provider: 'google', redirectTo?: string) {
 
 export async function signOut(redirectFn?: (path: string) => void) {
   const supabase = createSupabaseBrowserClient()
-  
-  // Dispatch force refresh event before signing out to clear any cached state
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('auth:force-refresh'))
+
+  try {
+    await supabase.auth.signOut()
+  } catch (error) {
+    console.error('[auth] Sign out error:', error)
+    if (typeof window !== 'undefined') {
+      try {
+        Object.keys(window.localStorage).forEach((key) => {
+          if (key.startsWith('sb-')) {
+            window.localStorage.removeItem(key)
+          }
+        })
+      } catch {
+        // localStorage may be unavailable
+      }
+    }
   }
-  
-  await supabase.auth.signOut()
-  
-  // Redirect to home page after sign out
+
+  const target = '/auth/signin'
   if (redirectFn) {
-    redirectFn('/')
+    redirectFn(target)
+  } else if (typeof window !== 'undefined') {
+    window.location.href = target
   }
 }

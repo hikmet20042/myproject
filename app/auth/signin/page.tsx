@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useRef } from "react";
 import {
   Eye,
   EyeOff,
@@ -29,6 +29,9 @@ function SignInContent() {
   const urlError = searchParams?.get("error");
   const urlMessage = searchParams?.get("message");
   const { showError, showInfo } = useGlobalFeedback();
+  const hasShownUrlErrorRef = useRef(false);
+  const hasShownUrlMessageRef = useRef(false);
+  const [dismissedUrlError, setDismissedUrlError] = useState(false);
 
   const resolvedUrlErrorMessage =
     urlError === "CredentialsSignin"
@@ -42,24 +45,33 @@ function SignInContent() {
             : "";
 
   const verificationRequired =
-    error === "Daxil olmadan əvvəl e-poçtunu təsdiqlə" || urlError === "Verification";
+    !dismissedUrlError && (
+      error === "Daxil olmadan əvvəl e-poçtunu təsdiqlə" || urlError === "Verification"
+    );
 
   useEffect(() => {
     if (error) showError(error);
   }, [error, showError]);
 
   useEffect(() => {
-    if (resolvedUrlErrorMessage) showError(resolvedUrlErrorMessage);
+    if (resolvedUrlErrorMessage && !hasShownUrlErrorRef.current) {
+      hasShownUrlErrorRef.current = true;
+      showError(resolvedUrlErrorMessage);
+    }
   }, [resolvedUrlErrorMessage, showError]);
 
   useEffect(() => {
-    if (urlMessage) showInfo(urlMessage);
+    if (urlMessage && !hasShownUrlMessageRef.current) {
+      hasShownUrlMessageRef.current = true;
+      showInfo(urlMessage);
+    }
   }, [urlMessage, showInfo]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setError("");
+    setDismissedUrlError(true);
   };
 
   const handleCredentialsSignIn = async (e: React.FormEvent) => {
@@ -90,23 +102,20 @@ function SignInContent() {
         return;
       }
     } catch (error: any) {
-      // Catch any thrown errors and display them
       setError(error?.message || "Daxil olma zamanı xəta baş verdi");
       setLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
     try {
-      setGoogleLoading(true);
       await signInWithOAuth(
         "google",
         `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeCallbackUrl)}`,
       );
     } catch (error: any) {
-      // Catch Google OAuth errors
       setError(error?.message || "Google ilə daxil olma zamanı xəta baş verdi");
-    } finally {
       setGoogleLoading(false);
     }
   };
@@ -146,7 +155,17 @@ function SignInContent() {
             </div>
 
             {verificationRequired && (
-              <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+              <div className="relative mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                <button
+                  type="button"
+                  className="absolute right-3 top-3 text-amber-600 hover:text-amber-800"
+                  onClick={() => setDismissedUrlError(true)}
+                  aria-label="Bağla"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
                 <strong>{"E-poçt təsdiqlənməyib."}</strong>{" "}
                 {"Daxil olmadan əvvəl e-poçtunu təsdiqləməlisən. "}
                 <Link

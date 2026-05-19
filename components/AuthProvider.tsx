@@ -65,9 +65,11 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<ClientSession>(null)
   const [status, setStatus] = useState<SessionStatus>('loading')
   const [isSessionReady, setIsSessionReady] = useState(false)
+  const [syncError, setSyncError] = useState<string | null>(null)
   const previousStatusRef = useRef<SessionStatus>('loading')
   const isMountedRef = useRef(false)
   const isSyncingRef = useRef(false)
+  const isInitialMountRef = useRef(true)
   const accountSnapshotRef = useRef<
     Map<
       string,
@@ -182,7 +184,10 @@ export default function AuthProvider({ children }: AuthProviderProps) {
     }
 
     isSyncingRef.current = true
-    setIsSessionReady(false)
+    setSyncError(null)
+    if (isInitialMountRef.current) {
+      setIsSessionReady(false)
+    }
 
     try {
       const user = authUser === undefined
@@ -230,8 +235,13 @@ export default function AuthProvider({ children }: AuthProviderProps) {
       if (DEBUG_AUTH_CLIENT) {
         console.error('[auth] Sync error:', error)
       }
+      setSyncError('Auth session erroru. Səhifəni yeniləyin.')
+      if (isInitialMountRef.current) {
+        setIsSessionReady(false)
+      }
     } finally {
       isSyncingRef.current = false
+      isInitialMountRef.current = false
     }
   }, [applyAuthState, getAccountSnapshot, supabase])
 
@@ -321,19 +331,18 @@ export default function AuthProvider({ children }: AuthProviderProps) {
   }, [session?.user?.id, status])
 
   useEffect(() => {
-    if (!supabase || !pathname) {
+    if (!syncError || typeof window === 'undefined') {
       return
     }
 
-    const isProtectedRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/admin')
-    if (!isProtectedRoute || status !== 'authenticated' || !isSessionReady || !session?.user) {
-      return
-    }
+    const toastTimeout = setTimeout(() => {
+      setSyncError(null)
+    }, 5000)
 
-    if (getSnapshotIsStale(session.user.id)) {
-      void refreshSession()
+    return () => {
+      clearTimeout(toastTimeout)
     }
-  }, [getSnapshotIsStale, isSessionReady, pathname, refreshSession, session?.user, status, supabase])
+  }, [syncError])
 
   useEffect(() => {
     if (!supabase || status !== 'authenticated' || !isSessionReady || !session?.user?.id) {
@@ -346,13 +355,17 @@ export default function AuthProvider({ children }: AuthProviderProps) {
       }
     }
 
-    checkStale()
+    const isProtectedRoute = pathname?.startsWith('/dashboard') || pathname?.startsWith('/admin')
+    if (isProtectedRoute) {
+      checkStale()
+    }
+
     const interval = window.setInterval(checkStale, 60_000)
 
     return () => {
       window.clearInterval(interval)
     }
-  }, [getSnapshotIsStale, isSessionReady, refreshSession, session?.user?.id, status, supabase])
+  }, [getSnapshotIsStale, isSessionReady, pathname, refreshSession, session?.user?.id, status, supabase])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -454,8 +467,13 @@ export default function AuthProvider({ children }: AuthProviderProps) {
       } else {
         window.sessionStorage.removeItem(AUTH_CALLBACK_STORAGE_KEY)
       }
+
+      if (status === 'authenticated' && isSessionReady) {
+        redirectInProgressRef.current = false
+        hasRedirectedRef.current = false
+      }
     }
-  }, [pathname, searchParams])
+  }, [isSessionReady, pathname, searchParams, status])
 
   useEffect(() => {
     if (typeof window === 'undefined') {

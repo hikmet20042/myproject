@@ -163,8 +163,6 @@ export async function GET(request: NextRequest) {
     .eq('id', data.user.id)
     .maybeSingle()
 
-  const isNewUserRow = !existingUser
-
   // Extract name from Google profile with comprehensive fallback chain
   const metadata = data.user.user_metadata || {}
   const googleName = metadata.name || metadata.full_name || metadata.display_name || ''
@@ -203,5 +201,9 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(new URL(safeNext, url.origin))
+  const finalNext = !isFirstTimeUser && safeNext.startsWith('/onboarding')
+    ? '/'
+    : safeNext
+
+  return NextResponse.redirect(new URL(finalNext, url.origin))
 }

@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { handleApiRequest, withRateLimitHeaders } from '@/lib/apiHelpers'
 import { ORGANIZATION_TYPE_VALUES } from '@/lib/organizationTypes'
+import { MIN_DESCRIPTION_LENGTH } from '@/lib/constants/onboarding'
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,67 +15,68 @@ export async function POST(request: NextRequest) {
     if (result instanceof Response) return result
 
     const { session, rateLimitHeaders } = result
+    if (!session?.user) {
+      return withRateLimitHeaders(errorResponse('Auth session tapılmadı.', 'AUTH_ERROR', {}, 401), rateLimitHeaders)
+    }
     const body = await request.json()
     const organizationName = String(body?.organizationName || '').trim()
     const organizationType = String(body?.organizationType || '').trim()
     const description = String(body?.description || '').trim()
 
     if (!organizationName || organizationName.length < 3) {
-      return withRateLimitHeaders(errorResponse('Təşkilat adı minimum 3 simvol olmalıdır.', 'API_ERROR', {}, 400), rateLimitHeaders)
+      return withRateLimitHeaders(errorResponse('Təşkilat adı minimum 3 simvol olmalıdır.', 'VALIDATION_ERROR', {}, 400), rateLimitHeaders)
     }
     if (!ORGANIZATION_TYPE_VALUES.includes(organizationType as any)) {
-      return withRateLimitHeaders(errorResponse('Kateqoriya seçimi etibarsızdır.', 'API_ERROR', {}, 400), rateLimitHeaders)
+      return withRateLimitHeaders(errorResponse('Kateqoriya seçimi etibarsızdır.', 'VALIDATION_ERROR', {}, 400), rateLimitHeaders)
     }
-    if (!description || description.length < 20) {
-      return withRateLimitHeaders(errorResponse('Qısa təsvir minimum 20 simvol olmalıdır.', 'API_ERROR', {}, 400), rateLimitHeaders)
+    if (!description || description.length < MIN_DESCRIPTION_LENGTH) {
+      return withRateLimitHeaders(errorResponse(`Qısa təsvir minimum ${MIN_DESCRIPTION_LENGTH} simvol olmalıdır.`, 'VALIDATION_ERROR', {}, 400), rateLimitHeaders)
     }
 
     const supabase = createSupabaseAdminClient()
+    const userId = session.user.id
 
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('name')
-      .eq('id', session!.user.id)
-      .single()
+    const { data: existingAccount } = await supabase
+      .from('accounts')
+      .select('account_type')
+      .eq('id', userId)
+      .maybeSingle()
 
-    const currentName = existingUser?.name || ''
-    const nameLooksIncomplete = !currentName || !currentName.includes(' ') || currentName.includes('@')
-    if (nameLooksIncomplete) {
-      await supabase
-        .from('users')
-        .update({ name: organizationName, updated_at: new Date().toISOString() })
-        .eq('id', session!.user.id)
+    if (existingAccount?.account_type === 'organization') {
+      return withRateLimitHeaders(successResponse({ message: 'Organization onboarding already completed', redirect: '/dashboard' }), rateLimitHeaders)
     }
 
     const { error: accountError } = await supabase
       .from('accounts')
       .update({ account_type: 'organization', updated_at: new Date().toISOString() })
-      .eq('id', session!.user.id)
+      .eq('id', userId)
     if (accountError) {
-      return withRateLimitHeaders(errorResponse(accountError.message, 'API_ERROR', {}, 500), rateLimitHeaders)
+      console.error('Account update error:', accountError)
+      return withRateLimitHeaders(errorResponse('Hesab yenilənə bilmədi.', 'DATABASE_ERROR', {}, 500), rateLimitHeaders)
     }
 
     const { error: orgError } = await supabase
       .from('organization_profiles')
       .upsert(
         {
-          account_id: session!.user.id,
+          account_id: userId,
           organization_name: organizationName,
           organization_type: organizationType,
           description,
-          moderation_status: 'approved',
-          is_verified: true,
+          moderation_status: 'pending',
+          is_verified: false,
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'account_id' },
       )
     if (orgError) {
-      return withRateLimitHeaders(errorResponse(orgError.message, 'API_ERROR', {}, 500), rateLimitHeaders)
+      console.error('Organization profile error:', orgError)
+      return withRateLimitHeaders(errorResponse('Təşkilat profili yaradıla bilmədi.', 'DATABASE_ERROR', {}, 500), rateLimitHeaders)
     }
 
-    return withRateLimitHeaders(successResponse({ message: 'Organization onboarding completed' }), rateLimitHeaders)
+    return withRateLimitHeaders(successResponse({ message: 'Organization onboarding completed', redirect: '/organization/pending' }), rateLimitHeaders)
   } catch (error) {
     console.error('Organization onboarding error:', error)
-    return errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    return errorResponse('Daxili server xətası', 'INTERNAL_ERROR', {}, 500)
   }
 }
