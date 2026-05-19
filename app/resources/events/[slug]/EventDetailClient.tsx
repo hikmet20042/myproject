@@ -3,21 +3,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
 import {
   Calendar,
   MapPin,
   Users,
   Clock,
-  ExternalLink,
   Tag,
-  Sparkles,
-  TrendingUp,
 } from "lucide-react";
-import { Button, ButtonLink } from "@/components/ui";
-import { Card, CardContent } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
+import { ButtonLink } from "@/components/ui";
+import { Card } from "@/components/ui/Card";
 import Script from "next/script";
 import SaveItemButtonContainer from "@/components/containers/SaveItemButtonContainer";
 import ViewTracker from "@/components/ViewTracker";
@@ -30,10 +24,6 @@ import {
   resolveEventIdentifier,
 } from "@/lib/eventQueries";
 import { DetailPageLayout } from "@/components/layout";
-import {
-  EVENT_TYPE_LABELS,
-  type EventTypeValue,
-} from "@/lib/events/eventConfig";
 
 interface Event {
   _id: string;
@@ -147,27 +137,6 @@ export default function EventDetailPage() {
     });
   };
 
-  const formatDateTime = (dateString: string) => {
-    if (!dateString) return "Məlumat yoxdur";
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "Etibarsız tarix";
-    return date.toLocaleDateString("az-AZ", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const slugifyCategory = (s: string) =>
-    s
-      .toString()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "")
-      .replace(/_+/g, "_");
-
   const getCategoryLabel = (val: string) => {
     const labels: Record<string, string> = {
       "Human Rights": "İnsan hüquqları",
@@ -193,23 +162,6 @@ export default function EventDetailPage() {
     if (type === "physical") return "Fiziki";
     if (type === "hybrid") return "Hibrid";
     return type;
-  };
-
-  const getEventTypeLabel = (type: string) => {
-    if (!type) return "Tədbir";
-    return EVENT_TYPE_LABELS[type as EventTypeValue] || type;
-  };
-
-  const getCategoryVariant = (category: string): 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info' => {
-    const variantMap: Record<string, 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info'> = {
-      seminar: 'primary',
-      workshop: 'secondary',
-      conference: 'info',
-      webinar: 'warning',
-      social: 'success',
-      cultural: 'danger',
-    };
-    return variantMap[category] || 'primary';
   };
 
   const isDeadlinePassed = (deadline: string) => {
@@ -306,49 +258,50 @@ export default function EventDetailPage() {
         ]}
         pageType="event"
         title={event.title}
+        coverImage={event.imageUrl}
         metadata={
           <div className="flex flex-wrap items-center gap-6 text-sm">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600">
-                <Tag className="h-5 w-5" />
+              <div className="h-9 w-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                <Tag className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   Kateqoriya
                 </p>
-                <p className="text-slate-900 font-black">
+                <p className="text-slate-900 font-semibold">
                   {getCategoryLabel(event.category)}
                 </p>
               </div>
             </div>
 
-            <div className="h-8 w-px bg-slate-100 hidden md:block" />
+            <div className="h-8 w-px bg-slate-200 hidden md:block" />
 
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600">
-                <Calendar className="h-5 w-5" />
+              <div className="h-9 w-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                <Calendar className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   Tarix
                 </p>
-                <p className="text-slate-900 font-black">
+                <p className="text-slate-900 font-semibold">
                   {formatDate(event.eventDate)}
                 </p>
               </div>
             </div>
 
-            <div className="h-8 w-px bg-slate-100 hidden md:block" />
+            <div className="h-8 w-px bg-slate-200 hidden md:block" />
 
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600">
-                <MapPin className="h-5 w-5" />
+              <div className="h-9 w-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                <MapPin className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   Məkan
                 </p>
-                <p className="text-slate-900 font-black">
+                <p className="text-slate-900 font-semibold">
                   {event.location?.city || "Bakı, Azərbaycan"}
                 </p>
               </div>
@@ -356,26 +309,15 @@ export default function EventDetailPage() {
           </div>
         }
         mainContent={
-          <div className="space-y-12">
-            {event.imageUrl && (
-              <div className="relative h-[400px] w-full rounded-[2.5rem] overflow-hidden shadow-2xl">
-                <Image
-                  src={event.imageUrl}
-                  alt={event.title}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-            )}
-
+          <div className="space-y-10">
             <div
               id="event-content"
-              className="prose prose-xl max-w-none
-              prose-headings:font-black prose-headings:text-slate-900
+              className="prose prose-lg max-w-none
+              prose-headings:font-bold prose-headings:text-slate-900
               prose-p:text-slate-600 prose-p:leading-relaxed
             "
             >
-              <h2 className="text-3xl font-black text-slate-900 mb-6">
+              <h2 className="text-2xl font-bold text-slate-900 mb-4">
                 Tədbir haqqında
               </h2>
               {eventDescription.split("\n").map((paragraph, index) => (
@@ -384,26 +326,34 @@ export default function EventDetailPage() {
             </div>
 
             {event.tags && event.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 pt-8 border-t border-slate-50">
-                {event.tags.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="px-4 py-2 rounded-xl bg-slate-50 border border-slate-100 text-sm font-black text-slate-500 uppercase tracking-wider"
-                  >
-                    #{tag}
-                  </span>
-                ))}
+              <div className="pt-8 border-t border-slate-200">
+                <h3 className="text-xl font-bold text-slate-900 mb-5 flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                    <Tag className="h-4 w-4" />
+                  </div>
+                  Teqlər
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {event.tags.map((tag, index) => (
+                    <span
+                      key={index}
+                      className="px-3 py-1.5 rounded-lg bg-slate-50 text-sm font-medium text-slate-600"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
           </div>
         }
         actionSection={
-          <div className="flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="max-w-md text-center md:text-left">
-              <h3 className="text-2xl font-black mb-2 text-white">
+              <h3 className="text-xl font-bold mb-1 text-slate-900">
                 İştirak etmək istəyirsən?
               </h3>
-              <p className="text-slate-400 font-medium">
+              <p className="text-slate-600">
                 Bu fürsəti qaçırma, dərhal müraciət et və icmaya qoşul.
               </p>
             </div>
@@ -413,91 +363,97 @@ export default function EventDetailPage() {
                   href={event.applicationLink!}
                   variant="white-on-dark"
                   size="lg"
-                  className="w-full md:w-auto rounded-2xl px-12 py-4 font-black"
+                  className="w-full md:w-auto rounded-xl px-10 py-3.5 font-bold"
                   external
                 >
                   Müraciət et
                 </ButtonLink>
               ) : (
-                <p className="text-sm font-bold text-rose-400">
+                <p className="text-sm font-medium text-rose-600">
                   Müraciət linki tapılmadı.
                 </p>
               )}
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+              <p className="text-xs font-medium text-slate-500">
                 {event.views || 0} baxış
               </p>
             </div>
           </div>
         }
         sidebar={
-          <div className="space-y-8">
-            {/* Quick Info Card */}
-            <Card className="p-8">
-              <h3 className="text-xl font-black text-slate-900 mb-8 flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
-                  <Clock className="h-5 w-5" />
+          <div className="space-y-6">
+            <Card className="p-6">
+              <h3 className="text-lg font-bold text-slate-900 mb-5 flex items-center gap-3">
+                <div className="h-9 w-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                  <Clock className="h-4 w-4" />
                 </div>
                 Məlumatlar
               </h3>
-              <div className="space-y-6">
-                <div className="flex gap-4">
-                  <div className="space-y-1">
-                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
-                      Başlama vaxtı
-                    </p>
-                    <p className="text-slate-900 font-black">
-                      {formatDate(event.eventDate)}
-                    </p>
-                    <p className="text-sm font-bold text-slate-500">
-                      {formatTime(event.eventDate)}
-                    </p>
-                  </div>
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    Başlama vaxtı
+                  </p>
+                  <p className="text-slate-900 font-semibold">
+                    {formatDate(event.eventDate)}
+                  </p>
+                  <p className="text-sm font-medium text-slate-500">
+                    {formatTime(event.eventDate)}
+                  </p>
                 </div>
                 {event.endDate && (
                   <div className="space-y-1">
-                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                       Bitmə vaxtı
                     </p>
-                    <p className="text-slate-900 font-black">
+                    <p className="text-slate-900 font-semibold">
                       {formatDate(event.endDate)}
                     </p>
                   </div>
                 )}
                 <div className="space-y-1">
-                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                     Format
                   </p>
-                  <p className="text-slate-900 font-black">
+                  <p className="text-slate-900 font-semibold">
                     {getLocationTypeLabel(locationType)}
                   </p>
                 </div>
                 {event.maxParticipants > 0 && (
                   <div className="space-y-1">
-                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                       Limit
                     </p>
-                    <p className="text-slate-900 font-black">
+                    <p className="text-slate-900 font-semibold">
                       {event.maxParticipants} iştirakçı
                     </p>
                   </div>
                 )}
+
+                <div className="pt-4 border-t border-slate-200">
+                  <SaveItemButtonContainer
+                    itemId={event.id}
+                    itemType="event"
+                    itemTitle={event.title}
+                    size="md"
+                    className="w-full"
+                  />
+                </div>
               </div>
             </Card>
 
-            {/* Organizer Card */}
-            <Card className="p-8">
-              <h3 className="text-xl font-black text-slate-900 mb-8 flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-                  <Users className="h-5 w-5" />
+            <Card className="p-6">
+              <h3 className="text-lg font-bold text-slate-900 mb-5 flex items-center gap-3">
+                <div className="h-9 w-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                  <Users className="h-4 w-4" />
                 </div>
                 Təşkilatçı
               </h3>
-              <div className="space-y-6">
-                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100">
-                  <p className="text-lg font-black text-slate-900 leading-tight mb-1">
+              <div className="space-y-4">
+                <div className="p-4 rounded-lg bg-slate-50">
+                  <p className="text-sm font-semibold text-slate-900 leading-tight mb-1">
                     {event.organizationName || "Naməlum təşkilat"}
                   </p>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                  <p className="text-xs font-medium text-slate-500">
                     {event.createdBy?.name}
                   </p>
                 </div>
@@ -509,7 +465,7 @@ export default function EventDetailPage() {
                     )}
                     variant="outline"
                     size="sm"
-                    className="w-full rounded-xl font-black py-3 border-2"
+                    className="w-full rounded-lg font-semibold py-2.5"
                   >
                     Profilə bax
                   </ButtonLink>

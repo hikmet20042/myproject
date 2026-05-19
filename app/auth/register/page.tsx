@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react'
@@ -26,6 +26,9 @@ export default function RegisterPage() {
   const [isRedirecting, setIsRedirecting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const listenerRef = useRef<ReturnType<typeof supabase.auth.onAuthStateChange> | null>(null)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const supabase = createSupabaseBrowserClient()
 
   useEffect(() => {
     if (errors.submit) showError(errors.submit)
@@ -35,16 +38,26 @@ export default function RegisterPage() {
     if (isRedirecting) showInfo('Hesab yaradıldı, yönləndirilir...')
   }, [isRedirecting, showInfo])
 
-  const waitForSession = async (timeoutMs = 3000, intervalMs = 250) => {
-    const supabase = createSupabaseBrowserClient()
-    const startedAt = Date.now()
-
-    while (Date.now() - startedAt < timeoutMs) {
-      const { data } = await supabase.auth.getSession()
-      if (data?.session) return true
-      await new Promise((resolve) => setTimeout(resolve, intervalMs))
+  useEffect(() => {
+    return () => {
+      listenerRef.current?.data.subscription.unsubscribe()
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
     }
-    return false
+  }, [])
+
+  const waitForSessionWithListener = (onTimeout: () => void) => {
+    listenerRef.current = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        listenerRef.current?.data.subscription.unsubscribe()
+        if (timeoutRef.current) clearTimeout(timeoutRef.current)
+        router.replace(localePath('/onboarding/role'))
+      }
+    })
+
+    timeoutRef.current = setTimeout(() => {
+      listenerRef.current?.data.subscription.unsubscribe()
+      onTimeout()
+    }, 5000)
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,17 +114,12 @@ export default function RegisterPage() {
       }
 
       setIsRedirecting(true)
-      const hasSession = await waitForSession(3000, 250)
-      if (hasSession) {
-        router.replace(localePath('/onboarding/role'))
-        return
-      }
-
-      const pendingEmail = encodeURIComponent(formData.email.trim().toLowerCase())
-      router.replace(localePath(`/auth/verify-email?pending=1&email=${pendingEmail}`))
+      waitForSessionWithListener(() => {
+        const pendingEmail = encodeURIComponent(formData.email.trim().toLowerCase())
+        router.replace(localePath(`/auth/verify-email?pending=1&email=${pendingEmail}`))
+      })
     } catch {
       setErrors({ submit: 'Xəta baş verdi. Zəhmət olmasa yenidən cəhd edin.' })
-    } finally {
       setLoading(false)
     }
   }

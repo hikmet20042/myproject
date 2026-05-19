@@ -3,22 +3,16 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  Calendar,
-  DollarSign,
-  ExternalLink,
-  Building,
-  CheckCircle,
-  FileText,
-  Mail,
-  Eye,
   MapPin,
   Briefcase,
   Clock,
+  CheckCircle,
+  FileText,
+  DollarSign,
 } from "lucide-react";
 import { ButtonLink } from "@/components/ui";
 import Script from "next/script";
-import { Card, CardContent } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
+import { Card } from "@/components/ui/Card";
 import SaveItemButtonContainer from "@/components/containers/SaveItemButtonContainer";
 import ViewTracker from "@/components/ViewTracker";
 import { LoadingState, ErrorState } from "@/components/shared";
@@ -124,13 +118,6 @@ export default function VacancyDetailPage() {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  const getTypeVariant = (type: string): 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info' => {
-    if (type === "full_time") return 'success';
-    if (type === "part_time") return 'secondary';
-    if (type === "volunteer") return 'primary';
-    if (type === "intern") return 'warning';
-    return 'primary';
-  };
   const getTypeLabel = (type: string) => {
     if (type === "full_time") return "Full-time";
     if (type === "part_time") return "Part-time";
@@ -227,50 +214,51 @@ export default function VacancyDetailPage() {
         ]}
         pageType="vacancy"
         title={vacancy.title}
+        coverImage={vacancy.imageUrl || undefined}
         metadata={
           <div className="flex flex-wrap items-center gap-6 text-sm">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 font-black">
+              <div className="h-9 w-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-sm">
                 {vacancy.createdBy?.name?.charAt(0).toUpperCase() || "V"}
               </div>
               <div>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   Təşkilatçı
                 </p>
-                <p className="text-slate-900 font-black">
+                <p className="text-slate-900 font-semibold">
                   {vacancy.createdBy?.name || "Naməlum"}
                 </p>
               </div>
             </div>
 
-            <div className="h-8 w-px bg-slate-100 hidden md:block" />
+            <div className="h-8 w-px bg-slate-200 hidden md:block" />
 
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600">
-                <MapPin className="h-5 w-5" />
+              <div className="h-9 w-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                <MapPin className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   Məkan
                 </p>
-                <p className="text-slate-900 font-black">
+                <p className="text-slate-900 font-semibold">
                   {vacancy.city}
                   {vacancy.address ? `, ${vacancy.address}` : ""}
                 </p>
               </div>
             </div>
 
-            <div className="h-8 w-px bg-slate-100 hidden md:block" />
+            <div className="h-8 w-px bg-slate-200 hidden md:block" />
 
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600">
-                <Briefcase className="h-5 w-5" />
+              <div className="h-9 w-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                <Briefcase className="h-4 w-4" />
               </div>
               <div>
-                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   İş növü
                 </p>
-                <p className="text-slate-900 font-black">
+                <p className="text-slate-900 font-semibold">
                   {getTypeLabel(vacancy.type)}
                 </p>
               </div>
@@ -278,16 +266,16 @@ export default function VacancyDetailPage() {
 
             {vacancy.isPaid && (
               <>
-                <div className="h-8 w-px bg-slate-100 hidden md:block" />
+                <div className="h-8 w-px bg-slate-200 hidden md:block" />
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-                    <DollarSign className="h-5 w-5" />
+                  <div className="h-9 w-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                    <DollarSign className="h-4 w-4" />
                   </div>
                   <div>
-                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                       Maaş
                     </p>
-                    <p className="text-slate-900 font-black">
+                    <p className="text-slate-900 font-semibold">
                       {vacancy.paymentMode === "fixed"
                         ? `${vacancy.paymentAmount} AZN`
                         : `${vacancy.paymentMin} - ${vacancy.paymentMax} AZN`}
@@ -299,40 +287,39 @@ export default function VacancyDetailPage() {
           </div>
         }
         mainContent={
-          <div className="space-y-12">
-            <div
-              id="vacancy-content"
-              className="prose prose-xl max-w-none
-              prose-headings:font-black prose-headings:text-slate-900
-              prose-p:text-slate-600 prose-p:leading-relaxed
-            "
-            >
-              <h2 className="text-3xl font-black text-slate-900 mb-6">
+          <div className="space-y-10">
+            <div className="rounded-xl border border-slate-200 p-6 md:p-8">
+              <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                  <FileText className="h-4 w-4" />
+                </div>
                 İş təsviri
               </h2>
-              {vacancyDescription.split("\n").map((paragraph, index) => (
-                <p key={index}>{paragraph}</p>
-              ))}
+              <div className="text-slate-600 leading-relaxed space-y-3">
+                {vacancyDescription.split("\n").map((paragraph, index) => (
+                  paragraph.trim() && <p key={index}>{paragraph}</p>
+                ))}
+              </div>
             </div>
 
             {vacancy.requirements?.length > 0 && (
-              <div className="pt-10 border-t border-slate-50">
-                <h3 className="text-2xl font-black text-slate-900 mb-6 flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-                    <CheckCircle className="h-5 w-5" />
+              <div className="rounded-xl border border-slate-200 p-6 md:p-8">
+                <h3 className="text-lg font-bold text-slate-900 mb-5 flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                    <CheckCircle className="h-4 w-4" />
                   </div>
                   Tələblər
                 </h3>
-                <ul className="grid gap-4">
+                <ul className="space-y-3">
                   {vacancy.requirements.map((item, index) => (
                     <li
                       key={index}
-                      className="flex items-start gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100 font-medium text-slate-700"
+                      className="flex items-start gap-3"
                     >
-                      <span className="h-6 w-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">
+                      <span className="h-5 w-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
                         {index + 1}
                       </span>
-                      {item}
+                      <span className="text-slate-700">{item}</span>
                     </li>
                   ))}
                 </ul>
@@ -340,21 +327,21 @@ export default function VacancyDetailPage() {
             )}
 
             {vacancy.responsibilities?.length > 0 && (
-              <div className="pt-10 border-t border-slate-50">
-                <h3 className="text-2xl font-black text-slate-900 mb-6 flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-                    <FileText className="h-5 w-5" />
+              <div className="rounded-xl border border-slate-200 p-6 md:p-8">
+                <h3 className="text-lg font-bold text-slate-900 mb-5 flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                    <Briefcase className="h-4 w-4" />
                   </div>
                   Məsuliyyətlər
                 </h3>
-                <ul className="grid gap-4">
+                <ul className="space-y-3">
                   {vacancy.responsibilities.map((item, index) => (
                     <li
                       key={index}
-                      className="flex items-start gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100 font-medium text-slate-700"
+                      className="flex items-start gap-3"
                     >
-                      <span className="h-2 w-2 rounded-full bg-blue-400 shrink-0 mt-2.5" />
-                      {item}
+                      <span className="h-1.5 w-1.5 rounded-full bg-blue-400 shrink-0 mt-2" />
+                      <span className="text-slate-700">{item}</span>
                     </li>
                   ))}
                 </ul>
@@ -363,23 +350,23 @@ export default function VacancyDetailPage() {
           </div>
         }
         actionSection={
-          <div className="flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="max-w-md text-center md:text-left">
-              <h3 className="text-2xl font-black mb-2 text-white">
+              <h3 className="text-xl font-bold mb-1 text-slate-900">
                 Müraciət etməyə hazırsan?
               </h3>
-              <p className="text-slate-400 font-medium text-lg">
+              <p className="text-slate-600">
                 Bu komandanın bir hissəsi olmaq fürsətini qaçırma.
               </p>
             </div>
-            <div className="w-full md:w-auto flex flex-col items-center gap-4">
+            <div className="w-full md:w-auto flex flex-col items-center gap-3">
               {method === "link" && methodValue && (
                 <ButtonLink
                   href={methodValue}
                   external
                   variant="white-on-dark"
                   size="lg"
-                  className="w-full md:w-auto rounded-2xl px-12 py-4 font-black"
+                  className="w-full md:w-auto rounded-xl px-10 py-3.5 font-bold"
                 >
                   Dərhal müraciət et
                 </ButtonLink>
@@ -393,56 +380,56 @@ export default function VacancyDetailPage() {
                   }
                   variant="white-on-dark"
                   size="lg"
-                  className="w-full md:w-auto rounded-2xl px-12 py-4 font-black"
+                  className="w-full md:w-auto rounded-xl px-10 py-3.5 font-bold"
                 >
                   {method === "email"
                     ? "E-poçt ilə müraciət"
                     : "Zəng ilə müraciət"}
                 </ButtonLink>
               )}
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+              <p className="text-xs font-medium text-slate-500">
                 {vacancy.views || 0} baxış
               </p>
             </div>
           </div>
         }
         sidebar={
-          <div className="space-y-8">
-            <Card className="p-8">
-              <h3 className="text-xl font-black text-slate-900 mb-8 flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-                  <Clock className="h-5 w-5" />
+          <div className="space-y-6">
+            <Card className="p-6">
+              <h3 className="text-lg font-bold text-slate-900 mb-5 flex items-center gap-3">
+                <div className="h-9 w-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                  <Clock className="h-4 w-4" />
                 </div>
                 Məlumatlar
               </h3>
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <div className="space-y-1">
-                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                     Son müraciət tarixi
                   </p>
                   <p
-                    className={`text-xl font-black ${isDeadlinePassed ? "text-rose-600" : "text-slate-900"}`}
+                    className={`text-lg font-bold ${isDeadlinePassed ? "text-rose-600" : "text-slate-900"}`}
                   >
                     {formatDate(vacancy.applicationDeadline)}
                   </p>
                   {!isDeadlinePassed && (
                     <p
-                      className={`text-sm font-bold ${isDeadlineNear ? "text-orange-500" : "text-slate-500"}`}
+                      className={`text-sm font-medium ${isDeadlineNear ? "text-orange-500" : "text-slate-500"}`}
                     >
                       {daysUntilDeadline} gün qalıb
                     </p>
                   )}
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                     Yaş aralığı
                   </p>
-                  <p className="text-xl font-black text-slate-900">
+                  <p className="text-lg font-bold text-slate-900">
                     {vacancy.ageMin} - {vacancy.ageMax}
                   </p>
                 </div>
 
-                <div className="pt-6 border-t border-slate-50">
+                <div className="pt-4 border-t border-slate-200">
                   <SaveItemButtonContainer
                     itemId={vacancy.id}
                     itemType="vacancy"

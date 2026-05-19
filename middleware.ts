@@ -102,75 +102,76 @@ async function checkAuthorization(pathWithoutLanguage: string, pathname: string,
       return NextResponse.redirect(signInUrl)
     }
 
-    if (user) {
-      const { data: account } = await supabase
-        .from('accounts')
-        .select('account_type')
-        .eq('id', user.id)
-        .maybeSingle()
-
-      const accountType = account?.account_type ?? null
-      const isOnboardingRoute = pathWithoutLanguage.startsWith('/onboarding')
-
-      if (!accountType && !isOnboardingRoute) {
-        return NextResponse.redirect(new URL('/onboarding/role', req.url))
-      }
-
-      if (accountType === 'user' && isOnboardingRoute) {
-        return NextResponse.redirect(new URL('/', req.url))
-      }
-
-      if (accountType === 'organization') {
-        const { data: organizationProfile } = await supabase
-          .from('organization_profiles')
-          .select('moderation_status')
-          .eq('account_id', user.id)
+      if (user) {
+        const { data: account } = await supabase
+          .from('accounts')
+          .select('account_type')
+          .eq('id', user.id)
           .maybeSingle()
 
-        if (!organizationProfile && pathWithoutLanguage !== '/onboarding/organization') {
-          return NextResponse.redirect(new URL('/onboarding/organization', req.url))
+        const accountType = account?.account_type ?? null
+        const isOnboardingRoute = pathWithoutLanguage.startsWith('/onboarding')
+
+        if (!accountType && !isOnboardingRoute) {
+          return NextResponse.redirect(new URL('/onboarding/role', req.url))
         }
 
-        if (isOnboardingRoute && organizationProfile) {
-          return NextResponse.redirect(new URL('/dashboard', req.url))
+        if (accountType === 'user' && isOnboardingRoute) {
+          return NextResponse.redirect(new URL('/', req.url))
         }
-      }
 
-      const shouldCheckOrganizationState =
-        APPROVED_ORGANIZATION_ONLY_PREFIXES.some(prefix => pathWithoutLanguage.startsWith(prefix)) ||
-        pathWithoutLanguage.startsWith('/organization')
+        let organizationProfile: { moderation_status: string | null } | null = null
 
-      if (shouldCheckOrganizationState) {
         if (accountType === 'organization') {
-          const { data: organizationProfile } = await supabase
+          const { data: orgProfile } = await supabase
             .from('organization_profiles')
             .select('moderation_status')
             .eq('account_id', user.id)
             .maybeSingle()
+          organizationProfile = orgProfile
 
-          const organizationStatus = organizationProfile?.moderation_status
-          const isPendingOrganization = organizationStatus === 'pending'
-          const isApprovedOnlyRoute = APPROVED_ORGANIZATION_ONLY_PREFIXES.some(prefix =>
-            pathWithoutLanguage.startsWith(prefix)
-          )
+          if (!organizationProfile && pathWithoutLanguage !== '/onboarding/organization') {
+            return NextResponse.redirect(new URL('/onboarding/organization', req.url))
+          }
 
-          // Pending organizations can access organization pending/profile pages,
-          // but must not access approved-only routes such as dashboard.
-          if (isPendingOrganization && isApprovedOnlyRoute) {
-            return NextResponse.redirect(new URL('/organization/pending', req.url))
+          if (isOnboardingRoute && organizationProfile) {
+            const orgStatus = organizationProfile.moderation_status
+            if (orgStatus === 'pending' || orgStatus === 'rejected') {
+              return NextResponse.redirect(new URL('/organization/pending', req.url))
+            }
+            return NextResponse.redirect(new URL('/dashboard', req.url))
+          }
+
+          const shouldCheckOrganizationState =
+            APPROVED_ORGANIZATION_ONLY_PREFIXES.some(prefix => pathWithoutLanguage.startsWith(prefix)) ||
+            pathWithoutLanguage.startsWith('/organization')
+
+          if (shouldCheckOrganizationState) {
+            const organizationStatus = organizationProfile?.moderation_status
+            const isPendingOrganization = organizationStatus === 'pending'
+            const isApprovedOnlyRoute = APPROVED_ORGANIZATION_ONLY_PREFIXES.some(prefix =>
+              pathWithoutLanguage.startsWith(prefix)
+            )
+
+            if (isPendingOrganization && isApprovedOnlyRoute) {
+              return NextResponse.redirect(new URL('/organization/pending', req.url))
+            }
           }
         }
-      }
 
-      // Regular-user-only routes: block organizations and redirect to dashboard
-      const REGULAR_USER_ONLY_PREFIXES = ['/profile', '/submit/blog']
-      const isRegularUserOnlyRoute = REGULAR_USER_ONLY_PREFIXES.some(prefix =>
-        pathWithoutLanguage.startsWith(prefix)
-      )
+        // Regular-user-only routes: block organizations and redirect appropriately
+        const REGULAR_USER_ONLY_PREFIXES = ['/profile', '/submit/blog']
+        const isRegularUserOnlyRoute = REGULAR_USER_ONLY_PREFIXES.some(prefix =>
+          pathWithoutLanguage.startsWith(prefix)
+        )
 
-      if (isRegularUserOnlyRoute && accountType === 'organization') {
-        return NextResponse.redirect(new URL('/dashboard', req.url))
-      }
+        if (isRegularUserOnlyRoute && accountType === 'organization') {
+          const orgStatus = organizationProfile?.moderation_status
+          if (orgStatus === 'pending' || orgStatus === 'rejected') {
+            return NextResponse.redirect(new URL('/organization/pending', req.url))
+          }
+          return NextResponse.redirect(new URL('/dashboard', req.url))
+        }
 
       // Organization-only routes: block regular users and redirect to home
       const isOrganizationOnlyRoute = ORGANIZATION_ONLY_PREFIXES.some(prefix =>

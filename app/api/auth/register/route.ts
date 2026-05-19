@@ -148,8 +148,10 @@ export async function POST(request: NextRequest) {
     }
     console.error('Registration error:', error)
     const response = errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
-    for (const [key, value] of Object.entries(rateLimitHeaders)) {
-      response.headers.set(key, value)
+    if (rateLimitHeaders) {
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
     }
     return response
   }

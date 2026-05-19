@@ -73,6 +73,9 @@ export async function GET(request: NextRequest) {
     const limit = Number.parseInt(searchParams.get('limit') || '10', 10);
     const search = searchParams.get('search');
     const tags = searchParams.get('tags');
+    const sortBy = searchParams.get('sortBy') || 'newest';
+    const dateFrom = searchParams.get('dateFrom');
+    const dateTo = searchParams.get('dateTo');
     const status = 'approved';
 
     if (!Number.isFinite(page) || page < 1) {
@@ -86,7 +89,7 @@ export async function GET(request: NextRequest) {
 
     // Generate cache key
     const tagsArray = tags ? tags.split(',').map(tag => tag.trim()) : undefined;
-    const cacheKey = generateCacheKey.blogs(page, limit, search || undefined, tagsArray, status);
+    const cacheKey = generateCacheKey.blogs(page, limit, search || undefined, tagsArray, status, sortBy || undefined, dateFrom || undefined, dateTo || undefined);
     
     // Try to get from cache first
     const cachedResult = await withCache(
@@ -96,9 +99,7 @@ export async function GET(request: NextRequest) {
         let queryBuilder = supabase
           .from('blogs_with_stats')
           .select('*', { count: 'exact' })
-          .eq('status', status)
-          .order('created_at', { ascending: false })
-          .range(skip, skip + limit - 1);
+          .eq('status', status);
 
         if (search && search.trim()) {
           queryBuilder = queryBuilder.or(`title.ilike.%${search.trim()}%,content_html.ilike.%${search.trim()}%,abstract.ilike.%${search.trim()}%`);
@@ -107,6 +108,28 @@ export async function GET(request: NextRequest) {
           const tagArray = tags.split(',').map(tag => tag.trim());
           queryBuilder = queryBuilder.overlaps('tags', tagArray);
         }
+        if (dateFrom) {
+          queryBuilder = queryBuilder.gte('created_at', `${dateFrom}T00:00:00`);
+        }
+        if (dateTo) {
+          queryBuilder = queryBuilder.lte('created_at', `${dateTo}T23:59:59`);
+        }
+
+        switch (sortBy) {
+          case 'oldest':
+            queryBuilder = queryBuilder.order('created_at', { ascending: true });
+            break;
+          case 'most-viewed':
+            queryBuilder = queryBuilder.order('real_views', { ascending: false });
+            break;
+          case 'most-liked':
+            queryBuilder = queryBuilder.order('real_likes', { ascending: false });
+            break;
+          default:
+            queryBuilder = queryBuilder.order('created_at', { ascending: false });
+        }
+
+        queryBuilder = queryBuilder.range(skip, skip + limit - 1);
 
         const { data: blogs, count: total } = await queryBuilder;
 

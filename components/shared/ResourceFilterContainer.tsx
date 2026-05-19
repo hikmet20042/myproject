@@ -33,38 +33,38 @@ export function ResourceFilterContainer({
   return (
     <div className="w-full max-w-5xl mx-auto space-y-4">
       {/* Main Bar: Search + Filter Toggle */}
-      <div className="relative group">
-        <div className="absolute -inset-1 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-[2rem] blur opacity-25 group-hover:opacity-75 transition duration-1000"></div>
-        <Card className="relative flex flex-col md:flex-row items-center gap-3 rounded-[1.5rem] md:rounded-full p-2 pl-2 md:pl-6 shadow-xl shadow-slate-200/40 backdrop-blur-xl">
-          <div className="flex-1 w-full">
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <div className="rounded-full bg-white shadow-lg shadow-slate-200/30 border border-slate-200">
             {searchInput}
           </div>
-          
-          {hasAdditionalFilters && (
-            <Button
-              variant="outline"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className={`gap-2 px-6 py-3 rounded-xl md:rounded-full text-sm font-black w-full md:w-auto ${
-                isExpanded 
-                  ? 'bg-slate-900 text-white shadow-lg border-slate-900' 
-                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
-              }`}
-            >
-              {isExpanded ? <X className="w-4 h-4" /> : <SlidersHorizontal className="w-4 h-4" />}
-              {isExpanded ? 'Bağla' : 'Filtrlər'}
-            </Button>
-          )}
-        </Card>
+        </div>
+        
+        {hasAdditionalFilters && (
+          <Button
+            variant="outline"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className={`shrink-0 gap-2 px-5 h-12 min-w-[120px] justify-center rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
+              isExpanded 
+                ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' 
+                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+            }`}
+          >
+            {isExpanded ? <X className="w-4 h-4" /> : <SlidersHorizontal className="w-4 h-4" />}
+            {isExpanded ? 'Bağla' : 'Filtrlər'}
+          </Button>
+        )}
       </div>
 
       {/* Collapsible Panel */}
       {hasAdditionalFilters && (
         <div
-          className={`transition-all duration-500 ease-in-out overflow-hidden ${
-            isExpanded ? 'max-h-[1000px] opacity-100 translate-y-0' : 'max-h-0 opacity-0 -translate-y-4 pointer-events-none'
+          className={`transition-[opacity,transform] duration-300 ease-in-out ${
+            isExpanded ? 'opacity-100 translate-y-0' : 'max-h-0 opacity-0 -translate-y-2 pointer-events-none overflow-hidden'
           }`}
+          style={{ maxHeight: isExpanded ? '1000px' : '0' }}
         >
-          <Card className="bg-white/80 backdrop-blur-md rounded-[2rem] p-8 shadow-lg shadow-slate-200/30">
+          <Card className="bg-white rounded-2xl p-8 shadow-lg shadow-slate-200/30">
             <div className="flex items-center gap-3 mb-6 pb-6 border-b border-slate-50">
                <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
                   <Filter className="w-5 h-5" />

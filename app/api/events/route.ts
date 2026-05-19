@@ -15,6 +15,7 @@ import {
   validateEventInput,
 } from "@/app/api/events/helpers";
 import { submitEventToIndexNow } from "@/lib/indexnow";
+import { cache, generateCacheKey, withCache } from "@/lib/cache";
 
 export async function GET(request: NextRequest) {
   try {
@@ -80,75 +81,82 @@ export async function GET(request: NextRequest) {
     const orderField = sortFieldMap[sortBy] || "event_date";
     const ascending = sortOrder !== -1;
 
-    let query = supabase
-      .from("events_with_stats")
-      .select("*", {
-        count: "exact",
-      })
-      .order(orderField, { ascending })
-      .range(skip, skip + limit - 1);
+    const cacheKey = generateCacheKey.events(page, limit, search || undefined, eventType || undefined, city || undefined, category || undefined, sortBy, dateFrom || undefined, dateTo || undefined);
 
-    if (adminView) {
-      if (status === "approved" || status === "pending" || status === "rejected") {
-        query = query.eq("status", status);
+    const cachedResult = await withCache(
+      cache.events,
+      cacheKey,
+      async () => {
+        let query = supabase
+          .from("events_with_stats")
+          .select("*", {
+            count: "exact",
+          })
+          .order(orderField, { ascending })
+          .range(skip, skip + limit - 1);
+
+        if (adminView) {
+          if (status === "approved" || status === "pending" || status === "rejected") {
+            query = query.eq("status", status);
+          }
+        } else if (actualCreatedBy) {
+          if (status === "approved" || status === "pending" || status === "rejected") {
+            query = query.eq("status", status);
+          }
+        } else {
+          query = query.eq("status", "approved").eq("is_published", true);
+        }
+
+        if (category && category !== "all") {
+          query = query.eq("category", category);
+        }
+
+        if (eventType && eventType !== "all") {
+          query = query.eq("event_type", eventType);
+        }
+
+        if (city && city !== "all") {
+          query = query.ilike("location->>city", `%${city}%`);
+        }
+
+        if (dateFrom) {
+          const start = new Date(dateFrom);
+          if (!Number.isNaN(start.getTime())) {
+            query = query.gte("event_date", start.toISOString());
+          }
+        }
+
+        if (dateTo) {
+          const end = new Date(`${dateTo}T23:59:59.999Z`);
+          if (!Number.isNaN(end.getTime())) {
+            query = query.lte("event_date", end.toISOString());
+          }
+        }
+
+        if (search) {
+          query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
+        }
+
+        if (actualCreatedBy) {
+          query = query.or(`created_by.eq.${actualCreatedBy},created_by_organization.eq.${actualCreatedBy}`);
+        }
+
+        if (organizationId) {
+          query = query.eq("created_by_organization", organizationId);
+        }
+
+        const { data: eventRows, error, count } = await query;
+
+        if (error) {
+          throw new Error(error.message)
+        }
+
+        return { eventRows: eventRows || [], total: count || 0 }
       }
-    } else if (actualCreatedBy) {
-      if (status === "approved" || status === "pending" || status === "rejected") {
-        query = query.eq("status", status);
-      }
-    } else {
-      query = query.eq("status", "approved").eq("is_published", true);
-    }
+    )
 
-    if (category && category !== "all") {
-      query = query.eq("category", category);
-    }
-
-    if (eventType && eventType !== "all") {
-      query = query.eq("event_type", eventType);
-    }
-
-    if (city && city !== "all") {
-      query = query.ilike("location->>city", `%${city}%`);
-    }
-
-    if (dateFrom) {
-      const start = new Date(dateFrom);
-      if (!Number.isNaN(start.getTime())) {
-        query = query.gte("event_date", start.toISOString());
-      }
-    }
-
-    if (dateTo) {
-      const end = new Date(`${dateTo}T23:59:59.999Z`);
-      if (!Number.isNaN(end.getTime())) {
-        query = query.lte("event_date", end.toISOString());
-      }
-    }
-
-    if (search) {
-      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
-    }
-
-    if (actualCreatedBy) {
-      query = query.or(`created_by.eq.${actualCreatedBy},created_by_organization.eq.${actualCreatedBy}`);
-    }
-
-    if (organizationId) {
-      query = query.eq("created_by_organization", organizationId);
-    }
-
-    const { data: eventRows, error, count } = await query;
-
-    if (error) {
-      const response = errorResponse("Failed to fetch events", 500)
-      for (const [key, value] of Object.entries(rateLimitHeaders)) {
-        response.headers.set(key, value)
-      }
-      return response
-    }
-
-    const rows = eventRows || []
+    const { eventRows, total } = cachedResult as { eventRows: any[], total: number }
+    const rows = eventRows
 
     const creatorUserIds = Array.from(
       new Set(rows.map((e: any) => e.created_by).filter(Boolean))
@@ -231,7 +239,6 @@ export async function GET(request: NextRequest) {
 
     const eventsWithOrgNames = hydratedRows.map(mapEventToResponse)
     
-    const total = count || 0;
     const payload: Record<string, any> = {
       events: eventsWithOrgNames,
       pagination: {

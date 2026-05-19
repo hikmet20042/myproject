@@ -37,90 +37,96 @@ export default function DetailPageLayout({
   const hasSidebar = Boolean(sidebar);
 
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-200">
-      <section className="relative overflow-hidden pt-28 pb-14 md:pt-36 md:pb-20">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(214_32%_91%)_1px,transparent_1px),linear-gradient(to_bottom,hsl(214_32%_91%)_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-40 z-0" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[480px] w-[820px] rounded-full bg-primary/10 blur-3xl z-0" />
+    <div className="min-h-screen bg-white">
+      {/* Top spacing for fixed header */}
+      <div className="pt-20" />
 
-        <div className="section-padding relative z-10">
-          <div className="mx-auto max-w-6xl">
-            <div className="mb-6">
-              <Breadcrumb items={breadcrumbItems} />
+      <div className="max-w-6xl mx-auto px-4 md:px-6">
+        {/* Breadcrumb + Back Button */}
+        <nav aria-label="Breadcrumb" className="flex items-center justify-between gap-6 mb-8 flex-col sm:flex-row">
+          <Breadcrumb items={breadcrumbItems} className="order-2 sm:order-1" />
+          <ButtonLink
+            href={backHref}
+            variant="outline"
+            size="sm"
+            icon={ArrowLeft}
+            iconPosition="left"
+            className="border-slate-200 hover:border-blue-200 gap-2 order-1 sm:order-2"
+          >
+            {backLabel}
+          </ButtonLink>
+        </nav>
+
+        {/* JSON-LD BreadcrumbList */}
+        <Script
+          id="detail-page-breadcrumb-schema"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'BreadcrumbList',
+              itemListElement: breadcrumbItems.map((item, i) => ({
+                '@type': 'ListItem',
+                position: i + 1,
+                name: item.label,
+                item: item.href?.startsWith('http') ? item.href : `${siteUrl}${item.href || '/'}`,
+              })),
+            }),
+          }}
+        />
+
+        {/* Cover Image */}
+        {coverImage && (
+          <div className="mb-8 overflow-hidden rounded-xl shadow-sm">
+            <div className="relative h-48 md:h-72 w-full">
+              <Image
+                src={coverImage}
+                alt="Cover image"
+                fill
+                className="object-cover"
+                priority
+              />
             </div>
-
-            {/* JSON-LD BreadcrumbList */}
-            <Script
-              id="detail-page-breadcrumb-schema"
-              type="application/ld+json"
-              dangerouslySetInnerHTML={{
-                __html: JSON.stringify({
-                  '@context': 'https://schema.org',
-                  '@type': 'BreadcrumbList',
-                  itemListElement: breadcrumbItems.map((item, i) => ({
-                    '@type': 'ListItem',
-                    position: i + 1,
-                    name: item.label,
-                    item: item.href?.startsWith('http') ? item.href : `${siteUrl}${item.href || '/'}`,
-                  })),
-                }),
-              }}
-            />
-
-            <ButtonLink
-              href={backHref}
-              variant="outline"
-              size="sm"
-              icon={ArrowLeft}
-              iconPosition="left"
-              className="border-slate-200 hover:border-blue-200"
-              shadow="sm"
-            >
-              {backLabel}
-            </ButtonLink>
-
-            {/* Cover image block placed above the title card */}
-            {coverImage && (
-              <div className="mt-6 mb-6 w-full overflow-hidden rounded-2xl shadow-lg">
-                <div className="relative h-44 md:h-64 w-full">
-                  <Image
-                    src={coverImage}
-                    alt="Cover image"
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/80" />
-                </div>
-              </div>
-            )}
-
-            <Card className="mt-0 p-6 sm:p-8">
-              <h1 className="text-3xl font-black leading-tight tracking-tight text-slate-900 sm:text-4xl md:text-5xl">
-                {title}
-              </h1>
-              {metadata && <div className="mt-5">{metadata}</div>}
-            </Card>
           </div>
-        </div>
-      </section>
+        )}
 
-      <section className="section-padding pb-16 md:pb-20">
-        <div className="mx-auto max-w-6xl">
+        {/* Title */}
+        <h1 className="text-3xl md:text-4xl lg:text-5xl font-black leading-[1.15] text-slate-900 mb-6">
+          {title}
+        </h1>
+
+        {/* Metadata Block */}
+        {metadata && (
+          <div className="border-b border-slate-200 pb-6 mb-10">
+            {metadata}
+          </div>
+        )}
+
+        {/* Content Area */}
+        <div className="pb-16 md:pb-20">
           {hasSidebar ? (
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-12">
-              <div className="lg:col-span-2 space-y-8">
+              <div className="lg:col-span-2 space-y-10">
                 {mainContent}
-                {actionSection}
               </div>
-              <div className="space-y-8">{sidebar}</div>
+              <div className="space-y-6">
+                {sidebar}
+              </div>
             </div>
           ) : (
-            <div className={`mx-auto ${contentMaxWidthClass} space-y-8`}>
+            <div className={`mx-auto ${contentMaxWidthClass} space-y-10`}>
               {mainContent}
+            </div>
+          )}
+
+          {/* Action Section */}
+          {actionSection && (
+            <div className="mt-12 pt-10 border-t border-slate-200">
               {actionSection}
             </div>
           )}
         </div>
-      </section>
+      </div>
     </div>
   );
 }

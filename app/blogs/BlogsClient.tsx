@@ -1,35 +1,38 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import Script from 'next/script'
 import { useQuery } from '@tanstack/react-query'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Button, ButtonLink, SearchBar } from '@/components/ui'
+import { Select } from '@/components/ui/Select'
 import { EmptyState, ResourceFilterContainer } from '@/components/shared'
 import { ListPageLayout } from '@/components/layout'
-import { Sparkles, RefreshCw } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useSession } from '@/lib/auth/client'
 import { blogQueryKeys, fetchBlogs } from '@/lib/blogQueries'
-import { ApiError } from '@/lib/apiClient'
 import { getUserErrorMessage } from '@/lib/errorMessages'
 import { logError } from '@/lib/logger'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { ContentCard } from '@/components/shared/ContentCard'
 import { generateItemListSchema } from '@/lib/seo'
+import { ARTICLE_TAGS } from '@/lib/tagOptions'
 
-interface CommunityBlog {
-  id: string | number;
-  slug: string;
-  title: string;
-  authorName: string;
-  authorId?: string | null;
-  authorUrlHandle?: string | null;
-  date: string;
-  excerpt: string;
-  content: any;
-  status: string;
-  type: 'community-blog';
-}
+const SORT_OPTIONS = [
+  { value: 'newest', label: 'Ən yeni' },
+  { value: 'oldest', label: 'Ən köhnə' },
+  { value: 'most-viewed', label: 'Ən çox baxılan' },
+  { value: 'most-liked', label: 'Ən çox bəyənilən' },
+]
+
+const TAG_OPTIONS = [
+  { value: 'all', label: 'Bütün mövzular' },
+  ...ARTICLE_TAGS.slice(0, 20).map(tag => ({
+    value: tag,
+    label: tag.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+  })),
+]
 
 const generateExcerpt = (content: any): string => {
   let textContent = '';
@@ -55,29 +58,100 @@ const generateExcerpt = (content: any): string => {
 
 export default function CommunityBlogs() {
   const localePath = useLocalizedPath();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session } = useSession()
   const isOrganizationUser = session?.user?.accountType === 'organization'
   const { showError } = useGlobalFeedback()
-  const [searchQuery, setSearchQuery] = useState<string>('')
   const blogsLimit = 50
-  
-  const blogsQuery = useQuery({
-    queryKey: blogQueryKeys.list({ page: 1, limit: blogsLimit }),
-    queryFn: () => fetchBlogs({ page: 1, limit: blogsLimit })
-  })
 
-  const handleSearch = (query: string) => { setSearchQuery(query); };
-  const handleClearSearch = () => { setSearchQuery(''); };
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTag, setSelectedTag] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   useEffect(() => {
-    if (blogsQuery.isError) {
-      logError('Blogs API error', blogsQuery.error)
-      showError(getUserErrorMessage(blogsQuery.error))
-    }
-  }, [blogsQuery.isError, blogsQuery.error, showError])
+    if (!searchParams) return;
+    const q = searchParams.get('q') || '';
+    const tag = searchParams.get('tag') || 'all';
+    const sort = searchParams.get('sort') || 'newest';
+    const from = searchParams.get('from') || '';
+    const to = searchParams.get('to') || '';
+    setSearchQuery(q);
+    setSelectedTag(tag);
+    setSortBy(sort);
+    setDateFrom(from);
+    setDateTo(to);
+  }, [searchParams]);
+
+  const pushUrl = useCallback((updates: Record<string, string | null>) => {
+    if (!searchParams) return;
+    const params = new URLSearchParams(searchParams.toString());
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === null || value === '') {
+        params.delete(key);
+      } else {
+        params.set(key, value);
+      }
+    });
+    const qs = params.toString();
+    router.push(qs ? `/blogs?${qs}` : '/blogs', { scroll: false });
+  }, [router, searchParams]);
+
+  const queryFilters = useMemo(() => ({
+    page: 1,
+    limit: blogsLimit,
+    search: searchQuery.trim() || undefined,
+    tags: selectedTag !== 'all' ? selectedTag : undefined,
+    sortBy: sortBy as 'newest' | 'oldest' | 'most-viewed' | 'most-liked',
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+  }), [searchQuery, selectedTag, sortBy, dateFrom, dateTo, blogsLimit])
+
+  const blogsQuery = useQuery({
+    queryKey: blogQueryKeys.list(queryFilters),
+    queryFn: () => fetchBlogs(queryFilters)
+  })
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    pushUrl({ q: query || null });
+  };
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    pushUrl({ q: null });
+  };
+
+  const handleTagChange = (tag: string) => {
+    setSelectedTag(tag);
+    pushUrl({ tag: tag === 'all' ? null : tag });
+  };
+  const handleSortChange = (sort: string) => {
+    setSortBy(sort);
+    pushUrl({ sort });
+  };
+  const handleDateFromChange = (date: string) => {
+    setDateFrom(date);
+    pushUrl({ from: date || null });
+  };
+  const handleDateToChange = (date: string) => {
+    setDateTo(date);
+    pushUrl({ to: date || null });
+  };
+
+  const clearAllFilters = () => {
+    setSearchQuery('');
+    setSelectedTag('all');
+    setSortBy('newest');
+    setDateFrom('');
+    setDateTo('');
+    router.push('/blogs', { scroll: false });
+  };
+
+  const hasActiveFilters = searchQuery.trim() !== '' || selectedTag !== 'all' || sortBy !== 'newest' || dateFrom !== '' || dateTo !== '';
 
   const allBlogs = (blogsQuery.data?.items || [])
-    .filter((blog: any) => blog.status === 'approved')
     .map((blog: any) => ({
       id: blog._id || blog.id,
       kind: 'blog' as const,
@@ -93,14 +167,6 @@ export default function CommunityBlogs() {
       ownerLabel: blog.authorName || blog.author_name || 'Anonim',
       excerpt: blog.excerpt || generateExcerpt(blog.content),
     }))
-
-  const filteredBlogs = allBlogs.filter(blog => {
-    const matchesSearch = !searchQuery || 
-      blog.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      blog.ownerLabel.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (blog.excerpt && blog.excerpt.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesSearch;
-  });
 
   const itemListJsonLd = useMemo(() => {
     if (blogsQuery.isLoading || allBlogs.length === 0) return '';
@@ -121,101 +187,137 @@ export default function CommunityBlogs() {
         <Script id="blogs-itemlist-schema" type="application/ld+json" dangerouslySetInnerHTML={{ __html: itemListJsonLd }} />
       )}
       <ListPageLayout
-      title="İcma Bloqları"
-      description="İcma üzvlərimizin real təcrübələri, çətinlikləri və uğurları. Dəyişikliyə ilham verən həqiqi hekayələr."
-      headerBadgeText="BLOQLAR"
-      pageType="blog"
-      icon={Sparkles}
-      headerActions={
-        isOrganizationUser ? (
-          <>
-            <ButtonLink href={localePath('/dashboard/events/create')} variant="secondary" size="lg" className="rounded-full px-8">
-              Tədbir Paylaş
-            </ButtonLink>
-            <ButtonLink href={localePath('/dashboard/vacancies/create')} variant="white-on-dark" size="lg" className="rounded-full px-8">
-              Vakansiya Paylaş
-            </ButtonLink>
-          </>
-        ) : (
-          <>
-            <ButtonLink href={localePath('/submit/blog')} variant="secondary" size="lg" className="rounded-full px-8 shadow-xl shadow-blue-500/20">
-              Bloq Paylaş
-            </ButtonLink>
-            <ButtonLink href={localePath('/resources')} variant="white-on-dark" size="lg" className="rounded-full px-8">
-              Fürsətləri Kəşf Et
-            </ButtonLink>
-          </>
-        )
-      }
-      isLoading={blogsQuery.isLoading}
-      isError={blogsQuery.isError}
-      isEmpty={!blogsQuery.isLoading && !blogsQuery.isError && allBlogs.length === 0 && !searchQuery}
-      onRetry={() => blogsQuery.refetch()}
-      filterSection={
-        <ResourceFilterContainer
-          searchInput={
-            <SearchBar
-              onSearch={handleSearch}
-              onClear={handleClearSearch}
-              placeholder="Mövzu və ya müəllif axtarın..."
-              value={searchQuery}
-              storageKey="blogs-search"
-              variant="minimal"
-            />
-          }
-          filterControls={
-             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                <p className="text-slate-500 font-bold text-sm">Tapılan nəticə: {filteredBlogs.length}</p>
-                <Button
-                  onClick={() => blogsQuery.refetch()}
-                  disabled={blogsQuery.isFetching}
-                  variant="outline"
-                  className="rounded-xl font-bold bg-white"
-                >
-                  <RefreshCw className={`w-4 h-4 mr-2 ${blogsQuery.isFetching ? 'animate-spin' : ''}`} />
-                  Yenilə
-                </Button>
-             </div>
-       }
-     />
-      }
-      content={
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
-          {filteredBlogs.length > 0 ? (
-            filteredBlogs.map((blog) => (
-              <ContentCard key={blog.id} item={blog} />
-            ))
+        title="İcma Bloqları"
+        description="İcma üzvlərimizin real təcrübələri, çətinlikləri və uğurları. Dəyişikliyə ilham verən həqiqi hekayələr."
+        headerBadgeText="BLOQLAR"
+        pageType="blog"
+        icon={Sparkles}
+        headerActions={
+          isOrganizationUser ? (
+            <>
+              <ButtonLink href={localePath('/dashboard/events/create')} variant="secondary" size="lg" className="rounded-full px-8">
+                Tədbir Paylaş
+              </ButtonLink>
+              <ButtonLink href={localePath('/dashboard/vacancies/create')} variant="white-on-dark" size="lg" className="rounded-full px-8">
+                Vakansiya Paylaş
+              </ButtonLink>
+            </>
           ) : (
-            <div className="col-span-full py-20">
-              <EmptyState
-                title="Bloq tapılmadı"
-                message={`"${searchQuery}" üçün heç bir nəticə yoxdur.`}
-                actionText="Filtrləri sıfırla"
-                onAction={handleClearSearch}
+            <>
+              <ButtonLink href={localePath('/submit/blog')} variant="secondary" size="lg" className="rounded-full px-8 shadow-xl shadow-blue-500/20">
+                Bloq Paylaş
+              </ButtonLink>
+              <ButtonLink href={localePath('/resources')} variant="white-on-dark" size="lg" className="rounded-full px-8">
+                Fürsətləri Kəşf Et
+              </ButtonLink>
+            </>
+          )
+        }
+        isLoading={blogsQuery.isLoading}
+        isError={blogsQuery.isError}
+        isEmpty={!blogsQuery.isLoading && !blogsQuery.isError && allBlogs.length === 0 && !hasActiveFilters}
+        onRetry={() => blogsQuery.refetch()}
+        filterSection={
+          <ResourceFilterContainer
+            searchInput={
+              <SearchBar
+                onSearch={handleSearch}
+                onClear={handleClearSearch}
+                placeholder="Mövzu və ya müəllif axtarın..."
+                value={searchQuery}
+                variant="minimal"
               />
-            </div>
-          )}
-        </div>
-      }
-      bottomCta={
-        <div className="text-center py-10">
-          <h3 className="text-3xl md:text-5xl font-black mb-6 text-white">Öz hekayəni danış</h3>
-          <p className="text-slate-400 font-medium text-lg mb-10 max-w-2xl mx-auto">
-            Sənin təcrübələrin başqalarına ilham verə bilər. İcma ilə bölüş və dəyişikliyin bir hissəsi ol.
-          </p>
-          <div className="flex justify-center">
-            <ButtonLink
-              href={localePath('/submit/blog')}
-              variant="white-on-dark"
-              size="lg"
-              className="rounded-2xl px-10 py-4 font-black"
-            >
-              Bloq yazısını göndər
-            </ButtonLink>
+            }
+            filterControls={
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Mövzu</label>
+                  <Select
+                    value={selectedTag}
+                    onChange={(e) => handleTagChange(e.target.value)}
+                    options={TAG_OPTIONS}
+                    placeholder="Mövzu seçin..."
+                    className="bg-slate-50 border-none rounded-2xl h-14 font-bold text-slate-700"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Sıralama</label>
+                  <Select
+                    value={sortBy}
+                    onChange={(e) => handleSortChange(e.target.value)}
+                    options={SORT_OPTIONS}
+                    className="bg-slate-50 border-none rounded-2xl h-14 font-bold text-slate-700"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Tarixdən</label>
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => handleDateFromChange(e.target.value)}
+                    className="w-full bg-slate-50 border-none rounded-2xl h-14 px-4 font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Tarixə</label>
+                  <input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => handleDateToChange(e.target.value)}
+                    className="w-full bg-slate-50 border-none rounded-2xl h-14 px-4 font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            }
+            activeFilters={hasActiveFilters && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearAllFilters}
+                className="rounded-full text-xs font-black bg-white"
+              >
+                Filtrləri təmizlə
+              </Button>
+            )}
+          />
+        }
+        content={
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
+            {allBlogs.length > 0 ? (
+              allBlogs.map((blog) => (
+                <ContentCard key={blog.id} item={blog} />
+              ))
+            ) : (
+              <div className="col-span-full py-20">
+                <EmptyState
+                  title="Bloq tapılmadı"
+                  message={hasActiveFilters ? 'Axtarış meyarlarını dəyişərək yenidən yoxlayın.' : 'Hələlik bloq yazısı yoxdur.'}
+                  actionText="Filtrləri sıfırla"
+                  onAction={clearAllFilters}
+                />
+              </div>
+            )}
           </div>
-        </div>
-      }
-    />
+        }
+        bottomCta={
+          <div className="text-center py-10">
+            <h3 className="text-3xl md:text-5xl font-black mb-6 text-white">Öz hekayəni danış</h3>
+            <p className="text-slate-400 font-medium text-lg mb-10 max-w-2xl mx-auto">
+              Sənin təcrübələrin başqalarına ilham verə bilər. İcma ilə bölüş və dəyişikliyin bir hissəsi ol.
+            </p>
+            <div className="flex justify-center">
+              <ButtonLink
+                href={localePath('/submit/blog')}
+                variant="white-on-dark"
+                size="lg"
+                className="rounded-2xl px-10 py-4 font-black"
+              >
+                Bloq yazısını göndər
+              </ButtonLink>
+            </div>
+          </div>
+        }
+      />
     </>
   );
 }

@@ -7,6 +7,7 @@ import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { buildVacancyDbPayload, mapVacancyRow, validateVacancyPayload } from '@/app/api/vacancies/helpers'
 import { applyRateLimit } from '@/lib/rateLimit'
 import { submitVacancyToIndexNow } from '@/lib/indexnow'
+import { cache, generateCacheKey, withCache } from '@/lib/cache'
 
 // GET /api/vacancies - Get vacancies with filtering
 export async function GET(request: NextRequest) {
@@ -34,14 +35,16 @@ export async function GET(request: NextRequest) {
     
     const { searchParams } = new URL(request.url)
     
-    // Extract query parameters
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
     const type = searchParams.get('type')
     const search = searchParams.get('search')
-    const createdBy = searchParams.get('createdBy') // For organization's own vacancies
+    const city = searchParams.get('city')
+    const dateFrom = searchParams.get('dateFrom')
+    const dateTo = searchParams.get('dateTo')
+    const createdBy = searchParams.get('createdBy')
     const organizationId = searchParams.get('organizationId')
-    const author = searchParams.get('author') // Handle 'author=me' parameter
+    const author = searchParams.get('author')
     const adminView = searchParams.get('adminView') === 'true'
     const status = searchParams.get('status') || (adminView ? 'all' : 'approved')
     const sortBy = searchParams.get('sortBy') || 'createdAt'
@@ -49,7 +52,6 @@ export async function GET(request: NextRequest) {
     
     const skip = (page - 1) * limit
     
-    // Handle author=me parameter
     let actualCreatedBy = createdBy
     if (author === 'me') {
       const session = await getServerSession()
@@ -59,10 +61,8 @@ export async function GET(request: NextRequest) {
       actualCreatedBy = session.user.id
     }
     
-    // Build filter object
     const filter: any = {}
     
-    // Admin view requires admin session
     if (adminView) {
       const session = await getServerSession()
       if (!session?.user?.id || !canAccessAdmin(session)) {
@@ -70,14 +70,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Admin view shows all vacancies, regular view shows only approved
     if (!adminView) {
-      // Regular view: only show approved vacancies unless filtering by creator
       if (!actualCreatedBy) {
         filter.status = 'approved'
       }
     } else {
-      // Admin view with status filtering
       if (status && status !== 'all') {
         if (status === 'pending') {
           filter.status = 'pending'
@@ -87,36 +84,12 @@ export async function GET(request: NextRequest) {
           filter.status = 'rejected'
         }
       }
-      // If status is 'all' or not specified in admin view, show all vacancies (no additional filter)
     }
     
-    // Type filter
     if (type && type !== 'all') {
       filter.type = type
     }
 
-    // Search filter
-    const searchOr = search
-      ? [
-          { title: { $regex: search, $options: 'i' } },
-          { description: { $regex: search, $options: 'i' } },
-          { requirements: { $regex: search, $options: 'i' } }
-        ]
-      : null
-
-    // Combine creator and search so they don't overwrite each other
-    const creatorOr = actualCreatedBy
-      ? [{ createdBy: actualCreatedBy }, { createdByOrganization: actualCreatedBy }]
-      : null
-    const andParts: any[] = []
-    if (creatorOr) andParts.push({ $or: creatorOr })
-    if (searchOr) {
-      andParts.push({ $or: searchOr })
-    }
-    if (andParts.length > 0) {
-      filter.$and = andParts
-    }
-    
     const sortFieldMap: Record<string, string> = {
       createdAt: 'created_at',
       updatedAt: 'updated_at',
@@ -125,84 +98,97 @@ export async function GET(request: NextRequest) {
     const orderField = sortFieldMap[sortBy] || 'created_at'
     const ascending = sortOrder === 'asc'
 
-    let query = supabase
-      .from('vacancies_with_stats')
-      .select(
-        '*, created_by (id, name, email), created_by_organization (id), approved_by (id, name)',
-        { count: 'exact' }
-      )
-      .order(orderField, { ascending })
-      .range(skip, skip + limit - 1)
+    const cacheKey = generateCacheKey.vacancies(page, limit, search || undefined, type || undefined, city || undefined, sortBy, sortOrder, dateFrom || undefined, dateTo || undefined);
 
-    if (filter.status) {
-      query = query.eq('status', filter.status)
-    }
+    const cachedResult = await withCache(
+      cache.vacancies,
+      cacheKey,
+      async () => {
+        let query = supabase
+          .from('vacancies_with_stats')
+          .select(
+            '*, created_by (id, name, email), created_by_organization (id), approved_by (id, name)',
+            { count: 'exact' }
+          )
+          .order(orderField, { ascending })
+          .range(skip, skip + limit - 1)
 
-    if (!adminView && !actualCreatedBy) {
-      query = query.eq('is_published', true)
-    }
-
-    if (type && type !== 'all') {
-      query = query.eq('type', type)
-    }
-
-    if (actualCreatedBy) {
-      query = query.or(`created_by.eq.${actualCreatedBy},created_by_organization.eq.${actualCreatedBy}`)
-    }
-
-    if (organizationId) {
-      query = query.eq('created_by_organization', organizationId)
-    }
-
-    if (search) {
-      const searchFilter = `title.ilike.%${search}%,description.ilike.%${search}%`
-      query = query.or(searchFilter)
-    }
-
-    const { data: vacancyRows, error, count } = await query
-
-    if (error) {
-      console.error('Error fetching vacancies:', error)
-      const response = errorResponse('Failed to fetch vacancies', "API_ERROR", {}, 500)
-      for (const [key, value] of Object.entries(rateLimitHeaders)) {
-        response.headers.set(key, value)
-      }
-      return response
-    }
-
-    const vacancies = (vacancyRows || []).map(mapVacancyRow)
-    
-    // Fetch organization names for vacancies created by organizations
-    const orgIds = vacancyRows
-      .filter((v: any) => v.created_by_organization)
-      .map((v: any) => v.created_by_organization.id)
-    
-    let orgNames: any[] = []
-    if (orgIds.length > 0) {
-      const { data: orgData } = await supabase
-        .from('organization_profiles')
-        .select('account_id, organization_name, email')
-        .in('account_id', orgIds)
-      orgNames = orgData || []
-    }
-    
-    // Merge organization names into vacancies
-    const vacanciesWithOrgNames = vacancies.map((vacancy: any) => {
-      if (!vacancy.createdByOrganization) return vacancy
-      const orgProfile = orgNames.find((o: any) => o.account_id === vacancy.createdByOrganization.id)
-      return {
-        ...vacancy,
-        createdByOrganization: {
-          ...vacancy.createdByOrganization,
-          organizationName: orgProfile?.organization_name || 'Unknown organization',
-          email: orgProfile?.email || vacancy.createdByOrganization.email || null,
+        if (filter.status) {
+          query = query.eq('status', filter.status)
         }
+
+        if (!adminView && !actualCreatedBy) {
+          query = query.eq('is_published', true)
+        }
+
+        if (type && type !== 'all') {
+          query = query.eq('type', type)
+        }
+
+        if (city) {
+          query = query.ilike('city', `%${city}%`)
+        }
+
+        if (dateFrom) {
+          query = query.gte('application_deadline', `${dateFrom}T00:00:00`)
+        }
+        if (dateTo) {
+          query = query.lte('application_deadline', `${dateTo}T23:59:59`)
+        }
+
+        if (actualCreatedBy) {
+          query = query.or(`created_by.eq.${actualCreatedBy},created_by_organization.eq.${actualCreatedBy}`)
+        }
+
+        if (organizationId) {
+          query = query.eq('created_by_organization', organizationId)
+        }
+
+        if (search) {
+          const searchFilter = `title.ilike.%${search}%,description.ilike.%${search}%`
+          query = query.or(searchFilter)
+        }
+
+        const { data: vacancyRows, error, count } = await query
+
+        if (error) {
+          throw new Error(error.message)
+        }
+
+        const vacancies = (vacancyRows || []).map(mapVacancyRow)
+        
+        const orgIds = vacancyRows
+          .filter((v: any) => v.created_by_organization)
+          .map((v: any) => v.created_by_organization.id)
+        
+        let orgNames: any[] = []
+        if (orgIds.length > 0) {
+          const { data: orgData } = await supabase
+            .from('organization_profiles')
+            .select('account_id, organization_name, email')
+            .in('account_id', orgIds)
+          orgNames = orgData || []
+        }
+        
+        const vacanciesWithOrgNames = vacancies.map((vacancy: any) => {
+          if (!vacancy.createdByOrganization) return vacancy
+          const orgProfile = orgNames.find((o: any) => o.account_id === vacancy.createdByOrganization.id)
+          return {
+            ...vacancy,
+            createdByOrganization: {
+              ...vacancy.createdByOrganization,
+              organizationName: orgProfile?.organization_name || 'Unknown organization',
+              email: orgProfile?.email || vacancy.createdByOrganization.email || null,
+            }
+          }
+        })
+
+        return { vacancies: vacanciesWithOrgNames, total: count || 0 }
       }
-    })
+    )
+
+    const { vacancies, total } = cachedResult as { vacancies: any[], total: number }
     
-    const total = count || 0
-    
-    // Calculate stats for admin view
     let stats = null
     if (adminView) {
       const [pendingResult, approvedResult, rejectedResult, totalResult] = await Promise.all([
@@ -221,7 +207,7 @@ export async function GET(request: NextRequest) {
     }
     
     const response: any = {
-      vacancies: vacanciesWithOrgNames,
+      vacancies,
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(total / limit),

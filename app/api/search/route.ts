@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
             .select('id, slug, title, description, application_deadline, city, address, image_url, created_by, created_by_organization, status, is_published, created_at')
             .eq('status', 'approved')
             .eq('is_published', true)
-            .or(`title.ilike.${wildcard},description.ilike.${wildcard},requirements::text.ilike.${wildcard}`)
+            .or(`title.ilike.${wildcard},description.ilike.${wildcard}`)
             .order('created_at', { ascending: false })
             .limit(perTypeFetchLimit)
         : Promise.resolve({ data: [] as any[] })

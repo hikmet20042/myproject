@@ -5,6 +5,9 @@ type BlogListParams = {
   limit?: number
   search?: string
   tags?: string
+  sortBy?: 'newest' | 'oldest' | 'most-viewed' | 'most-liked'
+  dateFrom?: string
+  dateTo?: string
   status?: string
 }
 

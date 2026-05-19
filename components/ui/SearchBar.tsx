@@ -1,14 +1,12 @@
 'use client'
-import React, { useState, useEffect } from 'react'
-import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline'
-import { Button } from '@/components/ui/Button'
+import React, { useState, useEffect, useCallback } from 'react'
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 
 export interface SearchBarProps {
   placeholder?: string
   onSearch: (query: string) => void
   onClear?: () => void
   className?: string
-  debounceMs?: number
   value?: string
   storageKey?: string
   variant?: 'default' | 'minimal'
@@ -19,7 +17,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
   onSearch,
   onClear,
   className = "",
-  debounceMs = 300,
   value,
   storageKey,
   variant = 'default'
@@ -30,35 +27,22 @@ const SearchBar: React.FC<SearchBarProps> = ({
     }
     return value || ''
   })
-  const [debouncedQuery, setDebouncedQuery] = useState('')
 
-  // Sync with external value prop
   useEffect(() => {
     if (value !== undefined && !storageKey) {
       setQuery(value)
     }
   }, [value, storageKey])
 
-  // Save to localStorage when query changes
   useEffect(() => {
     if (typeof window !== 'undefined' && storageKey) {
       localStorage.setItem(storageKey, query)
     }
   }, [query, storageKey])
 
-  // Debounce search query
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(query)
-    }, debounceMs)
-
-    return () => clearTimeout(timer)
-  }, [query, debounceMs])
-
-  // Trigger search when debounced query changes
-  useEffect(() => {
-    onSearch(debouncedQuery)
-  }, [debouncedQuery, onSearch])
+  const doSearch = useCallback(() => {
+    onSearch(query)
+  }, [query, onSearch])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value)
@@ -66,13 +50,20 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
   const handleClear = () => {
     setQuery('')
-    setDebouncedQuery('')
     onClear?.()
+    onSearch('')
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSearch(query)
+    doSearch()
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      doSearch()
+    }
   }
 
   return (
@@ -85,26 +76,21 @@ const SearchBar: React.FC<SearchBarProps> = ({
           type="text"
           value={query}
           onChange={handleInputChange}
-          className={`block w-full leading-5 text-slate-900 placeholder-slate-400 transition-all duration-200 focus:outline-none ${
-            variant === 'minimal' 
-              ? 'bg-transparent border-none ring-0 focus:ring-0 py-4 pl-12' 
+          onKeyDown={handleKeyDown}
+          className={`block w-full text-slate-900 placeholder-slate-400 transition-all duration-200 outline-none focus:outline-none ${
+            variant === 'minimal'
+              ? 'bg-transparent border-none ring-0 focus:ring-0 py-4 pl-12 pr-12 text-sm'
               : 'rounded-xl border border-blue-100 bg-white pl-10 pr-10 py-3 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-100'
           }`}
           placeholder={placeholder}
         />
-        {query && (
-          <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
-            <Button
-              variant="ghost"
-              size="xs"
-              onClick={handleClear}
-              className="text-slate-300 hover:text-blue-600"
-              aria-label="Axtarışı təmizlə"
-            >
-              <XMarkIcon className="h-5 w-5" aria-hidden="true" />
-            </Button>
-          </div>
-        )}
+        <button
+          type="submit"
+          className="absolute inset-y-0 right-2 flex items-center px-3 text-slate-400 hover:text-blue-600 transition-colors"
+          aria-label="Axtar"
+        >
+          <MagnifyingGlassIcon className="h-5 w-5" aria-hidden="true" />
+        </button>
       </div>
     </form>
   )

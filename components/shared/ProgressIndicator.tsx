@@ -15,10 +15,10 @@ export default function ProgressIndicator({ currentStep, totalSteps, percentage 
     <div className="mb-8 animate-fade-in">
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-semibold text-slate-700">
-          Step {currentStep} of {totalSteps}
+          Addım {currentStep} / {totalSteps}
         </span>
         <span className="text-sm font-semibold text-blue-600">
-          {percentage}% Complete
+          {percentage}% tamamlanıb
         </span>
       </div>
       <div className="h-2 bg-white/80 backdrop-blur-sm rounded-full overflow-hidden shadow-inner">

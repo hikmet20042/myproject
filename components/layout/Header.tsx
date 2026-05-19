@@ -50,13 +50,24 @@ function HeaderSearchBox({
   const router = useRouter()
   const localePath = useLocalizedPath()
   const rootRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
+  const [highlightedIndex, setHighlightedIndex] = useState(-1)
+  const [recentSearches, setRecentSearches] = useState<string[]>([])
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('recent-searches')
+      if (stored) setRecentSearches(JSON.parse(stored))
+    } catch {}
+  }, [])
+
   const { items, loading } = useGlobalSearch({
     query,
     enabled: open && query.trim().length > 0,
     limit: 8,
-    debounceMs: 220,
+    debounceMs: 200,
   })
 
   useEffect(() => {
@@ -72,23 +83,71 @@ function HeaderSearchBox({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [open])
 
+  useEffect(() => {
+    setHighlightedIndex(-1)
+  }, [items, loading])
+
+  const saveRecentSearch = useCallback((q: string) => {
+    const trimmed = q.trim()
+    if (!trimmed) return
+    try {
+      const updated = [trimmed, ...recentSearches.filter(s => s !== trimmed)].slice(0, 5)
+      setRecentSearches(updated)
+      localStorage.setItem('recent-searches', JSON.stringify(updated))
+    } catch {}
+  }, [recentSearches])
+
   const navigateToSearch = useCallback(
     (rawQuery?: string) => {
       const normalized = (rawQuery ?? query).trim()
       if (!normalized) return
 
+      saveRecentSearch(normalized)
       router.push(localePath(`/search?q=${encodeURIComponent(normalized)}`))
       setOpen(false)
+      setQuery('')
       onNavigate?.()
     },
-    [localePath, onNavigate, query, router],
+    [localePath, onNavigate, query, router, recentSearches],
   )
+
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    const maxIndex = items.length - 1
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      setHighlightedIndex(prev => Math.min(prev + 1, maxIndex))
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      setHighlightedIndex(prev => Math.max(prev - 1, -1))
+    } else if (event.key === 'Enter') {
+      event.preventDefault()
+      if (highlightedIndex >= 0 && highlightedIndex < items.length) {
+        const item = items[highlightedIndex]
+        saveRecentSearch(query)
+        router.push(localePath(item.href))
+        setOpen(false)
+        setQuery('')
+        onNavigate?.()
+      } else {
+        navigateToSearch()
+      }
+    } else if (event.key === 'Escape') {
+      setOpen(false)
+    }
+  }
+
+  const clearQuery = () => {
+    setQuery('')
+    inputRef.current?.focus()
+  }
 
   return (
     <div ref={rootRef} className={cn('relative', wrapperClassName)}>
       <div className={cn(showSubmitButton && 'flex items-center gap-2')}>
         <div className={cn('relative flex-1', inputShellClassName)}>
           <Input
+            ref={inputRef}
             icon={Search}
             value={query}
             onFocus={() => setOpen(true)}
@@ -96,22 +155,26 @@ function HeaderSearchBox({
               setQuery(event.target.value)
               setOpen(true)
             }}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault()
-                navigateToSearch()
-              }
-              if (event.key === 'Escape') {
-                setOpen(false)
-              }
-            }}
+            onKeyDown={handleKeyDown}
             placeholder={placeholder}
             className={cn(
-              'w-full rounded-md border border-slate-200 bg-white py-3 pl-10 pr-3.5 text-base font-medium text-slate-900 shadow-card focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100',
+              'w-full rounded-md border border-slate-200 bg-white py-3 pl-10 pr-10 text-base font-medium text-slate-900 shadow-card focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100',
               inputClassName,
             )}
             inputSize="lg"
           />
+          {query && (
+            <button
+              type="button"
+              onClick={clearQuery}
+              className="absolute right-3 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-600"
+              aria-label="Təmizlə"
+            >
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
         </div>
         {showSubmitButton && (
           <Button
@@ -130,6 +193,7 @@ function HeaderSearchBox({
           items={items}
           loading={loading}
           query={query}
+          highlightedIndex={highlightedIndex}
           onItemSelect={() => {
             setOpen(false)
             onNavigate?.()
@@ -240,10 +304,10 @@ return (
             <div key={item.name} className="relative">
               {item.dropdown ? (
                 <>
-                  <Button
-                    variant="ghost"
+                  <button
+                    type="button"
                     onClick={() => setActiveDropdown(activeDropdown === item.name ? null : item.name)}
-                    className="gap-1.5 px-4 py-2 text-base font-black"
+                    className="whitespace-nowrap px-4 py-2 text-base font-black text-slate-800 transition-all duration-200 hover:text-blue-600 inline-flex items-center gap-1.5"
                   >
                     {item.name}
                     <ChevronDown
@@ -252,7 +316,7 @@ return (
                         activeDropdown === item.name && 'rotate-180',
                       )}
                     />
-                  </Button>
+                  </button>
                   {activeDropdown === item.name && (
                     <div className="absolute left-0 top-full z-50 mt-2 w-56 rounded-xl border border-slate-100 bg-white py-1 shadow-lg shadow-slate-200/50">
                       {item.dropdown.map((dropdownItem) => (

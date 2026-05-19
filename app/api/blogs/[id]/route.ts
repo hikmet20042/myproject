@@ -46,7 +46,7 @@ export async function GET(
       const session = await getServerSession()
       const stats = await getBlogStats(supabase, blog.id, session?.user?.id)
       const authorUrlHandle = await getAuthorUrlHandle(supabase, blog.author_id)
-      const r = successResponse({ blog: { ...blog, ...stats, authorUrlHandle } })
+      return successResponse({ blog: { ...blog, ...stats, authorUrlHandle } })
     }
 
     const session = await getServerSession()

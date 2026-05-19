@@ -19,18 +19,29 @@ const searchCache = new LRUCache({
   ...CACHE_OPTIONS,
   ttl: 1000 * 60 * 2, // 2 minutes for search suggestions/results
 });
+const vacanciesCache = new LRUCache({
+  ...CACHE_OPTIONS,
+  ttl: 1000 * 60 * 3,
+});
+const eventsCache = new LRUCache({
+  ...CACHE_OPTIONS,
+  ttl: 1000 * 60 * 3,
+});
 
 
 // Cache key generators
 export const generateCacheKey = {
   userStats: (userId: string) => `user_stats_${userId}`,
-  blogs: (page: number, limit: number, search?: string, tags?: string[], status?: string) => {
+  blogs: (page: number, limit: number, search?: string, tags?: string[], status?: string, sortBy?: string, dateFrom?: string, dateTo?: string) => {
     const params = new URLSearchParams();
     params.set('page', page.toString());
     params.set('limit', limit.toString());
     if (search) params.set('search', search);
     if (tags?.length) params.set('tags', tags.join(','));
     if (status) params.set('status', status);
+    if (sortBy) params.set('sortBy', sortBy);
+    if (dateFrom) params.set('dateFrom', dateFrom);
+    if (dateTo) params.set('dateTo', dateTo);
     return `stories_${params.toString()}`;
   },
   search: (query: string, types: string[], page: number, limit: number) => {
@@ -40,6 +51,32 @@ export const generateCacheKey = {
     params.set('page', String(page));
     params.set('limit', String(limit));
     return `search_${params.toString()}`;
+  },
+  vacancies: (page: number, limit: number, search?: string, type?: string, city?: string, sortBy?: string, sortOrder?: string, dateFrom?: string, dateTo?: string) => {
+    const params = new URLSearchParams();
+    params.set('page', page.toString());
+    params.set('limit', limit.toString());
+    if (search) params.set('search', search);
+    if (type) params.set('type', type);
+    if (city) params.set('city', city);
+    if (sortBy) params.set('sortBy', sortBy);
+    if (sortOrder) params.set('sortOrder', sortOrder);
+    if (dateFrom) params.set('dateFrom', dateFrom);
+    if (dateTo) params.set('dateTo', dateTo);
+    return `vacancies_${params.toString()}`;
+  },
+  events: (page: number, limit: number, search?: string, eventType?: string, city?: string, category?: string, sortBy?: string, dateFrom?: string, dateTo?: string) => {
+    const params = new URLSearchParams();
+    params.set('page', page.toString());
+    params.set('limit', limit.toString());
+    if (search) params.set('search', search);
+    if (eventType) params.set('eventType', eventType);
+    if (city) params.set('city', city);
+    if (category) params.set('category', category);
+    if (sortBy) params.set('sortBy', sortBy);
+    if (dateFrom) params.set('dateFrom', dateFrom);
+    if (dateTo) params.set('dateTo', dateTo);
+    return `events_${params.toString()}`;
   },
 
 };
@@ -68,6 +105,20 @@ export const cache = {
     set: (key: string, value: any) => searchCache.set(key, value),
     delete: (key: string) => searchCache.delete(key),
     clear: () => searchCache.clear(),
+  },
+  vacancies: {
+    get: (key: string) => vacanciesCache.get(key),
+    set: (key: string, value: any) => vacanciesCache.set(key, value),
+    delete: (key: string) => vacanciesCache.delete(key),
+    clear: () => vacanciesCache.clear(),
+    invalidateAll: () => vacanciesCache.clear(),
+  },
+  events: {
+    get: (key: string) => eventsCache.get(key),
+    set: (key: string, value: any) => eventsCache.set(key, value),
+    delete: (key: string) => eventsCache.delete(key),
+    clear: () => eventsCache.clear(),
+    invalidateAll: () => eventsCache.clear(),
   },
   
 

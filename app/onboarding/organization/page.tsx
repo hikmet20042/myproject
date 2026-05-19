@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { ArrowLeft } from 'lucide-react'
 import { useSession } from '@/lib/auth/client'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { FormLayout } from '@/components/forms'
@@ -10,6 +11,7 @@ import { LoadingState } from '@/components/shared'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { ORGANIZATION_TYPE_LABELS, ORGANIZATION_TYPE_VALUES } from '@/lib/organizationTypes'
 import { Card } from '@/components/ui/Card'
+import { MIN_DESCRIPTION_LENGTH, ONBOARDING_STEPS, TOTAL_ONBOARDING_STEPS } from '@/lib/constants/onboarding'
 
 export default function OnboardingOrganizationPage() {
   const router = useRouter()
@@ -31,6 +33,7 @@ export default function OnboardingOrganizationPage() {
     }
     if (session.user.accountType === 'organization') {
       router.replace(localePath('/dashboard'))
+      return
     }
   }, [status, session, router, localePath])
 
@@ -46,8 +49,8 @@ export default function OnboardingOrganizationPage() {
       showError('Kateqoriya seçin.')
       return
     }
-    if (formData.description.trim().length < 20) {
-      showError('Qısa təsvir ən azı 20 simvol olmalıdır.')
+    if (formData.description.trim().length < MIN_DESCRIPTION_LENGTH) {
+      showError(`Qısa təsvir ən azı ${MIN_DESCRIPTION_LENGTH} simvol olmalıdır.`)
       return
     }
 
@@ -64,20 +67,40 @@ export default function OnboardingOrganizationPage() {
         return
       }
       showSuccess('Təşkilat onboarding tamamlandı.')
-      router.push(localePath('/dashboard'))
+      setTimeout(() => {
+        setIsSubmitting(false)
+        router.push(localePath('/organization/pending'))
+      }, 300)
     } catch {
       showError('Xəta baş verdi. Zəhmət olmasa yenidən cəhd edin.')
-    } finally {
       setIsSubmitting(false)
     }
   }
 
+  const backButton = (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      onClick={() => router.push(localePath('/onboarding/role'))}
+      className="text-slate-500 hover:text-slate-900"
+      icon={ArrowLeft}
+    >
+      Geri
+    </Button>
+  )
+
+  const descriptionLength = formData.description.length
+  const meetsMinLength = descriptionLength >= MIN_DESCRIPTION_LENGTH
+
   return (
     <FormLayout
       title="Təşkilat qurulumu"
-      subtitle="Qısa məlumatı tamamlayın və rəhbər paneldən istifadəyə başlayın."
+      subtitle="Qısa məlumatı tamamlayın və təsdiqdən sonra rəhbər paneldən istifadəyə başlayın."
+      currentStep={ONBOARDING_STEPS.DETAILS}
+      totalSteps={TOTAL_ONBOARDING_STEPS}
+      rightAction={backButton}
     >
-      
       <Card className="p-6 sm:p-8">
         <form onSubmit={handleSubmit} className="space-y-5">
         <Input
@@ -100,14 +123,19 @@ export default function OnboardingOrganizationPage() {
           required
         />
 
-        <TextArea
-          label="Qısa təsvir"
-          value={formData.description}
-          onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-          placeholder="Təşkilatınızın məqsədi və fəaliyyəti haqqında qısa məlumat yazın"
-          rows={5}
-          required
-        />
+        <div>
+          <TextArea
+            label="Qısa təsvir"
+            value={formData.description}
+            onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+            placeholder="Təşkilatınızın məqsədi və fəaliyyəti haqqında qısa məlumat yazın"
+            rows={5}
+            required
+          />
+          <p className={`mt-1 text-sm transition-colors duration-200 ${meetsMinLength ? 'text-emerald-600' : 'text-slate-500'}`}>
+            {descriptionLength}/{MIN_DESCRIPTION_LENGTH} simvol
+          </p>
+        </div>
 
         <div className="flex justify-end">
           <Button type="submit" loading={isSubmitting} disabled={isSubmitting} variant="primary">

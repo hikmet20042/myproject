@@ -184,38 +184,15 @@ export default function ListPageLayout({
       emptyActionText={emptyActionText}
       onEmptyAction={onEmptyAction}
     >
-      <div className="min-h-screen bg-slate-50/50 text-slate-900 relative overflow-hidden font-sans">
-        {/* Dynamic Background Decorations (Vibrant Liquid Mesh) */}
+      <div className="min-h-screen bg-slate-50 text-slate-900 relative font-sans">
+        {/* Subtle Background Decorations */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden z-0">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full">
-            {/* Highly Visible Animated Blobs */}
-            <div className={`absolute top-[-10%] right-[-5%] w-[1200px] h-[1200px] rounded-full ${themes.blob1} opacity-70 blur-[120px] animate-blob mix-blend-multiply`} />
-            <div className={`absolute top-[20%] left-[-10%] w-[1000px] h-[1000px] rounded-full ${themes.blob2} opacity-60 blur-[100px] animate-blob animation-delay-2000 mix-blend-multiply`} />
-            <div className={`absolute bottom-[-20%] right-[10%] w-[900px] h-[900px] rounded-full ${themes.blob1} opacity-50 blur-[140px] animate-blob animation-delay-4000 mix-blend-multiply`} />
-            
-            {/* Animated Mesh Grid */}
-            <div className="absolute inset-0 opacity-[0.15] mix-blend-overlay">
-               <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <pattern id="animated-grid" width="100" height="100" patternUnits="userSpaceOnUse">
-                    <path d="M 100 0 L 0 0 0 100" fill="none" stroke="currentColor" strokeWidth="0.5" />
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#animated-grid)" className="animate-pulse" />
-              </svg>
-            </div>
-
-            {/* Grainy Texture for Premium Look */}
-            <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.4] mix-blend-overlay" />
-          </div>
+          <div className={`absolute top-[-10%] right-[-5%] w-[800px] h-[800px] rounded-full ${themes.blob1} opacity-40 blur-[120px] animate-blob`} />
+          <div className={`absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] rounded-full ${themes.blob2} opacity-30 blur-[100px] animate-blob animation-delay-2000`} />
         </div>
 
         {/* Header Section */}
-        <section className={`relative z-10 pt-32 pb-24 md:pt-44 md:pb-32 overflow-hidden border-b border-slate-100 ${themes.headerBg} backdrop-blur-md`}>
-          {/* Decorative Floating Icon Concept */}
-          <div className="absolute top-1/2 left-0 -translate-y-1/2 w-full h-full pointer-events-none opacity-[0.03]">
-             <HeaderIcon className="w-[800px] h-[800px] absolute -left-40 top-0 rotate-12" />
-          </div>
+        <section className={`relative z-10 pt-32 pb-24 md:pt-44 md:pb-32 overflow-hidden border-b border-slate-200 ${themes.headerBg}`}>
 
           <div className="container relative z-10 mx-auto px-4">
             <div className="grid lg:grid-cols-[1fr_auto] gap-16 items-center">
@@ -247,7 +224,7 @@ export default function ListPageLayout({
         </section>
 
         {filterSection && (
-          <section className="relative z-10 py-16 bg-slate-50/40 border-b border-slate-100 backdrop-blur-sm">
+          <section className="relative z-10 py-16 bg-slate-50 border-b border-slate-200">
             <div className="container mx-auto px-4">
                <div className={filterContainerClassName}>{filterSection}</div>
             </div>
