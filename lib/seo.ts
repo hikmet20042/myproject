@@ -59,7 +59,6 @@ export function generateSEOMetadata(config: SEOConfig): Metadata {
       canonical: `${siteUrl}${canonical}`,
       languages: {
         'az': `${siteUrl}${canonical}`,
-        'en': `${siteUrl}/en${canonical}`,
         'x-default': `${siteUrl}${canonical}`,
       }
     } : undefined,

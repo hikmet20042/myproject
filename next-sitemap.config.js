@@ -84,10 +84,6 @@ module.exports = {
       hreflang: 'az',
     },
     {
-      href: `${process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'}/en`,
-      hreflang: 'en',
-    },
-    {
       href: process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org',
       hreflang: 'x-default',
     },

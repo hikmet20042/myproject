@@ -215,7 +215,7 @@ export default async function middleware(req: NextRequest) {
   if (hadLanguagePrefix) {
     const newUrl = new URL(pathWithoutLanguage || '/', req.url)
     newUrl.search = req.nextUrl.search
-    return NextResponse.redirect(newUrl)
+    return NextResponse.redirect(newUrl, 301)
   }
 
   const authResponse = await checkAuthorization(pathWithoutLanguage, pathname, req)
