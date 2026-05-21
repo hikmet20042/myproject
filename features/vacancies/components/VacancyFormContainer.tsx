@@ -128,7 +128,7 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
 
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) {
-        throw new Error(payload?.error?.message || payload?.error || 'Sekil yuklenmedi')
+        throw new Error(payload?.error?.message || payload?.error || 'Şəkil yüklənmədi')
       }
 
       const url = payload?.data?.url || payload?.url
@@ -138,7 +138,7 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
 
       setFormData((prev) => ({ ...prev, imageUrl: url }))
     } catch (error: any) {
-      showError(error?.message || 'Cover image yuklenmedi')
+      showError(error?.message || 'Ön şəkil yüklənmədi')
     } finally {
       setUploadingImage(false)
       event.target.value = ''
@@ -158,7 +158,7 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
       const payload = buildVacancySubmitPayload(formData)
       await onSubmit(payload)
     } catch (error: any) {
-      showError(error?.message || (isEditMode ? 'Vakansiya yenilenmedi' : 'Vakansiya yaradilamadi'))
+      showError(error?.message || (isEditMode ? 'Vakansiya yenilənmədi' : 'Vakansiya yaradılmadı'))
     } finally {
       setLoading(false)
     }
@@ -246,18 +246,18 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
           {formData.isPaid && (
             <div className="space-y-4">
               <Select
-                label="Mode"
+                label="Rejim"
                 name="paymentMode"
                 value={formData.paymentMode}
                 onChange={handleInputChange}
-                options={VACANCY_PAYMENT_MODE_VALUES.map((item) => ({ value: item, label: item === 'fixed' ? 'Fixed' : 'Range' }))}
+                options={VACANCY_PAYMENT_MODE_VALUES.map((item) => ({ value: item, label: item === 'fixed' ? 'Sabit' : 'Aralıq' }))}
                 required
               />
               {formData.paymentMode === 'fixed' && (
                 <Input
                   type="number"
                   min="1"
-                  label="Amount (AZN)"
+                  label="Məbləğ (AZN)"
                   name="paymentAmount"
                   value={formData.paymentAmount}
                   onChange={handleInputChange}
@@ -267,7 +267,7 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
               {formData.paymentMode === 'range' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input type="number" min="1" label="Min (AZN)" name="paymentMin" value={formData.paymentMin} onChange={handleInputChange} required />
-                  <Input type="number" min="1" label="Max (AZN)" name="paymentMax" value={formData.paymentMax} onChange={handleInputChange} required />
+                  <Input type="number" min="1" label="Maks (AZN)" name="paymentMax" value={formData.paymentMax} onChange={handleInputChange} required />
                 </div>
               )}
             </div>
@@ -275,14 +275,14 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
         </Card>
 
         <Card className="rounded-2xl p-6 space-y-4">
-          <h2 className="text-lg font-bold text-gray-900">Requirements</h2>
+          <h2 className="text-lg font-bold text-gray-900">Tələblər</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input type="number" label="Yas min" name="ageMin" min="0" max="99" value={formData.ageMin} onChange={handleInputChange} required />
             <Input type="number" label="Yas max" name="ageMax" min="0" max="99" value={formData.ageMax} onChange={handleInputChange} required />
           </div>
 
           <div className="flex gap-2">
-            <Input label="Yeni requirement" value={requirementInput} onChange={(e) => setRequirementInput(e.target.value)} />
+            <Input label="Yeni tələb" value={requirementInput} onChange={(e) => setRequirementInput(e.target.value)} />
             <Button type="button" variant="outline" onClick={() => addListItem('requirements', requirementInput, () => setRequirementInput(''))}>
               <Plus className="h-4 w-4" />
             </Button>
@@ -297,9 +297,9 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
         </Card>
 
         <Card className="rounded-2xl p-6 space-y-4">
-          <h2 className="text-lg font-bold text-gray-900">Benefits</h2>
+          <h2 className="text-lg font-bold text-gray-900">Üstünlüklər</h2>
           <div className="flex gap-2">
-            <Input label="Yeni benefit" value={benefitInput} onChange={(e) => setBenefitInput(e.target.value)} />
+            <Input label="Yeni üstünlük" value={benefitInput} onChange={(e) => setBenefitInput(e.target.value)} />
             <Button type="button" variant="outline" onClick={() => addListItem('benefits', benefitInput, () => setBenefitInput(''))}>
               <Plus className="h-4 w-4" />
             </Button>
@@ -314,9 +314,9 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
         </Card>
 
         <Card className="rounded-2xl p-6 space-y-4">
-          <h2 className="text-lg font-bold text-gray-900">Responsibilities</h2>
+          <h2 className="text-lg font-bold text-gray-900">Vəzifələr</h2>
           <div className="flex gap-2">
-            <Input label="Yeni responsibility" value={responsibilityInput} onChange={(e) => setResponsibilityInput(e.target.value)} />
+            <Input label="Yeni vəzifə" value={responsibilityInput} onChange={(e) => setResponsibilityInput(e.target.value)} />
             <Button type="button" variant="outline" onClick={() => addListItem('responsibilities', responsibilityInput, () => setResponsibilityInput(''))}>
               <Plus className="h-4 w-4" />
             </Button>
@@ -331,7 +331,7 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
         </Card>
 
         <Card className="rounded-2xl p-6 space-y-4">
-          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Phone className="h-5 w-5" /> Muraciet metodu</h2>
+          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Phone className="h-5 w-5" /> Müraciət metodu</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             {VACANCY_APPLICATION_METHOD_VALUES.map((method) => (
               <label key={method} className="rounded-xl border border-gray-200 p-3 cursor-pointer">
@@ -350,10 +350,10 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
           <Input
             label={
               formData.applicationMethod === 'link'
-                ? 'Application link'
+                ? 'Müraciət linki'
                 : formData.applicationMethod === 'email'
-                  ? 'Application email'
-                  : 'Elaqe nomresi'
+                  ? 'Müraciət e-poçtu'
+                  : 'Əlaqə nömrəsi'
             }
             type={formData.applicationMethod === 'email' ? 'email' : 'text'}
             name="applicationValue"
@@ -362,7 +362,7 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
             required
           />
           <Input
-            label="Vacancy deadline"
+            label="Son tarix"
             type="date"
             min={new Date().toISOString().slice(0, 10)}
             name="applicationDeadline"
@@ -373,11 +373,11 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
         </Card>
 
         <Card className="rounded-2xl p-6 space-y-4">
-          <h2 className="text-lg font-bold text-gray-900">Cover image (optional)</h2>
+          <h2 className="text-lg font-bold text-gray-900">Ön şəkil (istəyə bağlı)</h2>
           <div className="flex items-center gap-3">
             <label className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 cursor-pointer">
               {uploadingImage ? <Loading size="sm" variant="spinner" color="primary" /> : <Upload className="h-4 w-4" />}
-              <span>{uploadingImage ? 'Yuklenir...' : 'Sekil sec'}</span>
+              <span>{uploadingImage ? 'Yüklənir...' : 'Şəkil seç'}</span>
               <input type="file" accept="image/*" className="hidden" onChange={onImageFileChange} disabled={uploadingImage} />
             </label>
             {formData.imageUrl && (
@@ -393,10 +393,10 @@ export default function VacancyForm({ initialData, onSubmit, isEditMode }: Vacan
 
         <div className="flex flex-col sm:flex-row gap-3 justify-end">
           <Button type="button" variant="outline" onClick={() => router.push(localePath('/dashboard/vacancies'))}>
-            Legv et
+            Ləğv et
           </Button>
           <Button type="submit" disabled={loading || uploadingImage} loading={loading}>
-            {isEditMode ? 'Yenile' : 'Yarat'}
+            {isEditMode ? 'Yenilə' : 'Yarat'}
           </Button>
         </div>
       </form>

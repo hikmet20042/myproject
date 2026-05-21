@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
     
     if (!session?.user?.id) {
       console.log('Profile GET - No session or user ID');
-      const response = errorResponse('Unauthorized', "API_ERROR", {}, 401);
+      const response = errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429);
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
     console.log('Profile GET - Is Organization:', isApprovedOrganization(session));
 
     if (session.user.accountType === 'organization') {
-      const response = errorResponse('Organization accounts cannot access user profile endpoints. Use /api/organizations/me instead.', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403);
+      const response = errorResponse('Təşkilat hesabları istifadəçi profil endpointlərinə daxil ola bilməz. Bunun əvəzinə /api/organizations/me istifadə edin.', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
     
     if (!user) {
       console.log('Profile GET - User not found. Searched for ID:', session.user.id);
-      const response = errorResponse('User not found', "API_ERROR", {}, 404);
+      const response = errorResponse('İstifadəçi tapılmadı', "API_ERROR", {}, 404);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
     return response;
   } catch (error) {
     console.error('Profile fetch error:', error);
-    const response = errorResponse('Internal server error', "API_ERROR", {}, 500);
+    const response = errorResponse('Daxili server xətası', "API_ERROR", {}, 500);
     return response;
   }
 }
@@ -166,7 +166,7 @@ export async function PUT(request: NextRequest) {
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
     if (!session?.user?.id) {
-      const response = errorResponse('Unauthorized', "API_ERROR", {}, 401);
+      const response = errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -174,7 +174,7 @@ export async function PUT(request: NextRequest) {
     }
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429);
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -184,7 +184,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
 
     if (session.user.accountType === 'organization') {
-      const response = errorResponse('Organization accounts cannot access user profile endpoints. Use /api/organizations/me instead.', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403);
+      const response = errorResponse('Təşkilat hesabları istifadəçi profil endpointlərinə daxil ola bilməz. Bunun əvəzinə /api/organizations/me istifadə edin.', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -215,7 +215,7 @@ export async function PUT(request: NextRequest) {
           }
           return response
         }
-        const response = errorResponse('Failed to update handle', 'HANDLE_UPDATE_FAILED', {}, 500)
+        const response = errorResponse('Handle yenilənə bilmədi', 'HANDLE_UPDATE_FAILED', {}, 500)
         for (const [key, value] of Object.entries(rateLimitHeaders)) {
           response.headers.set(key, value)
         }
@@ -239,7 +239,7 @@ export async function PUT(request: NextRequest) {
 
     if (avatar !== undefined) {
       if (typeof avatar === 'string' && avatar.startsWith('/api/images/')) {
-        const response = errorResponse('Legacy blob image URLs are no longer supported. Upload profile image again.', 'VALIDATION_ERROR', {}, 400)
+        const response = errorResponse('Legacy blob şəkil URL-ləri artıq dəstəklənmir. Profil şəklinizi yenidən yükləyin.', 'VALIDATION_ERROR', {}, 400)
         for (const [key, value] of Object.entries(rateLimitHeaders)) {
           response.headers.set(key, value)
         }
@@ -273,7 +273,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const response = successResponse({
-      message: 'Profile updated successfully',
+      message: 'Profil uğurla yeniləndi',
       profile: updatedProfile
     });
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
@@ -282,7 +282,7 @@ export async function PUT(request: NextRequest) {
     return response;
   } catch (error) {
     console.error('Profile update error:', error);
-    const response = errorResponse('Internal server error', "API_ERROR", {}, 500);
+    const response = errorResponse('Daxili server xətası', "API_ERROR", {}, 500);
     return response;
   }
 }

@@ -29,7 +29,7 @@ export async function GET(
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/blogs/[id]' })
     if (!rlResult.allowed) {
-      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     }
     const supabase = createSupabaseAdminClient()
 
@@ -39,7 +39,7 @@ export async function GET(
       .eq('id', params.id)
       .single()
     if (error || !blog) {
-      return errorResponse('Story not found', 'BLOG_NOT_FOUND', {}, 404)
+      return errorResponse('Hekayə tapılmadı', 'BLOG_NOT_FOUND', {}, 404)
     }
 
     if (blog.status === 'approved') {
@@ -51,11 +51,11 @@ export async function GET(
 
     const session = await getServerSession()
     if (!session?.user) {
-      return errorResponse('Story not found', 'BLOG_NOT_FOUND', {}, 404)
+      return errorResponse('Hekayə tapılmadı', 'BLOG_NOT_FOUND', {}, 404)
     }
 
     if (!isAdminOrOwner(session, { author_id: blog.author_id })) {
-      return errorResponse('Story not found', 'BLOG_NOT_FOUND', {}, 404)
+      return errorResponse('Hekayə tapılmadı', 'BLOG_NOT_FOUND', {}, 404)
     }
 
     const stats = await getBlogStats(supabase, blog.id, session?.user?.id)
@@ -63,7 +63,7 @@ export async function GET(
     const r = successResponse({ blog: { ...blog, ...stats, authorUrlHandle } })
   } catch (error) {
     console.error('GET /api/blogs/[id] error:', error)
-    return errorResponse('Failed to fetch blog', 'FETCH_BLOG_FAILED', {}, 500)
+    return errorResponse('Bloq yüklənə bilmədi', 'FETCH_BLOG_FAILED', {}, 500)
   }
 }
 
@@ -75,28 +75,28 @@ export async function PATCH(
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'write', endpoint: '/api/blogs/[id]' })
     if (!rlResult.allowed) {
-      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     }
     const supabase = createSupabaseAdminClient()
     const session = await getServerSession()
     if (!session?.user?.id) {
-      return errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401)
+      return errorResponse('Autentifikasiya tələb olunur', 'AUTH_REQUIRED', {}, 401)
     }
 
     if (session.user.accountType === 'organization') {
-      return errorResponse('Organization accounts cannot manage blogs', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+      return errorResponse('Təşkilat hesabları bloqları idarə edə bilməz', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
     }
 
     const blogId = params.id
     if (!blogId) {
-      return errorResponse('Story id is required', 'VALIDATION_ERROR', {}, 400)
+      return errorResponse('Hekayə ID-si tələb olunur', 'VALIDATION_ERROR', {}, 400)
     }
 
     let body: any
     try {
       body = await request.json()
     } catch {
-      return errorResponse('Invalid JSON body', 'VALIDATION_ERROR', {}, 400)
+      return errorResponse('Yanlış JSON sorğu gövdəsi', 'VALIDATION_ERROR', {}, 400)
     }
     const { title, content, contentHtml, tags, abstract, isAnonymous, authorName, media, featuredImage, status: reqStatus, requestUpdate } = body
 
@@ -108,13 +108,13 @@ export async function PATCH(
       .single()
 
     if (!existingStory) {
-      return errorResponse('Story not found or you do not have permission to edit it', 'BLOG_NOT_FOUND', {}, 404)
+      return errorResponse('Hekayə tapılmadı və ya onu redaktə etməyə icazəniz yoxdur', 'BLOG_NOT_FOUND', {}, 404)
     }
 
     const isApprovedUpdateRequest = existingStory.status === 'approved' && reqStatus === 'pending' && requestUpdate === true
 
     if (existingStory.status === 'approved' && !isApprovedUpdateRequest) {
-      return errorResponse('Approved blogs cannot be edited directly. Submit an update request instead.', 'FORBIDDEN', {}, 403)
+      return errorResponse('Təsdiqlənmiş bloqlar birbaşa redaktə edilə bilməz. Bunun əvəzinə yeniləmə sorğusu göndərin.', 'FORBIDDEN', {}, 403)
     }
 
     if (content !== undefined || contentHtml !== undefined) {
@@ -135,20 +135,20 @@ export async function PATCH(
       }
 
       if (!textContent || textContent.trim().length < 100) {
-        return errorResponse('Story content must be at least 100 characters long', 'VALIDATION_ERROR', {}, 400)
+        return errorResponse('Hekayə məzmunu ən azı 100 simvol olmalıdır', 'VALIDATION_ERROR', {}, 400)
       }
 
       if (content !== undefined) {
         const { imageReferences } = processContentImages(content)
         const hasNonCloudinaryImage = imageReferences.some((ref) => ref.url && !isCloudinaryUrl(ref.url))
         if (hasNonCloudinaryImage) {
-          return errorResponse('Blog content images must be Cloudinary URLs.', 'VALIDATION_ERROR', {}, 400)
+          return errorResponse('Bloq məzmun şəkilləri Cloudinary URL-ləri olmalıdır.', 'VALIDATION_ERROR', {}, 400)
         }
       }
     }
 
     if (tags !== undefined && !Array.isArray(tags)) {
-      return errorResponse('Tags must be an array of strings', 'VALIDATION_ERROR', {}, 400)
+      return errorResponse('Teqlər sətir massivi olmalıdır', 'VALIDATION_ERROR', {}, 400)
     }
 
     const updateData: any = {
@@ -158,7 +158,7 @@ export async function PATCH(
     if (title !== undefined) {
       const trimmedTitle = title.trim()
       if (trimmedTitle.length < 5 || trimmedTitle.length > 200) {
-        return errorResponse('Title must be between 5 and 200 characters', 'VALIDATION_ERROR', {}, 400)
+        return errorResponse('Başlıq 5-200 simvol arasında olmalıdır', 'VALIDATION_ERROR', {}, 400)
       }
       updateData.title = trimmedTitle
     }
@@ -180,25 +180,25 @@ export async function PATCH(
     }
     if (media !== undefined) {
       if (!Array.isArray(media)) {
-        return errorResponse('Media must be an array.', 'VALIDATION_ERROR', {}, 400)
+        return errorResponse('Media massiv olmalıdır.', 'VALIDATION_ERROR', {}, 400)
       }
 
       const hasInvalidMediaUrl = media.some((item: any) => !item?.url || !isCloudinaryUrl(String(item.url)))
       if (hasInvalidMediaUrl) {
-        return errorResponse('Blog media URLs must be Cloudinary URLs.', 'VALIDATION_ERROR', {}, 400)
+        return errorResponse('Bloq media URL-ləri Cloudinary URL-ləri olmalıdır.', 'VALIDATION_ERROR', {}, 400)
       }
 
       updateData.media = media
     }
     if (featuredImage !== undefined) {
       if (featuredImage && !isCloudinaryUrl(String(featuredImage))) {
-        return errorResponse('Featured image must be a Cloudinary URL.', 'VALIDATION_ERROR', {}, 400)
+        return errorResponse('Ön şəkil Cloudinary URL-i olmalıdır.', 'VALIDATION_ERROR', {}, 400)
       }
       updateData.featured_image = featuredImage
     }
     if (reqStatus !== undefined) {
       if (reqStatus !== 'pending') {
-        return errorResponse('Only pending status can be requested from user edits', 'FORBIDDEN', {}, 403)
+        return errorResponse('İstifadəçi redaktələrindən yalnız gözləmə statusu tələb oluna bilər', 'FORBIDDEN', {}, 403)
       }
       updateData.status = 'pending'
     }
@@ -212,7 +212,7 @@ export async function PATCH(
         .single()
 
       if (originalBlogError || !originalBlog) {
-        return errorResponse('Original approved blog not found', 'BLOG_NOT_FOUND', {}, 404)
+        return errorResponse('Orijinal təsdiqlənmiş bloq tapılmadı', 'BLOG_NOT_FOUND', {}, 404)
       }
 
       const mergedMedia = {
@@ -254,7 +254,7 @@ export async function PATCH(
           .single()
 
         if (updateRequestError || !updatedRequest) {
-          return errorResponse('Failed to update blog request', 'UPDATE_BLOG_FAILED', {}, 500)
+          return errorResponse('Bloq sorğusu yenilənə bilmədi', 'UPDATE_BLOG_FAILED', {}, 500)
         }
         requestBlog = updatedRequest
       } else {
@@ -270,7 +270,7 @@ export async function PATCH(
           .single()
 
         if (insertRequestError || !insertedRequest) {
-          return errorResponse('Failed to create blog update request', 'CREATE_BLOG_FAILED', {}, 500)
+          return errorResponse('Bloq yeniləmə sorğusu yaradıla bilmədi', 'CREATE_BLOG_FAILED', {}, 500)
         }
         requestBlog = insertedRequest
       }
@@ -281,12 +281,12 @@ export async function PATCH(
         'blog',
         requestBlog.id,
         requestBlog.title,
-        requestBlog.author_name || session.user.name || 'Unknown submitter'
+        requestBlog.author_name || session.user.name || 'Naməlum göndərən'
       )
 
       return successResponse(
         { blog: requestBlog },
-        { message: 'Blog update request submitted for review' }
+        { message: 'Bloq yeniləmə sorğusu nəzərdən keçirilmək üçün göndərildi' }
       )
     }
 
@@ -299,14 +299,14 @@ export async function PATCH(
       .single()
 
     if (updateError || !blog) {
-      return errorResponse('Failed to update blog', 'UPDATE_BLOG_FAILED', {}, 500)
+      return errorResponse('Bloq yenilənə bilmədi', 'UPDATE_BLOG_FAILED', {}, 500)
     }
 
     cache.blogs.clear()
-    return successResponse({ blog }, { message: 'Story updated successfully' })
+    return successResponse({ blog }, { message: 'Hekayə uğurla yeniləndi' })
   } catch (error) {
     console.error('PATCH /api/blogs/[id] error:', error)
-    return errorResponse('Failed to update blog', 'UPDATE_BLOG_FAILED', {}, 500)
+    return errorResponse('Bloq yenilənə bilmədi', 'UPDATE_BLOG_FAILED', {}, 500)
   }
 }
 
@@ -318,20 +318,20 @@ export async function DELETE(
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'write', endpoint: '/api/blogs/[id]' })
     if (!rlResult.allowed) {
-      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     }
     const session = await getServerSession()
     if (!session?.user) {
-      return errorResponse('Unauthorized', 'AUTH_REQUIRED', {}, 401)
+      return errorResponse('İcazəsiz giriş', 'AUTH_REQUIRED', {}, 401)
     }
 
     if (session.user.accountType === 'organization') {
-      return errorResponse('Organization accounts cannot manage blogs', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+      return errorResponse('Təşkilat hesabları bloqları idarə edə bilməz', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
     }
 
     const blogId = params.id
     if (!blogId) {
-      return errorResponse('Story id is required', 'VALIDATION_ERROR', {}, 400)
+      return errorResponse('Hekayə ID-si tələb olunur', 'VALIDATION_ERROR', {}, 400)
     }
 
     const supabase = createSupabaseAdminClient()
@@ -342,11 +342,11 @@ export async function DELETE(
       .eq('id', blogId)
       .single()
     if (error || !blog) {
-      return errorResponse('Story not found', 'BLOG_NOT_FOUND', {}, 404)
+      return errorResponse('Hekayə tapılmadı', 'BLOG_NOT_FOUND', {}, 404)
     }
 
     if (!isAdminOrOwner(session, { author_id: blog.author_id })) {
-      return errorResponse('Unauthorized', 'FORBIDDEN', {}, 403)
+      return errorResponse('İcazəsiz giriş', 'FORBIDDEN', {}, 403)
     }
 
     await supabase
@@ -355,9 +355,9 @@ export async function DELETE(
       .eq('id', blog.id)
 
     cache.blogs.clear()
-    const _r = successResponse({ id: blog.id }, { message: 'Story deleted successfully' })
+    const _r = successResponse({ id: blog.id }, { message: 'Hekayə uğurla silindi' })
   } catch (error) {
     console.error('DELETE /api/blogs/[id] error:', error)
-    return errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500)
+    return errorResponse('Daxili server xətası', 'INTERNAL_SERVER_ERROR', {}, 500)
   }
 }

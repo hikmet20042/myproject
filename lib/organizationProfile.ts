@@ -145,7 +145,7 @@ export const validateOrganizationUpdatePayload = (
   payload: unknown
 ): { data?: ValidatedOrganizationUpdate; error?: string } => {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-    return { error: 'Invalid payload' }
+    return { error: 'Yanlış məlumat' }
   }
 
   const source = payload as Record<string, unknown>
@@ -168,23 +168,23 @@ export const validateOrganizationUpdatePayload = (
   }
 
   if (!organizationName || !description) {
-    return { error: 'Organization name and description are required' }
+    return { error: 'Təşkilat adı və təsviri tələb olunur' }
   }
 
   if (organizationName.length < MIN_ORGANIZATION_NAME_LENGTH) {
-    return { error: `Organization name must be at least ${MIN_ORGANIZATION_NAME_LENGTH} characters` }
+    return { error: `Təşkilat adı ən azı ${MIN_ORGANIZATION_NAME_LENGTH} simvol olmalıdır` }
   }
 
   if (description.length < MIN_DESCRIPTION_LENGTH) {
-    return { error: `Description must be at least ${MIN_DESCRIPTION_LENGTH} characters` }
+    return { error: `Təsvir ən azı ${MIN_DESCRIPTION_LENGTH} simvol olmalıdır` }
   }
 
   if (organizationTypeValue && !ORGANIZATION_TYPE_VALUES.includes(organizationTypeValue as (typeof ORGANIZATION_TYPE_VALUES)[number])) {
-    return { error: 'Invalid organization type' }
+    return { error: 'Yanlış təşkilat tipi' }
   }
 
   if (website && !isValidHttpUrl(website)) {
-    return { error: 'Website must be a valid URL' }
+    return { error: 'Veb-sayt etibarlı URL olmalıdır' }
   }
 
   const focusAreas = normalizeFocusAreas(source.focusAreas)

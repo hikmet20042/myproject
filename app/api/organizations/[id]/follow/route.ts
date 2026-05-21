@@ -35,7 +35,7 @@ export async function GET(
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/organizations/[id]/follow' })
     if (!rlResult.allowed) {
-      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
@@ -48,7 +48,7 @@ export async function GET(
       .maybeSingle()
 
     if (!profile || profile.moderation_status !== 'approved') {
-      const r = errorResponse('Organization not found', "API_ERROR", {}, 404)
+      const r = errorResponse('Təşkilat tapılmadı', "API_ERROR", {}, 404)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
@@ -76,7 +76,7 @@ export async function GET(
     return r
   } catch (error) {
     console.error('Failed to fetch follow state:', error)
-    return errorResponse('Failed to fetch follow state', "API_ERROR", {}, 500)
+    return errorResponse('İzləmə vəziyyəti yüklənə bilmədi', "API_ERROR", {}, 500)
   }
 }
 
@@ -88,19 +88,19 @@ export async function POST(
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'write', endpoint: '/api/organizations/[id]/follow' })
     if (!rlResult.allowed) {
-      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
     const session = await getServerSession()
     if (!session?.user?.id) {
-      const r = errorResponse('Authentication required', "API_ERROR", {}, 401)
+      const r = errorResponse('Autentifikasiya tələb olunur', "API_ERROR", {}, 401)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
 
     if (session.user.accountType === 'organization') {
-      const r = errorResponse('Organization accounts cannot follow organizations', "API_ERROR", {}, 403)
+      const r = errorResponse('Təşkilat hesabları təşkilatları izləyə bilməz', "API_ERROR", {}, 403)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
@@ -114,7 +114,7 @@ export async function POST(
       .maybeSingle()
 
     if (!profile || profile.moderation_status !== 'approved') {
-      const r = errorResponse('Organization not found', "API_ERROR", {}, 404)
+      const r = errorResponse('Təşkilat tapılmadı', "API_ERROR", {}, 404)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
@@ -172,6 +172,6 @@ export async function POST(
     return r
   } catch (error) {
     console.error('Failed to update follow state:', error)
-    return errorResponse('Failed to update follow state', "API_ERROR", {}, 500)
+    return errorResponse('İzləmə vəziyyəti yenilənə bilmədi', "API_ERROR", {}, 500)
   }
 }

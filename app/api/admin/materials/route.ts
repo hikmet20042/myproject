@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     })
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     }
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession();
 
     if (!session || session.user?.role !== 'admin') {
-      const response = errorResponse('Unauthorized. Admin access required.', "API_ERROR", {}, 403)
+      const response = errorResponse('İcazəsiz giriş. Admin girişi tələb olunur.', "API_ERROR", {}, 403)
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     }
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     const { data: materials, error, count: total } = await query;
 
     if (error) {
-      const response = errorResponse('Failed to fetch materials', "API_ERROR", {}, 500)
+      const response = errorResponse('Materiallar yüklənə bilmədi', "API_ERROR", {}, 500)
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     }
@@ -81,6 +81,6 @@ export async function GET(request: NextRequest) {
     return response
   } catch (error: any) {
     console.error('Error fetching materials:', error);
-    return errorResponse('Failed to fetch materials', "API_ERROR", {}, 500);
+    return errorResponse('Materiallar yüklənə bilmədi', "API_ERROR", {}, 500);
   }
 }

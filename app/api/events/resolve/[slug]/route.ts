@@ -12,7 +12,7 @@ export async function GET(
 ) {
   const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/events/resolve/[slug]' })
   if (!rlResult.allowed) {
-    return rlh(errorResponse('Too many requests. Please try again later.', 429), rlHeaders)
+    return rlh(errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 429), rlHeaders)
   }
   try {
     const supabase = createSupabaseAdminClient();
@@ -21,11 +21,11 @@ export async function GET(
     const { data, error } = await resolveEntityBySlugOrId(supabase, "events", slug, "id, slug");
 
     if (error || !data?.id) {
-      return rlh(errorResponse("Event not found", 404), rlHeaders)
+      return rlh(errorResponse("Tədbir tapılmadı", 404), rlHeaders)
     }
 
     return rlh(successResponse({ id: data.id, slug: data.slug || slug }), rlHeaders)
   } catch (error) {
-    return errorResponse("Failed to resolve event", 500)
+    return errorResponse("Tədbir həll edilə bilmədi", 500)
   }
 }

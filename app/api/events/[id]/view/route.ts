@@ -21,7 +21,7 @@ export async function POST(
     })
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -36,7 +36,7 @@ export async function POST(
 
     const supabase = createSupabaseAdminClient()
     if (!eventId) {
-      const response = errorResponse('Event identifier is required', 'VALIDATION_ERROR', {}, 400)
+      const response = errorResponse('Tədbir identifikatoru tələb olunur', 'VALIDATION_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -50,7 +50,7 @@ export async function POST(
       .single()
 
     if (error || !event) {
-      const response = errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404)
+      const response = errorResponse('Tədbir tapılmadı', 'EVENT_NOT_FOUND', {}, 404)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -58,7 +58,7 @@ export async function POST(
     }
 
     if (event.status !== 'approved') {
-      const response = errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404)
+      const response = errorResponse('Tədbir tapılmadı', 'EVENT_NOT_FOUND', {}, 404)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -67,7 +67,7 @@ export async function POST(
 
     const userAgent = request.headers.get('user-agent')
     if (isBot(userAgent)) {
-      const response = errorResponse('Bot views not tracked', 'BOT_FILTERED', {}, 200)
+      const response = errorResponse('Bot baxışları izlənmir', 'BOT_FILTERED', {}, 200)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -82,7 +82,7 @@ export async function POST(
       const timeOnPage = now - viewTime
       if (timeOnPage < MIN_VIEW_TIME_MS) {
         console.warn(`[POST /api/events/[id]/view] View time too short: ${timeOnPage}ms < ${MIN_VIEW_TIME_MS}ms`)
-        const response = errorResponse('View time too short', 'VIEW_TIME_INVALID', {}, 400)
+        const response = errorResponse('Baxış müddəti çox qısadır', 'VIEW_TIME_INVALID', {}, 400)
         for (const [key, value] of Object.entries(rateLimitHeaders)) {
           response.headers.set(key, value)
         }
@@ -90,7 +90,7 @@ export async function POST(
       }
     } else {
       console.warn(`[POST /api/events/[id]/view] No view start timestamp - possible direct API call`)
-      const response = errorResponse('Invalid view request', 'VIEW_REQUEST_INVALID', {}, 400)
+      const response = errorResponse('Yanlış baxış sorğusu', 'VIEW_REQUEST_INVALID', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -111,7 +111,7 @@ export async function POST(
               contentType: 'event',
               contentId: event.id,
               contentSlug: event.slug || event.id,
-              contentTitle: event.title || 'Untitled Event',
+              contentTitle: event.title || 'Adsız Tədbir',
               viewCount: stats.views,
             }).catch((err) => {
               console.error('Failed to notify organization about event view milestone:', err)
@@ -159,7 +159,7 @@ export async function POST(
     return response
   } catch (error) {
     console.error('POST /api/events/[id]/view error:', error)
-    return errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500)
+    return errorResponse('Daxili server xətası', 'INTERNAL_SERVER_ERROR', {}, 500)
   }
 }
 
@@ -175,7 +175,7 @@ export async function GET(
     })
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -187,7 +187,7 @@ export async function GET(
     const session = await getServerSession()
 
     if (!eventId) {
-      const response = errorResponse('Event identifier is required', 'VALIDATION_ERROR', {}, 400)
+      const response = errorResponse('Tədbir identifikatoru tələb olunur', 'VALIDATION_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -201,7 +201,7 @@ export async function GET(
       .single()
 
     if (error || !event) {
-      const response = errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404)
+      const response = errorResponse('Tədbir tapılmadı', 'EVENT_NOT_FOUND', {}, 404)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -212,7 +212,7 @@ export async function GET(
       const isAdminUser = isAdmin(session)
       const isCreator = session?.user?.id === event.created_by || session?.user?.id === event.created_by_organization
       if (!isCreator && !isAdminUser) {
-        const response = errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404)
+        const response = errorResponse('Tədbir tapılmadı', 'EVENT_NOT_FOUND', {}, 404)
         for (const [key, value] of Object.entries(rateLimitHeaders)) {
           response.headers.set(key, value)
         }
@@ -232,6 +232,6 @@ export async function GET(
     return response
   } catch (error) {
     console.error('GET /api/events/[id]/view error:', error)
-    return errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500)
+    return errorResponse('Daxili server xətası', 'INTERNAL_SERVER_ERROR', {}, 500)
   }
 }

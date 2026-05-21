@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
     })
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
     
     const session = await getServerSession()
     if (!isAdmin(session)) {
-      const response = errorResponse('Admin access required', 'ADMIN_ACCESS_REQUIRED', {}, 403)
+      const response = errorResponse('Admin girişi tələb olunur', 'ADMIN_ACCESS_REQUIRED', {}, 403)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -221,7 +221,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('GET /api/admin/events error:', error)
-      const response = errorResponse('Failed to fetch events', 'FETCH_EVENTS_FAILED', {}, 500)
+      const response = errorResponse('Tədbirlər yüklənə bilmədi', 'FETCH_EVENTS_FAILED', {}, 500)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -263,6 +263,6 @@ export async function GET(request: NextRequest) {
     return successResp
   } catch (error) {
     console.error('GET /api/admin/events error:', error)
-    return errorResponse('Failed to fetch events', 'FETCH_EVENTS_FAILED', {}, 500)
+    return errorResponse('Tədbirlər yüklənə bilmədi', 'FETCH_EVENTS_FAILED', {}, 500)
   }
 }

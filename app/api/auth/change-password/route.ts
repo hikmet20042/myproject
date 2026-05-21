@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
   })
 
   if (!rateLimitResult.allowed) {
-    const response = errorResponse('Too many requests. Please try again later.', "RATE_LIMITED", {}, 429)
+    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', "RATE_LIMITED", {}, 429)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const { data: authData } = await supabase.auth.getUser()
 
     if (!authData?.user?.id || !authData.user.email) {
-      const response = errorResponse('Authentication required', "API_ERROR", {}, 401)
+      const response = errorResponse('Autentifikasiya tələb olunur', "API_ERROR", {}, 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     const { currentPassword, newPassword } = await request.json()
 
     if (!currentPassword || !newPassword) {
-      const response = errorResponse('Current password and new password are required', "API_ERROR", {}, 400)
+      const response = errorResponse('Cari şifrə və yeni şifrə tələb olunur', "API_ERROR", {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (newPassword.length < 6) {
-      const response = errorResponse('New password must be at least 6 characters long', "API_ERROR", {}, 400)
+      const response = errorResponse('Yeni şifrə ən azı 6 simvol olmalıdır', "API_ERROR", {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (newPassword === currentPassword) {
-      const response = errorResponse('New password must be different from current password', "API_ERROR", {}, 400)
+      const response = errorResponse('Yeni şifrə cari şifrədən fərqli olmalıdır', "API_ERROR", {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      const response = errorResponse('Supabase configuration missing', "API_ERROR", {}, 500)
+      const response = errorResponse('Supabase konfiqurasiyası tapılmadı', "API_ERROR", {}, 500)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (signInError) {
-      const response = errorResponse('Current password is incorrect', "API_ERROR", {}, 400)
+      const response = errorResponse('Cari şifrə yanlışdır', "API_ERROR", {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       console.error('Failed to send password change notification:', notificationError)
     }
 
-    const response = successResponse({ message: 'Password changed successfully' }, {}, 200)
+    const response = successResponse({ message: 'Şifrə uğurla dəyişdirildi' }, {}, 200)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error changing password:', error)
-    const response = errorResponse('Internal server error', "API_ERROR", {}, 500)
+    const response = errorResponse('Daxili server xətası', "API_ERROR", {}, 500)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }

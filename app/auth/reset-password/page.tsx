@@ -150,7 +150,7 @@ function ResetPasswordContent() {
       const { error: updateError } = await supabase.auth.updateUser({ password })
 
       if (!updateError) {
-        setMessage('Password has been reset successfully')
+        setMessage('Şifrə uğurla sıfırlandı')
         await supabase.auth.signOut()
         // Redirect to sign in after 3 seconds
         setTimeout(() => {

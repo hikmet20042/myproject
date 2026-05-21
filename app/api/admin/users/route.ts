@@ -34,14 +34,14 @@ export async function GET(request: NextRequest) {
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/users' })
     if (!rlResult.allowed) {
-      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
     if (!isAdmin(session)) {
-      return errorResponse('Admin access required', "API_ERROR", {}, 403);
+      return errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403);
     }
 
     const { searchParams } = new URL(request.url);
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('GET /api/admin/users query error:', error);
-      return errorResponse('Failed to fetch users', "API_ERROR", {}, 500);
+      return errorResponse('İstifadəçilər yüklənə bilmədi', "API_ERROR", {}, 500);
     }
 
     const userIds = (users || []).map(user => user.id);
@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('GET /api/admin/users error:', error);
-    return errorResponse('Failed to fetch users', "API_ERROR", {}, 500);
+    return errorResponse('İstifadəçilər yüklənə bilmədi', "API_ERROR", {}, 500);
   }
 }
 
@@ -175,14 +175,14 @@ export async function PUT(request: NextRequest) {
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/users' })
     if (!rlResult.allowed) {
-      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
     if (!isAdmin(session)) {
-      return errorResponse('Admin access required', "API_ERROR", {}, 403);
+      return errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403);
     }
 
     const body = await request.json() as UserUpdatePayload;
@@ -190,7 +190,7 @@ export async function PUT(request: NextRequest) {
     const updates = body.updates || {};
 
     if (!userId) {
-      return errorResponse('User ID is required', "API_ERROR", {}, 400);
+      return errorResponse('İstifadəçi ID-si tələb olunur', "API_ERROR", {}, 400);
     }
 
     const { data: user, error: userError } = await supabase
@@ -199,17 +199,17 @@ export async function PUT(request: NextRequest) {
       .eq('id', userId)
       .single();
     if (userError || !user) {
-      return errorResponse('User not found', "API_ERROR", {}, 404);
+      return errorResponse('İstifadəçi tapılmadı', "API_ERROR", {}, 404);
     }
 
     // Prevent admin from modifying their own role
     const adminUserId = session?.user?.id;
     if (!adminUserId) {
-      return errorResponse('Admin access required', "API_ERROR", {}, 403);
+      return errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403);
     }
 
     if (userId === adminUserId && updates.role) {
-      return errorResponse('Cannot modify your own role', "API_ERROR", {}, 400);
+      return errorResponse('Öz rolunuzu dəyişə bilməzsiniz', "API_ERROR", {}, 400);
     }
 
     let result;
@@ -218,7 +218,7 @@ export async function PUT(request: NextRequest) {
     switch (action) {
       case 'updateRole':
         if (updates.role !== 'user' && updates.role !== 'admin') {
-          return errorResponse('Invalid role', "API_ERROR", {}, 400);
+          return errorResponse('Yanlış rol', "API_ERROR", {}, 400);
         }
         await supabase
           .from('accounts')
@@ -238,13 +238,13 @@ export async function PUT(request: NextRequest) {
             updated_at: new Date().toISOString()
           })
           .eq('id', userId);
-        result = { message: 'User profile updated successfully' };
+        result = { message: 'İstifadəçi profili uğurla yeniləndi' };
         break;
 
 
 
       default:
-        return errorResponse('Invalid action', "API_ERROR", {}, 400);
+        return errorResponse('Yanlış əməliyyat', "API_ERROR", {}, 400);
     }
 
     // Send notification to user if message exists
@@ -252,7 +252,7 @@ export async function PUT(request: NextRequest) {
       await supabase.from('notifications').insert({
         user_id: userId,
         type: 'admin',
-        title: 'Account Update',
+        title: 'Hesab Yeniləmə',
         message: notificationMessage,
         data: { action, adminId: adminUserId }
       });
@@ -261,7 +261,7 @@ export async function PUT(request: NextRequest) {
     return successResponse(result);
   } catch (error) {
     console.error('PUT /api/admin/users error:', error);
-    return errorResponse('Internal server error', "API_ERROR", {}, 500);
+    return errorResponse('Daxili server xətası', "API_ERROR", {}, 500);
   }
 }
 
@@ -270,30 +270,30 @@ export async function DELETE(request: NextRequest) {
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/users' })
     if (!rlResult.allowed) {
-      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
     if (!isAdmin(session)) {
-      return errorResponse('Admin access required', "API_ERROR", {}, 403);
+      return errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403);
     }
 
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
 
     if (!userId) {
-      return errorResponse('User ID is required', "API_ERROR", {}, 400);
+      return errorResponse('İstifadəçi ID-si tələb olunur', "API_ERROR", {}, 400);
     }
 
     const adminUserId = session?.user?.id;
     if (!adminUserId) {
-      return errorResponse('Admin access required', "API_ERROR", {}, 403);
+      return errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403);
     }
 
     if (userId === adminUserId) {
-      return errorResponse('Cannot delete your own account', "API_ERROR", {}, 400);
+      return errorResponse('Öz hesabınızı silə bilməzsiniz', "API_ERROR", {}, 400);
     }
 
     const { data: user, error: userError } = await supabase
@@ -302,7 +302,7 @@ export async function DELETE(request: NextRequest) {
       .eq('id', userId)
       .single();
     if (userError || !user) {
-      return errorResponse('User not found', "API_ERROR", {}, 404);
+      return errorResponse('İstifadəçi tapılmadı', "API_ERROR", {}, 404);
     }
 
     // Prevent deletion of organizations through this endpoint - they should be managed through organization API
@@ -316,9 +316,9 @@ export async function DELETE(request: NextRequest) {
     // Delete auth user (cascades to public.users)
     await supabase.auth.admin.deleteUser(userId);
 
-    return successResponse({ message: 'User deleted successfully' });
+    return successResponse({ message: 'İstifadəçi uğurla silindi' });
   } catch (error) {
     console.error('DELETE /api/admin/users error:', error);
-    return errorResponse('Internal server error', "API_ERROR", {}, 500);
+    return errorResponse('Daxili server xətası', "API_ERROR", {}, 500);
   }
 }

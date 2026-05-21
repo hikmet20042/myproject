@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
   })
 
   if (!rateLimitResult.allowed) {
-    const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     const { data: authData } = await supabase.auth.getUser()
 
     if (!authData?.user?.id) {
-      const response = errorResponse('Authentication required', 'API_ERROR', {}, 401)
+      const response = errorResponse('Autentifikasiya tələb olunur', 'API_ERROR', {}, 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
     return response
   } catch (error) {
     console.error('GET /api/auth/change-email error:', error)
-    const response = errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    const response = errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
   })
 
   if (!rateLimitResult.allowed) {
-    const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     const { data: authData } = await supabase.auth.getUser()
 
     if (!authData?.user?.id || !authData.user.email) {
-      const response = errorResponse('Authentication required', 'API_ERROR', {}, 401)
+      const response = errorResponse('Autentifikasiya tələb olunur', 'API_ERROR', {}, 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
     const currentPassword = String(body?.currentPassword || '').trim()
 
     if (!newEmail) {
-      const response = errorResponse('New email is required', 'API_ERROR', {}, 400)
+      const response = errorResponse('Yeni e-poçt tələb olunur', 'API_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(newEmail)) {
-      const response = errorResponse('Invalid email format', 'API_ERROR', {}, 400)
+      const response = errorResponse('Yanlış e-poçt formatı', 'API_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
 
     if (!providerInfo.isGoogleOnly) {
       if (!currentPassword) {
-        const response = errorResponse('Current password is required', 'API_ERROR', {}, 400)
+        const response = errorResponse('Cari şifrə tələb olunur', 'API_ERROR', {}, 400)
         for (const [key, value] of Object.entries(rateLimitHeaders)) {
           response.headers.set(key, value)
         }
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
       const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
       if (!supabaseUrl || !supabaseAnonKey) {
-        const response = errorResponse('Supabase configuration missing', 'API_ERROR', {}, 500)
+        const response = errorResponse('Supabase konfiqurasiyası tapılmadı', 'API_ERROR', {}, 500)
         for (const [key, value] of Object.entries(rateLimitHeaders)) {
           response.headers.set(key, value)
         }
@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
       })
 
       if (signInError) {
-        const response = errorResponse('Current password is incorrect', 'API_ERROR', {}, 400)
+        const response = errorResponse('Cari şifrə yanlışdır', 'API_ERROR', {}, 400)
         for (const [key, value] of Object.entries(rateLimitHeaders)) {
           response.headers.set(key, value)
         }
@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
     return response
   } catch (error) {
     console.error('POST /api/auth/change-email error:', error)
-    const response = errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    const response = errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }

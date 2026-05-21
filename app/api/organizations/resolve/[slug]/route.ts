@@ -15,25 +15,25 @@ export async function GET(
 ) {
   const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/organizations/resolve/[slug]' })
   if (!rlResult.allowed) {
-    return rlh(errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429), rlHeaders)
+    return rlh(errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429), rlHeaders)
   }
   try {
     const supabase = createSupabaseAdminClient()
     const slug = String(params?.slug || '').trim()
 
     if (!slug) {
-      return rlh(errorResponse('Organization slug is required', 'VALIDATION_ERROR', {}, 400), rlHeaders)
+      return rlh(errorResponse('Təşkilat slug tələb olunur', 'VALIDATION_ERROR', {}, 400), rlHeaders)
     }
 
     const { data, error } = await resolveEntityBySlugOrId(supabase, 'organization_profiles', slug, 'account_id,url_handle,slug')
 
     if (error || !data?.account_id) {
-      return rlh(errorResponse('Organization not found', 'ORG_NOT_FOUND', {}, 404), rlHeaders)
+      return rlh(errorResponse('Təşkilat tapılmadı', 'ORG_NOT_FOUND', {}, 404), rlHeaders)
     }
 
     return rlh(successResponse({ id: data.account_id, slug: data.url_handle || data.slug }), rlHeaders)
   } catch (err) {
     console.error('GET /api/organizations/resolve/[slug] error:', err)
-    return errorResponse('Failed to resolve organization', 'RESOLVE_ORG_FAILED', {}, 500)
+    return errorResponse('Təşkilat həll edilə bilmədi', 'RESOLVE_ORG_FAILED', {}, 500)
   }
 }

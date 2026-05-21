@@ -13,7 +13,7 @@ export async function GET(
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/materials/[id]' })
     if (!rlResult.allowed) {
-      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     }
     const supabase = createSupabaseAdminClient();
 
@@ -24,7 +24,7 @@ export async function GET(
       .single();
 
     if (error || !material) {
-      return errorResponse('Material not found', "API_ERROR", {}, 404)
+      return errorResponse('Material tapılmadı', "API_ERROR", {}, 404)
     }
 
     // Increment view count
@@ -36,7 +36,7 @@ export async function GET(
     return successResponse({ material })
   } catch (error: any) {
     console.error('Error fetching material:', error);
-    return errorResponse('Failed to fetch material', "API_ERROR", {}, 500)
+    return errorResponse('Material yüklənə bilmədi', "API_ERROR", {}, 500)
   }
 }
 
@@ -48,12 +48,12 @@ export async function PUT(
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/materials/[id]' })
     if (!rlResult.allowed) {
-      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     }
     const session = await getServerSession();
 
     if (!session || session.user?.role !== 'admin') {
-      return errorResponse('Unauthorized. Admin access required.', "API_ERROR", {}, 403)
+      return errorResponse('İcazəsiz giriş. Admin girişi tələb olunur.', "API_ERROR", {}, 403)
     }
 
     const supabase = createSupabaseAdminClient();
@@ -82,13 +82,13 @@ export async function PUT(
       .single();
 
     if (error || !material) {
-      return errorResponse('Material not found', "API_ERROR", {}, 404)
+      return errorResponse('Material tapılmadı', "API_ERROR", {}, 404)
     }
 
-    return successResponse({ message: 'Material updated successfully', material })
+    return successResponse({ message: 'Material uğurla yeniləndi', material })
   } catch (error: any) {
     console.error('Error updating material:', error);
-    return errorResponse('Failed to update material', "API_ERROR", {}, 500)
+    return errorResponse('Material yenilənə bilmədi', "API_ERROR", {}, 500)
   }
 }
 
@@ -100,12 +100,12 @@ export async function DELETE(
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/materials/[id]' })
     if (!rlResult.allowed) {
-      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     }
     const session = await getServerSession();
 
     if (!session || session.user?.role !== 'admin') {
-      return errorResponse('Unauthorized. Admin access required.', "API_ERROR", {}, 403)
+      return errorResponse('İcazəsiz giriş. Admin girişi tələb olunur.', "API_ERROR", {}, 403)
     }
 
     const supabase = createSupabaseAdminClient();
@@ -118,12 +118,12 @@ export async function DELETE(
       .single();
 
     if (error || !material) {
-      return errorResponse('Material not found', "API_ERROR", {}, 404)
+      return errorResponse('Material tapılmadı', "API_ERROR", {}, 404)
     }
 
-    return successResponse({ message: 'Material deleted successfully' })
+    return successResponse({ message: 'Material uğurla silindi' })
   } catch (error: any) {
     console.error('Error deleting material:', error);
-    return errorResponse('Failed to delete material', "API_ERROR", {}, 500)
+    return errorResponse('Material silinə bilmədi', "API_ERROR", {}, 500)
   }
 }

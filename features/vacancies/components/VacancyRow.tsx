@@ -17,6 +17,7 @@ import { useLocalizedPath } from "@/hooks/useLocalizedPath";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent } from "@/components/ui/Card";
+import { VACANCY_TYPE_LABELS } from "@/lib/vacancies/vacancyConfig";
 import type { VacancyItem } from "@/features/vacancies/types/items";
 
 interface VacancyRowProps {
@@ -124,7 +125,7 @@ export default function VacancyRow({ vacancy, onRequestDelete }: VacancyRowProps
                 variant="secondary"
                 className="border border-blue-200 bg-blue-50 text-blue-700"
               >
-                {vacancy.type}
+                {VACANCY_TYPE_LABELS[vacancy.type as keyof typeof VACANCY_TYPE_LABELS] || vacancy.type}
               </Badge>
             </div>
           </div>

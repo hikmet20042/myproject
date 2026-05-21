@@ -28,13 +28,13 @@ export async function GET(request: NextRequest) {
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/notifications' })
     if (!rlResult.allowed) {
-      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
     const session = await getServerSession()
     if (!session?.user || !canAccessAdmin(session)) {
-      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
+      return errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401)
     }
 
     const supabase = createSupabaseAdminClient()
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Admin notifications fetch error:', error)
-      return errorResponse('Internal server error', "API_ERROR", {}, 500)
+      return errorResponse('Daxili server xətası', "API_ERROR", {}, 500)
     }
     const safeTotal = total ?? 0
     const totalPages = Math.ceil(safeTotal / limit)
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Admin notifications fetch error:', error)
-    return errorResponse('Internal server error', "API_ERROR", {}, 500)
+    return errorResponse('Daxili server xətası', "API_ERROR", {}, 500)
   }
 }
 
@@ -111,18 +111,18 @@ export async function POST(request: NextRequest) {
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/notifications' })
     if (!rlResult.allowed) {
-      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
     const session = await getServerSession()
     if (!session?.user || !canAccessAdmin(session)) {
-      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
+      return errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401)
     }
 
     const now = Date.now()
     if (now - lastMassNotificationTime < MASS_NOTIFICATION_COOLDOWN) {
-      return errorResponse('Please wait before sending another mass notification', "API_ERROR", {}, 429)
+      return errorResponse('Kütləvi bildiriş göndərməzdən əvvəl gözləyin', "API_ERROR", {}, 429)
     }
 
     const supabase = createSupabaseAdminClient()
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
     const { type, title, message, targetUsers, data } = body
 
     if (!type || !title || !message) {
-      return errorResponse('Type, title and message are required', "API_ERROR", {}, 400)
+      return errorResponse('Tip, başlıq və mesaj tələb olunur', "API_ERROR", {}, 400)
     }
 
     const sanitizedTitle = sanitizeInput(title)
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
     } else if (Array.isArray(targetUsers)) {
       userIds = targetUsers
     } else {
-      return errorResponse('Invalid target users', "API_ERROR", {}, 400)
+      return errorResponse('Yanlış hədəf istifadəçilər', "API_ERROR", {}, 400)
     }
 
     if (userIds.length > MASS_NOTIFICATION_RATE_LIMIT) {
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error('Admin notification send error:', insertError)
-      return errorResponse('Internal server error', "API_ERROR", {}, 500)
+      return errorResponse('Daxili server xətası', "API_ERROR", {}, 500)
     }
 
     return successResponse({
@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('Admin notification send error:', error)
-    return errorResponse('Internal server error', "API_ERROR", {}, 500)
+    return errorResponse('Daxili server xətası', "API_ERROR", {}, 500)
   }
 }
 
@@ -188,13 +188,13 @@ export async function DELETE(request: NextRequest) {
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/notifications' })
     if (!rlResult.allowed) {
-      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
     const session = await getServerSession()
     if (!session?.user || !canAccessAdmin(session)) {
-      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
+      return errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401)
     }
 
     const supabase = createSupabaseAdminClient()
@@ -224,15 +224,15 @@ export async function DELETE(request: NextRequest) {
         .select('id')
         .single()
       if (error || !deleted) {
-        return errorResponse('Notification not found', "API_ERROR", {}, 404)
+        return errorResponse('Bildiriş tapılmadı', "API_ERROR", {}, 404)
       }
-      return successResponse({ message: 'Notification deleted successfully' })
+      return successResponse({ message: 'Bildiriş uğurla silindi' })
     } else {
-      return errorResponse('Notification ID or deleteAll parameter required', "API_ERROR", {}, 400)
+      return errorResponse('Bildiriş ID-si və ya deleteAll parametri tələb olunur', "API_ERROR", {}, 400)
     }
   } catch (error) {
     console.error('Admin notification delete error:', error)
-    return errorResponse('Internal server error', "API_ERROR", {}, 500)
+    return errorResponse('Daxili server xətası', "API_ERROR", {}, 500)
   }
 }
 
@@ -241,13 +241,13 @@ export async function PUT(request: NextRequest) {
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/notifications' })
     if (!rlResult.allowed) {
-      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
     const session = await getServerSession()
     if (!session?.user || !canAccessAdmin(session)) {
-      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
+      return errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401)
     }
 
     const supabase = createSupabaseAdminClient()
@@ -273,7 +273,7 @@ export async function PUT(request: NextRequest) {
     } else if (editAnnouncement && notificationId) {
       // Edit announcement content
       if (!title || !message) {
-        return errorResponse('Title and message are required', "API_ERROR", {}, 400)
+        return errorResponse('Başlıq və mesaj tələb olunur', "API_ERROR", {}, 400)
       }
 
       const sanitizedTitle = sanitizeInput(title)
@@ -291,11 +291,11 @@ export async function PUT(request: NextRequest) {
         .single()
       
       if (error || !updated) {
-        return errorResponse('Announcement not found', "API_ERROR", {}, 404)
+        return errorResponse('Elan tapılmadı', "API_ERROR", {}, 404)
       }
       
       return successResponse({
-        message: 'Announcement updated successfully',
+        message: 'Elan uğurla yeniləndi',
         notification: updated
       })
     } else if (notificationId && typeof isRead === 'boolean') {
@@ -308,7 +308,7 @@ export async function PUT(request: NextRequest) {
         .single()
       
       if (error || !updated) {
-        return errorResponse('Notification not found', "API_ERROR", {}, 404)
+        return errorResponse('Bildiriş tapılmadı', "API_ERROR", {}, 404)
       }
       
       return successResponse({
@@ -316,10 +316,10 @@ export async function PUT(request: NextRequest) {
         notification: updated
       })
     } else {
-      return errorResponse('Invalid request parameters', "API_ERROR", {}, 400)
+      return errorResponse('Yanlış sorğu parametrləri', "API_ERROR", {}, 400)
     }
   } catch (error) {
     console.error('Admin notification update error:', error)
-    return errorResponse('Internal server error', "API_ERROR", {}, 500)
+    return errorResponse('Daxili server xətası', "API_ERROR", {}, 500)
   }
 }

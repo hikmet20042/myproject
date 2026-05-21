@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
     if (!session?.user?.id) {
-      const response = errorResponse('Unauthorized', 'AUTH_REQUIRED', {}, 401);
+      const response = errorResponse('İcazəsiz giriş', 'AUTH_REQUIRED', {}, 401);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429);
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     const { data: blogs, error } = await query;
     if (error) {
       console.error('GET /api/blogs/user query error:', error);
-      const response = errorResponse('Failed to fetch user blogs', 'FETCH_USER_BLOGS_FAILED', {}, 500);
+      const response = errorResponse('İstifadəçi bloqları yüklənə bilmədi', 'FETCH_USER_BLOGS_FAILED', {}, 500);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
     return response;
   } catch (error) {
     console.error('GET /api/blogs/user error:', error);
-    const response = errorResponse('Failed to fetch user blogs', 'FETCH_USER_BLOGS_FAILED', {}, 500);
+    const response = errorResponse('İstifadəçi bloqları yüklənə bilmədi', 'FETCH_USER_BLOGS_FAILED', {}, 500);
     return response;
   }
 }

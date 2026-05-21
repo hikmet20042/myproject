@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
 
     if (!rateLimitResult.allowed) {
       const response = errorResponse(
-        'Too many requests. Please try again later.',
+        'Çox sayda sorğu. Bir az sonra yenidən cəhd edin.',
         'RATE_LIMIT_EXCEEDED',
         { retryAfter: Math.ceil((rateLimitResult.resetAt - Date.now()) / 1000) },
         429
@@ -79,10 +79,10 @@ export async function GET(request: NextRequest) {
     const status = 'approved';
 
     if (!Number.isFinite(page) || page < 1) {
-      return errorResponse('Invalid page parameter', 'VALIDATION_ERROR', {}, 400);
+      return errorResponse('Yanlış səhifə parametri', 'VALIDATION_ERROR', {}, 400);
     }
     if (!Number.isFinite(limit) || limit < 1 || limit > MAX_PAGE_SIZE) {
-      return errorResponse(`Limit must be between 1 and ${MAX_PAGE_SIZE}`, 'VALIDATION_ERROR', {}, 400);
+      return errorResponse(`Limit 1 ilə ${MAX_PAGE_SIZE}`, 'VALIDATION_ERROR', {}, 400);
     }
 
     const skip = (page - 1) * limit;
@@ -185,7 +185,7 @@ export async function GET(request: NextRequest) {
     return successResp;
   } catch (error) {
     console.error('GET /api/blogs error:', error);
-    return errorResponse('Failed to fetch blogs', 'FETCH_BLOGS_FAILED', {}, 500);
+    return errorResponse('Bloqlar yüklənə bilmədi', 'FETCH_BLOGS_FAILED', {}, 500);
   }
 }
 
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
 
     if (!rateLimitResult.allowed) {
       const response = errorResponse(
-        'Too many requests. Please try again later.',
+        'Çox sayda sorğu. Bir az sonra yenidən cəhd edin.',
         'RATE_LIMIT_EXCEEDED',
         { retryAfter: Math.ceil((rateLimitResult.resetAt - Date.now()) / 1000) },
         429
@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
     if (!session || !session.user) {
-      const response = errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401)
+      const response = errorResponse('Autentifikasiya tələb olunur', 'AUTH_REQUIRED', {}, 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -221,7 +221,7 @@ export async function POST(request: NextRequest) {
     }
     if (session.user.accountType === 'organization') {
       const response = errorResponse(
-        'Organization accounts cannot submit blogs. Blog sharing is available for individual users only.',
+        'Təşkilat hesabları bloq göndərə bilməz. Bloq paylaşımı yalnız fərdi istifadəçilər üçün mövcuddur.',
         'FORBIDDEN_ACCOUNT_TYPE',
         {},
         403
@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
     }
     // Check email verification
     if (!('emailVerified' in session.user) || !session.user.emailVerified) {
-      const response = errorResponse('You must verify your email before submitting blogs.', 'EMAIL_NOT_VERIFIED', {}, 403)
+      const response = errorResponse('Bloq göndərməzdən əvvəl e-poçtunuzu təsdiqləməlisiniz.', 'EMAIL_NOT_VERIFIED', {}, 403)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -243,7 +243,7 @@ export async function POST(request: NextRequest) {
     try {
       body = await request.json();
     } catch {
-      const response = errorResponse('Invalid JSON body', 'VALIDATION_ERROR', {}, 400)
+      const response = errorResponse('Yanlış JSON sorğu gövdəsi', 'VALIDATION_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -280,7 +280,7 @@ export async function POST(request: NextRequest) {
     }
     
     if (!textContent || textContent.trim().length < 100) {
-      const response = errorResponse('Your blog must be at least 100 characters long', 'VALIDATION_ERROR', {}, 400)
+      const response = errorResponse('Bloqunuz ən azı 100 simvol olmalıdır', 'VALIDATION_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -290,7 +290,7 @@ export async function POST(request: NextRequest) {
     const { processedContent } = processContentImages(content);
 
     if (containsLegacyBlobUrl(processedContent)) {
-      const response = errorResponse('Legacy blob image URLs are no longer supported. Please re-upload images.', 'VALIDATION_ERROR', {}, 400)
+      const response = errorResponse('Legacy blob şəkil URL-ləri artıq dəstəklənmir. Zəhmət olmasa şəkilləri yenidən yükləyin.', 'VALIDATION_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -298,7 +298,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (containsNonCloudinaryImages(processedContent)) {
-      const response = errorResponse('Blog content images must be Cloudinary URLs.', 'VALIDATION_ERROR', {}, 400)
+      const response = errorResponse('Bloq məzmun şəkilləri Cloudinary URL-ləri olmalıdır.', 'VALIDATION_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -306,7 +306,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (featuredImage && String(featuredImage).startsWith('/api/images/')) {
-      const response = errorResponse('Legacy blob featured images are no longer supported. Please upload to Cloudinary.', 'VALIDATION_ERROR', {}, 400)
+      const response = errorResponse('Legacy blob ön şəkillər artıq dəstəklənmir. Cloudinary-yə yükləyin.', 'VALIDATION_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -314,7 +314,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (featuredImage && !isCloudinaryUrl(String(featuredImage))) {
-      const response = errorResponse('Featured image must be a Cloudinary URL.', 'VALIDATION_ERROR', {}, 400)
+      const response = errorResponse('Ön şəkil Cloudinary URL-i olmalıdır.', 'VALIDATION_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -323,7 +323,7 @@ export async function POST(request: NextRequest) {
 
     const processedMedia = normalizeMediaUrls(media);
     if (Array.isArray(media) && processedMedia.length !== media.length) {
-      const response = errorResponse('Legacy blob media URLs are no longer supported. Please re-upload media to Cloudinary.', 'VALIDATION_ERROR', {}, 400)
+      const response = errorResponse('Legacy blob media URL-ləri artıq dəstəklənmir. Medianı Cloudinary-yə yenidən yükləyin.', 'VALIDATION_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -331,7 +331,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (processedMedia.some((item) => !isCloudinaryUrl(item.url))) {
-      const response = errorResponse('Blog media URLs must be Cloudinary URLs.', 'VALIDATION_ERROR', {}, 400)
+      const response = errorResponse('Bloq media URL-ləri Cloudinary URL-ləri olmalıdır.', 'VALIDATION_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -386,7 +386,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error || !blog) {
-      const response = errorResponse('Failed to submit blog', 'CREATE_BLOG_FAILED', {}, 500)
+      const response = errorResponse('Bloq göndərilə bilmədi', 'CREATE_BLOG_FAILED', {}, 500)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -398,7 +398,7 @@ export async function POST(request: NextRequest) {
         'blog',
         blog.id,
         blog.title,
-        finalAuthorName || session.user.name || 'Unknown submitter'
+        finalAuthorName || session.user.name || 'Naməlum göndərən'
       )
     }
 
@@ -422,13 +422,13 @@ export async function POST(request: NextRequest) {
         status: blog.status,
         authorName: blog.author_name
       }
-    }, { message: 'Story submitted successfully' }, 201)
+    }, { message: 'Hekayə uğurla göndərildi' }, 201)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       successResp.headers.set(key, value)
     }
     return successResp
   } catch (error) {
     console.error('POST /api/blogs error:', error)
-    return errorResponse('Failed to submit blog', 'CREATE_BLOG_FAILED', {}, 500)
+    return errorResponse('Bloq göndərilə bilmədi', 'CREATE_BLOG_FAILED', {}, 500)
   }
 }

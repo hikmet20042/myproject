@@ -82,7 +82,7 @@ export async function POST(
     })
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -91,14 +91,14 @@ export async function POST(
 
     const session = await getServerSession()
     if (!session?.user?.id) {
-      const response = errorResponse('Unauthorized', 'API_ERROR', {}, 401)
+      const response = errorResponse('İcazəsiz giriş', 'API_ERROR', {}, 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
       return response
     }
     if (session.user.accountType === 'organization') {
-      const response = errorResponse('Organization accounts cannot save content', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+      const response = errorResponse('Təşkilat hesabları məzmun saxlaya bilməz', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -108,7 +108,7 @@ export async function POST(
     const contentType = String(params.type || '').trim().toLowerCase()
     const contentId = String(params.id || '').trim()
     if (!contentId || !isContentType(contentType)) {
-      const response = errorResponse('Invalid save payload', 'API_ERROR', {}, 400)
+      const response = errorResponse('Yanlış saxlama məlumatı', 'API_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -118,7 +118,7 @@ export async function POST(
     const supabase = createSupabaseAdminClient()
     const canonicalContentId = await resolveApprovedContentId(supabase, contentType, contentId)
     if (!canonicalContentId) {
-      const response = errorResponse('Content not found', 'API_ERROR', {}, 404)
+      const response = errorResponse('Məzmun tapılmadı', 'API_ERROR', {}, 404)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -204,7 +204,7 @@ export async function POST(
     return response
   } catch (error) {
     console.error('Content save POST error:', error)
-    return errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    return errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
   }
 }
 
@@ -220,7 +220,7 @@ export async function GET(
     })
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -230,7 +230,7 @@ export async function GET(
     const contentType = String(params.type || '').trim().toLowerCase()
     const contentId = String(params.id || '').trim()
     if (!contentId || !isContentType(contentType)) {
-      const response = errorResponse('Invalid save query', 'API_ERROR', {}, 400)
+      const response = errorResponse('Yanlış saxlama sorğusu', 'API_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -240,7 +240,7 @@ export async function GET(
     const supabase = createSupabaseAdminClient()
     const canonicalContentId = await resolveApprovedContentId(supabase, contentType, contentId)
     if (!canonicalContentId) {
-      const response = errorResponse('Content not found', 'API_ERROR', {}, 404)
+      const response = errorResponse('Məzmun tapılmadı', 'API_ERROR', {}, 404)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -281,6 +281,6 @@ export async function GET(
     return response
   } catch (error) {
     console.error('Content save GET error:', error)
-    return errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    return errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
   }
 }

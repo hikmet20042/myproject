@@ -44,19 +44,19 @@ export interface EventItem {
 }
 
 export const eventCategories = [
-  "Workshop",
-  "Conference",
+  "Vörkşop",
+  "Konfrans",
   "Seminar",
-  "Art Performance",
-  "Cultural Event",
-  "Fundraising",
-  "Community Gathering",
-  "Awareness Campaign",
-  "Protest/Rally",
-  "Educational Event",
-  "Networking",
-  "Celebration",
-  "Other",
+  "İncəsənət",
+  "Mədəni Tədbir",
+  "Vəsait Toplama",
+  "İcma Toplantısı",
+  "Məlumatlandırma Kampaniyası",
+  "Etiraz/Mitinq",
+  "Təhsil Tədbiri",
+  "Şəbəkələşmə",
+  "Bayram/Qeyd",
+  "Digər",
 ];
 
 export const statusOptions = [

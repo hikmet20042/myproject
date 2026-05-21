@@ -28,11 +28,11 @@ export async function POST(request: NextRequest) {
         .eq(ownerColumn, ownerId)
         .eq('is_read', false)
       if (error) return withRateLimitHeaders(errorResponse(error.message, 'API_ERROR', {}, 500), rateLimitHeaders)
-      return withRateLimitHeaders(successResponse({ message: 'All notifications marked as read' }), rateLimitHeaders)
+      return withRateLimitHeaders(successResponse({ message: 'Bütün bildirişlər oxundu olaraq işarələndi' }), rateLimitHeaders)
     }
 
     if (!notificationId) {
-      return withRateLimitHeaders(errorResponse('notificationId or markAllAsRead is required', 'API_ERROR', {}, 400), rateLimitHeaders)
+      return withRateLimitHeaders(errorResponse('notificationId və ya markAllAsRead tələb olunur', 'API_ERROR', {}, 400), rateLimitHeaders)
     }
 
     const { data: notification, error } = await supabase
@@ -44,12 +44,12 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error || !notification) {
-      return withRateLimitHeaders(errorResponse('Notification not found', 'API_ERROR', {}, 404), rateLimitHeaders)
+      return withRateLimitHeaders(errorResponse('Bildiriş tapılmadı', 'API_ERROR', {}, 404), rateLimitHeaders)
     }
 
-    return withRateLimitHeaders(successResponse({ message: 'Notification marked as read', notification }), rateLimitHeaders)
+    return withRateLimitHeaders(successResponse({ message: 'Bildiriş oxundu olaraq işarələndi', notification }), rateLimitHeaders)
   } catch (error) {
     console.error('Notification read error:', error)
-    return errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    return errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
   }
 }

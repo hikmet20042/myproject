@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (userError || !user) {
-      return withRateLimitHeaders(errorResponse('User not found', "API_ERROR", {}, 404), rateLimitHeaders)
+      return withRateLimitHeaders(errorResponse('İstifadəçi tapılmadı', "API_ERROR", {}, 404), rateLimitHeaders)
     }
 
     let organizationSocialMedia = null
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     return withRateLimitHeaders(successResponse({ socialMedia: user.social_media || {}, organizationSocialMedia }), rateLimitHeaders)
   } catch (error) {
     console.error('Error fetching social media:', error)
-    return errorResponse('Failed to fetch social media accounts', "API_ERROR", {}, 500)
+    return errorResponse('Sosial media hesabları yüklənə bilmədi', "API_ERROR", {}, 500)
   }
 }
 
@@ -77,7 +77,7 @@ export async function PUT(request: NextRequest) {
       if (socialMedia) {
         for (const [platform, url] of Object.entries(socialMedia)) {
           if (url && !validateUrl(url as string)) {
-            return withRateLimitHeaders(errorResponse(`Invalid URL for ${platform}`, "API_ERROR", {}, 400), rateLimitHeaders)
+            return withRateLimitHeaders(errorResponse(`${platform} üçün yanlış URL`, "API_ERROR", {}, 400), rateLimitHeaders)
           }
         }
         updateData.social_media = socialMedia
@@ -88,7 +88,7 @@ export async function PUT(request: NextRequest) {
       if (organizationSocialMedia) {
         for (const [platform, url] of Object.entries(organizationSocialMedia)) {
           if (url && !validateUrl(url as string)) {
-            return withRateLimitHeaders(errorResponse(`Invalid URL for ${platform}`, "API_ERROR", {}, 400), rateLimitHeaders)
+            return withRateLimitHeaders(errorResponse(`${platform} üçün yanlış URL`, "API_ERROR", {}, 400), rateLimitHeaders)
           }
         }
         
@@ -100,11 +100,11 @@ export async function PUT(request: NextRequest) {
           .single()
 
         if (organizationError || !organization) {
-          return withRateLimitHeaders(errorResponse('Organization not found', "API_ERROR", {}, 404), rateLimitHeaders)
+          return withRateLimitHeaders(errorResponse('Təşkilat tapılmadı', "API_ERROR", {}, 404), rateLimitHeaders)
         }
 
         return withRateLimitHeaders(successResponse({ 
-          message: 'Social media updated successfully',
+          message: 'Sosial media uğurla yeniləndi',
           socialMedia: {},
           organizationSocialMedia: organization.social_links || {}
         }), rateLimitHeaders)
@@ -112,7 +112,7 @@ export async function PUT(request: NextRequest) {
     }
 
     if (Object.keys(updateData).length === 0) {
-      return withRateLimitHeaders(errorResponse('No valid social media data provided', "API_ERROR", {}, 400), rateLimitHeaders)
+      return withRateLimitHeaders(errorResponse('Etibarlı sosial media məlumatı təqdim edilməyib', "API_ERROR", {}, 400), rateLimitHeaders)
     }
 
     const { data: updatedUser, error: updatedUserError } = await supabase
@@ -123,16 +123,16 @@ export async function PUT(request: NextRequest) {
       .single()
 
     if (updatedUserError || !updatedUser) {
-      return withRateLimitHeaders(errorResponse('User not found', "API_ERROR", {}, 404), rateLimitHeaders)
+      return withRateLimitHeaders(errorResponse('İstifadəçi tapılmadı', "API_ERROR", {}, 404), rateLimitHeaders)
     }
 
     return withRateLimitHeaders(successResponse({
-      message: 'Social media accounts updated successfully',
+      message: 'Sosial media hesabları uğurla yeniləndi',
       socialMedia: updatedUser.social_media || {},
       organizationSocialMedia: null
     }), rateLimitHeaders)
   } catch (error) {
     console.error('Error updating social media:', error)
-    return errorResponse('Failed to update social media accounts', "API_ERROR", {}, 500)
+    return errorResponse('Sosial media hesabları yenilənə bilmədi', "API_ERROR", {}, 500)
   }
 }

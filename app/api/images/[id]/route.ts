@@ -10,12 +10,12 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return errorResponse('Legacy blob image API is deprecated. Re-upload the image to Cloudinary.', 'DEPRECATED_ENDPOINT', { id: params.id }, 410)
+  return errorResponse('Legacy blob şəkil API-si köhnəlmişdir. Şəkli Cloudinary-yə yenidən yükləyin.', 'DEPRECATED_ENDPOINT', { id: params.id }, 410)
 }
 
 export async function HEAD(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  return errorResponse('Legacy blob image API is deprecated.', 'DEPRECATED_ENDPOINT', { id: params.id }, 410)
+  return errorResponse('Legacy blob şəkil API-si köhnəlmişdir.', 'DEPRECATED_ENDPOINT', { id: params.id }, 410)
 }

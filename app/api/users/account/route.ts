@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 
     const session = await getServerSession()
     if (!session?.user?.id) {
-      const response = errorResponse('Authentication required', 'API_ERROR', {}, 401)
+      const response = errorResponse('Autentifikasiya tələb olunur', 'API_ERROR', {}, 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
     const { data: authData } = await supabaseServer.auth.getUser()
 
     if (!authData?.user?.id || authData.user.id !== session.user.id) {
-      const response = errorResponse('Authentication required', 'API_ERROR', {}, 401)
+      const response = errorResponse('Autentifikasiya tələb olunur', 'API_ERROR', {}, 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
       requiresGoogleReauth,
       recentlyReauthenticated,
       providers: providerInfo.providers,
-      deleteConfirmationText: 'DELETE',
+      deleteConfirmationText: 'SİL',
     })
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
     return response
   } catch (error) {
     console.error('GET /api/users/account error:', error)
-    const response = errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    const response = errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
     return response
   }
 }
@@ -110,7 +110,7 @@ export async function DELETE(request: NextRequest) {
 
     const session = await getServerSession()
     if (!session?.user?.id) {
-      const response = errorResponse('Authentication required', 'API_ERROR', {}, 401)
+      const response = errorResponse('Autentifikasiya tələb olunur', 'API_ERROR', {}, 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -118,7 +118,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -126,7 +126,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (session.user.accountType === 'organization') {
-      const response = errorResponse('Organization accounts must be deleted through organization settings', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403);
+      const response = errorResponse('Təşkilat hesabları təşkilat tənzimləmələrindən silinməlidir', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -138,7 +138,7 @@ export async function DELETE(request: NextRequest) {
     const currentPassword = String(body?.currentPassword || '').trim()
 
     if (confirmText !== 'DELETE') {
-      const response = errorResponse('Confirmation text is invalid', 'API_ERROR', {}, 400)
+      const response = errorResponse('Təsdiq mətni yanlışdır', 'API_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -146,7 +146,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (!currentPassword) {
-      const response = errorResponse('Current password is required', 'API_ERROR', {}, 400)
+      const response = errorResponse('Cari şifrə tələb olunur', 'API_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -157,7 +157,7 @@ export async function DELETE(request: NextRequest) {
     const { data: authData } = await supabaseServer.auth.getUser()
 
     if (!authData?.user?.id || authData.user.id !== session.user.id) {
-      const response = errorResponse('Authentication required', 'API_ERROR', {}, 401)
+      const response = errorResponse('Autentifikasiya tələb olunur', 'API_ERROR', {}, 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -178,7 +178,7 @@ export async function DELETE(request: NextRequest) {
       const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
       if (!supabaseUrl || !supabaseAnonKey || !authData.user.email) {
-        const response = errorResponse('Password verification is currently unavailable', 'API_ERROR', {}, 500)
+        const response = errorResponse('Şifrə doğrulaması hazırda mövcud deyil', 'API_ERROR', {}, 500)
         for (const [key, value] of Object.entries(rateLimitHeaders)) {
           response.headers.set(key, value)
         }
@@ -195,7 +195,7 @@ export async function DELETE(request: NextRequest) {
       })
 
       if (signInError) {
-        const response = errorResponse('Current password is incorrect', 'API_ERROR', {}, 400)
+        const response = errorResponse('Cari şifrə yanlışdır', 'API_ERROR', {}, 400)
         for (const [key, value] of Object.entries(rateLimitHeaders)) {
           response.headers.set(key, value)
         }
@@ -255,14 +255,14 @@ export async function DELETE(request: NextRequest) {
       return response
     }
 
-    const response = successResponse({ message: 'Account deleted successfully' })
+    const response = successResponse({ message: 'Hesab uğurla silindi' })
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }
     return response
   } catch (error) {
     console.error('DELETE /api/users/account error:', error)
-    const response = errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    const response = errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
     return response
   }
 }

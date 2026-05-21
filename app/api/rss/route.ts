@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
         data: null,
         error: {
           code: 'RATE_LIMITED',
-          message: 'Too many requests. Please try again later.',
+          message: 'Çox sayda sorğu. Bir az sonra yenidən cəhd edin.',
           details: {},
         },
         meta: {},
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('RSS Feed Query Error:', error)
-      const response = new NextResponse('Error generating RSS feed', { status: 500 })
+      const response = new NextResponse('RSS feed yaradılarkən xəta baş verdi', { status: 500 })
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
     return response
   } catch (error) {
     console.error('RSS Feed Error:', error)
-    const response = new NextResponse('Error generating RSS feed', { status: 500 })
+    const response = new NextResponse('RSS feed yaradılarkən xəta baş verdi', { status: 500 })
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }

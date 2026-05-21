@@ -1,7 +1,7 @@
 "use client";
 
 import { User } from "lucide-react";
-import { ORGANIZATION_TYPE_LABELS } from "@/lib/organizationTypes";
+import { FOCUS_AREA_LABELS_AZ, ORGANIZATION_TYPE_LABELS } from "@/lib/organizationTypes";
 import { Badge } from "@/components/ui/Badge";
 import { SocialLink } from "@/components/ui";
 
@@ -68,7 +68,7 @@ export default function ProfileView({ organizationProfile }: ProfileViewProps) {
         <div className="flex flex-wrap gap-2">
           {organizationProfile.focusAreas?.length > 0 ? (
             organizationProfile.focusAreas.map((area: string, index: number) => (
-              <Badge key={index} variant="primary" size="sm">{area}</Badge>
+              <Badge key={index} variant="primary" size="sm">{FOCUS_AREA_LABELS_AZ[area as keyof typeof FOCUS_AREA_LABELS_AZ] || area}</Badge>
             ))
           ) : (
             <span className="text-gray-600">{"Fəaliyyət sahələri göstərilməyib"}</span>

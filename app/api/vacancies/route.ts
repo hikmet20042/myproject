@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
     if (!rateLimitResult.allowed) {
       const response = errorResponse(
-        'Too many requests. Please try again later.',
+        'Çox sayda sorğu. Bir az sonra yenidən cəhd edin.',
         'RATE_LIMIT_EXCEEDED',
         { retryAfter: Math.ceil((rateLimitResult.resetAt - Date.now()) / 1000) },
         429
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     if (author === 'me') {
       const session = await getServerSession()
       if (!session?.user?.id) {
-        return errorResponse('Authentication required', "API_ERROR", {}, 401)
+        return errorResponse('Autentifikasiya tələb olunur', "API_ERROR", {}, 401)
       }
       actualCreatedBy = session.user.id
     }
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     if (adminView) {
       const session = await getServerSession()
       if (!session?.user?.id || !canAccessAdmin(session)) {
-        return errorResponse('Admin access required', "API_ERROR", {}, 403)
+        return errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403)
       }
     }
 
@@ -177,7 +177,7 @@ export async function GET(request: NextRequest) {
             ...vacancy,
             createdByOrganization: {
               ...vacancy.createdByOrganization,
-              organizationName: orgProfile?.organization_name || 'Unknown organization',
+              organizationName: orgProfile?.organization_name || 'Naməlum təşkilat',
               email: orgProfile?.email || vacancy.createdByOrganization.email || null,
             }
           }
@@ -230,7 +230,7 @@ export async function GET(request: NextRequest) {
     
   } catch (error) {
     console.error('Error fetching vacancies:', error)
-    return errorResponse('Failed to fetch vacancies', "API_ERROR", {}, 500)
+    return errorResponse('Vakansiyalar yüklənə bilmədi', "API_ERROR", {}, 500)
   }
 }
 
@@ -245,7 +245,7 @@ export async function POST(request: NextRequest) {
 
     if (!rateLimitResult.allowed) {
       const response = errorResponse(
-        'Too many requests. Please try again later.',
+        'Çox sayda sorğu. Bir az sonra yenidən cəhd edin.',
         'RATE_LIMIT_EXCEEDED',
         { retryAfter: Math.ceil((rateLimitResult.resetAt - Date.now()) / 1000) },
         429
@@ -259,7 +259,7 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession()
     
     if (!session?.user?.id) {
-      const response = errorResponse('Authentication required', "API_ERROR", {}, 401)
+      const response = errorResponse('Autentifikasiya tələb olunur', "API_ERROR", {}, 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -277,7 +277,7 @@ export async function POST(request: NextRequest) {
     
     // Allow admin or approved organization only
     if (!canCreateVacancy(session)) {
-      const response = errorResponse('Only approved organizations can create vacancies', "API_ERROR", {}, 403)
+      const response = errorResponse('Yalnız təsdiqlənmiş təşkilatlar vakansiya yarada bilər', "API_ERROR", {}, 403)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -313,7 +313,7 @@ export async function POST(request: NextRequest) {
 
     if (error || !vacancyRow) {
       console.error('Error creating vacancy:', error)
-      const response = errorResponse('Failed to create vacancy', "API_ERROR", {}, 500)
+      const response = errorResponse('Vakansiya yaradıla bilmədi', "API_ERROR", {}, 500)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -357,8 +357,8 @@ export async function POST(request: NextRequest) {
         populatedVacancy.id,
         populatedVacancy.title,
         isApprovedOrganization(session)
-          ? organizationProfile?.data?.organization_name || 'Unknown organization'
-          : session.user.name || 'Unknown submitter'
+          ? organizationProfile?.data?.organization_name || 'Naməlum təşkilat'
+          : session.user.name || 'Naməlum göndərən'
       )
     }
 
@@ -376,7 +376,7 @@ export async function POST(request: NextRequest) {
     }
     
     const successResp = successResponse({
-      message: 'Vacancy created successfully',
+      message: 'Vakansiya uğurla yaradıldı',
       vacancy: populatedVacancy
     }, {}, 201)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
@@ -386,6 +386,6 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     console.error('Error creating vacancy:', error)
-    return errorResponse('Failed to create vacancy', "API_ERROR", {}, 500)
+    return errorResponse('Vakansiya yaradıla bilmədi', "API_ERROR", {}, 500)
   }
 }

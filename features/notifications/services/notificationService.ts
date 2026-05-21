@@ -435,12 +435,12 @@ export class NotificationService {
   ) {
     const isApproved = status === 'approved'
     const title = isApproved
-      ? 'Blog approved'
-      : 'Blog rejected'
+      ? 'Bloq təsdiqləndi'
+      : 'Bloq rədd edildi'
     
     const message = isApproved
-      ? `"${blogTitle}" has been approved and is now visible.`
-      : `"${blogTitle}" was rejected.${adminComment ? ` Reason: ${adminComment}` : ''}`
+      ? `"${blogTitle}" təsdiqləndi və artıq görünür.`
+      : `"${blogTitle}" rədd edildi.${adminComment ? ` Səbəb: ${adminComment}` : ''}`
 
     const actionUrl = isApproved ? `/blogs/${blogId}` : '/profile/blogs'
     
@@ -472,12 +472,12 @@ export class NotificationService {
   ) {
     const isApproved = action === 'approve'
     const title = isApproved
-      ? '✅ Your Vacancy Was Approved!'
-      : '⚠️ Your Vacancy Was Not Approved'
+      ? '✅ Vakansiya təsdiqləndi!'
+      : '⚠️ Vakansiya təsdiqlənmədi'
     
     const message = isApproved
-      ? `Your vacancy "${vacancyTitle}" has been approved and is now visible to job seekers.`
-      : `Your vacancy "${vacancyTitle}" was not approved. ${rejectionReason ? `Reason: ${rejectionReason}` : ''}`
+      ? `"${vacancyTitle}" vakansiyanız təsdiqləndi və iş axtaranlar üçün görünür.`
+      : `"${vacancyTitle}" vakansiyanız təsdiqlənmədi. ${rejectionReason ? `Səbəb: ${rejectionReason}` : ''}`
     
     return this.createNotification({
       userId,
@@ -512,8 +512,9 @@ export class NotificationService {
       
       if (!admins || admins.length === 0) return
 
-      const title = `New ${submissionType.charAt(0).toUpperCase() + submissionType.slice(1)} Submission`
-      const message = `${submitterName} submitted a new ${submissionType}: "${submissionTitle}". Review needed.`
+      const typeLabel = submissionType === 'blog' ? 'Bloq' : submissionType === 'event' ? 'Tədbir' : submissionType === 'vacancy' ? 'Vakansiya' : 'Təşkilat'
+      const title = `Yeni ${typeLabel} Təqdimatı`
+      const message = `${submitterName} yeni ${typeLabel.toLowerCase()} təqdim etdi: "${submissionTitle}". Nəzərdən keçirilməlidir.`
       
       let actionUrl = '/admin'
       if (submissionType === 'blog') actionUrl = `/admin/preview/blog/${submissionId}`
@@ -744,8 +745,8 @@ export class NotificationService {
       }
 
       const type = 'organization_new_vacancy'
-      const title = 'New Vacancy from Followed Organization'
-      const message = `${params.organizationName} posted: "${params.contentTitle}"`
+      const title = 'İzlənilən Təşkilatdan Yeni Vakansiya'
+      const message = `${params.organizationName} təşkilatı yeni vakansiya paylaşdı: "${params.contentTitle}"`
       const routeKey = params.contentSlug || params.contentId
       const actionUrl = `/resources/vacancies/${routeKey}`
 

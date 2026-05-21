@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     console.log('Profile Stats GET - Session:', { userId: session?.user?.id, email: session?.user?.email, role: session?.user?.role });
     
     if (!session?.user?.id) {
-      const response = errorResponse('Unauthorized', "API_ERROR", {}, 401);
+      const response = errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     }
     
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429);
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (session.user.accountType === 'organization') {
-      const response = errorResponse('Organization accounts cannot access user profile stats. Use /api/organization/stats instead.', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403);
+      const response = errorResponse('Təşkilat hesabları istifadəçi profil statistikasına daxil ola bilməz. Bunun əvəzinə /api/organization/stats istifadə edin.', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
 
     const user = await ensureUserRow(supabase, session)
     if (!user) {
-      const response = errorResponse('User not found', "API_ERROR", {}, 404);
+      const response = errorResponse('İstifadəçi tapılmadı', "API_ERROR", {}, 404);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
           ]);
 
           if (viewsCountRes.error || likesCountRes.error || savesCountRes.error) {
-            return errorResponse('Failed to fetch profile stats', 'FETCH_PROFILE_STATS_FAILED', {}, 500);
+            return errorResponse('Profil statistikası yüklənə bilmədi', 'FETCH_PROFILE_STATS_FAILED', {}, 500);
           }
           totalViews = viewsCountRes.count || 0;
           totalUniqueViews = uniqueViewsCountRes.data || 0;
@@ -176,7 +176,7 @@ export async function GET(request: NextRequest) {
           ]);
 
           if (eventViewsRes.error) {
-            return errorResponse('Failed to fetch event views', 'FETCH_EVENT_VIEWS_FAILED', {}, 500);
+            return errorResponse('Tədbir baxışları yüklənə bilmədi', 'FETCH_EVENT_VIEWS_FAILED', {}, 500);
           }
           totalViews += eventViewsRes.count || 0;
           totalUniqueViews += eventUniqueViewsRes.data || 0;
@@ -200,7 +200,7 @@ export async function GET(request: NextRequest) {
           ]);
 
           if (vacancyViewsRes.error) {
-            return errorResponse('Failed to fetch vacancy views', 'FETCH_VACANCY_VIEWS_FAILED', {}, 500);
+            return errorResponse('Vakansiya baxışları yüklənə bilmədi', 'FETCH_VACANCY_VIEWS_FAILED', {}, 500);
           }
           totalViews += vacancyViewsRes.count || 0;
           totalUniqueViews += vacancyUniqueViewsRes.data || 0;
@@ -237,8 +237,8 @@ export async function GET(request: NextRequest) {
     if (writingStreak >= 7) {
       achievements.push({
         id: 'consistent_writer',
-        name: 'Consistent Writer',
-        description: 'Active for 7+ days in a row',
+        name: 'Davamlı Yazar',
+        description: '7+ gün ardıcıl aktiv',
         icon: '🔥',
         category: 'consistency',
         unlockedAt: new Date()
@@ -248,8 +248,8 @@ export async function GET(request: NextRequest) {
     if (totalLikes >= 50) {
       achievements.push({
         id: 'popular_writer',
-        name: 'Popular Writer',
-        description: 'Received 50+ likes across all content',
+        name: 'Populyar Yazar',
+        description: 'Bütün məzmunlarda 50+ bəyənmə aldı',
         icon: '⭐',
         category: 'engagement',
         unlockedAt: new Date()
@@ -259,8 +259,8 @@ export async function GET(request: NextRequest) {
     if (totalViews >= 1000) {
       achievements.push({
         id: 'viral_content',
-        name: 'Viral Content',
-        description: 'Reached 1000+ total views',
+        name: 'Viral Məzmun',
+        description: '1000+ ümumi baxışa çatdı',
         icon: '🚀',
         category: 'engagement',
         unlockedAt: new Date()
@@ -307,7 +307,7 @@ export async function GET(request: NextRequest) {
     return response;
   } catch (error) {
     console.error('Profile stats error:', error);
-    const response = errorResponse('Internal server error', "API_ERROR", {}, 500);
+    const response = errorResponse('Daxili server xətası', "API_ERROR", {}, 500);
     return response;
   }
 }

@@ -278,7 +278,7 @@ class CloudinaryService {
     if (!allowedTypes.includes(file.type)) {
       return {
         valid: false,
-        error: 'Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.',
+        error: 'Yanlış fayl tipi. Yalnız JPEG, PNG, GIF və WebP şəkillərinə icazə verilir.',
       };
     }
 
@@ -286,7 +286,7 @@ class CloudinaryService {
     if (file.size > maxSize) {
       return {
         valid: false,
-        error: `File too large. Maximum size is ${maxSizeMB}MB.`,
+        error: `Fayl çox böyükdür. Maksimum ölçü ${maxSizeMB}MB.`,
       };
     }
 

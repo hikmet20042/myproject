@@ -12,14 +12,14 @@ export async function GET(request: NextRequest) {
   })
 
   if (!rateLimitResult.allowed) {
-    const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }
     return response
   }
 
-  const response = errorResponse('Legacy blob image API is deprecated. Use Cloudinary for content images and /api/profile/image for profile images.', 'DEPRECATED_ENDPOINT', {}, 410)
+  const response = errorResponse('Legacy blob şəkil API-si köhnəlmişdir. Məzmun şəkilləri üçün Cloudinary, profil şəkilləri üçün /api/profile/image istifadə edin.', 'DEPRECATED_ENDPOINT', {}, 410)
   for (const [key, value] of Object.entries(rateLimitHeaders)) {
     response.headers.set(key, value)
   }
@@ -34,14 +34,14 @@ export async function DELETE(request: NextRequest) {
   })
 
   if (!rateLimitResult.allowed) {
-    const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }
     return response
   }
 
-  const response = errorResponse('Legacy blob image API is deprecated.', 'DEPRECATED_ENDPOINT', {}, 410)
+  const response = errorResponse('Legacy blob şəkil API-si köhnəlmişdir.', 'DEPRECATED_ENDPOINT', {}, 410)
   for (const [key, value] of Object.entries(rateLimitHeaders)) {
     response.headers.set(key, value)
   }

@@ -20,7 +20,7 @@ export async function DELETE(
     })
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     }
@@ -29,7 +29,7 @@ export async function DELETE(
     
     const session = await getServerSession()
     if (!session || !canAccessAdmin(session)) {
-      const response = errorResponse('Admin access required', "API_ERROR", {}, 403)
+      const response = errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403)
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     }
@@ -41,7 +41,7 @@ export async function DELETE(
       .maybeSingle()
 
     if (!profile) {
-      const response = errorResponse('Organization not found', "API_ERROR", {}, 404)
+      const response = errorResponse('Təşkilat tapılmadı', "API_ERROR", {}, 404)
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     }
@@ -53,11 +53,11 @@ export async function DELETE(
 
     await supabase.auth.admin.deleteUser(params.id)
     
-    const response = successResponse({ message: 'Organization deleted successfully' })
+    const response = successResponse({ message: 'Təşkilat uğurla silindi' })
     for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
     return response
   } catch (error) {
     console.error('DELETE /api/admin/organizations/[id] error:', error)
-    return errorResponse('Failed to delete organization', "API_ERROR", {}, 500)
+    return errorResponse('Təşkilat silinə bilmədi', "API_ERROR", {}, 500)
   }
 }

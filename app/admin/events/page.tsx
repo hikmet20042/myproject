@@ -495,7 +495,7 @@ export default function EventsAdminPage() {
                           <span>•</span>
                           <span>
                             {"Yer"}:{" "}
-                            {event.location?.type || "Naməlum məkan"}
+                            {event.location?.type === 'online' ? 'Onlayn' : event.location?.type === 'physical' ? 'Fiziki' : event.location?.type === 'hybrid' ? 'Hibrid' : 'Naməlum məkan'}
                           </span>
                         </div>
                         {event.adminComment && status === "rejected" && (
@@ -647,7 +647,7 @@ export default function EventsAdminPage() {
                         {"Yer"}:
                       </span>
                       <span className="ml-2 text-slate-600">
-                        {selectedEvent.location?.type || "Naməlum"}
+                        {selectedEvent.location?.type === 'online' ? 'Onlayn' : selectedEvent.location?.type === 'physical' ? 'Fiziki' : selectedEvent.location?.type === 'hybrid' ? 'Hibrid' : 'Naməlum'}
                       </span>
                     </div>
                   </div>

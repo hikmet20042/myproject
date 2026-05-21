@@ -12,7 +12,7 @@ import { ContactCard, SocialLink } from '@/components/ui'
 import { ArrowLeft, MapPin, Globe, Mail, Phone, ExternalLink, CheckCircle, Users, Building, CalendarDays, Info, Home } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { LoadingState, ErrorState } from '@/components/shared'
-import { ORGANIZATION_TYPE_LABELS } from '@/lib/organizationTypes'
+import { FOCUS_AREA_LABELS_AZ, ORGANIZATION_TYPE_LABELS } from '@/lib/organizationTypes'
 import { fetchOrganizationById, resolveOrganizationIdentifier } from '@/lib/organizationQueries'
 import { logError } from '@/lib/logger'
 import OrganizationFollowButtonContainer from '@/components/containers/OrganizationFollowButtonContainer'
@@ -217,7 +217,7 @@ export default function OrganizationDetailPage() {
               )}
               {organization.focusAreas && organization.focusAreas.length > 0 && (
                 <Badge className="bg-slate-100 text-slate-700 border-slate-200">
-                  {organization.focusAreas[0]}
+                  {FOCUS_AREA_LABELS_AZ[organization.focusAreas[0] as keyof typeof FOCUS_AREA_LABELS_AZ] || organization.focusAreas[0]}
                 </Badge>
               )}
               {organization.address && (
@@ -272,7 +272,7 @@ export default function OrganizationDetailPage() {
                           key={index}
                           className="bg-blue-50 text-blue-700 border-blue-200"
                         >
-                          {area}
+                          {FOCUS_AREA_LABELS_AZ[area as keyof typeof FOCUS_AREA_LABELS_AZ] || area}
                         </Badge>
                       ))}
                     </div>

@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     const session = await getServerSession()
     if (!session?.user?.id) {
-      const response = errorResponse('Unauthorized', 'API_ERROR', {}, 401)
+      const response = errorResponse('İcazəsiz giriş', 'API_ERROR', {}, 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (session.user.accountType === 'organization') {
-      const response = errorResponse('Organization accounts cannot access followed organizations list', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+      const response = errorResponse('Təşkilat hesabları izlənilən təşkilat siyahısına daxil ola bilməz', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false })
 
     if (followsError) {
-      const response = errorResponse('Failed to load followed organizations', 'API_ERROR', {}, 500)
+      const response = errorResponse('İzlənilən təşkilatlar yüklənə bilmədi', 'API_ERROR', {}, 500)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
       .eq('moderation_status', 'approved')
 
     if (profilesError) {
-      const response = errorResponse('Failed to load organization profiles', 'API_ERROR', {}, 500)
+      const response = errorResponse('Təşkilat profilləri yüklənə bilmədi', 'API_ERROR', {}, 500)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -156,7 +156,7 @@ export async function GET(request: NextRequest) {
     return response
   } catch (error) {
     console.error('GET /api/users/organizations/followed error:', error)
-    const response = errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    const response = errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
     return response
   }
 }

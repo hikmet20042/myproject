@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (error && error.code !== 'PGRST116') {
-      return withRateLimitHeaders(errorResponse('Failed to fetch preferences', 'API_ERROR', {}, 500), rateLimitHeaders)
+      return withRateLimitHeaders(errorResponse('Tərcihlər yüklənə bilmədi', 'API_ERROR', {}, 500), rateLimitHeaders)
     }
 
     return withRateLimitHeaders(
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     )
   } catch (error) {
     console.error('Notification preferences fetch error:', error)
-    return errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    return errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
   }
 }
 
@@ -93,12 +93,12 @@ export async function PUT(request: NextRequest) {
     }
 
     if (error || !data) {
-      return withRateLimitHeaders(errorResponse('Failed to update preferences', 'API_ERROR', {}, 500), rateLimitHeaders)
+      return withRateLimitHeaders(errorResponse('Tərcihlər yenilənə bilmədi', 'API_ERROR', {}, 500), rateLimitHeaders)
     }
 
-    return withRateLimitHeaders(successResponse({ message: 'Notification preferences updated successfully', preferences: data }), rateLimitHeaders)
+    return withRateLimitHeaders(successResponse({ message: 'Bildiriş tərcihləri uğurla yeniləndi', preferences: data }), rateLimitHeaders)
   } catch (error) {
     console.error('Notification preferences update error:', error)
-    return errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    return errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
   }
 }

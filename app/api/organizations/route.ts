@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     if (!rateLimitResult.allowed) {
       const response = errorResponse(
-        'Too many requests. Please try again later.',
+        'Çox sayda sorğu. Bir az sonra yenidən cəhd edin.',
         'RATE_LIMIT_EXCEEDED',
         { retryAfter: Math.ceil((rateLimitResult.resetAt - Date.now()) / 1000) },
         429
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     if (myOrganizations) {
       // This endpoint is not used for independent organizations
       // Organizations should use their own dashboard API
-      return errorResponse('Use organization-specific endpoints for organization data', "API_ERROR", {}, 400)
+      return errorResponse('Təşkilat məlumatları üçün təşkilata aid endpointlərdən istifadə edin', "API_ERROR", {}, 400)
     } else {
       // For public access, only show approved organizations
     }
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
     
   } catch (error) {
     console.error('Error fetching organizations:', error)
-    return errorResponse('Failed to fetch organizations', "API_ERROR", {}, 500)
+    return errorResponse('Təşkilatlar yüklənə bilmədi', "API_ERROR", {}, 500)
   }
 }
 
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
 
     if (!rateLimitResult.allowed) {
       const response = errorResponse(
-        'Too many requests. Please try again later.',
+        'Çox sayda sorğu. Bir az sonra yenidən cəhd edin.',
         'RATE_LIMIT_EXCEEDED',
         { retryAfter: Math.ceil((rateLimitResult.resetAt - Date.now()) / 1000) },
         429
@@ -171,13 +171,13 @@ export async function POST(request: NextRequest) {
 
     // This endpoint is no longer used for creating organizations
     // Organizations are now created through the registration process
-    const response = errorResponse('Organization creation is handled through the registration process. Please use /api/auth/register with type=organization', "API_ERROR", {}, 400)
+    const response = errorResponse('Təşkilat yaradılması qeydiyyat prosesi vasitəsilə həyata keçirilir. Zəhmət olmasa type=organization ilə /api/auth/register istifadə edin', "API_ERROR", {}, 400)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }
     return response
   } catch (error) {
     console.error('Error in deprecated organization creation endpoint:', error)
-    return errorResponse('Internal server error', "API_ERROR", {}, 500)
+    return errorResponse('Daxili server xətası', "API_ERROR", {}, 500)
   }
 }

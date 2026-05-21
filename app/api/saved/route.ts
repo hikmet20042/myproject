@@ -49,14 +49,14 @@ export async function POST(request: NextRequest) {
 
     const session = await getServerSession()
     if (!session?.user?.id) {
-      const response = errorResponse('Unauthorized', 'API_ERROR', {}, 401)
+      const response = errorResponse('İcazəsiz giriş', 'API_ERROR', {}, 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
       return response
     }
     if (session.user.accountType === 'organization') {
-      const response = errorResponse('Organization accounts cannot save content', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+      const response = errorResponse('Təşkilat hesabları məzmun saxlaya bilməz', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {
         retryAfter: rateLimitResult.resetAt,
       }, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     const itemType = String(body?.itemType || '').trim()
 
     if (!itemId || !isValidType(itemType)) {
-      const response = errorResponse('Invalid save payload', 'API_ERROR', {}, 400)
+      const response = errorResponse('Yanlış saxlama məlumatı', 'API_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     return response
   } catch (error) {
     console.error('Save POST error:', error)
-    const response = errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    const response = errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
     return response
   }
 }
@@ -161,14 +161,14 @@ export async function DELETE(request: NextRequest) {
 
     const session = await getServerSession()
     if (!session?.user?.id) {
-      const response = errorResponse('Unauthorized', 'API_ERROR', {}, 401)
+      const response = errorResponse('İcazəsiz giriş', 'API_ERROR', {}, 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
       return response
     }
     if (session.user.accountType === 'organization') {
-      const response = errorResponse('Organization accounts cannot save content', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+      const response = errorResponse('Təşkilat hesabları məzmun saxlaya bilməz', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -176,7 +176,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -188,7 +188,7 @@ export async function DELETE(request: NextRequest) {
     const itemType = String(body?.itemType || '').trim()
 
     if (!itemId || !isValidType(itemType)) {
-      const response = errorResponse('Invalid unsave payload', 'API_ERROR', {}, 400)
+      const response = errorResponse('Yanlış silmə məlumatı', 'API_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -204,7 +204,7 @@ export async function DELETE(request: NextRequest) {
     )
 
     if (contentError) {
-      const response = errorResponse('Failed to resolve content', 'API_ERROR', {}, 500)
+      const response = errorResponse('Məzmun həll edilə bilmədi', 'API_ERROR', {}, 500)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -213,7 +213,7 @@ export async function DELETE(request: NextRequest) {
 
     const contentIdToDelete = content?.id || (isUuid(itemId) ? itemId : null)
     if (!contentIdToDelete) {
-      const response = errorResponse('Content not found', 'CONTENT_NOT_FOUND', {}, 404)
+      const response = errorResponse('Məzmun tapılmadı', 'CONTENT_NOT_FOUND', {}, 404)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -241,7 +241,7 @@ export async function DELETE(request: NextRequest) {
     return response
   } catch (error) {
     console.error('Save DELETE error:', error)
-    const response = errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    const response = errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
     return response
   }
 }
@@ -256,14 +256,14 @@ export async function GET(request: NextRequest) {
 
     const session = await getServerSession()
     if (!session?.user?.id) {
-      const response = errorResponse('Unauthorized', 'API_ERROR', {}, 401)
+      const response = errorResponse('İcazəsiz giriş', 'API_ERROR', {}, 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
       return response
     }
     if (session.user.accountType === 'organization') {
-      const response = errorResponse('Organization accounts cannot access saved content', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+      const response = errorResponse('Təşkilat hesabları saxlanılmış məzmuna daxil ola bilməz', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -271,7 +271,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -292,7 +292,7 @@ export async function GET(request: NextRequest) {
       )
 
       if (contentError) {
-        const response = errorResponse('Failed to fetch save status', 'API_ERROR', {}, 500)
+        const response = errorResponse('Saxlama statusu yüklənə bilmədi', 'API_ERROR', {}, 500)
         for (const [key, value] of Object.entries(rateLimitHeaders)) {
           response.headers.set(key, value)
         }
@@ -367,7 +367,7 @@ export async function GET(request: NextRequest) {
     ])
 
     if (eventsResult.error || vacanciesResult.error || blogsResult.error) {
-      const response = errorResponse('Failed to fetch saved content details', 'API_ERROR', {}, 500)
+      const response = errorResponse('Saxlanılmış məzmun detalları yüklənə bilmədi', 'API_ERROR', {}, 500)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -439,7 +439,7 @@ export async function GET(request: NextRequest) {
     return response
   } catch (error) {
     console.error('Save GET error:', error)
-    const response = errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    const response = errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
     return response
   }
 }

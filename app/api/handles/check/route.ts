@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     const handle = searchParams.get('handle')
 
     if (!handle) {
-      return withRateLimitHeaders(errorResponse('Handle parameter is required', 'VALIDATION_ERROR', {}, 400), rateLimitHeaders)
+      return withRateLimitHeaders(errorResponse('Handle parametri tələb olunur', 'VALIDATION_ERROR', {}, 400), rateLimitHeaders)
     }
 
     const validationError = validateHandle(handle)
@@ -80,6 +80,6 @@ export async function GET(request: NextRequest) {
     return withRateLimitHeaders(successResponse({ available: true }), rateLimitHeaders)
   } catch (error) {
     console.error('Handle check error:', error)
-    return errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500)
+    return errorResponse('Daxili server xətası', 'INTERNAL_SERVER_ERROR', {}, 500)
   }
 }

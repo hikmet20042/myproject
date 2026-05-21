@@ -17,7 +17,7 @@ export async function GET(
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/blogs/[id]' })
     if (!rlResult.allowed) {
-      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
@@ -25,7 +25,7 @@ export async function GET(
     
     const session = await getServerSession()
     if (!session || !isAdmin(session)) {
-      return errorResponse('Admin access required', "API_ERROR", {}, 403)
+      return errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403)
     }
     
     const { data: blog, error } = await supabase
@@ -34,13 +34,13 @@ export async function GET(
       .eq('id', params.id)
       .single()
     if (error || !blog) {
-      return errorResponse('Story not found', "API_ERROR", {}, 404)
+      return errorResponse('Hekayə tapılmadı', "API_ERROR", {}, 404)
     }
     
     return successResponse({ blog })
   } catch (error) {
     console.error('PUT /api/admin/blogs/[id] error:', error)
-    return errorResponse('Failed to update blog', "API_ERROR", {}, 500)
+    return errorResponse('Bloq yenilənə bilmədi', "API_ERROR", {}, 500)
   }
 }
 
@@ -52,7 +52,7 @@ export async function DELETE(
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/blogs/[id]' })
     if (!rlResult.allowed) {
-      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
@@ -60,7 +60,7 @@ export async function DELETE(
     
     const session = await getServerSession()
     if (!session || !isAdmin(session)) {
-      return errorResponse('Admin access required', "API_ERROR", {}, 403)
+      return errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403)
     }
     
     const { data: blog, error } = await supabase
@@ -71,7 +71,7 @@ export async function DELETE(
       .single()
     
     if (error || !blog) {
-      return errorResponse('Story not found', "API_ERROR", {}, 404)
+      return errorResponse('Hekayə tapılmadı', "API_ERROR", {}, 404)
     }
 
     cache.blogs.invalidateAll()
@@ -80,11 +80,11 @@ export async function DELETE(
     }
     
     return successResponse({ 
-      message: 'Story deleted successfully'
+      message: 'Hekayə uğurla silindi'
     })
   } catch (error) {
     console.error('DELETE /api/admin/blogs/[id] error:', error)
-    return errorResponse('Failed to delete blog', "API_ERROR", {}, 500)
+    return errorResponse('Bloq silinə bilmədi', "API_ERROR", {}, 500)
   }
 }
 
@@ -96,7 +96,7 @@ export async function PUT(
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/blogs/[id]' })
     if (!rlResult.allowed) {
-      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
@@ -104,28 +104,28 @@ export async function PUT(
     
     const session = await getServerSession()
     if (!session || !isAdmin(session)) {
-      return errorResponse('Admin access required', "API_ERROR", {}, 403)
+      return errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403)
     }
     
     let body: any
     try {
       body = await request.json()
     } catch {
-      return errorResponse('Invalid JSON body', "API_ERROR", {}, 400)
+      return errorResponse('Yanlış JSON sorğu gövdəsi', "API_ERROR", {}, 400)
     }
     const { status, adminComment } = body
     
     if (!status) {
-      return errorResponse('Status is required', "API_ERROR", {}, 400)
+      return errorResponse('Status tələb olunur', "API_ERROR", {}, 400)
     }
     
     if (!['approved', 'rejected', 'pending'].includes(status)) {
-      return errorResponse('Invalid status', "API_ERROR", {}, 400)
+      return errorResponse('Yanlış status', "API_ERROR", {}, 400)
     }
 
     const normalizedAdminComment = typeof adminComment === 'string' ? adminComment.trim() : ''
     if (status === 'rejected' && !normalizedAdminComment) {
-      return errorResponse('Rejection reason is required', "API_ERROR", {}, 400)
+      return errorResponse('Rədd səbəbi tələb olunur', "API_ERROR", {}, 400)
     }
 
     const { data: existingBlog, error: existingBlogError } = await supabase
@@ -135,7 +135,7 @@ export async function PUT(
       .single()
 
     if (existingBlogError || !existingBlog) {
-      return errorResponse('Story not found', "API_ERROR", {}, 404)
+      return errorResponse('Hekayə tapılmadı', "API_ERROR", {}, 404)
     }
 
     const previousComment = typeof existingBlog.admin_comment === 'string' ? existingBlog.admin_comment.trim() : ''
@@ -150,7 +150,7 @@ export async function PUT(
     if (!statusChanged && !commentChanged) {
       return successResponse({
         blog: existingBlog,
-        message: 'Story already in requested state',
+        message: 'Hekayə artıq istənilən vəziyyətdədir',
       })
     }
 
@@ -173,7 +173,7 @@ export async function PUT(
         .single()
 
       if (originalBlogError || !originalBlog) {
-        return errorResponse('Failed to apply update request to original blog', "API_ERROR", {}, 500)
+        return errorResponse('Yeniləmə sorğusu orijinal bloqa tətbiq edilə bilmədi', "API_ERROR", {}, 500)
       }
 
       const { error: deleteRequestError } = await supabase
@@ -182,7 +182,7 @@ export async function PUT(
         .eq('id', existingBlog.id)
 
       if (deleteRequestError) {
-        return errorResponse('Failed to finalize update request approval', "API_ERROR", {}, 500)
+        return errorResponse('Yeniləmə sorğusunun təsdiqi tamamlana bilmədi', "API_ERROR", {}, 500)
       }
 
       cache.blogs.invalidateAll()
@@ -219,7 +219,7 @@ export async function PUT(
 
       return successResponse({
         blog: originalBlog,
-        message: 'Story approved successfully',
+        message: 'Hekayə uğurla təsdiqləndi',
       })
     }
     
@@ -236,7 +236,7 @@ export async function PUT(
       .single()
     
     if (error || !blog) {
-      return errorResponse('Story not found', "API_ERROR", {}, 404)
+      return errorResponse('Hekayə tapılmadı', "API_ERROR", {}, 404)
     }
 
     cache.blogs.invalidateAll()
@@ -281,6 +281,6 @@ export async function PUT(
     })
   } catch (error) {
     console.error('PUT /api/admin/blogs/[id] error:', error)
-    return errorResponse('Failed to update blog', "API_ERROR", {}, 500)
+    return errorResponse('Bloq yenilənə bilmədi', "API_ERROR", {}, 500)
   }
 }

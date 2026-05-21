@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     })
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 429)
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
     if (adminView) {
       session = session || (await getServerSession());
       if (!session?.user?.id || !canAccessAdmin(session)) {
-        return errorResponse("Admin access required", 403);
+        return errorResponse("Admin girişi tələb olunur", 403);
       }
     }
 
@@ -271,7 +271,7 @@ export async function GET(request: NextRequest) {
     }
     return successResp
   } catch (error) {
-    return errorResponse("Failed to fetch events", 500)
+    return errorResponse("Tədbirlər yüklənə bilmədi", 500)
   }
 }
 
@@ -284,7 +284,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 429)
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -293,7 +293,7 @@ export async function POST(request: NextRequest) {
 
     const session = await getServerSession();
     if (!session?.user?.id) {
-      const response = errorResponse("Authentication required", 401)
+      const response = errorResponse("Autentifikasiya tələb olunur", 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -301,7 +301,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!canCreateEvent(session)) {
-      const response = errorResponse("Only approved organizations can create events", 403)
+      const response = errorResponse("Yalnız təsdiqlənmiş təşkilatlar tədbir yarada bilər", 403)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -325,7 +325,7 @@ export async function POST(request: NextRequest) {
 
     const validation = validateEventInput(body);
     if (!validation.valid) {
-      const response = errorResponse(validation.error || "Invalid event data", 400)
+      const response = errorResponse(validation.error || "Yanlış tədbir məlumatı", 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -341,7 +341,7 @@ export async function POST(request: NextRequest) {
       : { data: null, error: null };
 
     if (isApprovedOrganization(session) && (organization.error || !organization.data)) {
-      const response = errorResponse("Organization profile not found", 404)
+      const response = errorResponse("Təşkilat profili tapılmadı", 404)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -351,7 +351,7 @@ export async function POST(request: NextRequest) {
     const insertPayload = mapEventInputToDbPayload(body);
     const lifecycleResult = applyEventLifecycleRules(null, "create", { role: "system" });
     if (!lifecycleResult.ok) {
-      const response = errorResponse(lifecycleResult.error || "Failed to initialize lifecycle", 400)
+      const response = errorResponse(lifecycleResult.error || "Dövr işə salına bilmədi", 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -364,7 +364,7 @@ export async function POST(request: NextRequest) {
         ...insertPayload,
         created_by: isApprovedOrganization(session) ? null : session.user.id,
         created_by_organization: isApprovedOrganization(session) ? session.user.id : null,
-        organization_name: isApprovedOrganization(session) ? organization.data?.organization_name || "Unknown Organization" : null,
+        organization_name: isApprovedOrganization(session) ? organization.data?.organization_name || "Naməlum Təşkilat" : null,
         ...lifecycleResult.updateData,
         images: [],
       })
@@ -373,7 +373,7 @@ export async function POST(request: NextRequest) {
 
     if (insertError || !eventRow) {
       console.error('Error creating event (insert):', insertError)
-      const response = errorResponse("Failed to create event", 500)
+      const response = errorResponse("Tədbir yaradıla bilmədi", 500)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -425,7 +425,7 @@ export async function POST(request: NextRequest) {
 
     if (fetchError) {
       console.error('Error creating event (fetch):', fetchError)
-      const response = errorResponse("Failed to create event", 500)
+      const response = errorResponse("Tədbir yaradıla bilmədi", 500)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -458,8 +458,8 @@ export async function POST(request: NextRequest) {
         eventWithOrg.id,
         eventWithOrg.title,
         isApprovedOrganization(session)
-          ? organization?.data?.organization_name || 'Unknown organization'
-          : session.user.name || 'Unknown submitter'
+          ? organization?.data?.organization_name || 'Naməlum təşkilat'
+          : session.user.name || 'Naməlum göndərən'
       );
     }
 
@@ -470,13 +470,13 @@ export async function POST(request: NextRequest) {
 
     const successResp = successResponse(
       { event: mapEventToResponse(eventWithOrg || eventRow) },
-      { message: "Event created successfully. Awaiting admin approval.", status: 201 }
+      { message: "Tədbir uğurla yaradıldı. Admin təsdiqi gözlənilir.", status: 201 }
     )
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       successResp.headers.set(key, value)
     }
     return successResp
   } catch (error) {
-    return errorResponse("Failed to create event", 500)
+    return errorResponse("Tədbir yaradıla bilmədi", 500)
   }
 }

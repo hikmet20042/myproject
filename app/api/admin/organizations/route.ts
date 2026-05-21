@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession();
     
     if (!isAdmin(session)) {
-      const response = errorResponse('Admin access required', "API_ERROR", {}, 403);
+      const response = errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -144,7 +144,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('GET /api/admin/organizations error:', error);
-    return errorResponse('Failed to fetch organizations', "API_ERROR", {}, 500);
+    return errorResponse('Təşkilatlar yüklənə bilmədi', "API_ERROR", {}, 500);
   }
 }
 
@@ -160,7 +160,7 @@ export async function PUT(request: NextRequest) {
     const session = await getServerSession();
     
     if (!isAdmin(session)) {
-      const response = errorResponse('Admin access required', "API_ERROR", {}, 403);
+      const response = errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -175,7 +175,7 @@ export async function PUT(request: NextRequest) {
     const userId = id || organizationId;
     
     if (!userId || !action || !['approve', 'reject'].includes(action)) {
-      const response = errorResponse('Invalid request data', "API_ERROR", {}, 400);
+      const response = errorResponse('Yanlış sorğu məlumatı', "API_ERROR", {}, 400);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -185,7 +185,7 @@ export async function PUT(request: NextRequest) {
     const rejectionReasonText = rejectionReason?.trim() || '';
 
     if (action === 'reject' && !rejectionReasonText) {
-      const response = errorResponse('Rejection reason is required', "API_ERROR", {}, 400);
+      const response = errorResponse('Rədd səbəbi tələb olunur', "API_ERROR", {}, 400);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -199,7 +199,7 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (orgError || !organization) {
-      const response = errorResponse('Organization not found', "API_ERROR", {}, 404);
+      const response = errorResponse('Təşkilat tapılmadı', "API_ERROR", {}, 404);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -208,7 +208,7 @@ export async function PUT(request: NextRequest) {
 
     const adminUserId = session?.user?.id;
     if (!adminUserId) {
-      const response = errorResponse('Admin access required', "API_ERROR", {}, 403);
+      const response = errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -243,7 +243,7 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (updateError || !updatedOrganization) {
-      const response = errorResponse(updateError?.message || 'Failed to update organization', "API_ERROR", {}, 500);
+      const response = errorResponse(updateError?.message || 'Təşkilat yenilənə bilmədi', "API_ERROR", {}, 500);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -290,7 +290,7 @@ export async function PUT(request: NextRequest) {
 
   } catch (error) {
     console.error('PUT /api/admin/organizations error:', error);
-    return errorResponse('Failed to update organization status', "API_ERROR", {}, 500);
+    return errorResponse('Təşkilat statusu yenilənə bilmədi', "API_ERROR", {}, 500);
   }
 }
 
@@ -304,7 +304,7 @@ export async function PATCH(request: NextRequest) {
     })
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     }
@@ -312,7 +312,7 @@ export async function PATCH(request: NextRequest) {
     const session = await getServerSession();
     
     if (!isAdmin(session)) {
-      const response = errorResponse('Admin access required', "API_ERROR", {}, 403)
+      const response = errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403)
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     }
@@ -322,13 +322,13 @@ export async function PATCH(request: NextRequest) {
     const { action, organizationIds, rejectionReason } = await request.json() as OrganizationBulkActionBody;
     
     if (!action || !organizationIds || !Array.isArray(organizationIds) || organizationIds.length === 0) {
-      const response = errorResponse('Invalid request data', "API_ERROR", {}, 400)
+      const response = errorResponse('Yanlış sorğu məlumatı', "API_ERROR", {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     }
 
     if (!['approve', 'reject'].includes(action)) {
-      const response = errorResponse('Invalid action', "API_ERROR", {}, 400)
+      const response = errorResponse('Yanlış əməliyyat', "API_ERROR", {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     }
@@ -336,14 +336,14 @@ export async function PATCH(request: NextRequest) {
     const rejectionReasonText = rejectionReason?.trim() || '';
 
     if (action === 'reject' && !rejectionReasonText) {
-      const response = errorResponse('Rejection reason is required for bulk rejection', "API_ERROR", {}, 400)
+      const response = errorResponse('Kütləvi rədd üçün rədd səbəbi tələb olunur', "API_ERROR", {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     }
 
     const adminUserId = session?.user?.id;
     if (!adminUserId) {
-      const response = errorResponse('Admin access required', "API_ERROR", {}, 403)
+      const response = errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403)
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     }
@@ -355,7 +355,7 @@ export async function PATCH(request: NextRequest) {
     const organizationRows = (organizations || []) as OrganizationListRow[];
 
     if (organizationRows.length === 0) {
-      const response = errorResponse('No valid organizations found', "API_ERROR", {}, 404)
+      const response = errorResponse('Etibarlı təşkilat tapılmadı', "API_ERROR", {}, 404)
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     }
@@ -411,6 +411,6 @@ export async function PATCH(request: NextRequest) {
 
   } catch (error) {
     console.error('PATCH /api/admin/organizations error:', error);
-    return errorResponse('Failed to process bulk organization operation', "API_ERROR", {}, 500);
+    return errorResponse('Kütləvi təşkilat əməliyyatı yerinə yetirilə bilmədi', "API_ERROR", {}, 500);
   }
 }

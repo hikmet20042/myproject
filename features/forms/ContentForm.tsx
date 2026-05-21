@@ -38,25 +38,25 @@ const getFieldValidationError = <T extends Record<string, any>>(
 
   if (rules?.required) {
     if (typeof value === 'string' && !value.trim()) {
-      return `${label} is required`
+      return `${label} tələb olunur`
     }
     if (value === null || value === undefined) {
-      return `${label} is required`
+      return `${label} tələb olunur`
     }
   }
 
   if (typeof value === 'string') {
     const trimmedValue = value.trim()
     if (rules?.minLength !== undefined && trimmedValue.length < rules.minLength) {
-      return `${label} must be at least ${rules.minLength} characters`
+      return `${label} ən azı ${rules.minLength} simvol olmalıdır`
     }
     if (rules?.maxLength !== undefined && trimmedValue.length > rules.maxLength) {
-      return `${label} must be at most ${rules.maxLength} characters`
+      return `${label} ən çox ${rules.maxLength} simvol olmalıdır`
     }
     if (rules?.pattern) {
       const regex = typeof rules.pattern === 'string' ? new RegExp(rules.pattern) : rules.pattern
       if (trimmedValue.length > 0 && !regex.test(trimmedValue)) {
-        return `${label} has invalid format`
+        return `${label} yanlış formatdadır`
       }
     }
   }
@@ -158,7 +158,7 @@ export default function ContentForm<T extends Record<string, any>>({
   onSubmit,
   onChange,
   showSubmitButton = true,
-  submitLabel = 'Submit',
+  submitLabel = 'Göndər',
   className,
   asForm = true,
 }: ContentFormProps<T>) {
@@ -265,7 +265,7 @@ export default function ContentForm<T extends Record<string, any>>({
               disabled={submitting}
               onClick={!asForm ? () => void submit() : undefined}
             >
-              {submitting ? 'Submitting...' : submitLabel}
+              {submitting ? 'Göndərilir...' : submitLabel}
             </Button>
           </div>
         )}

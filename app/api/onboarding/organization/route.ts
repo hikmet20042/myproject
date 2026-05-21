@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     if (existingAccount?.account_type === 'organization') {
-      return withRateLimitHeaders(successResponse({ message: 'Organization onboarding already completed', redirect: '/dashboard' }), rateLimitHeaders)
+      return withRateLimitHeaders(successResponse({ message: 'Təşkilat onboarding-i artıq tamamlanıb', redirect: '/dashboard' }), rateLimitHeaders)
     }
 
     const { error: accountError } = await supabase
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       return withRateLimitHeaders(errorResponse('Təşkilat profili yaradıla bilmədi.', 'DATABASE_ERROR', {}, 500), rateLimitHeaders)
     }
 
-    return withRateLimitHeaders(successResponse({ message: 'Organization onboarding completed', redirect: '/organization/pending' }), rateLimitHeaders)
+    return withRateLimitHeaders(successResponse({ message: 'Təşkilat onboarding-i tamamlandı', redirect: '/organization/pending' }), rateLimitHeaders)
   } catch (error) {
     console.error('Organization onboarding error:', error)
     return errorResponse('Daxili server xətası', 'INTERNAL_ERROR', {}, 500)

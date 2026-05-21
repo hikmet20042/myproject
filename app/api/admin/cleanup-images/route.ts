@@ -14,20 +14,20 @@ export async function POST(request: NextRequest) {
   })
 
   if (!rateLimitResult.allowed) {
-    const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
     return response
   }
 
   const session = await getServerSession()
   if (!session?.user?.id) {
-    const response = errorResponse('Unauthorized', 'API_ERROR', {}, 401)
+    const response = errorResponse('İcazəsiz giriş', 'API_ERROR', {}, 401)
     for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
     return response
   }
 
   if (!canAccessAdmin(session)) {
-    const response = errorResponse('Admin access required', 'API_ERROR', {}, 403)
+    const response = errorResponse('Admin girişi tələb olunur', 'API_ERROR', {}, 403)
     for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
     return response
   }
@@ -48,20 +48,20 @@ export async function GET(request: NextRequest) {
   })
 
   if (!rateLimitResult.allowed) {
-    const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
     return response
   }
 
   const session = await getServerSession()
   if (!session?.user?.id) {
-    const response = errorResponse('Unauthorized', 'API_ERROR', {}, 401)
+    const response = errorResponse('İcazəsiz giriş', 'API_ERROR', {}, 401)
     for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
     return response
   }
 
   if (!canAccessAdmin(session)) {
-    const response = errorResponse('Admin access required', 'API_ERROR', {}, 403)
+    const response = errorResponse('Admin girişi tələb olunur', 'API_ERROR', {}, 403)
     for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
     return response
   }

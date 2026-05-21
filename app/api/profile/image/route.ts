@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
 
     const session = await getServerSession();
     if (!session?.user?.id) {
-      const response = errorResponse('Authentication required', 'API_ERROR', {}, 401);
+      const response = errorResponse('Autentifikasiya tələb olunur', 'API_ERROR', {}, 401);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429);
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as unknown as File | null;
 
     if (!file) {
-      const response = errorResponse('No file provided', 'API_ERROR', {}, 400);
+      const response = errorResponse('Fayl təqdim edilməyib', 'API_ERROR', {}, 400);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      const response = errorResponse('Failed to upload profile image', 'API_ERROR', {}, 500);
+      const response = errorResponse('Profil şəkli yüklənə bilmədi', 'API_ERROR', {}, 500);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
 
     const imageUrl = await getSignedUrl(supabase, storagePath);
     if (!imageUrl) {
-      const response = errorResponse('Failed to generate profile image URL', 'API_ERROR', {}, 500);
+      const response = errorResponse('Profil şəkli URL-i yaradıla bilmədi', 'API_ERROR', {}, 500);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -223,7 +223,7 @@ export async function POST(request: NextRequest) {
 
     const response = successResponse({
       success: true,
-      message: 'Profile image updated successfully',
+      message: 'Profil şəkli uğurla yeniləndi',
       profileImage: {
         url: imageUrl,
         path: storagePath,
@@ -238,7 +238,7 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     console.error('Error uploading profile image:', error);
-    const response = errorResponse('Failed to upload profile image', 'API_ERROR', {}, 500);
+    const response = errorResponse('Profil şəkli yüklənə bilmədi', 'API_ERROR', {}, 500);
     return response;
   }
 }
@@ -254,7 +254,7 @@ export async function DELETE(request: NextRequest) {
 
     const session = await getServerSession();
     if (!session?.user?.id) {
-      const response = errorResponse('Authentication required', 'API_ERROR', {}, 401);
+      const response = errorResponse('Autentifikasiya tələb olunur', 'API_ERROR', {}, 401);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -262,7 +262,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429);
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -307,7 +307,7 @@ export async function DELETE(request: NextRequest) {
 
     const response = successResponse({
       success: true,
-      message: 'Profile image deleted successfully',
+      message: 'Profil şəkli uğurla silindi',
     });
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value);
@@ -315,7 +315,7 @@ export async function DELETE(request: NextRequest) {
     return response;
   } catch (error) {
     console.error('Error deleting profile image:', error);
-    const response = errorResponse('Failed to delete profile image', 'API_ERROR', {}, 500);
+    const response = errorResponse('Profil şəkli silinə bilmədi', 'API_ERROR', {}, 500);
     return response;
   }
 }
@@ -331,7 +331,7 @@ export async function GET(request: NextRequest) {
 
     const session = await getServerSession();
     if (!session?.user?.id) {
-      const response = errorResponse('Authentication required', 'API_ERROR', {}, 401);
+      const response = errorResponse('Autentifikasiya tələb olunur', 'API_ERROR', {}, 401);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -339,7 +339,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429);
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -357,7 +357,7 @@ export async function GET(request: NextRequest) {
         .maybeSingle();
 
       if (!orgProfile) {
-        const response = errorResponse('User not found', 'API_ERROR', {}, 404);
+        const response = errorResponse('İstifadəçi tapılmadı', 'API_ERROR', {}, 404);
         for (const [key, value] of Object.entries(rateLimitHeaders)) {
           response.headers.set(key, value);
         }
@@ -398,7 +398,7 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
 
     if (!userProfile) {
-      const response = errorResponse('User not found', 'API_ERROR', {}, 404);
+      const response = errorResponse('İstifadəçi tapılmadı', 'API_ERROR', {}, 404);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -429,7 +429,7 @@ export async function GET(request: NextRequest) {
     return response;
   } catch (error) {
     console.error('Error fetching profile image:', error);
-    const response = errorResponse('Failed to fetch profile image', 'API_ERROR', {}, 500);
+    const response = errorResponse('Profil şəkli yüklənə bilmədi', 'API_ERROR', {}, 500);
     return response;
   }
 }

@@ -56,7 +56,7 @@ export default function SaveItemButtonContainer({
         method: 'POST',
       })
       const data = await response.json()
-      if (!response.ok) throw new Error(data?.error || 'Save action failed')
+      if (!response.ok) throw new Error(data?.error || 'Saxlama əməliyyatı uğursuz oldu')
       return data?.data || {}
     },
     onMutate: async () => {

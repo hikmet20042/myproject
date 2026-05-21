@@ -18,7 +18,7 @@ export async function GET(
     })
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -36,7 +36,7 @@ export async function GET(
       .maybeSingle()
 
     if (accountError || !account) {
-      const response = errorResponse('User not found', 'USER_NOT_FOUND', {}, 404)
+      const response = errorResponse('İstifadəçi tapılmadı', 'USER_NOT_FOUND', {}, 404)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -50,7 +50,7 @@ export async function GET(
       .single()
 
     if (!user) {
-      const response = errorResponse('User not found', 'USER_NOT_FOUND', {}, 404)
+      const response = errorResponse('İstifadəçi tapılmadı', 'USER_NOT_FOUND', {}, 404)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -96,7 +96,7 @@ export async function GET(
     return response
   } catch (error) {
     console.error('Public user profile error:', error)
-    const response = errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500)
+    const response = errorResponse('Daxili server xətası', 'INTERNAL_SERVER_ERROR', {}, 500)
     return response
   }
 }

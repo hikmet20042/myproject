@@ -9,18 +9,18 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession();
 
     if (!session || !session.user) {
-      return errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401);
+      return errorResponse('Autentifikasiya tələb olunur', 'AUTH_REQUIRED', {}, 401);
     }
 
     if (!canAccessAdmin(session)) {
-      return errorResponse('Admin access required', 'FORBIDDEN', {}, 403);
+      return errorResponse('Admin girişi tələb olunur', 'FORBIDDEN', {}, 403);
     }
 
     const body = await request.json();
     const { urls, type = 'update' } = body;
 
     if (!urls || !Array.isArray(urls) || urls.length === 0) {
-      return errorResponse('urls array is required', 'VALIDATION_ERROR', {}, 400);
+      return errorResponse('urls massivi tələb olunur', 'VALIDATION_ERROR', {}, 400);
     }
 
     const fullUrls = urls.map((url: string) => {
@@ -36,10 +36,10 @@ export async function POST(request: NextRequest) {
         { message: `Successfully submitted ${fullUrls.length} URLs to IndexNow` }
       );
     } else {
-      return errorResponse(result.error || 'IndexNow submission failed', 'INDEXNOW_ERROR', {}, 500);
+      return errorResponse(result.error || 'IndexNow göndərmə uğursuz oldu', 'INDEXNOW_ERROR', {}, 500);
     }
   } catch (error) {
     console.error('IndexNow API error:', error);
-    return errorResponse('Failed to submit to IndexNow', 'INDEXNOW_ERROR', {}, 500);
+    return errorResponse('IndexNow-a göndərilə bilmədi', 'INDEXNOW_ERROR', {}, 500);
   }
 }

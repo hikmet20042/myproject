@@ -22,6 +22,7 @@ import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { SocialLink } from '@/components/ui'
 import OrganizationFollowButtonContainer from '@/components/containers/OrganizationFollowButtonContainer'
+import { ORGANIZATION_TYPE_LABELS, FOCUS_AREA_LABELS_AZ } from '@/lib/organizationTypes'
 import Link from 'next/link'
 import Image from 'next/image'
 
@@ -184,7 +185,7 @@ export default function PublicOrgProfilePage() {
 
             {org.organizationType && (
               <Badge className="bg-blue-50 text-blue-700 border-blue-200">
-                {org.organizationType}
+                {ORGANIZATION_TYPE_LABELS[org.organizationType as keyof typeof ORGANIZATION_TYPE_LABELS] || org.organizationType}
               </Badge>
             )}
           </div>
@@ -215,7 +216,7 @@ export default function PublicOrgProfilePage() {
                     <div className="flex flex-wrap gap-2">
                       {org.focusAreas.map((area) => (
                         <Badge key={area} className="bg-blue-50 text-blue-700 border-blue-200">
-                          {area}
+                          {FOCUS_AREA_LABELS_AZ[area as keyof typeof FOCUS_AREA_LABELS_AZ] || area}
                         </Badge>
                       ))}
                     </div>

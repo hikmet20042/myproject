@@ -3,31 +3,31 @@ import { isInternOrVolunteer } from '@/lib/vacancies/vacancyConfig'
 type ValidationResult = { valid: true } | { valid: false; error: string }
 
 export const validateVacancyPayload = (payload: any): ValidationResult => {
-  if (!payload?.title || typeof payload.title !== 'string') return { valid: false, error: 'title is required' }
-  if (!payload?.description || typeof payload.description !== 'string') return { valid: false, error: 'description is required' }
+  if (!payload?.title || typeof payload.title !== 'string') return { valid: false, error: 'başlıq tələb olunur' }
+  if (!payload?.description || typeof payload.description !== 'string') return { valid: false, error: 'təsvir tələb olunur' }
   if (!payload?.city || typeof payload.city !== 'string' || payload.city.trim().length === 0) {
-    return { valid: false, error: 'city is required' }
+    return { valid: false, error: 'şəhər tələb olunur' }
   }
 
   const normalizedType = String(payload.type || '')
-  if (!normalizedType) return { valid: false, error: 'type is required' }
+  if (!normalizedType) return { valid: false, error: 'tip tələb olunur' }
   if (!['volunteer', 'full_time', 'part_time', 'intern'].includes(normalizedType)) {
-    return { valid: false, error: 'type must be one of volunteer, full_time, part_time, intern' }
+    return { valid: false, error: 'tip volunteer, full_time, part_time və ya intern olmalıdır' }
   }
 
-  if (!payload?.applicationDeadline) return { valid: false, error: 'applicationDeadline is required' }
+  if (!payload?.applicationDeadline) return { valid: false, error: 'müraciət son tarixi tələb olunur' }
   const deadline = new Date(payload.applicationDeadline)
   if (Number.isNaN(deadline.getTime()) || deadline.getTime() <= Date.now()) {
-    return { valid: false, error: 'applicationDeadline must be a valid future date' }
+    return { valid: false, error: 'müraciət son tarixi etibarlı gələcək tarix olmalıdır' }
   }
 
   const ageMin = Number(payload?.ageRange?.min)
   const ageMax = Number(payload?.ageRange?.max)
   if (!Number.isInteger(ageMin) || !Number.isInteger(ageMax)) {
-    return { valid: false, error: 'ageRange.min and ageRange.max must be integers' }
+    return { valid: false, error: 'ageRange.min və ageRange.max tam ədəd olmalıdır' }
   }
   if (ageMin < 0 || ageMax > 99 || ageMin > ageMax) {
-    return { valid: false, error: 'ageRange must be between 0 and 99 and min <= max' }
+    return { valid: false, error: 'ageRange 0-99 arasında olmalıdır və min <= max olmalıdır' }
   }
 
   if (isInternOrVolunteer(normalizedType)) {
@@ -40,38 +40,38 @@ export const validateVacancyPayload = (payload: any): ValidationResult => {
       !Number.isInteger(fromMonth) || !Number.isInteger(fromYear) ||
       !Number.isInteger(toMonth) || !Number.isInteger(toYear)
     ) {
-      return { valid: false, error: 'programPeriod from/to month and year are required for volunteer and intern' }
+      return { valid: false, error: 'programPeriod from/to ayı və ili könüllü və təcrübəçi üçün tələb olunur' }
     }
     if (
       fromMonth < 1 || fromMonth > 12 ||
       toMonth < 1 || toMonth > 12 ||
       fromYear < 2000 || toYear < 2000
     ) {
-      return { valid: false, error: 'programPeriod values are invalid' }
+      return { valid: false, error: 'programPeriod dəyərləri yanlışdır' }
     }
     const fromStamp = new Date(fromYear, fromMonth - 1, 1).getTime()
     const toStamp = new Date(toYear, toMonth - 1, 1).getTime()
     if (fromStamp > toStamp) {
-      return { valid: false, error: 'programPeriod from cannot be later than to' }
+      return { valid: false, error: 'programPeriod from, to-dan sonra ola bilməz' }
     }
   }
 
   const payment = payload?.payment || {}
   if (payment.isPaid) {
     if (!payment.mode || !['fixed', 'range'].includes(payment.mode)) {
-      return { valid: false, error: 'payment.mode must be fixed or range when isPaid is true' }
+      return { valid: false, error: 'payment.mode, isPaid true olduqda fixed və ya range olmalıdır' }
     }
     if (payment.mode === 'fixed') {
       const amount = Number(payment.amount)
       if (!Number.isFinite(amount) || amount <= 0) {
-        return { valid: false, error: 'payment.amount must be positive for fixed mode' }
+        return { valid: false, error: 'payment.amount fixed rejim üçün müsbət olmalıdır' }
       }
     }
     if (payment.mode === 'range') {
       const min = Number(payment.min)
       const max = Number(payment.max)
       if (!Number.isFinite(min) || !Number.isFinite(max) || min <= 0 || max <= 0 || min > max) {
-        return { valid: false, error: 'payment.min and payment.max must be valid with min <= max for range mode' }
+        return { valid: false, error: 'payment.min və payment.max, range rejimi üçün min <= max olmaqla etibarlı olmalıdır' }
       }
     }
   }
@@ -79,27 +79,27 @@ export const validateVacancyPayload = (payload: any): ValidationResult => {
   const method = payload?.application?.method
   const value = String(payload?.application?.value || '').trim()
   if (!method || !['link', 'email', 'phone'].includes(method)) {
-    return { valid: false, error: 'application.method must be link, email, or phone' }
+    return { valid: false, error: 'application.method link, email və ya phone olmalıdır' }
   }
-  if (!value) return { valid: false, error: 'application.value is required' }
+  if (!value) return { valid: false, error: 'application.value tələb olunur' }
 
   if (method === 'link') {
     try {
       const parsed = new URL(value)
       if (!['http:', 'https:'].includes(parsed.protocol)) {
-        return { valid: false, error: 'application link must be http or https' }
+        return { valid: false, error: 'müraciət linki http və ya https olmalıdır' }
       }
     } catch {
-      return { valid: false, error: 'application link is invalid' }
+      return { valid: false, error: 'müraciət linki yanlışdır' }
     }
   }
 
   if (method === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-    return { valid: false, error: 'application email is invalid' }
+    return { valid: false, error: 'müraciət e-poçtu yanlışdır' }
   }
 
   if (method === 'phone' && !/^\+?[0-9\s\-()]{7,20}$/.test(value)) {
-    return { valid: false, error: 'application phone is invalid' }
+    return { valid: false, error: 'müraciət telefonu yanlışdır' }
   }
 
   return { valid: true }

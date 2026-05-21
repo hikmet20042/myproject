@@ -184,7 +184,7 @@ export default function EventsPageContainer() {
         <CardContent padding="md" className="bg-white">
           <div className="mb-4">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-              Filters
+              Filtrlər
             </h2>
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

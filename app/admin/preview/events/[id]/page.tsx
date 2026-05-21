@@ -111,6 +111,15 @@ interface Event { _id: string
 
   const formatEventType = (type: string) => EVENT_TYPE_LABELS[type as EventTypeValue] || type
 
+  const getLocationTypeLabel = (type: string) => {
+    switch (type) {
+      case 'online': return 'Onlayn';
+      case 'physical': return 'Fiziki';
+      case 'hybrid': return 'Hibrid';
+      default: return type;
+    }
+  }
+
   const formatDate = (dateString: string) => { if (!dateString) return 'Göstərilməyib'
     const date = new Date(dateString)
     if (isNaN(date.getTime())) return 'Etibarsız tarix'
@@ -242,7 +251,7 @@ interface Event { _id: string
               <div className="space-y-3">
                 <div>
                   <span className="font-medium text-slate-700">{'Növ'}:</span>
-                  <span className="ml-2 capitalize">{event.location.type}</span>
+                  <span className="ml-2">{getLocationTypeLabel(event.location.type)}</span>
                 </div>
                 
                 {event.location.type !== 'online' && (

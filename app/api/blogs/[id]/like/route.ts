@@ -23,7 +23,7 @@ export async function POST(
     const session = await getServerSession()
 
     if (!session?.user?.id) {
-      const response = errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401)
+      const response = errorResponse('Autentifikasiya tələb olunur', 'AUTH_REQUIRED', {}, 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -33,7 +33,7 @@ export async function POST(
     const blogId = params.id
 
     if (!blogId) {
-      const response = errorResponse('Blog identifier is required', 'VALIDATION_ERROR', {}, 400)
+      const response = errorResponse('Bloq identifikatoru tələb olunur', 'VALIDATION_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -47,7 +47,7 @@ export async function POST(
       .single()
 
     if (blogError || !blog) {
-      const response = errorResponse('Blog not found', 'BLOG_NOT_FOUND', {}, 404)
+      const response = errorResponse('Bloq tapılmadı', 'BLOG_NOT_FOUND', {}, 404)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -62,7 +62,7 @@ export async function POST(
       .single()
 
     if (reactionError && reactionError.code !== 'PGRST116') {
-      const response = errorResponse('Failed to check reaction', 'CHECK_REACTION_FAILED', {}, 500)
+      const response = errorResponse('Reaksiya yoxlanıla bilmədi', 'CHECK_REACTION_FAILED', {}, 500)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -77,7 +77,7 @@ export async function POST(
           .eq('id', existingReaction.id)
 
         if (deleteError) {
-          const response = errorResponse('Failed to remove like', 'DELETE_REACTION_FAILED', {}, 500)
+          const response = errorResponse('Bəyənmə silinə bilmədi', 'DELETE_REACTION_FAILED', {}, 500)
           for (const [key, value] of Object.entries(rateLimitHeaders)) {
             response.headers.set(key, value)
           }
@@ -104,7 +104,7 @@ export async function POST(
           .eq('id', existingReaction.id)
 
         if (updateError) {
-          const response = errorResponse('Failed to update reaction', 'UPDATE_REACTION_FAILED', {}, 500)
+          const response = errorResponse('Reaksiya yenilənə bilmədi', 'UPDATE_REACTION_FAILED', {}, 500)
           for (const [key, value] of Object.entries(rateLimitHeaders)) {
             response.headers.set(key, value)
           }
@@ -140,7 +140,7 @@ export async function POST(
         })
 
       if (insertError) {
-        const response = errorResponse('Failed to add like', 'INSERT_REACTION_FAILED', {}, 500)
+        const response = errorResponse('Bəyənmə əlavə edilə bilmədi', 'INSERT_REACTION_FAILED', {}, 500)
         for (const [key, value] of Object.entries(rateLimitHeaders)) {
           response.headers.set(key, value)
         }
@@ -168,7 +168,7 @@ export async function POST(
     }
   } catch (error) {
     console.error('POST /api/blogs/[id]/like error:', error)
-    return errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500)
+    return errorResponse('Daxili server xətası', 'INTERNAL_SERVER_ERROR', {}, 500)
   }
 }
 
@@ -184,7 +184,7 @@ export async function GET(
     })
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -196,7 +196,7 @@ export async function GET(
     const blogId = params.id
 
     if (!blogId) {
-      const response = errorResponse('Blog identifier is required', 'VALIDATION_ERROR', {}, 400)
+      const response = errorResponse('Bloq identifikatoru tələb olunur', 'VALIDATION_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -210,7 +210,7 @@ export async function GET(
       .single()
 
     if (blogError || !blog) {
-      const response = errorResponse('Blog not found', 'BLOG_NOT_FOUND', {}, 404)
+      const response = errorResponse('Bloq tapılmadı', 'BLOG_NOT_FOUND', {}, 404)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -229,6 +229,6 @@ export async function GET(
     return response
   } catch (error) {
     console.error('GET /api/blogs/[id]/like error:', error)
-    return errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500)
+    return errorResponse('Daxili server xətası', 'INTERNAL_SERVER_ERROR', {}, 500)
   }
 }

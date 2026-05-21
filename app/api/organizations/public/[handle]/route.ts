@@ -15,7 +15,7 @@ export async function GET(
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/organizations/public/[handle]' })
     if (!rlResult.allowed) {
-      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     }
     const supabase = createSupabaseAdminClient()
     const handle = decodeURIComponent(params.handle).toLowerCase().trim()
@@ -29,7 +29,7 @@ export async function GET(
       .maybeSingle()
 
     if (orgError || !orgProfile) {
-      return errorResponse('Organization not found', 'ORG_NOT_FOUND', {}, 404)
+      return errorResponse('Təşkilat tapılmadı', 'ORG_NOT_FOUND', {}, 404)
     }
 
     const profileImagePath = getOrganizationImagePath(orgProfile.profile_image)
@@ -60,6 +60,6 @@ export async function GET(
     return successResponse({ organization: { id: orgProfile.account_id, organizationName: orgProfile.organization_name || 'Təşkilat', urlHandle: orgProfile.url_handle, description: orgProfile.description || '', organizationType: orgProfile.organization_type || '', website: orgProfile.website || null, contactPhone: orgProfile.contact_phone || null, address: orgProfile.address || null, profileImage: profileImageUrl, isVerified: orgProfile.is_verified || false, focusAreas: orgProfile.focus_areas || [], socialLinks: orgProfile.social_links || null, eventCount: eventCount || 0, vacancyCount: vacancyCount || 0, followerCount: followerCount || 0, }, })
   } catch (error) {
     console.error('Public org profile error:', error)
-    return errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500)
+    return errorResponse('Daxili server xətası', 'INTERNAL_SERVER_ERROR', {}, 500)
   }
 }

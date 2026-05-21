@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   const config = getIndexNowConfig();
 
   if (!config) {
-    return errorResponse('IndexNow not configured', 'SERVICE_UNAVAILABLE', {}, 503);
+    return errorResponse('IndexNow konfiqurasiya edilməyib', 'SERVICE_UNAVAILABLE', {}, 503);
   }
 
   return new Response(config.apiKey, {

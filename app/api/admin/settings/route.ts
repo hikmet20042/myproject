@@ -13,13 +13,13 @@ export async function GET(request: NextRequest) {
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/settings' })
     if (!rlResult.allowed) {
-      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
     const session = await getServerSession()
     if (!session?.user || !canAccessAdmin(session)) {
-      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
+      return errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401)
     }
     const supabase = createSupabaseAdminClient()
 
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
         .single()
 
       if (error || !inserted) {
-        return errorResponse(error?.message || 'Failed to create settings', "API_ERROR", {}, 500)
+        return errorResponse(error?.message || 'Tənzimləmələr yaradıla bilmədi', "API_ERROR", {}, 500)
       }
       settingsRow = inserted
     }
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     return successResponse({ settings: settingsRow.data })
   } catch (error) {
     console.error('Get settings error:', error)
-    return errorResponse('Internal server error', "API_ERROR", {}, 500)
+    return errorResponse('Daxili server xətası', "API_ERROR", {}, 500)
   }
 }
 
@@ -62,19 +62,19 @@ export async function PUT(request: NextRequest) {
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/settings' })
     if (!rlResult.allowed) {
-      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
     const session = await getServerSession()
     if (!session?.user || !canAccessAdmin(session)) {
-      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
+      return errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401)
     }
     const body = await request.json()
     const { settings: newSettings, section } = body
 
     if (!newSettings) {
-      return errorResponse('Settings data required', "API_ERROR", {}, 400)
+      return errorResponse('Tənzimləmə məlumatı tələb olunur', "API_ERROR", {}, 400)
     }
 
     const supabase = createSupabaseAdminClient()
@@ -100,7 +100,7 @@ export async function PUT(request: NextRequest) {
         .single()
 
       if (error || !inserted) {
-        return errorResponse(error?.message || 'Failed to create settings', "API_ERROR", {}, 500)
+        return errorResponse(error?.message || 'Tənzimləmələr yaradıla bilmədi', "API_ERROR", {}, 500)
       }
       settingsRow = inserted
     }
@@ -121,7 +121,7 @@ export async function PUT(request: NextRequest) {
           changes.push(section)
         }
       } else {
-        return errorResponse(`Invalid section: ${section}`, "API_ERROR", {}, 400)
+        return errorResponse(`Yanlış bölmə: ${section}`, "API_ERROR", {}, 400)
       }
     } else {
       // Update all provided settings
@@ -157,7 +157,7 @@ export async function PUT(request: NextRequest) {
       .single()
 
     if (updateError || !updatedRow) {
-      return errorResponse(updateError?.message || 'Failed to update settings', "API_ERROR", {}, 500)
+      return errorResponse(updateError?.message || 'Tənzimləmələr yenilənə bilmədi', "API_ERROR", {}, 500)
     }
 
     return successResponse({ 
@@ -169,7 +169,7 @@ export async function PUT(request: NextRequest) {
     })
   } catch (error) {
     console.error('Update settings error:', error)
-    return errorResponse('Internal server error', "API_ERROR", {}, 500)
+    return errorResponse('Daxili server xətası', "API_ERROR", {}, 500)
   }
 }
 
@@ -178,13 +178,13 @@ export async function DELETE(request: NextRequest) {
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/settings' })
     if (!rlResult.allowed) {
-      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
     const session = await getServerSession()
     if (!session?.user || !canAccessAdmin(session)) {
-      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
+      return errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401)
     }
     const { searchParams } = new URL(request.url)
     const section = searchParams.get('section')
@@ -198,7 +198,7 @@ export async function DELETE(request: NextRequest) {
       .maybeSingle()
 
     if (!settingsRow) {
-      return errorResponse('Settings not found', "API_ERROR", {}, 404)
+      return errorResponse('Tənzimləmələr tapılmadı', "API_ERROR", {}, 404)
     }
 
     const settings = settingsRow.data || {}
@@ -216,7 +216,7 @@ export async function DELETE(request: NextRequest) {
           changes.push(section)
         }
       } else {
-        return errorResponse(`Invalid section: ${section}`, "API_ERROR", {}, 400)
+        return errorResponse(`Yanlış bölmə: ${section}`, "API_ERROR", {}, 400)
       }
     } else {
       // Reset all settings to defaults
@@ -251,7 +251,7 @@ export async function DELETE(request: NextRequest) {
       .single()
 
     if (updateError || !updatedRow) {
-      return errorResponse(updateError?.message || 'Failed to reset settings', "API_ERROR", {}, 500)
+      return errorResponse(updateError?.message || 'Tənzimləmələr sıfırlana bilmədi', "API_ERROR", {}, 500)
     }
 
     return successResponse({ 
@@ -263,7 +263,7 @@ export async function DELETE(request: NextRequest) {
     })
   } catch (error) {
     console.error('Reset settings error:', error)
-    return errorResponse('Internal server error', "API_ERROR", {}, 500)
+    return errorResponse('Daxili server xətası', "API_ERROR", {}, 500)
   }
 }
 
@@ -272,21 +272,21 @@ export async function PATCH(request: NextRequest) {
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/settings' })
     if (!rlResult.allowed) {
-      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
     const session = await getServerSession()
     if (!session?.user || !canAccessAdmin(session)) {
-      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
+      return errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401)
     }
 
     return successResponse({ 
       history: [],
-      message: 'Settings history not available'
+      message: 'Tənzimləmə tarixçəsi mövcud deyil'
     })
   } catch (error) {
     console.error('Get settings history error:', error)
-    return errorResponse('Internal server error', "API_ERROR", {}, 500)
+    return errorResponse('Daxili server xətası', "API_ERROR", {}, 500)
   }
 }

@@ -18,7 +18,7 @@ export async function GET(
 
     const session = await getServerSession();
     if (!session?.user) {
-      const response = errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401);
+      const response = errorResponse('Autentifikasiya tələb olunur', 'AUTH_REQUIRED', {}, 401);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -26,7 +26,7 @@ export async function GET(
     }
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429);
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -38,7 +38,7 @@ export async function GET(
     const isOwnProfile = session.user.id === targetId;
 
     if (!isOwnProfile && !isAdminUser) {
-      const response = errorResponse('You can only view your own profile', 'FORBIDDEN', {}, 403);
+      const response = errorResponse('Yalnız öz profilinizə baxa bilərsiniz', 'FORBIDDEN', {}, 403);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -52,7 +52,7 @@ export async function GET(
       .eq('id', targetId)
       .single();
     if (error || !user) {
-      const response = errorResponse('User not found', "API_ERROR", {}, 404);
+      const response = errorResponse('İstifadəçi tapılmadı', "API_ERROR", {}, 404);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -77,7 +77,7 @@ export async function GET(
     }
     return response;
   } catch (error) {
-    const response = errorResponse('Internal server error', "API_ERROR", {}, 500);
+    const response = errorResponse('Daxili server xətası', "API_ERROR", {}, 500);
     return response;
   }
 }

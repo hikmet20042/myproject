@@ -18,7 +18,7 @@ export async function GET(
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/organizations/[id]' })
     if (!rlResult.allowed) {
-      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     }
     const supabase = createSupabaseAdminClient()
 
@@ -30,7 +30,7 @@ export async function GET(
       .maybeSingle()
 
     if (profileError || !profile) {
-      return errorResponse('Organization not found', "API_ERROR", {}, 404)
+      return errorResponse('Təşkilat tapılmadı', "API_ERROR", {}, 404)
     }
 
     const [followerCountResult, featuredEventResult, featuredVacancyResult] = await Promise.all([
@@ -63,7 +63,7 @@ export async function GET(
     return rlh(successResponse({ organization: normalizeOrganizationProfile({ ...profile, follower_count: followerCountResult.count || 0, }), featuredEvent: featuredEventResult.data ? { id: featuredEventResult.data.id, title: featuredEventResult.data.title, eventDate: featuredEventResult.data.event_date, applicationLink: featuredEventResult.data.application_link, createdAt: featuredEventResult.data.created_at, } : null, featuredVacancy: featuredVacancyResult.data ? { id: featuredVacancyResult.data.id, title: featuredVacancyResult.data.title, applicationDeadline: featuredVacancyResult.data.application_deadline, applicationMethod: featuredVacancyResult.data.application_method, applicationValue: featuredVacancyResult.data.application_value, createdAt: featuredVacancyResult.data.created_at, } : null, }), rlHeaders)
   } catch (error) {
     console.error('Error fetching organization:', error)
-    return errorResponse('Internal server error', "API_ERROR", {}, 500)
+    return errorResponse('Daxili server xətası', "API_ERROR", {}, 500)
   }
 }
 
@@ -75,7 +75,7 @@ export async function PUT(
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/organizations/[id]' })
     if (!rlResult.allowed) {
-      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     }
     const supabase = createSupabaseAdminClient()
 
@@ -86,20 +86,20 @@ export async function PUT(
       .maybeSingle()
 
     if (fetchError || !organization) {
-      return errorResponse('Organization not found', "API_ERROR", {}, 404)
+      return errorResponse('Təşkilat tapılmadı', "API_ERROR", {}, 404)
     }
 
     const session = await getServerSession()
     const admin = isAdmin(session)
     if (!admin) {
-      return errorResponse('Use /api/organizations/me for organization self-edit. Admin access required for id-based updates.', "API_ERROR", {}, 403)
+      return errorResponse('Təşkilat öz redaktəsi üçün /api/organizations/me istifadə edin. ID əsaslı yeniləmələr üçün admin girişi tələb olunur.', "API_ERROR", {}, 403)
     }
 
     const body = await request.json()
     const { status } = body
     const validation = validateOrganizationUpdatePayload(body)
     if (validation.error || !validation.data) {
-      return errorResponse(validation.error || 'Invalid payload', "API_ERROR", {}, 400)
+      return errorResponse(validation.error || 'Yanlış məlumat', "API_ERROR", {}, 400)
     }
 
     if (validation.data.organizationName !== organization.organization_name) {
@@ -111,7 +111,7 @@ export async function PUT(
         .maybeSingle()
 
       if (existingOrganization) {
-        return errorResponse('An organization with this name already exists', "API_ERROR", {}, 400)
+        return errorResponse('Bu adla təşkilat artıq mövcuddur', "API_ERROR", {}, 400)
       }
     }
 
@@ -150,13 +150,13 @@ export async function PUT(
       .single()
 
     if (updateError || !updatedOrganization) {
-      return errorResponse(updateError?.message || 'Update failed', "API_ERROR", {}, 500)
+      return errorResponse(updateError?.message || 'Yeniləmə uğursuz oldu', "API_ERROR", {}, 500)
     }
 
-    return rlh(successResponse({ message: 'Organization updated successfully', organization: normalizeOrganizationProfile(updatedOrganization) }), rlHeaders)
+    return rlh(successResponse({ message: 'Təşkilat uğurla yeniləndi', organization: normalizeOrganizationProfile(updatedOrganization) }), rlHeaders)
   } catch (error) {
     console.error('Error updating organization:', error)
-    return errorResponse('Internal server error', "API_ERROR", {}, 500)
+    return errorResponse('Daxili server xətası', "API_ERROR", {}, 500)
   }
 }
 
@@ -168,15 +168,15 @@ export async function DELETE(
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/organizations/[id]' })
     if (!rlResult.allowed) {
-      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     }
     const session = await getServerSession()
     if (!session?.user?.id) {
-      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
+      return errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401)
     }
 
     if (!canAccessAdmin(session)) {
-      return errorResponse('Admin access required', "API_ERROR", {}, 403)
+      return errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403)
     }
 
     const supabase = createSupabaseAdminClient()
@@ -196,9 +196,9 @@ export async function DELETE(
       await supabase.auth.admin.deleteUser(organization.account_id)
     }
 
-    return successResponse({ message: 'Organization deleted successfully' })
+    return successResponse({ message: 'Təşkilat uğurla silindi' })
   } catch (error) {
     console.error('Error deleting organization:', error)
-    return errorResponse('Internal server error', "API_ERROR", {}, 500)
+    return errorResponse('Daxili server xətası', "API_ERROR", {}, 500)
   }
 }

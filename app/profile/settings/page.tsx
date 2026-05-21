@@ -216,7 +216,7 @@ export default function ProfileSettingsPage() {
     requiresGoogleReauth: false,
     recentlyReauthenticated: false,
     providers: [] as string[],
-    deleteConfirmationText: "DELETE",
+    deleteConfirmationText: "SİL",
   });
   const [initialForm, setInitialForm] = useState<ProfileFormState | null>(null);
   const [passwordForm, setPasswordForm] = useState({
@@ -654,7 +654,7 @@ export default function ProfileSettingsPage() {
         requiresGoogleReauth: Boolean(data?.requiresGoogleReauth),
         recentlyReauthenticated: Boolean(data?.recentlyReauthenticated),
         providers: Array.isArray(data?.providers) ? data.providers : [],
-        deleteConfirmationText: String(data?.deleteConfirmationText || "DELETE"),
+        deleteConfirmationText: String(data?.deleteConfirmationText || "SİL"),
       });
       if (data?.requiresGoogleReauth) {
         pushInfo('Google hesabı üçün təsdiq addımı lazımdır. "Google ilə yenidən daxil ol" düyməsini sıx və geri qayıdandan sonra silməni tamamla.');
@@ -914,7 +914,7 @@ export default function ProfileSettingsPage() {
             <Trash2 className="w-5 h-5 text-red-600 mt-0.5" />
             <div className="space-y-1">
               <p className="font-medium text-red-900">Hesabı sil</p>
-              <p className="text-sm text-red-700">Bu əməliyyat geri qaytarılmır. Davam etmək üçün "DELETE" yaz.</p>
+              <p className="text-sm text-red-700">Bu əməliyyat geri qaytarılmır. Davam etmək üçün "SİL" yaz.</p>
             </div>
           </div>
           <div className="flex justify-end">

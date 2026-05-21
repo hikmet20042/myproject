@@ -1,20 +1,20 @@
 export function getUserErrorMessage(error: any): string {
-  if (!error) return "Something went wrong";
+  if (!error) return "Nəsə səhv oldu";
 
   if (error.code) {
     switch (error.code) {
       case "UNAUTHORIZED":
-        return "You need to log in to continue.";
+        return "Davam etmək üçün daxil olmalısınız.";
       case "FORBIDDEN":
-        return "You don’t have permission to perform this action.";
+        return "Bu əməliyyatı yerinə yetirməyə icazəniz yoxdur.";
       case "NOT_FOUND":
-        return "The requested content was not found.";
+        return "İstədiyiniz məzmun tapılmadı.";
       case "VALIDATION_ERROR":
-        return "Please check your input and try again.";
+        return "Zəhmət olmasa məlumatları yoxlayın və yenidən cəhd edin.";
       default:
-        return "Something went wrong. Please try again.";
+        return "Nəsə səhv oldu. Zəhmət olmasa yenidən cəhd edin.";
     }
   }
 
-  return error.message || "Something went wrong";
+  return error.message || "Nəsə səhv oldu";
 }

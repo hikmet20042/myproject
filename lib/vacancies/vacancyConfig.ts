@@ -8,19 +8,19 @@ export const VACANCY_TYPE_VALUES = [
 export type VacancyTypeValue = (typeof VACANCY_TYPE_VALUES)[number];
 
 export const VACANCY_TYPE_LABELS: Record<VacancyTypeValue, string> = {
-  volunteer: 'Konulluluk',
-  full_time: 'Full-time',
-  part_time: 'Part-time',
-  intern: 'Intern',
+  volunteer: 'Könüllülük',
+  full_time: 'Tam ştat',
+  part_time: 'Yarım ştat',
+  intern: 'Təcrübəçi',
 };
 
 export const VACANCY_APPLICATION_METHOD_VALUES = ['link', 'email', 'phone'] as const;
 export type VacancyApplicationMethodValue = (typeof VACANCY_APPLICATION_METHOD_VALUES)[number];
 
 export const VACANCY_APPLICATION_METHOD_LABELS: Record<VacancyApplicationMethodValue, string> = {
-  link: 'Application Link',
-  email: 'Email',
-  phone: 'Nomre',
+  link: 'Müraciət Linki',
+  email: 'E-poçt',
+  phone: 'Nömrə',
 };
 
 export const VACANCY_PAYMENT_MODE_VALUES = ['fixed', 'range'] as const;

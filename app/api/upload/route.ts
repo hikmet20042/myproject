@@ -92,7 +92,7 @@ export async function POST(request: Request) {
   })
 
   if (!rateLimitResult.allowed) {
-    const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
   try {
     const session = await getServerSession()
     if (!session?.user?.id) {
-      const response = errorResponse('Unauthorized', 'API_ERROR', {}, 401)
+      const response = errorResponse('İcazəsiz giriş', 'API_ERROR', {}, 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -115,7 +115,7 @@ export async function POST(request: Request) {
     const isBlog = context === 'blog'
 
     if (isBlog && session.user.accountType === 'organization') {
-      const response = errorResponse('Organization accounts cannot upload blog content images', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+      const response = errorResponse('Təşkilat hesabları bloq məzmun şəkilləri yükləyə bilməz', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -128,7 +128,7 @@ export async function POST(request: Request) {
     const tags = (formData.get('tags') as string) || ''
 
     if (!file) {
-      const response = errorResponse('No file provided', 'API_ERROR', {}, 400)
+      const response = errorResponse('Fayl təqdim edilməyib', 'API_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -136,7 +136,7 @@ export async function POST(request: Request) {
     }
 
     if (!ALLOWED_IMAGE_TYPES.has(file.type.toLowerCase())) {
-      const response = errorResponse('Invalid file type. Only image files are allowed.', 'API_ERROR', {}, 400)
+      const response = errorResponse('Yanlış fayl tipi. Yalnız şəkil fayllarına icazə verilir.', 'API_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -166,7 +166,7 @@ export async function POST(request: Request) {
       : []
 
     if (!cloudinaryService.isConfigured()) {
-      const response = errorResponse('Cloudinary is not configured for content uploads', 'API_ERROR', {}, 503)
+      const response = errorResponse('Cloudinary məzmun yükləmələri üçün konfiqurasiya edilməyib', 'API_ERROR', {}, 503)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -185,7 +185,7 @@ export async function POST(request: Request) {
 
     if (!uploadResult.success || !uploadResult.secureUrl || !uploadResult.publicId) {
       console.error('Cloudinary upload failed:', uploadResult.error)
-      const response = errorResponse('Failed to save image', 'API_ERROR', {}, 500)
+      const response = errorResponse('Şəkil saxlanıla bilmədi', 'API_ERROR', {}, 500)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -226,7 +226,7 @@ export async function POST(request: Request) {
     return successResp
   } catch (error) {
     console.error('Upload error:', error)
-    const response = errorResponse('Upload failed', 'API_ERROR', {}, 500)
+    const response = errorResponse('Yükləmə uğursuz oldu', 'API_ERROR', {}, 500)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }

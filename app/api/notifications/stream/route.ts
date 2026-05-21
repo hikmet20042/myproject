@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   const session = await getServerSession()
   
   if (!session?.user?.id) {
-    return new Response('Unauthorized', { status: 401 })
+    return new Response('İcazəsiz giriş', { status: 401 })
   }
 
   const userId = session.user.id

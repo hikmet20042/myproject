@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession()
     
     if (!session?.user?.id) {
-      const response = errorResponse('Unauthorized', "API_ERROR", {}, 401)
+      const response = errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
         .maybeSingle()
 
       if (!organizationProfile) {
-        const response = errorResponse('Organization not found', "API_ERROR", {}, 404)
+        const response = errorResponse('Təşkilat tapılmadı', "API_ERROR", {}, 404)
         for (const [key, value] of Object.entries(rateLimitHeaders)) {
           response.headers.set(key, value)
         }
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (userError || !user) {
-      const response = errorResponse('User not found', 'USER_NOT_FOUND', {}, 404)
+      const response = errorResponse('İstifadəçi tapılmadı', 'USER_NOT_FOUND', {}, 404)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Error fetching user profile:', error)
-    const response = errorResponse('Failed to fetch profile', 'FETCH_PROFILE_FAILED', {}, 500)
+    const response = errorResponse('Profil yüklənə bilmədi', 'FETCH_PROFILE_FAILED', {}, 500)
     return response
   }
 }

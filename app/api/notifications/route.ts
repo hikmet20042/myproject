@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     })
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     }
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
     if (!session?.user?.id) {
-      const response = errorResponse('Unauthorized', "API_ERROR", {}, 401)
+      const response = errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     }
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
     const { data: notifications, error, count } = await query;
     if (error) {
       console.error(`[notifications.GET] Query error:`, error)
-      const response = errorResponse('Internal server error', "API_ERROR", {}, 500)
+      const response = errorResponse('Daxili server xətası', "API_ERROR", {}, 500)
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     }
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
     return successResp
   } catch (error) {
     console.error('Notifications fetch error:', error);
-    return errorResponse('Internal server error', "API_ERROR", {}, 500);
+    return errorResponse('Daxili server xətası', "API_ERROR", {}, 500);
   }
 }
 
@@ -119,7 +119,7 @@ export async function PUT(request: NextRequest) {
     })
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     }
@@ -127,7 +127,7 @@ export async function PUT(request: NextRequest) {
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
     if (!session?.user?.id) {
-      const response = errorResponse('Unauthorized', "API_ERROR", {}, 401)
+      const response = errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     }
@@ -146,7 +146,7 @@ export async function PUT(request: NextRequest) {
         .eq('is_read', false)
         .select('id');
 
-      const response = successResponse({ message: 'All notifications marked as read' })
+      const response = successResponse({ message: 'Bütün bildirişlər oxundu olaraq işarələndi' })
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     } else if (notificationId && typeof isRead === 'boolean') {
@@ -158,7 +158,7 @@ export async function PUT(request: NextRequest) {
         .select('*')
         .single();
       if (error || !updated) {
-        const response = errorResponse('Notification not found', "API_ERROR", {}, 404)
+        const response = errorResponse('Bildiriş tapılmadı', "API_ERROR", {}, 404)
         for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
         return response
       }
@@ -170,12 +170,12 @@ export async function PUT(request: NextRequest) {
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     }
-    const response = errorResponse('Invalid request', "API_ERROR", {}, 400)
+    const response = errorResponse('Yanlış sorğu', "API_ERROR", {}, 400)
     for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
     return response
   } catch (error) {
     console.error('Notification update error:', error);
-    return errorResponse('Internal server error', "API_ERROR", {}, 500);
+    return errorResponse('Daxili server xətası', "API_ERROR", {}, 500);
   }
 }
 
@@ -188,7 +188,7 @@ export async function DELETE(request: NextRequest) {
     })
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     }
@@ -196,14 +196,14 @@ export async function DELETE(request: NextRequest) {
     const supabase = createSupabaseAdminClient();
     const session = await getServerSession();
     if (!session?.user?.id) {
-      const response = errorResponse('Unauthorized', "API_ERROR", {}, 401)
+      const response = errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     }
     const url = new URL(request.url);
     const notificationId = url.searchParams.get('id');
     if (!notificationId) {
-      const response = errorResponse('Notification ID required', "API_ERROR", {}, 400)
+      const response = errorResponse('Bildiriş ID-si tələb olunur', "API_ERROR", {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     }
@@ -215,11 +215,11 @@ export async function DELETE(request: NextRequest) {
       .delete()
       .eq('id', notificationId)
       .eq(ownerColumn, session.user.id);
-    const response = successResponse({ message: 'Notification deleted successfully' })
+    const response = successResponse({ message: 'Bildiriş uğurla silindi' })
     for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
     return response
   } catch (error) {
     console.error('Notification delete error:', error);
-    return errorResponse('Internal server error', "API_ERROR", {}, 500);
+    return errorResponse('Daxili server xətası', "API_ERROR", {}, 500);
   }
 }

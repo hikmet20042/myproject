@@ -45,7 +45,7 @@ export default function ForgotPasswordPage() {
         return
       }
 
-      setMessage(payload?.data?.message || 'If an account with that email exists, a password reset link has been sent.')
+      setMessage(payload?.data?.message || 'Bu e-poçta uyğun hesab varsa, şifrə sıfırlama keçidi göndərilib.')
       setEmail('')
     } catch {
       setError('Şəbəkə xətası. Zəhmət olmasa yenidən cəhd edin.')

@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/Input";
 import { TextArea } from "@/components/ui/Textarea";
 import { LoadingState } from "@/components/shared";
 import AdminActionModal from "@/components/admin/AdminActionModal";
-import { ORGANIZATION_TYPE_LABELS } from "@/lib/organizationTypes";
+import { FOCUS_AREA_LABELS_AZ, ORGANIZATION_TYPE_LABELS } from "@/lib/organizationTypes";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import AdminListLayout from "@/components/admin/AdminListLayout";
 import { Card } from "@/components/ui/Card";
@@ -685,7 +685,7 @@ export default function OrganizationsAdminPage() {
                               variant="primary"
                               size="md"
                             >
-                              {area}
+                              {FOCUS_AREA_LABELS_AZ[area as keyof typeof FOCUS_AREA_LABELS_AZ] || area}
                             </Badge>
                           ),
                         )}
@@ -841,7 +841,7 @@ export default function OrganizationsAdminPage() {
                                 variant="primary"
                                 size="sm"
                               >
-                                {area}
+                                {FOCUS_AREA_LABELS_AZ[area as keyof typeof FOCUS_AREA_LABELS_AZ] || area}
                               </Badge>
                             ),
                           )}

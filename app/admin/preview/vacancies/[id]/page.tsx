@@ -12,6 +12,7 @@ import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import AdminListLayout from '@/components/admin/AdminListLayout'
 import { Badge } from '@/components/ui/Badge'
+import { VACANCY_TYPE_LABELS } from '@/lib/vacancies/vacancyConfig'
 
 interface Vacancy { _id: string
   title: string
@@ -183,7 +184,7 @@ export default function AdminVacancyPreview() {
             </div>
             <div className="flex items-center gap-2">
               <Briefcase className="w-4 h-4 text-slate-400" />
-              <span>{vacancy.type || 'Növ'}</span>
+              <span>{VACANCY_TYPE_LABELS[vacancy.type as keyof typeof VACANCY_TYPE_LABELS] || vacancy.type || 'Növ'}</span>
             </div>
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-slate-400" />

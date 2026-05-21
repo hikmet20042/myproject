@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   })
 
   if (!rateLimitResult.allowed) {
-    const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
     const { data: materials, error, count } = await query;
 
     if (error) {
-      const response = errorResponse('Failed to fetch materials', "API_ERROR", {}, 500);
+      const response = errorResponse('Materiallar yüklənə bilmədi', "API_ERROR", {}, 500);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -76,7 +76,7 @@ export async function GET(request: Request) {
     return response;
   } catch (error: any) {
     console.error('Error fetching materials:', error);
-    const response = errorResponse('Failed to fetch materials', "API_ERROR", {}, 500);
+    const response = errorResponse('Materiallar yüklənə bilmədi', "API_ERROR", {}, 500);
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
     const session = await getServerSession();
 
     if (!session || session.user?.role !== 'admin') {
-      return errorResponse('Unauthorized. Admin access required.', "API_ERROR", {}, 403);
+      return errorResponse('İcazəsiz giriş. Admin girişi tələb olunur.', "API_ERROR", {}, 403);
     }
 
     const supabase = createSupabaseAdminClient();
@@ -114,7 +114,7 @@ export async function POST(request: Request) {
 
     // Validate required fields
     if (!title || !description || !category || !type || !url) {
-      return errorResponse('Missing required fields: title, description, category, type, and url', "API_ERROR", {}, 400);
+      return errorResponse('Tələb olunan sahələr əskikdir: başlıq, təsvir, kateqoriya, tip və url', "API_ERROR", {}, 400);
     }
 
     // Create material
@@ -140,12 +140,12 @@ export async function POST(request: Request) {
       .single();
 
     if (error || !material) {
-      return errorResponse('Failed to create material', "API_ERROR", {}, 500);
+      return errorResponse('Material yaradıla bilmədi', "API_ERROR", {}, 500);
     }
 
-    return successResponse({ message: 'Material created successfully', material }, {}, 201);
+    return successResponse({ message: 'Material uğurla yaradıldı', material }, {}, 201);
   } catch (error: any) {
     console.error('Error creating material:', error);
-    return errorResponse('Failed to create material', "API_ERROR", {}, 500);
+    return errorResponse('Material yaradıla bilmədi', "API_ERROR", {}, 500);
   }
 }

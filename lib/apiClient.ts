@@ -30,7 +30,7 @@ export async function apiFetch<T>(
 
   if (!res.ok || !json?.success) {
     throw new ApiError(
-      json?.error?.message || "Unknown error",
+      json?.error?.message || "Naməlum xəta",
       json?.error?.code,
       json?.error?.details
     );

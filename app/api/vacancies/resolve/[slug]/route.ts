@@ -12,7 +12,7 @@ export async function GET(
 ) {
   const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/vacancies/resolve/[slug]' })
   if (!rlResult.allowed) {
-    return rlh(errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429), rlHeaders)
+    return rlh(errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429), rlHeaders)
   }
   try {
     const supabase = createSupabaseAdminClient();
@@ -21,11 +21,11 @@ export async function GET(
     const { data, error } = await resolveEntityBySlugOrId(supabase, "vacancies", slug, "id, slug");
 
     if (error || !data?.id) {
-      return rlh(errorResponse("Vacancy not found", "API_ERROR", {}, 404), rlHeaders)
+      return rlh(errorResponse("Vakansiya tapılmadı", "API_ERROR", {}, 404), rlHeaders)
     }
 
     return rlh(successResponse({ id: data.id, slug: data.slug || slug }), rlHeaders)
   } catch (error) {
-    return errorResponse("Failed to resolve vacancy", "API_ERROR", {}, 500)
+    return errorResponse("Vakansiya həll edilə bilmədi", "API_ERROR", {}, 500)
   }
 }

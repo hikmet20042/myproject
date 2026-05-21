@@ -98,7 +98,24 @@ export default function EventDetail() {
       </span>
     ) }
 
-  const formatDate = (dateString: string) => { const opts: Intl.DateTimeFormatOptions = { weekday: 'long',
+  const getLocationTypeLabel = (type: string) => {
+  switch (type) {
+    case 'online': return 'Onlayn';
+    case 'physical': return 'Fiziki';
+    case 'hybrid': return 'Hibrid';
+    default: return type;
+  }
+};
+
+const getStatusLabel = (status: string) => {
+  switch (status) {
+    case 'approved': return 'Təsdiqlənmiş';
+    case 'rejected': return 'Rədd edilmiş';
+    default: return 'Gözləmədə';
+  }
+};
+
+const formatDate = (dateString: string) => { const opts: Intl.DateTimeFormatOptions = { weekday: 'long',
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -171,7 +188,7 @@ export default function EventDetail() {
               <div className="space-y-3">
                 <div>
                   <span className="font-medium text-slate-700">{'Növ'}:</span>
-                  <span className="ml-2 capitalize">{event.location.type}</span>
+                  <span className="ml-2">{getLocationTypeLabel(event.location.type)}</span>
                 </div>
                 
                 {(event.location.type === 'physical' || event.location.type === 'hybrid') && (
@@ -296,7 +313,7 @@ export default function EventDetail() {
               <div className="space-y-3 text-sm">
                 <div>
                   <span className="font-medium text-slate-700">{'Moderasiya statusu:'}</span>
-                  <span className="ml-2 capitalize">{event.status}</span>
+                  <span className="ml-2">{getStatusLabel(event.status)}</span>
                 </div>
                 <div>
                   <span className="font-medium text-slate-700">{'Yaradılıb:'}</span>

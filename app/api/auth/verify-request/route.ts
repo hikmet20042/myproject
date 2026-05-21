@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   })
 
   if (!rateLimitResult.allowed) {
-    const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     const targetEmail = authData?.user?.email || requestedEmail
 
     if (!targetEmail) {
-      const response = errorResponse('Email is required', 'API_ERROR', {}, 400)
+      const response = errorResponse('E-poçt tələb olunur', 'API_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(targetEmail)) {
-      const response = errorResponse('Invalid email format', 'API_ERROR', {}, 400)
+      const response = errorResponse('Yanlış e-poçt formatı', 'API_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     if (authData?.user?.email_confirmed_at) {
       const response = successResponse({
-        message: 'Email is already verified.',
+        message: 'E-poçt artıq təsdiqlənib.',
       })
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     // Keep response generic to avoid email/provider enumeration for unauthenticated callers.
     if (error && authData?.user?.email) {
-      const response = errorResponse(error.message || 'Failed to send verification email', 'API_ERROR', {}, 400)
+      const response = errorResponse(error.message || 'Təsdiq e-poçtu göndərilə bilmədi', 'API_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     }
 
     const response = successResponse({
-      message: 'Verification email sent.',
+      message: 'Təsdiq e-poçtu göndərildi.',
     })
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     return response
   } catch (error) {
     console.error('Verify request error:', error)
-    const response = errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    const response = errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }

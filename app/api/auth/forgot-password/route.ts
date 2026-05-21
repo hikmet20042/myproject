@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
   })
 
   if (!rateLimitResult.allowed) {
-    const response = errorResponse('Too many requests. Please try again later.', 'RATE_LIMITED', {}, 429)
+    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const normalizedEmail = String(email || '').trim().toLowerCase()
 
     if (!normalizedEmail) {
-      const response = errorResponse('Email is required', 'API_ERROR', {}, 400)
+      const response = errorResponse('E-poçt tələb olunur', 'API_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(normalizedEmail)) {
-      const response = errorResponse('Invalid email format', 'API_ERROR', {}, 400)
+      const response = errorResponse('Yanlış e-poçt formatı', 'API_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     return response
   } catch (error) {
     console.error('Forgot password error:', error)
-    const response = errorResponse('Internal server error', 'API_ERROR', {}, 500)
+    const response = errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }

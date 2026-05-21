@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
       console.warn('Unauthorized cron request - invalid or missing authorization header')
-      return errorResponse('Unauthorized', "API_ERROR", {}, 401)
+      return errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401)
     }
     
     console.log('[Cron] Starting event deadline notification check...')
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     
     return successResponse({
       status: 'completed',
-      message: 'Event deadline notifications sent successfully',
+      message: 'Tədbir son tarix bildirişləri uğurla göndərildi',
       usersChecked: result.usersChecked,
       durationMs: duration
     })
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     console.error(`[Cron] Event deadline check failed after ${duration}ms:`, error)
     
     return errorResponse(
-      'Failed to send deadline notifications',
+      'Son tarix bildirişləri göndərilə bilmədi',
       "CRON_ERROR",
       {
         error: error instanceof Error ? error.message : String(error),
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
     
     return successResponse({
       status: 'completed',
-      message: 'Event deadline notifications sent (manual trigger)',
+      message: 'Tədbir son tarix bildirişləri göndərildi (manual trigger)',
       usersChecked: result.usersChecked,
       durationMs: duration
     })
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
     console.error(`[Manual] Event deadline check failed after ${duration}ms:`, error)
     
     return errorResponse(
-      'Failed to send deadline notifications',
+      'Son tarix bildirişləri göndərilə bilmədi',
       "CHECK_FAILED",
       {
         error: error instanceof Error ? error.message : String(error),

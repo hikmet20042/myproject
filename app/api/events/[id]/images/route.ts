@@ -17,18 +17,18 @@ export async function POST(
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/events/[id]/images' })
     if (!rlResult.allowed) {
-      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     }
     const session = await getServerSession();
 
     if (!session?.user?.id) {
-      return errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401)
+      return errorResponse('Autentifikasiya tələb olunur', 'AUTH_REQUIRED', {}, 401)
     }
 
     const supabase = createSupabaseAdminClient();
 
     if (!canCreateEvent(session)) {
-      return errorResponse('Only approved organizations can upload event images', 'FORBIDDEN', {}, 403)
+      return errorResponse('Yalnız təsdiqlənmiş təşkilatlar tədbir şəkilləri yükləyə bilər', 'FORBIDDEN', {}, 403)
     }
 
     const eventId = String(params.id || '').trim()
@@ -40,11 +40,11 @@ export async function POST(
       .single();
 
     if (eventError || !event) {
-      return errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404)
+      return errorResponse('Tədbir tapılmadı', 'EVENT_NOT_FOUND', {}, 404)
     }
 
     if (!isAdminOrOwner(session, event)) {
-      return errorResponse('You can only upload images to your own events', 'FORBIDDEN', {}, 403)
+      return errorResponse('Yalnız öz tədbirlərinizə şəkil yükləyə bilərsiniz', 'FORBIDDEN', {}, 403)
     }
 
     const formData = await request.formData();
@@ -52,7 +52,7 @@ export async function POST(
     const imageFiles = files.filter((file): file is File => file instanceof File);
 
     if (imageFiles.length === 0) {
-      return errorResponse('No images provided', 'VALIDATION_ERROR', {}, 400)
+      return errorResponse('Şəkil təqdim edilməyib', 'VALIDATION_ERROR', {}, 400)
     }
 
     const uploadedImages: any[] = [];
@@ -89,11 +89,11 @@ export async function POST(
             isPrimary: currentImageCount === 0 && i === 0,
           });
         } else {
-          errors.push(`Image ${i + 1}: ${uploadResult.error || 'Upload failed'}`);
+          errors.push(`Image ${i + 1}: ${uploadResult.error || 'Yükləmə uğursuz oldu'}`);
         }
       } catch (uploadError: any) {
         console.error(`Error uploading image ${i}:`, uploadError);
-        errors.push(`Image ${i + 1}: ${uploadError.message || 'Upload failed'}`);
+        errors.push(`Image ${i + 1}: ${uploadError.message || 'Yükləmə uğursuz oldu'}`);
       }
     }
 
@@ -115,7 +115,7 @@ export async function POST(
     return successResponse({ uploadedImages, errors: errors.length > 0 ? errors : undefined, event: { id: event.id, images: updatedImages, imageUrl: updatedImageUrl, }, }, { message: `${uploadedImages.length} image(s) uploaded successfully` });
   } catch (error) {
     console.error('Error uploading event images:', error);
-    return errorResponse('Failed to upload event images', 'UPLOAD_EVENT_IMAGES_FAILED', {}, 500);
+    return errorResponse('Tədbir şəkilləri yüklənə bilmədi', 'UPLOAD_EVENT_IMAGES_FAILED', {}, 500);
   }
 }
 
@@ -126,18 +126,18 @@ export async function DELETE(
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/events/[id]/images' })
     if (!rlResult.allowed) {
-      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     }
     const session = await getServerSession();
 
     if (!session?.user?.id) {
-      return errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401)
+      return errorResponse('Autentifikasiya tələb olunur', 'AUTH_REQUIRED', {}, 401)
     }
 
     const supabase = createSupabaseAdminClient();
 
     if (!canCreateEvent(session)) {
-      return errorResponse('Only approved organizations can manage event images', 'FORBIDDEN', {}, 403)
+      return errorResponse('Yalnız təsdiqlənmiş təşkilatlar tədbir şəkillərini idarə edə bilər', 'FORBIDDEN', {}, 403)
     }
 
     const eventId = String(params.id || '').trim()
@@ -149,18 +149,18 @@ export async function DELETE(
       .single();
 
     if (eventError || !event) {
-      return errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404)
+      return errorResponse('Tədbir tapılmadı', 'EVENT_NOT_FOUND', {}, 404)
     }
 
     if (!isAdminOrOwner(session, event)) {
-      return errorResponse('You can only delete images from your own events', 'FORBIDDEN', {}, 403)
+      return errorResponse('Yalnız öz tədbirlərinizdən şəkil silə bilərsiniz', 'FORBIDDEN', {}, 403)
     }
 
     const body = await request.json();
     const { publicIds } = body;
 
     if (!publicIds || !Array.isArray(publicIds) || publicIds.length === 0) {
-      return errorResponse('No image public IDs provided', 'VALIDATION_ERROR', {}, 400)
+      return errorResponse('Şəkil public ID-si təqdim edilməyib', 'VALIDATION_ERROR', {}, 400)
     }
 
     const deleteResults = await cloudinaryService.deleteImages(publicIds);
@@ -187,7 +187,7 @@ export async function DELETE(
     return rlh(successResponse({ deletedCount: deleteResults.deletedCount, errors: deleteResults.errors.length > 0 ? deleteResults.errors : undefined, event: { id: event.id, images: updatedImages, imageUrl: updatedImageUrl, }, }, { message: `${deleteResults.deletedCount} image(s) deleted successfully` }), rlHeaders)
   } catch (error) {
     console.error('Error deleting event images:', error);
-    return errorResponse('Failed to delete event images', 'DELETE_EVENT_IMAGES_FAILED', {}, 500)
+    return errorResponse('Tədbir şəkilləri silinə bilmədi', 'DELETE_EVENT_IMAGES_FAILED', {}, 500)
   }
 }
 
@@ -198,18 +198,18 @@ export async function PATCH(
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/events/[id]/images' })
     if (!rlResult.allowed) {
-      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     }
     const session = await getServerSession();
 
     if (!session?.user?.id) {
-      return errorResponse('Authentication required', 'AUTH_REQUIRED', {}, 401)
+      return errorResponse('Autentifikasiya tələb olunur', 'AUTH_REQUIRED', {}, 401)
     }
 
     const supabase = createSupabaseAdminClient();
 
     if (!canCreateEvent(session)) {
-      return errorResponse('Only approved organizations can manage event images', 'FORBIDDEN', {}, 403)
+      return errorResponse('Yalnız təsdiqlənmiş təşkilatlar tədbir şəkillərini idarə edə bilər', 'FORBIDDEN', {}, 403)
     }
 
     const eventId = String(params.id || '').trim()
@@ -221,18 +221,18 @@ export async function PATCH(
       .single();
 
     if (eventError || !event) {
-      return errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404)
+      return errorResponse('Tədbir tapılmadı', 'EVENT_NOT_FOUND', {}, 404)
     }
 
     if (!isAdminOrOwner(session, event)) {
-      return errorResponse('You can only update images for your own events', 'FORBIDDEN', {}, 403)
+      return errorResponse('Yalnız öz tədbirlərinizin şəkillərini yeniləyə bilərsiniz', 'FORBIDDEN', {}, 403)
     }
 
     const body = await request.json();
     const { publicId, updates } = body;
 
     if (!publicId || !updates) {
-      return errorResponse('Public ID and updates are required', 'VALIDATION_ERROR', {}, 400)
+      return errorResponse('Public ID və yeniləmələr tələb olunur', 'VALIDATION_ERROR', {}, 400)
     }
 
     let updatedImages = Array.isArray(event.images) ? event.images : [];
@@ -240,7 +240,7 @@ export async function PATCH(
       const imageIndex = updatedImages.findIndex((img: any) => img.publicId === publicId);
 
       if (imageIndex === -1) {
-        return errorResponse('Image not found in event', 'IMAGE_NOT_FOUND', {}, 404)
+        return errorResponse('Tədbirdə şəkil tapılmadı', 'IMAGE_NOT_FOUND', {}, 404)
       }
 
       if (updates.isPrimary) {
@@ -262,9 +262,9 @@ export async function PATCH(
         .eq('id', eventId);
     }
 
-    return rlh(successResponse({ event: { id: event.id, images: updatedImages, imageUrl: updatedImages.find((img: any) => img.isPrimary)?.url || event.image_url, }, }, { message: 'Image updated successfully' }), rlHeaders)
+    return rlh(successResponse({ event: { id: event.id, images: updatedImages, imageUrl: updatedImages.find((img: any) => img.isPrimary)?.url || event.image_url, }, }, { message: 'Şəkil uğurla yeniləndi' }), rlHeaders)
   } catch (error) {
     console.error('Error updating event image:', error);
-    return errorResponse('Failed to update event image', 'UPDATE_EVENT_IMAGE_FAILED', {}, 500)
+    return errorResponse('Tədbir şəkli yenilənə bilmədi', 'UPDATE_EVENT_IMAGE_FAILED', {}, 500)
   }
 }

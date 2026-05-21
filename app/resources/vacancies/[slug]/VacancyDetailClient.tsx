@@ -119,10 +119,10 @@ export default function VacancyDetailPage() {
   };
 
   const getTypeLabel = (type: string) => {
-    if (type === "full_time") return "Full-time";
-    if (type === "part_time") return "Part-time";
+    if (type === "full_time") return "Tam ştat";
+    if (type === "part_time") return "Yarım ştat";
     if (type === "volunteer") return "Könüllülük";
-    if (type === "intern") return "Intern";
+    if (type === "intern") return "Təcrübəçi";
     return type;
   };
 

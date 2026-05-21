@@ -133,7 +133,7 @@ export async function handleApiRequest(
     try {
       body = await request.json()
     } catch {
-      const response = errorResponse('Invalid JSON body', 'INVALID_JSON', {}, 400)
+      const response = errorResponse('Yanlış JSON sorğu gövdəsi', 'INVALID_JSON', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }

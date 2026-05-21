@@ -107,14 +107,14 @@ const optimizeImage = async (blob: Blob): Promise<File> => {
             });
             resolve(file);
           } else {
-            reject(new Error("Optimization failed"));
+            reject(new Error("Optimizasiya uğursuz oldu"));
           }
         },
         "image/webp",
         0.72,
       );
     };
-    img.onerror = () => reject(new Error("Failed to load image"));
+    img.onerror = () => reject(new Error("Şəkil yüklənə bilmədi"));
     img.src = URL.createObjectURL(blob);
   });
 };

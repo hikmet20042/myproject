@@ -19,8 +19,8 @@ const DynamicList = React.forwardRef<HTMLDivElement, DynamicListProps>(
   ({
     items,
     onChange,
-    placeholder = 'Enter item...',
-    addButtonText = 'Add Item',
+    placeholder = 'Mətn daxil edin...',
+    addButtonText = 'Əlavə et',
     minItems = 1,
     maxItems = 10,
     variant = 'indigo',

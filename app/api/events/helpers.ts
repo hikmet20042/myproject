@@ -45,15 +45,15 @@ export const validateLifecycleState = (eventRow: any) => {
   const isPublished = eventRow.is_published;
 
   if (!validLifecycleStatuses.includes(status)) {
-    return { valid: false, error: "Invalid lifecycle status" };
+    return { valid: false, error: "Yanlış dövr statusu" };
   }
 
   if (status === "approved" && isPublished !== true) {
-    return { valid: false, error: "Invalid lifecycle state: approved events must be published" };
+    return { valid: false, error: "Yanlış dövr vəziyyəti: təsdiqlənmiş tədbirlər yayımlanmalıdır" };
   }
 
   if ((status === "pending" || status === "rejected") && isPublished !== false) {
-    return { valid: false, error: "Invalid lifecycle state: pending/rejected events cannot be published" };
+    return { valid: false, error: "Yanlış dövr vəziyyəti: gözləmə/rədd edilmiş tədbirlər yayımlana bilməz" };
   }
 
   return { valid: true };
@@ -87,7 +87,7 @@ export const applyEventLifecycleRules = (
 
   if (action === "ownerEditApproved") {
     if (actor.role !== "owner") {
-      return { ok: false, error: "Only owner can trigger approved-edit lifecycle transition" };
+      return { ok: false, error: "Yalnız sahib təsdiqlənmiş redaktə dövr keçidini tetikleyə bilər" };
     }
 
     return {
@@ -103,11 +103,11 @@ export const applyEventLifecycleRules = (
 
   if (action === "approve") {
     if (actor.role !== "admin") {
-      return { ok: false, error: "Only admin can approve events" };
+      return { ok: false, error: "Yalnız admin tədbirləri təsdiqləyə bilər" };
     }
 
     if (eventRow?.status === "approved" && eventRow?.is_published === true) {
-      return { ok: false, error: "Cannot approve already approved event" };
+      return { ok: false, error: "Artıq təsdiqlənmiş tədbir təsdiqlənə bilməz" };
     }
 
     return {
@@ -126,11 +126,11 @@ export const applyEventLifecycleRules = (
 
   if (action === "reject") {
     if (actor.role !== "admin") {
-      return { ok: false, error: "Only admin can reject events" };
+      return { ok: false, error: "Yalnız admin tədbirləri rədd edə bilər" };
     }
 
     if (eventRow?.status === "rejected" && eventRow?.is_published === false) {
-      return { ok: false, error: "Cannot reject already rejected event" };
+      return { ok: false, error: "Artıq rədd edilmiş tədbir rədd edilə bilməz" };
     }
 
     const rejectionReason = actor.rejectionReason?.trim() || "";
@@ -152,7 +152,7 @@ export const applyEventLifecycleRules = (
     };
   }
 
-  return { ok: false, error: "Unsupported lifecycle action" };
+  return { ok: false, error: "Dəstəklənməyən dövr əməliyyatı" };
 };
 
 export const successResponse = (data: any, options?: { message?: string; status?: number }) => {
@@ -168,7 +168,7 @@ export const validateEventInput = (data: any, options: ValidationOptions = {}) =
   const partial = options.partial === true;
 
   if (!data || typeof data !== "object") {
-    return { valid: false, error: "Invalid request body" };
+    return { valid: false, error: "Yanlış sorğu gövdəsi" };
   }
 
   if (!partial) {
@@ -180,33 +180,33 @@ export const validateEventInput = (data: any, options: ValidationOptions = {}) =
     }
 
     if (!data.applicationLink) {
-      return { valid: false, error: "applicationLink is required" };
+      return { valid: false, error: "applicationLink tələb olunur" };
     }
   }
 
   if (data.description !== undefined) {
     const descText = typeof data.description === "string" ? data.description.replace(/<[^>]*>/g, "").trim() : "";
     if (!descText || descText.length < 50) {
-      return { valid: false, error: "Description must be at least 50 characters long" };
+      return { valid: false, error: "Təsvir ən azı 50 simvol olmalıdır" };
     }
   }
 
   if (data.eventType !== undefined && !validEventTypes.includes(data.eventType)) {
-    return { valid: false, error: "Invalid event type" };
+    return { valid: false, error: "Yanlış tədbir tipi" };
   }
 
   if (!partial && (!Array.isArray(data.sessions) || data.sessions.length === 0)) {
-    return { valid: false, error: "At least one session is required" };
+    return { valid: false, error: "Ən azı bir sessiya tələb olunur" };
   }
 
   if (data.sessions !== undefined) {
     if (!Array.isArray(data.sessions) || data.sessions.length === 0) {
-      return { valid: false, error: "sessions must include at least one item" };
+      return { valid: false, error: "sessiyalar ən azı bir maddə daxil etməlidir" };
     }
 
     for (const session of data.sessions) {
       if (!session || typeof session !== "object") {
-        return { valid: false, error: "Each session must be an object" };
+        return { valid: false, error: "Hər sessiya obyekt olmalıdır" };
       }
 
       const { date, startTime, endTime } = session as {
@@ -216,19 +216,19 @@ export const validateEventInput = (data: any, options: ValidationOptions = {}) =
       };
 
       if (!date || !startTime || !endTime) {
-        return { valid: false, error: "Each session requires date, startTime, and endTime" };
+        return { valid: false, error: "Hər sessiya üçün tarix, başlama vaxtı və bitmə vaxtı tələb olunur" };
       }
 
       if (Number.isNaN(Date.parse(date))) {
-        return { valid: false, error: "Session date must be a valid date" };
+        return { valid: false, error: "Sessiya tarixi etibarlı tarix olmalıdır" };
       }
 
       if (!isValidTime(startTime) || !isValidTime(endTime)) {
-        return { valid: false, error: "Session startTime and endTime must be in HH:mm format" };
+        return { valid: false, error: "Sessiya başlama və bitmə vaxtı HH:mm formatında olmalıdır" };
       }
 
       if (startTime >= endTime) {
-        return { valid: false, error: "Session startTime must be earlier than endTime" };
+        return { valid: false, error: "Sessiya başlama vaxtı bitmə vaxtından əvvəl olmalıdır" };
       }
     }
   }
@@ -236,26 +236,26 @@ export const validateEventInput = (data: any, options: ValidationOptions = {}) =
   if (data.location !== undefined) {
     const locationType = data.location?.type;
     if (!locationType || !["online", "physical", "hybrid"].includes(locationType)) {
-      return { valid: false, error: "Valid location type is required" };
+      return { valid: false, error: "Etibarlı məkan tipi tələb olunur" };
     }
 
     if (["physical", "hybrid"].includes(locationType) && !data.location?.city) {
-      return { valid: false, error: "location.city is required for physical or hybrid events" };
+      return { valid: false, error: "location.city fiziki və ya hibrid tədbirlər üçün tələb olunur" };
     }
   }
 
   if (data.applicationLink !== undefined) {
     if (!data.applicationLink || typeof data.applicationLink !== "string") {
-      return { valid: false, error: "applicationLink must be a valid URL" };
+      return { valid: false, error: "applicationLink etibarlı URL olmalıdır" };
     }
 
     try {
       const parsed = new URL(data.applicationLink);
       if (!parsed.protocol.startsWith("http")) {
-        return { valid: false, error: "applicationLink must start with http or https" };
+        return { valid: false, error: "applicationLink http və ya https ilə başlamalıdır" };
       }
     } catch {
-      return { valid: false, error: "applicationLink must be a valid URL" };
+      return { valid: false, error: "applicationLink etibarlı URL olmalıdır" };
     }
   }
 
@@ -263,7 +263,7 @@ export const validateEventInput = (data: any, options: ValidationOptions = {}) =
   const ageMaxProvided = data.audienceAgeMax !== undefined && data.audienceAgeMax !== null && data.audienceAgeMax !== "";
 
   if (!partial && (!ageMinProvided || !ageMaxProvided)) {
-    return { valid: false, error: "audienceAgeMin and audienceAgeMax are required" };
+    return { valid: false, error: "audienceAgeMin və audienceAgeMax tələb olunur" };
   }
 
   if (ageMinProvided || ageMaxProvided) {
@@ -271,15 +271,15 @@ export const validateEventInput = (data: any, options: ValidationOptions = {}) =
     const max = Number(data.audienceAgeMax);
 
     if (!Number.isInteger(min) || !Number.isInteger(max)) {
-      return { valid: false, error: "audienceAgeMin and audienceAgeMax must be integers" };
+      return { valid: false, error: "audienceAgeMin və audienceAgeMax tam ədəd olmalıdır" };
     }
 
     if (min < 0 || min > 99 || max < 0 || max > 99) {
-      return { valid: false, error: "Audience age range must be between 0 and 99" };
+      return { valid: false, error: "Audience yaş aralığı 0-99 arasında olmalıdır" };
     }
 
     if (min > max) {
-      return { valid: false, error: "audienceAgeMin cannot be greater than audienceAgeMax" };
+      return { valid: false, error: "audienceAgeMin audienceAgeMax-dan böyük ola bilməz" };
     }
   }
 
@@ -400,7 +400,7 @@ export const getEventsByOwner = (session: Session) => {
   if (!session?.user?.id) {
     return {
       ownerId: null,
-      error: errorResponse("Authentication required", 401),
+      error: errorResponse("Autentifikasiya tələb olunur", 401),
     };
   }
 

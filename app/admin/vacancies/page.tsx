@@ -27,7 +27,7 @@ const getTypeLabel = (type?: string) => {
   if (type === "full_time") return "Tam ştat";
   if (type === "part_time") return "Yarım ştat";
   if (type === "volunteer") return "Könüllü";
-  if (type === "intern") return "Intern";
+  if (type === "intern") return "Təcrübəçi";
   return "Naməlum";
 };
 
@@ -374,7 +374,7 @@ export default function VacanciesAdminPage() {
                             ) : (
                               <Clock className="w-3 h-3 mr-1" />
                             )}
-                            {status.charAt(0).toUpperCase() + status.slice(1)}
+                            {status === "approved" ? "Təsdiqlənmiş" : status === "rejected" ? "Rədd edilmiş" : "Gözləmədə"}
                           </span>
                           <Badge variant="primary" size="sm">
                             {getTypeLabel(vacancy.type)}

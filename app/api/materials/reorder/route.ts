@@ -11,12 +11,12 @@ export async function PATCH(request: NextRequest) {
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'write', endpoint: '/api/materials/reorder' })
     if (!rlResult.allowed) {
-      return errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     }
     const session = await getServerSession();
     
     if (!session || !canAccessAdmin(session)) {
-      return errorResponse('Unauthorized - Admin access required', "API_ERROR", {}, 401)
+      return errorResponse('İcazəsiz giriş - Admin girişi tələb olunur', "API_ERROR", {}, 401)
     }
 
     const supabase = createSupabaseAdminClient();
@@ -24,13 +24,13 @@ export async function PATCH(request: NextRequest) {
     const { updates } = await request.json();
 
     if (!Array.isArray(updates) || updates.length === 0) {
-      return errorResponse('Updates array is required', "API_ERROR", {}, 400)
+      return errorResponse('Yeniləmələr massivi tələb olunur', "API_ERROR", {}, 400)
     }
 
     // Validate updates structure
     for (const update of updates) {
       if (!update.id || typeof update.order !== 'number') {
-        return errorResponse('Each update must have id and order', "API_ERROR", {}, 400)
+        return errorResponse('Hər yeniləmədə id və order olmalıdır', "API_ERROR", {}, 400)
       }
     }
 
@@ -47,6 +47,6 @@ export async function PATCH(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Error updating material order:', error);
-    return errorResponse(error.message || 'Failed to update material order', "API_ERROR", {}, 500)
+    return errorResponse(error.message || 'Material sırası yenilənə bilmədi', "API_ERROR", {}, 500)
   }
 }

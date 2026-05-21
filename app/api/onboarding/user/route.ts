@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
 
     if (existingAccount?.account_type === 'user') {
-      return withRateLimitHeaders(successResponse({ message: 'User onboarding already completed', redirect: '/' }), rateLimitHeaders)
+      return withRateLimitHeaders(successResponse({ message: 'İstifadəçi onboarding-i artıq tamamlanıb', redirect: '/' }), rateLimitHeaders)
     }
 
     const providedName = typeof body?.name === 'string' && body.name.trim() ? body.name.trim() : null
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       return withRateLimitHeaders(errorResponse('Hesab yenilənə bilmədi.', 'DATABASE_ERROR', {}, 500), rateLimitHeaders)
     }
 
-    return withRateLimitHeaders(successResponse({ message: 'User onboarding completed', redirect: '/' }), rateLimitHeaders)
+    return withRateLimitHeaders(successResponse({ message: 'İstifadəçi onboarding-i tamamlandı', redirect: '/' }), rateLimitHeaders)
   } catch (error) {
     console.error('User onboarding error:', error)
     return errorResponse('Daxili server xətası', 'INTERNAL_ERROR', {}, 500)

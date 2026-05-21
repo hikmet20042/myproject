@@ -61,24 +61,6 @@ export const FOCUS_AREA_LABELS_AZ: Record<FocusArea, string> = {
   other: "Digər",
 };
 
-export const FOCUS_AREA_LABELS_EN: Record<FocusArea, string> = {
-  human_rights: "Human Rights",
-  women_rights: "Women Rights",
-  children_rights: "Children Rights",
-  education: "Education",
-  healthcare: "Healthcare",
-  environment: "Environment",
-  poverty_alleviation: "Poverty Alleviation",
-  legal_aid: "Legal Aid",
-  community_development: "Community Development",
-  youth_development: "Youth Development",
-  elderly_care: "Elderly Care",
-  disability_rights: "Disability Rights",
-  lgbtq_rights: "LGBTQ+ Rights",
-  mental_health: "Mental Health",
-  other: "Other",
-};
-
 const LEGACY_FOCUS_AREA_MAP: Record<string, FocusArea> = {
   "human rights": "human_rights",
   "women rights": "women_rights",

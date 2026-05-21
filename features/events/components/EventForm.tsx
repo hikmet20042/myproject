@@ -158,6 +158,8 @@ const categoryLabel = (value: string) =>
     .split('_')
     .map((item) => item.charAt(0).toUpperCase() + item.slice(1))
     .join(' ')
+    .replace(/^Vörkşop$/, 'Vörkşop')
+    .replace(/^Konfrans$/, 'Konfrans')
 
 const sessionToIso = (session: EventSession, key: 'startTime' | 'endTime') =>
   new Date(`${session.date}T${session[key]}:00`).toISOString()

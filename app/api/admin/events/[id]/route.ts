@@ -50,7 +50,7 @@ export async function PATCH(
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/events/[id]' })
     if (!rlResult.allowed) {
-      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
@@ -59,17 +59,17 @@ export async function PATCH(
     const session = await getServerSession()
     
     if (!session || !canAccessAdmin(session)) {
-      return errorResponse('Admin access required', 'ADMIN_ACCESS_REQUIRED', {}, 403)
+      return errorResponse('Admin girişi tələb olunur', 'ADMIN_ACCESS_REQUIRED', {}, 403)
     }
 
     const body = await request.json()
     const { action, adminComment, rejectionReason } = body
 
     if (!action || !['approve', 'reject'].includes(action)) {
-      return errorResponse('Invalid action. Must be "approve" or "reject"', 'INVALID_ACTION', {}, 400)
+      return errorResponse('Yanlış əməliyyat. "approve" və ya "reject" olmalıdır', 'INVALID_ACTION', {}, 400)
     }
     if (action === 'reject' && (!rejectionReason || !String(rejectionReason).trim())) {
-      return errorResponse('rejectionReason is required for reject action', 'VALIDATION_ERROR', {}, 400)
+      return errorResponse('Rədd əməliyyatı üçün rejectionReason tələb olunur', 'VALIDATION_ERROR', {}, 400)
     }
 
     const { data: eventRow, error: eventError } = await supabase
@@ -79,12 +79,12 @@ export async function PATCH(
       .single()
     
     if (eventError || !eventRow) {
-      return errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404)
+      return errorResponse('Tədbir tapılmadı', 'EVENT_NOT_FOUND', {}, 404)
     }
 
     const lifecycleState = validateLifecycleState(eventRow)
     if (!lifecycleState.valid) {
-      return errorResponse(lifecycleState.error || 'Invalid lifecycle state', 'INVALID_LIFECYCLE_STATE', {}, 409)
+      return errorResponse(lifecycleState.error || 'Yanlış dövr vəziyyəti', 'INVALID_LIFECYCLE_STATE', {}, 409)
     }
 
     const lifecycleResult = applyEventLifecycleRules(
@@ -98,7 +98,7 @@ export async function PATCH(
       }
     )
     if (!lifecycleResult.ok) {
-      return errorResponse(lifecycleResult.error || 'Invalid lifecycle transition', 'INVALID_LIFECYCLE_TRANSITION', {}, 409)
+      return errorResponse(lifecycleResult.error || 'Yanlış dövr keçidi', 'INVALID_LIFECYCLE_TRANSITION', {}, 409)
     }
 
     const { data: updatedRow, error: updateError } = await supabase
@@ -109,7 +109,7 @@ export async function PATCH(
       .single()
 
     if (updateError || !updatedRow) {
-      return errorResponse('Failed to update event', 'UPDATE_EVENT_FAILED', {}, 500)
+      return errorResponse('Tədbir yenilənə bilmədi', 'UPDATE_EVENT_FAILED', {}, 500)
     }
 
     const hydratedUpdatedRow = await hydrateEventRowWithOrganizationHandles(supabase, updatedRow)
@@ -121,7 +121,7 @@ export async function PATCH(
     )
   } catch (error) {
     console.error('Error processing event action:', error)
-    return errorResponse('Internal server error', 'INTERNAL_SERVER_ERROR', {}, 500)
+    return errorResponse('Daxili server xətası', 'INTERNAL_SERVER_ERROR', {}, 500)
   }
 }
 
@@ -133,7 +133,7 @@ export async function GET(
   try {
     const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/events/[id]' })
     if (!rlResult.allowed) {
-      const r = errorResponse('Too many requests. Please try again later.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
@@ -142,7 +142,7 @@ export async function GET(
     const session = await getServerSession()
     
     if (!session || !canAccessAdmin(session)) {
-      return errorResponse('Admin access required', 'ADMIN_ACCESS_REQUIRED', {}, 403)
+      return errorResponse('Admin girişi tələb olunur', 'ADMIN_ACCESS_REQUIRED', {}, 403)
     }
 
     const { data: eventRow, error: eventError } = await supabase
@@ -152,13 +152,13 @@ export async function GET(
       .single()
     
     if (eventError || !eventRow) {
-      return errorResponse('Event not found', 'EVENT_NOT_FOUND', {}, 404)
+      return errorResponse('Tədbir tapılmadı', 'EVENT_NOT_FOUND', {}, 404)
     }
     
     const hydratedEventRow = await hydrateEventRowWithOrganizationHandles(supabase, eventRow)
     return successResponse({ event: mapEventToResponse(hydratedEventRow) })
   } catch (error) {
     console.error('Error fetching event for admin:', error)
-    return errorResponse('Failed to fetch event', 'FETCH_EVENT_FAILED', {}, 500)
+    return errorResponse('Tədbir yüklənə bilmədi', 'FETCH_EVENT_FAILED', {}, 500)
   }
 }

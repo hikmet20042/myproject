@@ -119,7 +119,7 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
       )
       lastLoadedAtRef.current = Date.now()
     } catch (err) {
-      setError('Failed to load notifications')
+      setError('Bildirişlər yüklənə bilmədi')
       setNotifications([])
       setUnreadCount(0)
     } finally {
