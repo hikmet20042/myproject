@@ -1,168 +1,89 @@
 import { ImageResponse } from 'next/og'
- 
+
 export const runtime = 'edge'
- 
-export const alt = 'icma360 - Azerbaijan\'s #1 Youth Opportunity Platform'
+
+export const alt = 'icma360 — Azərbaycanda Gənclər üçün #1 İmkan Platforması'
 export const size = {
   width: 1200,
   height: 630,
 }
- 
+
 export const contentType = 'image/png'
- 
+
 export default async function Image() {
   return new ImageResponse(
     (
       <div
         style={{
-          background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 50%, #db2777 100%)',
-          width: '100%',
           height: '100%',
+          width: '100%',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          fontFamily: 'sans-serif',
-          position: 'relative',
-          overflow: 'hidden',
+          backgroundColor: '#1e3a8a',
+          backgroundImage: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%)',
         }}
       >
-        {/* Background Pattern */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px)',
-            backgroundSize: '50px 50px',
-          }}
-        />
-        
-        {/* Content */}
         <div
           style={{
             display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 10,
-            padding: '60px',
-            textAlign: 'center',
+            marginBottom: 24,
           }}
         >
-          {/* Logo/Title */}
           <div
             style={{
               fontSize: 80,
-              fontWeight: 900,
+              fontWeight: 800,
               color: '#ffffff',
-              marginBottom: 30,
-              textShadow: '0 4px 20px rgba(0,0,0,0.3)',
+              letterSpacing: '-0.02em',
+              lineHeight: 1.1,
             }}
           >
             icma360
           </div>
-          
-          {/* Tagline */}
-          <div
-            style={{
-              fontSize: 42,
-              fontWeight: 600,
-              color: '#fef08a',
-              marginBottom: 40,
-              maxWidth: '900px',
-              lineHeight: 1.3,
-              textShadow: '0 2px 10px rgba(0,0,0,0.2)',
-            }}
-          >
-            Azərbaycanda Gənclər üçün #1 İmkan Platforması
-          </div>
-          
-          {/* Description */}
-          <div
-            style={{
-              fontSize: 28,
-              fontWeight: 400,
-              color: '#e0e7ff',
-              maxWidth: '800px',
-              lineHeight: 1.5,
-            }}
-          >
-            İş • Təcrübə • Təlim • Tədbirlər • QHT
-          </div>
-          
-          {/* Stats */}
-          <div
-            style={{
-              display: 'flex',
-              marginTop: 50,
-              gap: 40,
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                background: 'rgba(255,255,255,0.15)',
-                padding: '20px 40px',
-                borderRadius: 16,
-                backdropFilter: 'blur(10px)',
-              }}
-            >
-              <div style={{ fontSize: 48, fontWeight: 900, color: '#fff' }}>500+</div>
-              <div style={{ fontSize: 18, color: '#e0e7ff' }}>İmkanlar</div>
-            </div>
-            
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                background: 'rgba(255,255,255,0.15)',
-                padding: '20px 40px',
-                borderRadius: 16,
-                backdropFilter: 'blur(10px)',
-              }}
-            >
-              <div style={{ fontSize: 48, fontWeight: 900, color: '#fff' }}>1000+</div>
-              <div style={{ fontSize: 18, color: '#e0e7ff' }}>Üzvlər</div>
-            </div>
-            
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                background: 'rgba(255,255,255,0.15)',
-                padding: '20px 40px',
-                borderRadius: 16,
-                backdropFilter: 'blur(10px)',
-              }}
-            >
-              <div style={{ fontSize: 48, fontWeight: 900, color: '#fff' }}>100+</div>
-              <div style={{ fontSize: 18, color: '#e0e7ff' }}>Tərəfdaş təşkilatlar</div>
-            </div>
-          </div>
         </div>
-        
-        {/* Bottom Brand */}
         <div
           style={{
-            position: 'absolute',
-            bottom: 30,
-            left: 0,
-            right: 0,
-            display: 'flex',
-            justifyContent: 'center',
-            fontSize: 20,
-            color: '#e0e7ff',
+            fontSize: 32,
             fontWeight: 500,
+            color: '#dbeafe',
+            textAlign: 'center',
+            maxWidth: 800,
+            lineHeight: 1.4,
+            padding: '0 40px',
           }}
         >
-          🇦🇿 Azərbaycan Gəncliyini Gücləndiririk
+          Azərbaycanda Gənclər üçün #1 İmkan Platforması
+        </div>
+        <div
+          style={{
+            fontSize: 24,
+            fontWeight: 400,
+            color: '#93c5fd',
+            textAlign: 'center',
+            maxWidth: 700,
+            lineHeight: 1.5,
+            marginTop: 16,
+            padding: '0 40px',
+          }}
+        >
+          İş, Təcrübə, Təlim, Könüllülük və Tədbirlər
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            gap: 16,
+            marginTop: 40,
+            padding: '12px 32px',
+            backgroundColor: 'rgba(255,255,255,0.1)',
+            borderRadius: 9999,
+          }}
+        >
+          <span style={{ fontSize: 18, color: '#bfdbfe' }}>🇦🇿</span>
+          <span style={{ fontSize: 18, color: '#bfdbfe' }}>icma360.org</span>
         </div>
       </div>
     ),

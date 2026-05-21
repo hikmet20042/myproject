@@ -15,7 +15,6 @@ export async function generateMetadata({ params }: { params: { handle: string } 
     canonical: `/u/${handle}`,
     ogType: 'profile',
     locale: 'az_AZ',
-    noindex: true,
     structuredData: generateBreadcrumbSchema([
       { name: 'Ana Səhifə', url: '/' },
       { name: 'Profil', url: `/u/${handle}` },

@@ -1,25 +1,60 @@
 import { Metadata } from 'next'
 import { generateSEOMetadata, generateBreadcrumbSchema } from '@/lib/seo'
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import OrgProfileClient from './OrgProfileClient'
+
+export async function generateStaticParams() {
+  const supabase = createSupabaseAdminClient()
+  const { data: orgs } = await supabase
+    .from('organization_profiles')
+    .select('url_handle')
+    .eq('moderation_status', 'approved')
+    .not('url_handle', 'is', null)
+    .limit(1000)
+
+  return orgs?.map((org) => ({ handle: org.url_handle })).filter((o) => o.handle) || []
+}
 
 export async function generateMetadata({ params }: { params: { handle: string } }): Promise<Metadata> {
   const { handle } = params
+  const supabase = createSupabaseAdminClient()
+
+  const { data: orgRow } = await supabase
+    .from('organization_profiles')
+    .select('organization_name, organization_type, description, slug')
+    .or(`url_handle.eq.${handle},slug.eq.${handle}`)
+    .eq('moderation_status', 'approved')
+    .single()
+
+  const orgName = orgRow?.organization_name
+  const orgType = orgRow?.organization_type || 'Gənclər Təşkilatı'
+  const orgSlug = orgRow?.slug || handle
+
   return generateSEOMetadata({
-    title: `Təşkilat Profili | icma360`,
-    description: `Təşkilat profili haqqında məlumat. icma360 platformasında təşkilatların fəaliyyəti, tədbirləri və vakansiyaları.`,
-    keywords: [
-      'təşkilat profili',
-      'gənclər təşkilatı',
-      'QHT Azərbaycan',
-      'təşkilat fəaliyyəti',
-    ],
+    title: orgName
+      ? `${orgName} | ${orgType} | icma360`
+      : `Təşkilat Profili | icma360`,
+    description: orgRow?.description
+      ? `${orgName} - ${orgRow.description.slice(0, 120)}...`
+      : `${orgName || 'Təşkilat'} haqqında məlumat. icma360 platformasında təşkilatların fəaliyyəti, tədbirləri və vakansiyaları.`,
+    keywords: orgName
+      ? [
+          orgName,
+          `${orgName} Azərbaycan`,
+          `${orgType} Azərbaycan`,
+          'gənclər təşkilatları',
+          'QHT Azərbaycan',
+          'gənclik təşəbbüsləri',
+          'ictimai təşkilat',
+        ]
+      : ['təşkilat profili', 'gənclər təşkilatı', 'QHT Azərbaycan'],
     canonical: `/o/${handle}`,
     ogType: 'profile',
     locale: 'az_AZ',
     structuredData: generateBreadcrumbSchema([
       { name: 'Ana Səhifə', url: '/' },
       { name: 'Təşkilatlar', url: '/resources/organizations' },
-      { name: 'Profil', url: `/o/${handle}` },
+      { name: orgName || 'Profil', url: `/o/${handle}` },
     ]),
   })
 }

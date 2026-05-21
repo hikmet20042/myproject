@@ -17,7 +17,9 @@ import { Shield,
   CheckCircle,
   XCircle,
   ArrowRight,
-  Users } from 'lucide-react'
+  Users,
+  Mail,
+  Globe } from 'lucide-react'
 
 export default function About() { const localePath = useLocalizedPath()
   const { data: session } = useSession()
@@ -298,6 +300,51 @@ export default function About() { const localePath = useLocalizedPath()
       <section className="bg-slate-50/60 py-16 md:py-20">
         <div className="section-padding">
           <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-black text-slate-900 md:text-4xl">{'Biz Kimik'}</h2>
+              <p className="mx-auto mt-3 max-w-3xl text-base text-slate-600 md:text-lg">{'icma360 Azərbaycanda gənclər üçün pulsuz imkan platformasıdır. Missiyamız gəncləri iş, təcrübə, təlim, könüllülük və tədbir imkanları ilə birləşdirməkdir.'}</p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 mb-12">
+              <Card className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0">
+                    <Globe className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 mb-1">{'Platforma'}</h3>
+                    <p className="text-sm text-slate-600">{'icma360.org — Azərbaycanda gənclər üçün iş, təcrübə, təlim və könüllülük imkanlarını bir yerdə təqdim edən rəqəmsal platformadır.'}</p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0">
+                    <Mail className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 mb-1">{'Əlaqə'}</h3>
+                    <p className="text-sm text-slate-600">{'Suallarınız və təklifləriniz üçün bizimlə əlaqə saxlayın:'}</p>
+                    <a href="mailto:info@icma360.org" className="text-sm text-blue-600 hover:text-blue-700 font-medium mt-1 inline-block">info@icma360.org</a>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="h-10 w-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0">
+                    <Shield className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 mb-1">{'Məxfilik'}</h3>
+                    <p className="text-sm text-slate-600">{'İstifadəçi məlumatlarının qorunması bizim prioritetimizdir. Ətraflı məlumat üçün:'}</p>
+                    <a href={localePath('/privacy')} className="text-sm text-blue-600 hover:text-blue-700 font-medium mt-1 inline-block">Məxfilik Siyasəti</a>
+                  </div>
+                </div>
+              </Card>
+            </div>
+
             <div className="text-center mb-8">
               <h2 className="text-3xl font-black text-slate-900 md:text-4xl">{'İcmaya Qoşul'}</h2>
               <p className="mx-auto mt-3 max-w-3xl text-base text-slate-600 md:text-lg">{'Aktiv və gücləndirilmiş gənc nəslinin bir parçası ol. Birlikdə Azərbaycanda fürsət və əməkdaşlıq mühiti yaradaq.'}</p>

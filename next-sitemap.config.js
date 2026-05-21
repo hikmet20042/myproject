@@ -84,6 +84,10 @@ module.exports = {
       hreflang: 'az',
     },
     {
+      href: `${process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'}/en`,
+      hreflang: 'en',
+    },
+    {
       href: process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org',
       hreflang: 'x-default',
     },
@@ -184,9 +188,8 @@ module.exports = {
         disallow: ['/admin', '/api', '/auth', '/dashboard', '/edit', '/submit', '/profile', '/onboarding', '/notifications', '/saved'],
         crawlDelay: 0
       }
-    ],
-    additionalSitemaps: [
-      `${process.env.NEXT_PUBLIC_APP_URL || 'https://icma360.org'}/sitemap.xml`,
     ]
+    // additionalSitemaps removed: next-sitemap generates the main sitemap automatically
+    // Adding it here creates a circular reference
   },
 }

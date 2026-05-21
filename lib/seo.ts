@@ -35,7 +35,7 @@ export function generateSEOMetadata(config: SEOConfig): Metadata {
     description,
     keywords = [],
     canonical,
-    ogImage = '/og-image.png',
+    ogImage = '/opengraph-image',
     ogType = 'website',
     publishedTime,
     modifiedTime,
@@ -54,11 +54,13 @@ export function generateSEOMetadata(config: SEOConfig): Metadata {
     description,
     keywords: keywords.join(', '),
     
-    // Canonical URL
+    // Canonical URL + hreflang for international SEO
     alternates: canonical ? {
-      canonical,
+      canonical: `${siteUrl}${canonical}`,
       languages: {
         'az': `${siteUrl}${canonical}`,
+        'en': `${siteUrl}/en${canonical}`,
+        'x-default': `${siteUrl}${canonical}`,
       }
     } : undefined,
     
@@ -213,7 +215,7 @@ export function generateLocalBusinessSchema() {
     description: 'Azərbaycanda gənclər üçün aparıcı imkan platforması. İş, təcrübə, təlim, könüllülük və QHT imkanları.',
     url: siteUrl,
     logo: `${siteUrl}/icma360_logo.png`,
-    image: `${siteUrl}/og-image.png`,
+    image: `${siteUrl}/opengraph-image`,
     telephone: '+994-XX-XXX-XX-XX', // Add your phone number
     email: 'info@icma360.org', // Add your email
     address: {

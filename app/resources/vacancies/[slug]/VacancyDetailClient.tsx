@@ -284,6 +284,21 @@ export default function VacancyDetailPage() {
                 </div>
               </>
             )}
+
+            <div className="h-8 w-px bg-slate-200 hidden md:block" />
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                <Clock className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Yayım tarixi
+                </p>
+                <p className="text-slate-900 font-semibold">
+                  {formatDate(vacancy.createdAt)}
+                </p>
+              </div>
+            </div>
           </div>
         }
         mainContent={

@@ -396,7 +396,7 @@ export default function OrganizationDetailPage() {
                       <a
                         href={organization.website.startsWith('http') ? organization.website : `https://${organization.website}`}
                         target="_blank"
-                        rel="noopener noreferrer"
+                        rel="nofollow noopener noreferrer"
                       >
                         <Button
                           variant="outline"

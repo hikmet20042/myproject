@@ -8,7 +8,7 @@ export async function generateOrganizationMetadata(identifier: string): Promise<
 
     const { data: orgRow, error } = await supabase
       .from('organization_profiles')
-      .select('id, slug, organization_name, description, organization_type, focus_areas, website, address, social_media, status, created_at, updated_at')
+      .select('id, slug, url_handle, organization_name, description, organization_type, focus_areas, website, address, social_media, status, created_at, updated_at')
       .or(`slug.eq.${identifier},url_handle.eq.${identifier}`)
       .single()
 
@@ -51,7 +51,7 @@ export async function generateOrganizationMetadata(identifier: string): Promise<
         'gənclik təşəbbüsləri',
         'ictimai təşkilat',
       ],
-      canonical: `/o/${org.slug || identifier}`,
+      canonical: `/o/${orgRow.url_handle || org.slug || identifier}`,
       ogType: 'profile',
       structuredData: generateOrganizationProfileSchema(org),
     })

@@ -5,6 +5,17 @@ import BlogDetailClient from './BlogDetailClient'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { resolveEntityBySlugOrId } from '@/lib/identifier'
 
+export async function generateStaticParams() {
+  const supabase = createSupabaseAdminClient()
+  const { data: blogs } = await supabase
+    .from('blogs')
+    .select('slug')
+    .eq('status', 'approved')
+    .limit(1000)
+
+  return blogs?.map((blog) => ({ slug: blog.slug })) || []
+}
+
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   return generateBlogMetadata(params.slug)
 }

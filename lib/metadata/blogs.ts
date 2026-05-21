@@ -1,17 +1,28 @@
 import { Metadata } from 'next'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { generateSEOMetadata, generateArticleSchema, generateSpeakableSchema } from '@/lib/seo'
+import { resolveEntityBySlugOrId } from '@/lib/identifier'
 
 /**
  * Generate metadata for individual blog pages
  */
-export async function generateBlogMetadata(id: string): Promise<Metadata> {
+export async function generateBlogMetadata(slugOrId: string): Promise<Metadata> {
   try {
     const supabase = createSupabaseAdminClient()
+    const { data: resolved } = await resolveEntityBySlugOrId(supabase, 'blogs', slugOrId, 'id, slug, status')
+
+    if (!resolved?.id || resolved.status !== 'approved') {
+      return generateSEOMetadata({
+        title: 'Story Not Found | icma360',
+        description: 'The story you are looking for could not be found.',
+        noindex: true,
+      })
+    }
+
     const { data: blogRow, error } = await supabase
       .from('blogs')
-      .select('id, title, content, author_name, tags, submitted_at, created_at, updated_at, featured_image')
-      .eq('id', id)
+      .select('id, slug, title, content, author_name, tags, created_at, updated_at, featured_image')
+      .eq('id', resolved.id)
       .single()
 
     if (error) {
@@ -20,11 +31,11 @@ export async function generateBlogMetadata(id: string): Promise<Metadata> {
 
     const blog: any = blogRow ? {
       _id: blogRow.id,
+      slug: blogRow.slug,
       title: blogRow.title,
       content: blogRow.content,
       authorName: blogRow.author_name || 'Anonymous',
       tags: blogRow.tags || [],
-      submittedAt: blogRow.submitted_at,
       createdAt: blogRow.created_at,
       updatedAt: blogRow.updated_at,
       featuredImage: blogRow.featured_image
@@ -60,6 +71,8 @@ export async function generateBlogMetadata(id: string): Promise<Metadata> {
     const description = excerpt || `${blog.title} - ${blog.authorName} tərəfindən icma360-da. Azərbaycan gənclik icmasından real hekayələr.`
     blog.excerpt = excerpt
 
+    const canonicalSlug = blog.slug || slugOrId
+
     return generateSEOMetadata({
       title: `${blog.title} - ${blog.authorName} | İcma Hekayələri | icma360`,
       description,
@@ -78,10 +91,10 @@ export async function generateBlogMetadata(id: string): Promise<Metadata> {
         'Azərbaycan gəncliyi',
         'motivasiya hekayələri',
       ],
-      canonical: `/blogs/${id}`,
+      canonical: `/blogs/${canonicalSlug}`,
       ogType: 'article',
       author: blog.authorName,
-      publishedTime: blog.submittedAt || blog.createdAt,
+      publishedTime: blog.createdAt,
       modifiedTime: blog.updatedAt,
       structuredData: {
         '@context': 'https://schema.org',
@@ -90,8 +103,8 @@ export async function generateBlogMetadata(id: string): Promise<Metadata> {
           generateSpeakableSchema({
             headline: blog.title,
             text: excerpt,
-            url: `/blogs/${id}`,
-            datePublished: blog.submittedAt || blog.createdAt,
+            url: `/blogs/${canonicalSlug}`,
+            datePublished: blog.createdAt,
             author: blog.authorName,
           }),
         ],

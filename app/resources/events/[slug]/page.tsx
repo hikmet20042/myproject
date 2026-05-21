@@ -5,6 +5,18 @@ import EventDetailClient from './EventDetailClient'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { resolveEntityBySlugOrId } from '@/lib/identifier'
 
+export async function generateStaticParams() {
+  const supabase = createSupabaseAdminClient()
+  const { data: events } = await supabase
+    .from('events')
+    .select('slug')
+    .eq('status', 'approved')
+    .eq('is_published', true)
+    .limit(1000)
+
+  return events?.map((event) => ({ slug: event.slug })) || []
+}
+
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   return generateEventMetadata(params.slug)
 }

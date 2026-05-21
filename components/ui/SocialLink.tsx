@@ -113,7 +113,7 @@ const SocialLink = React.forwardRef<HTMLAnchorElement, SocialLinkProps>(
           className
         )}
         target="_blank"
-        rel="noopener noreferrer"
+        rel="nofollow noopener noreferrer"
         {...props}
       >
         <div className={config.textColor}>

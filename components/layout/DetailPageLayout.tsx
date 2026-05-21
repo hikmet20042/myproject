@@ -81,7 +81,7 @@ export default function DetailPageLayout({
             <div className="relative h-48 md:h-72 w-full">
               <Image
                 src={coverImage}
-                alt="Cover image"
+                alt={typeof title === 'string' ? title : 'Cover image'}
                 fill
                 className="object-cover"
                 priority

@@ -349,7 +349,7 @@ export default function PublicOrgProfilePage() {
                       <a
                         href={org.website.startsWith('http') ? org.website : `https://${org.website}`}
                         target="_blank"
-                        rel="noopener noreferrer"
+                        rel="nofollow noopener noreferrer"
                         className="inline-flex items-center gap-1.5 font-semibold text-slate-900 hover:text-blue-600 transition-colors"
                       >
                         {org.website}
@@ -392,7 +392,7 @@ export default function PublicOrgProfilePage() {
                               key={key}
                               href={url}
                               target="_blank"
-                              rel="noopener noreferrer"
+                              rel="nofollow noopener noreferrer"
                               className="h-9 w-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:border-blue-200 hover:text-blue-600 transition-colors"
                             >
                               <Globe className="h-4 w-4" />
