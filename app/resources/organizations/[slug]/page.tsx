@@ -6,14 +6,18 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { resolveEntityBySlugOrId } from '@/lib/identifier'
 
 export async function generateStaticParams() {
-  const supabase = createSupabaseAdminClient()
-  const { data: orgs } = await supabase
-    .from('organization_profiles')
-    .select('slug')
-    .eq('moderation_status', 'approved')
-    .limit(1000)
+  try {
+    const supabase = createSupabaseAdminClient()
+    const { data: orgs } = await supabase
+      .from('organization_profiles')
+      .select('slug')
+      .eq('moderation_status', 'approved')
+      .limit(1000)
 
-  return orgs?.map((org) => ({ slug: org.slug })) || []
+    return orgs?.map((org) => ({ slug: org.slug })) || []
+  } catch {
+    return []
+  }
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {

@@ -4,15 +4,19 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import OrgProfileClient from './OrgProfileClient'
 
 export async function generateStaticParams() {
-  const supabase = createSupabaseAdminClient()
-  const { data: orgs } = await supabase
-    .from('organization_profiles')
-    .select('url_handle')
-    .eq('moderation_status', 'approved')
-    .not('url_handle', 'is', null)
-    .limit(1000)
+  try {
+    const supabase = createSupabaseAdminClient()
+    const { data: orgs } = await supabase
+      .from('organization_profiles')
+      .select('url_handle')
+      .eq('moderation_status', 'approved')
+      .not('url_handle', 'is', null)
+      .limit(1000)
 
-  return orgs?.map((org) => ({ handle: org.url_handle })).filter((o) => o.handle) || []
+    return orgs?.map((org) => ({ handle: org.url_handle })).filter((o) => o.handle) || []
+  } catch {
+    return []
+  }
 }
 
 export async function generateMetadata({ params }: { params: { handle: string } }): Promise<Metadata> {
