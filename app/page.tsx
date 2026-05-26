@@ -4,8 +4,8 @@ import HomePageClient from './HomePageClient'
 
 export function generateMetadata(): Metadata {
   return generateSEOMetadata({
-    title: "icma360 — Azərbaycanda Gənclər üçün #1 İmkan Platforması | İş, Təcrübə, Təlim və Tədbirlər",
-    description: "Azərbaycanda ən yaxşı iş, təcrübə, könüllülük, təlim və QHT imkanlarını kəşf edin. 500+ vakansiya, təcrübə proqramı və tədbir. Gənclərin karyera uğuru üçün pulsuz platforma.",
+    title: "icma360 — Azərbaycanda Gənclər üçün #1 İmkan Platforması | Vakansiya, Təlim, Təcrübə və Tədbirlər",
+    description: "Azərbaycanda ən yaxşı vakansiya, təlimlər, təcrübə proqramı, könüllülük və QHT imkanlarını kəşf edin. Pulsuz tədbirlər, təlimə qeydiyyat, universitet klubları, gənclər təşkilatı və təşəbbüs qrupları. Gənclərin karyera uğuru üçün pulsuz platforma.",
     keywords: [
       ...azerbaijanKeywords,
       'icma360',
@@ -19,6 +19,11 @@ export function generateMetadata(): Metadata {
       'könüllü imkanları',
       'gənclərin inkişafı Azərbaycan',
       'peşəkar şəbəkə Azərbaycan',
+      'təlimə qeydiyyat',
+      'pulsuz tədbirlər',
+      'universitet klubları',
+      'təşəbbüs qrupu',
+      'gənclər təşkilatı',
     ],
     canonical: '/',
     ogImage: '/og-image.png',

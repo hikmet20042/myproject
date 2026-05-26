@@ -4,9 +4,11 @@ import AboutClient from './AboutClient'
 
 export function generateMetadata(): Metadata {
   return generateSEOMetadata({
-    title: "icma360 Haqqında | Azərbaycanda Gənclər Platforması",
-    description: "icma360 - gəncləri sosial təşəbbüslər, vakansiyalar, tədbirlər və inkişaf imkanları ilə birləşdirən rəqəmsal platforma. Missiyamız, həllimiz və prinsiplərimiz haqqında öyrənin.",
+    title: "icma360 Haqqında | Azərbaycanda Gənclər Təşkilatı və Platforması",
+    description: "icma360 - gəncləri sosial təşəbbüslər, vakansiyalar, təlimlər, tədbirlər və inkişaf imkanları ilə birləşdirən rəqəmsal platforma. Gənclər təşkilatı, QHT, universitet klubları və təşəbbüs qrupları üçün imkanlar.",
     keywords: [
+      'gənclər təşkilatı',
+      'qht',
       'icma360 haqqında',
       'gənclər platforması Azərbaycan',
       'gənclər üçün imkanlar',
@@ -15,6 +17,8 @@ export function generateMetadata(): Metadata {
       'gənclər üçün tədbirlər',
       'gənclərin inkişafı',
       'sosial təşəbbüslər Azərbaycan',
+      'universitet klubları',
+      'təşəbbüs qrupu',
     ],
     canonical: '/about',
     ogType: 'website',

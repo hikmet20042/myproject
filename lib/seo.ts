@@ -531,7 +531,9 @@ export const azerbaijanKeywords = [
   'könüllü iş',
   
   // Azerbaijani - Internship/Experience (Təcrübə)
+  'təcrübə',
   'təcrübə proqramı',
+  'təcrübə proqramları',
   'Azərbaycanda təcrübə',
   'Bakıda təcrübə',
   'ödənişli təcrübə',
@@ -544,6 +546,9 @@ export const azerbaijanKeywords = [
   'təcrübə imkanları',
   
   // Azerbaijani - Training/Education (Təlim)
+  'təlim',
+  'təlimlər',
+  'təlimə qeydiyyat',
   'təlim proqramları',
   'Azərbaycanda təlim',
   'Bakıda təlim',
@@ -583,9 +588,12 @@ export const azerbaijanKeywords = [
   'Bakıda QHT',
   'QHT siyahısı',
   'QHT-lər',
+  'gənclər təşkilatı',
   'ictimai təşkilat',
   'qeyri-hökumət təşkilatı',
   'QHT vakansiyaları',
+  'təşəbbüs qrupu',
+  'universitet klubları',
   
   // Azerbaijani - Scholarships/Grants (Təqaüd/Qrant)
   'təqaüd',
@@ -598,6 +606,7 @@ export const azerbaijanKeywords = [
   'pulsuz təhsil',
   
   // Azerbaijani - Events (Tədbirlər)
+  'pulsuz tədbirlər',
   'tədbirlər Bakı',
   'tədbirlər Azərbaycan',
   'gənclik tədbirləri',

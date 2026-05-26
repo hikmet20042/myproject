@@ -42,10 +42,13 @@ export async function generateMetadata({ params }: { params: { handle: string } 
           orgName,
           `${orgName} Azərbaycan`,
           `${orgType} Azərbaycan`,
+          'gənclər təşkilatı',
           'gənclər təşkilatları',
           'QHT Azərbaycan',
           'gənclik təşəbbüsləri',
           'ictimai təşkilat',
+          'təşəbbüs qrupu',
+          'universitet klubları',
         ]
       : ['təşkilat profili', 'gənclər təşkilatı', 'QHT Azərbaycan'],
     canonical: `/o/${canonicalHandle}`,

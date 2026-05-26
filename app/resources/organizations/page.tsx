@@ -4,15 +4,19 @@ import OrganizationsClient from './OrganizationsClient'
 
 export function generateMetadata(): Metadata {
   return generateSEOMetadata({
-    title: "Təşkilat Kataloqu | icma360 — Gənclər Təşkilatları və QHT-lər",
-    description: "Azərbaycanda fəal gənclər təşkilatlarını və QHT-ləri kəşf edin. Təşkilatların fokus sahələri, əlaqə məlumatları və fəaliyyətləri haqqında məlumat alın.",
+    title: "Təşkilat Kataloqu | icma360 — Gənclər Təşkilatı, QHT, Universitet Klubları və Təşəbbüs Qrupları",
+    description: "Azərbaycanda fəal gənclər təşkilatı, QHT, universitet klubları və təşəbbüs qruplarını kəşf edin. Təşkilatların fokus sahələri, əlaqə məlumatları və fəaliyyətləri haqqında məlumat alın.",
     keywords: [
+      'gənclər təşkilatı',
+      'qht',
       'təşkilat kataloqu Azərbaycan',
       'gənclər təşkilatları',
       'QHT Azərbaycan',
       'QHT siyahısı',
       'ictimai təşkilatlar',
       'gənclik təşəbbüsləri',
+      'təşəbbüs qrupu',
+      'universitet klubları',
       'təşkilatlar Bakı',
       'qeyri-hökumət təşkilatları',
     ],

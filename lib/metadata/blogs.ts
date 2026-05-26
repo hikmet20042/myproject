@@ -88,6 +88,8 @@ export async function generateBlogMetadata(slugOrId: string): Promise<Metadata> 
       keywords: [
         blog.title,
         blog.authorName,
+        'təcrübə',
+        'təlim',
         'icma hekayələri Azərbaycan',
         'gənclik hekayələri Azərbaycan',
         'uğur hekayələri Azərbaycan',
