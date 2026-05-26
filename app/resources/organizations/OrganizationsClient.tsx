@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Script from 'next/script';
 import { Button, ButtonLink, SearchBar } from '@/components/ui';
 import { Select } from '@/components/ui/Select';
 import { Sparkles, RefreshCw } from 'lucide-react';
 import { useLocalizedPath } from '@/hooks/useLocalizedPath';
-import { EmptyState, ResourceFilterContainer } from '@/components/shared';
-import { ORGANIZATION_TYPE_LABELS, ORGANIZATION_TYPE_VALUES } from '@/lib/organizationTypes';
+import { EmptyState, ResourceFilterContainer, ActiveFilterBadges } from '@/components/shared';
+import type { FilterBadge } from '@/components/shared/ActiveFilterBadges';
+import { ORGANIZATION_TYPE_LABELS, ORGANIZATION_TYPE_VALUES, isOrganizationType } from '@/lib/organizationTypes';
 import { fetchOrganizations } from '@/lib/organizationQueries';
 import { logError } from '@/lib/logger';
 import { ListPageLayout } from '@/components/layout';
@@ -64,6 +65,30 @@ export default function OrganizationsPage() {
   });
 
   const hasActiveFilters = searchTerm.trim() !== '' || selectedOrganizationType !== 'all';
+
+  const clearAllFilters = useCallback(() => {
+    setSearchTerm('');
+    setSelectedOrganizationType('all');
+  }, []);
+
+  const filterBadges: FilterBadge[] = useMemo(() => {
+    const badges: FilterBadge[] = []
+    if (searchTerm.trim()) {
+      badges.push({
+        id: 'search', label: 'Axtarış', value: searchTerm,
+        onRemove: () => setSearchTerm(''),
+        colorScheme: 'blue',
+      })
+    }
+    if (selectedOrganizationType !== 'all') {
+      badges.push({
+        id: 'type', label: 'Növ', value: isOrganizationType(selectedOrganizationType) ? ORGANIZATION_TYPE_LABELS[selectedOrganizationType] : selectedOrganizationType,
+        onRemove: () => setSelectedOrganizationType('all'),
+        colorScheme: 'green',
+      })
+    }
+    return badges
+  }, [searchTerm, selectedOrganizationType])
 
   const itemListJsonLd = useMemo(() => {
     if (loading || organizations.length === 0) return '';
@@ -129,16 +154,13 @@ export default function OrganizationsPage() {
               />
             </div>
           }
-          activeFilters={hasActiveFilters && (
-             <Button 
-               variant="outline" 
-               size="sm" 
-               onClick={() => { setSearchTerm(''); setSelectedOrganizationType('all'); }}
-               className="rounded-full text-xs font-black bg-white"
-             >
-               Filtrləri təmizlə
-             </Button>
-          )}
+          activeFilters={hasActiveFilters ? (
+            <ActiveFilterBadges
+              badges={filterBadges}
+              onClearAll={clearAllFilters}
+              showClearAll={filterBadges.length > 1}
+            />
+          ) : undefined}
         />
       }
       content={
@@ -158,7 +180,7 @@ export default function OrganizationsPage() {
                 title="Təşkilat tapılmadı"
                 message="Axtarış meyarlarını dəyişərək yenidən yoxlayın."
                 actionText="Filtrləri təmizlə"
-                onAction={() => { setSearchTerm(''); setSelectedOrganizationType('all'); }}
+                onAction={clearAllFilters}
               />
             </div>
           )}

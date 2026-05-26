@@ -15,6 +15,15 @@ const WORK_TYPE_LABELS: Record<string, string> = {
  */
 export async function generateVacancyMetadata(identifier: string): Promise<Metadata> {
   try {
+    if (identifier.startsWith('seed-')) {
+      return generateSEOMetadata({
+        title: 'Vacancy | icma360',
+        description: 'View vacancy details on icma360',
+        noindex: true,
+        canonical: `/resources/vacancies/${identifier}`,
+      })
+    }
+
     const supabase = createSupabaseAdminClient()
     const { data: resolved } = await resolveEntityBySlugOrId(supabase, 'vacancies', identifier, 'id,slug')
     const vacancyId = resolved?.id

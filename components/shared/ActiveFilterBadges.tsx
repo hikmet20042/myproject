@@ -21,38 +21,16 @@ interface ActiveFilterBadgesProps { /** Array of active filter badges to display
   /** Whether to show the clear all button */
   showClearAll?: boolean; }
 
-const colorSchemes = { green: { bg: 'bg-green-100',
-    text: 'text-green-700',
-    border: 'border-green-200',
-    hover: 'hover:text-green-900 hover:bg-green-200', },
-  blue: { bg: 'bg-blue-100',
-    text: 'text-blue-700',
-    border: 'border-blue-200',
-    hover: 'hover:text-blue-900 hover:bg-blue-200', },
-  indigo: { bg: 'bg-blue-100',
-    text: 'text-blue-700',
-    border: 'border-blue-200',
-    hover: 'hover:text-blue-900 hover:bg-blue-200', },
-  purple: { bg: 'bg-cyan-100',
-    text: 'text-cyan-700',
-    border: 'border-cyan-200',
-    hover: 'hover:text-cyan-900 hover:bg-cyan-200', },
-  pink: { bg: 'bg-emerald-100',
-    text: 'text-emerald-700',
-    border: 'border-emerald-200',
-    hover: 'hover:text-emerald-900 hover:bg-emerald-200', },
-  teal: { bg: 'bg-teal-100',
-    text: 'text-teal-700',
-    border: 'border-teal-200',
-    hover: 'hover:text-teal-900 hover:bg-teal-200', },
-  amber: { bg: 'bg-amber-100',
-    text: 'text-amber-700',
-    border: 'border-amber-200',
-    hover: 'hover:text-amber-900 hover:bg-amber-200', },
-  orange: { bg: 'bg-amber-100',
-    text: 'text-amber-700',
-    border: 'border-amber-200',
-    hover: 'hover:text-amber-900 hover:bg-amber-200', }, };
+const colorSchemes = {
+  green: { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200', hover: 'hover:text-green-900 hover:bg-green-200' },
+  blue: { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200', hover: 'hover:text-blue-900 hover:bg-blue-200' },
+  indigo: { bg: 'bg-indigo-100', text: 'text-indigo-700', border: 'border-indigo-200', hover: 'hover:text-indigo-900 hover:bg-indigo-200' },
+  purple: { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200', hover: 'hover:text-purple-900 hover:bg-purple-200' },
+  pink: { bg: 'bg-pink-100', text: 'text-pink-700', border: 'border-pink-200', hover: 'hover:text-pink-900 hover:bg-pink-200' },
+  teal: { bg: 'bg-teal-100', text: 'text-teal-700', border: 'border-teal-200', hover: 'hover:text-teal-900 hover:bg-teal-200' },
+  amber: { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200', hover: 'hover:text-amber-900 hover:bg-amber-200' },
+  orange: { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200', hover: 'hover:text-orange-900 hover:bg-orange-200' },
+};
 
 /**
  * Displays active filter badges with remove functionality

@@ -6,3 +6,21 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+[[redirects]]
+  from = "http://icma360.org/*"
+  to = "https://icma360.org/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://www.icma360.org/*"
+  to = "https://icma360.org/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.icma360.org/*"
+  to = "https://icma360.org/:splat"
+  status = 301
+  force = true

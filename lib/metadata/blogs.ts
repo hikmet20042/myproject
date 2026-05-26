@@ -8,6 +8,15 @@ import { resolveEntityBySlugOrId } from '@/lib/identifier'
  */
 export async function generateBlogMetadata(slugOrId: string): Promise<Metadata> {
   try {
+    if (slugOrId.startsWith('seed-')) {
+      return generateSEOMetadata({
+        title: 'Community Story | icma360',
+        description: 'Read community stories on icma360',
+        noindex: true,
+        canonical: `/blogs/${slugOrId}`,
+      })
+    }
+
     const supabase = createSupabaseAdminClient()
     const { data: resolved } = await resolveEntityBySlugOrId(supabase, 'blogs', slugOrId, 'id, slug, status')
 

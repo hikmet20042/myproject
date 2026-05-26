@@ -25,9 +25,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 
 export default async function OrganizationDetailPage({ params }: { params: { slug: string } }) {
   const supabase = createSupabaseAdminClient()
-  const { data: resolved } = await resolveEntityBySlugOrId(supabase, 'organization_profiles', params.slug, 'id, slug, url_handle, status')
+  const { data: resolved } = await resolveEntityBySlugOrId(supabase, 'organization_profiles', params.slug, 'id, slug, url_handle, moderation_status')
 
-  if (!resolved?.id || resolved.status !== 'approved') {
+  if (!resolved?.id || resolved.moderation_status !== 'approved') {
     notFound()
   }
 

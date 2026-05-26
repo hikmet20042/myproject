@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import Script from 'next/script';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -8,7 +8,8 @@ import { Sparkles } from 'lucide-react';
 import { Button, ButtonLink, SearchBar } from '@/components/ui';
 import { Select } from '@/components/ui/Select';
 import { useLocalizedPath } from '@/hooks/useLocalizedPath';
-import { EmptyState, ResourceFilterContainer } from '@/components/shared';
+import { EmptyState, ResourceFilterContainer, ActiveFilterBadges } from '@/components/shared';
+import type { FilterBadge } from '@/components/shared/ActiveFilterBadges';
 import { ListPageLayout } from '@/components/layout';
 import { eventQueryKeys, fetchEvents } from '@/lib/eventQueries';
 import { getUserErrorMessage } from '@/lib/errorMessages';
@@ -39,8 +40,13 @@ export default function EventsPage() {
   const [sortBy, setSortBy] = useState('eventDate');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const isUserAction = useRef(false);
 
   useEffect(() => {
+    if (isUserAction.current) {
+      isUserAction.current = false;
+      return;
+    }
     if (!searchParams) return;
     const q = searchParams.get('q') || '';
     const city = searchParams.get('city') || 'all';
@@ -56,7 +62,7 @@ export default function EventsPage() {
     setDateTo(to);
   }, [searchParams]);
 
-  const pushUrl = useCallback((updates: Record<string, string | null>) => {
+  const replaceUrl = useCallback((updates: Record<string, string | null>) => {
     if (!searchParams) return;
     const params = new URLSearchParams(searchParams.toString());
     Object.entries(updates).forEach(([key, value]) => {
@@ -67,7 +73,7 @@ export default function EventsPage() {
       }
     });
     const qs = params.toString();
-    router.push(qs ? `/resources/events?${qs}` : '/resources/events', { scroll: false });
+    router.replace(qs ? `/resources/events?${qs}` : '/resources/events', { scroll: false });
   }, [router, searchParams]);
 
   const getEventTypeLabel = (val: string) => {
@@ -103,46 +109,102 @@ export default function EventsPage() {
   }, [eventsQuery.isError, eventsQuery.error, showError])
 
   const handleSearch = (query: string) => {
+    isUserAction.current = true;
     setSearchQuery(query);
-    pushUrl({ q: query || null });
+    replaceUrl({ q: query || null });
   };
   const handleClearSearch = () => {
+    isUserAction.current = true;
     setSearchQuery('');
-    pushUrl({ q: null });
+    replaceUrl({ q: null });
   };
 
   const handleCityChange = (city: string) => {
+    isUserAction.current = true;
     setSelectedCity(city);
-    pushUrl({ city: city === 'all' ? null : city });
+    replaceUrl({ city: city === 'all' ? null : city });
   };
   const handleEventTypeChange = (type: string) => {
+    isUserAction.current = true;
     setSelectedEventType(type);
-    pushUrl({ type: type === 'all' ? null : type });
+    replaceUrl({ type: type === 'all' ? null : type });
   };
   const handleSortChange = (sort: string) => {
+    isUserAction.current = true;
     setSortBy(sort);
-    pushUrl({ sort });
+    replaceUrl({ sort });
   };
   const handleDateFromChange = (date: string) => {
+    isUserAction.current = true;
     setDateFrom(date);
-    pushUrl({ from: date || null });
+    replaceUrl({ from: date || null });
   };
   const handleDateToChange = (date: string) => {
+    isUserAction.current = true;
     setDateTo(date);
-    pushUrl({ to: date || null });
+    replaceUrl({ to: date || null });
   };
 
   const clearAllFilters = () => {
+    isUserAction.current = true;
     setSearchQuery('');
     setSelectedCity('all');
     setSelectedEventType('all');
     setSortBy('eventDate');
     setDateFrom('');
     setDateTo('');
-    router.push('/resources/events', { scroll: false });
+    router.replace('/resources/events', { scroll: false });
   };
 
   const hasActiveFilters = searchQuery.trim() !== '' || selectedCity !== 'all' || selectedEventType !== 'all' || sortBy !== 'eventDate' || dateFrom !== '' || dateTo !== '';
+
+  const filterBadges: FilterBadge[] = useMemo(() => {
+    const badges: FilterBadge[] = []
+    if (searchQuery.trim()) {
+      badges.push({
+        id: 'search', label: 'Axtarış', value: searchQuery,
+        onRemove: () => { isUserAction.current = true; setSearchQuery(''); replaceUrl({ q: null }); },
+        colorScheme: 'blue',
+      })
+    }
+    if (selectedCity !== 'all') {
+      badges.push({
+        id: 'city', label: 'Məkan', value: selectedCity,
+        onRemove: () => { isUserAction.current = true; setSelectedCity('all'); replaceUrl({ city: null }); },
+        colorScheme: 'teal',
+      })
+    }
+    if (selectedEventType !== 'all') {
+      badges.push({
+        id: 'eventType', label: 'Növ', value: getEventTypeLabel(selectedEventType),
+        onRemove: () => { isUserAction.current = true; setSelectedEventType('all'); replaceUrl({ type: null }); },
+        colorScheme: 'purple',
+      })
+    }
+    if (sortBy !== 'eventDate') {
+      const sortLabel = SORT_OPTIONS.find(o => o.value === sortBy)?.label || sortBy
+      badges.push({
+        id: 'sort', label: 'Sıralama', value: sortLabel,
+        onRemove: () => { isUserAction.current = true; setSortBy('eventDate'); replaceUrl({ sort: null }); },
+        colorScheme: 'indigo',
+      })
+    }
+    if (dateFrom) {
+      badges.push({
+        id: 'dateFrom', label: 'Tarixdən', value: dateFrom,
+        onRemove: () => { isUserAction.current = true; setDateFrom(''); replaceUrl({ from: null }); },
+        colorScheme: 'amber',
+      })
+    }
+    if (dateTo) {
+      badges.push({
+        id: 'dateTo', label: 'Tarixə', value: dateTo,
+        onRemove: () => { isUserAction.current = true; setDateTo(''); replaceUrl({ to: null }); },
+        colorScheme: 'amber',
+      })
+    }
+    return badges
+  }, [searchQuery, selectedCity, selectedEventType, sortBy, dateFrom, dateTo, replaceUrl])
 
   const formatDate = (dateValue?: string): string => {
     if (!dateValue) return 'Tarix qeyd olunmayıb'
@@ -269,16 +331,13 @@ export default function EventsPage() {
                 </div>
               </div>
             }
-            activeFilters={hasActiveFilters && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearAllFilters}
-                className="rounded-full text-xs font-black bg-white"
-              >
-                Filtrləri təmizlə
-              </Button>
-            )}
+            activeFilters={hasActiveFilters ? (
+              <ActiveFilterBadges
+                badges={filterBadges}
+                onClearAll={clearAllFilters}
+                showClearAll={filterBadges.length > 1}
+              />
+            ) : undefined}
           />
         }
         content={

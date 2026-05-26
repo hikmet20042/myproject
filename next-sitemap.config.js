@@ -19,6 +19,8 @@ async function fetchDynamicPaths() {
       .from('vacancies')
       .select('slug, updated_at')
       .eq('status', 'approved')
+      .eq('is_published', true)
+      .not('slug', 'like', 'seed-%')
       .limit(1000)
 
     if (vacanciesError) throw vacanciesError
@@ -27,6 +29,7 @@ async function fetchDynamicPaths() {
       .from('events')
       .select('slug, updated_at')
       .eq('status', 'approved')
+      .not('slug', 'like', 'seed-%')
       .limit(1000)
 
     if (eventsError) throw eventsError
@@ -35,6 +38,7 @@ async function fetchDynamicPaths() {
       .from('blogs')
       .select('slug, updated_at')
       .eq('status', 'approved')
+      .not('slug', 'like', 'seed-%')
       .limit(1000)
 
     if (blogsError) throw blogsError
@@ -43,6 +47,7 @@ async function fetchDynamicPaths() {
       .from('organization_profiles')
       .select('slug, updated_at')
       .eq('moderation_status', 'approved')
+      .not('slug', 'like', 'seed-%')
       .limit(1000)
 
     if (organizationsError) throw organizationsError

@@ -21,14 +21,14 @@ export async function generateMetadata({ params }: { params: { handle: string } 
 
   const { data: orgRow } = await supabase
     .from('organization_profiles')
-    .select('organization_name, organization_type, description, slug')
+    .select('organization_name, organization_type, description, slug, url_handle')
     .or(`url_handle.eq.${handle},slug.eq.${handle}`)
     .eq('moderation_status', 'approved')
     .single()
 
   const orgName = orgRow?.organization_name
   const orgType = orgRow?.organization_type || 'Gənclər Təşkilatı'
-  const orgSlug = orgRow?.slug || handle
+  const canonicalHandle = orgRow?.url_handle || orgRow?.slug || handle
 
   return generateSEOMetadata({
     title: orgName
@@ -48,13 +48,13 @@ export async function generateMetadata({ params }: { params: { handle: string } 
           'ictimai təşkilat',
         ]
       : ['təşkilat profili', 'gənclər təşkilatı', 'QHT Azərbaycan'],
-    canonical: `/o/${handle}`,
+    canonical: `/o/${canonicalHandle}`,
     ogType: 'profile',
     locale: 'az_AZ',
     structuredData: generateBreadcrumbSchema([
       { name: 'Ana Səhifə', url: '/' },
       { name: 'Təşkilatlar', url: '/resources/organizations' },
-      { name: orgName || 'Profil', url: `/o/${handle}` },
+      { name: orgName || 'Profil', url: `/o/${canonicalHandle}` },
     ]),
   })
 }

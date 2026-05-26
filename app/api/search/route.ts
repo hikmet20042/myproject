@@ -133,49 +133,49 @@ export async function GET(request: NextRequest) {
 
     const payload = await withCache(cache.search, cacheKey, async () => {
       const wildcard = `%${query}%`
-      const perTypeFetchLimit = Math.min(40, limit * 4)
+      const perTypeFetchLimit = Math.max(200, limit * 10)
 
       const eventPromise = types.includes('event')
         ? supabase
             .from('events_with_stats')
-            .select('id, slug, title, description, event_date, location, image_url, organization_name, created_by_organization, status, is_published, created_at')
+            .select('id, slug, title, description, event_date, location, image_url, organization_name, created_by_organization, status, is_published, created_at', { count: 'exact', head: false })
             .eq('status', 'approved')
             .eq('is_published', true)
             .or(`title.ilike.${wildcard},description.ilike.${wildcard}`)
             .order('created_at', { ascending: false })
             .limit(perTypeFetchLimit)
-        : Promise.resolve({ data: [] as any[] })
+        : Promise.resolve({ data: [] as any[], count: 0 })
 
       const vacancyPromise = types.includes('vacancy')
         ? supabase
             .from('vacancies_with_stats')
-            .select('id, slug, title, description, application_deadline, city, address, image_url, created_by, created_by_organization, status, is_published, created_at')
+            .select('id, slug, title, description, application_deadline, city, address, image_url, created_by, created_by_organization, status, is_published, created_at', { count: 'exact', head: false })
             .eq('status', 'approved')
             .eq('is_published', true)
             .or(`title.ilike.${wildcard},description.ilike.${wildcard}`)
             .order('created_at', { ascending: false })
             .limit(perTypeFetchLimit)
-        : Promise.resolve({ data: [] as any[] })
+        : Promise.resolve({ data: [] as any[], count: 0 })
 
       const blogPromise = types.includes('blog')
         ? supabase
             .from('blogs_with_stats')
-            .select('id, slug, title, abstract, content_html, featured_image, author_name, status, created_at')
+            .select('id, slug, title, abstract, content_html, featured_image, author_name, status, created_at', { count: 'exact', head: false })
             .eq('status', 'approved')
-            .or(`title.ilike.${wildcard},abstract.ilike.${wildcard},content_html.ilike.${wildcard}`)
+            .or(`title.ilike.${wildcard},abstract.ilike.${wildcard}`)
             .order('created_at', { ascending: false })
             .limit(perTypeFetchLimit)
-        : Promise.resolve({ data: [] as any[] })
+        : Promise.resolve({ data: [] as any[], count: 0 })
 
       const orgPromise = types.includes('organization')
         ? supabase
             .from('organization_profiles')
-            .select('account_id, url_handle, organization_name, description, profile_image, address, moderation_status, created_at')
+            .select('account_id, url_handle, organization_name, description, profile_image, address, moderation_status, created_at', { count: 'exact', head: false })
             .eq('moderation_status', 'approved')
             .or(`organization_name.ilike.${wildcard},description.ilike.${wildcard},address.ilike.${wildcard}`)
             .order('created_at', { ascending: false })
             .limit(perTypeFetchLimit)
-        : Promise.resolve({ data: [] as any[] })
+        : Promise.resolve({ data: [] as any[], count: 0 })
 
       const [eventResult, vacancyResult, blogResult, orgResult] = await Promise.all([
         eventPromise,
@@ -261,10 +261,10 @@ export async function GET(request: NextRequest) {
       })
 
       const totalsByType = {
-        event: eventItems.length,
-        vacancy: vacancyItems.length,
-        blog: blogItems.length,
-        organization: orgItems.length,
+        event: eventResult.count ?? eventItems.length,
+        vacancy: vacancyResult.count ?? vacancyItems.length,
+        blog: blogResult.count ?? blogItems.length,
+        organization: orgResult.count ?? orgItems.length,
       }
 
       const allItems = [...eventItems, ...vacancyItems, ...blogItems, ...orgItems]
@@ -273,7 +273,7 @@ export async function GET(request: NextRequest) {
           return (new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())
         })
 
-      const total = allItems.length
+      const realTotal = totalsByType.event + totalsByType.vacancy + totalsByType.blog + totalsByType.organization
       const start = (page - 1) * limit
       const end = start + limit
       const paginatedItems = allItems.slice(start, end)
@@ -283,8 +283,8 @@ export async function GET(request: NextRequest) {
         pagination: {
           page,
           limit,
-          total,
-          pages: total > 0 ? Math.ceil(total / limit) : 0,
+          total: realTotal,
+          pages: realTotal > 0 ? Math.ceil(realTotal / limit) : 0,
         },
         totalsByType,
       }

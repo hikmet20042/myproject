@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import Script from 'next/script';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -10,7 +10,8 @@ import { Select } from '@/components/ui/Select';
 import { useLocalizedPath } from '@/hooks/useLocalizedPath';
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback';
 import { useSession } from '@/lib/auth/client';
-import { EmptyState, ResourceFilterContainer } from '@/components/shared';
+import { EmptyState, ResourceFilterContainer, ActiveFilterBadges } from '@/components/shared';
+import type { FilterBadge } from '@/components/shared/ActiveFilterBadges';
 import { ListPageLayout } from '@/components/layout';
 import { getUserErrorMessage } from '@/lib/errorMessages';
 import { logError } from '@/lib/logger';
@@ -59,8 +60,13 @@ export default function VacanciesPage() {
   const [sortBy, setSortBy] = useState('createdAt');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const isUserAction = useRef(false);
 
   useEffect(() => {
+    if (isUserAction.current) {
+      isUserAction.current = false;
+      return;
+    }
     if (!searchParams) return;
     const q = searchParams.get('q') || '';
     const type = searchParams.get('type') || 'all';
@@ -76,7 +82,7 @@ export default function VacanciesPage() {
     setDateTo(to);
   }, [searchParams]);
 
-  const pushUrl = useCallback((updates: Record<string, string | null>) => {
+  const replaceUrl = useCallback((updates: Record<string, string | null>) => {
     if (!searchParams) return;
     const params = new URLSearchParams(searchParams.toString());
     Object.entries(updates).forEach(([key, value]) => {
@@ -87,7 +93,7 @@ export default function VacanciesPage() {
       }
     });
     const qs = params.toString();
-    router.push(qs ? `/resources/vacancies?${qs}` : '/resources/vacancies', { scroll: false });
+    router.replace(qs ? `/resources/vacancies?${qs}` : '/resources/vacancies', { scroll: false });
   }, [router, searchParams]);
 
   const queryFilters = useMemo(() => ({
@@ -116,46 +122,102 @@ export default function VacanciesPage() {
   }, [vacanciesQuery.isError, vacanciesQuery.error, showError])
 
   const handleSearch = (query: string) => {
+    isUserAction.current = true;
     setSearchQuery(query);
-    pushUrl({ q: query || null });
+    replaceUrl({ q: query || null });
   };
   const handleClearSearch = () => {
+    isUserAction.current = true;
     setSearchQuery('');
-    pushUrl({ q: null });
+    replaceUrl({ q: null });
   };
 
   const handleTypeChange = (type: string) => {
+    isUserAction.current = true;
     setSelectedType(type);
-    pushUrl({ type: type === 'all' ? null : type });
+    replaceUrl({ type: type === 'all' ? null : type });
   };
   const handleCityChange = (city: string) => {
+    isUserAction.current = true;
     setSelectedCity(city);
-    pushUrl({ city: city === 'all' ? null : city });
+    replaceUrl({ city: city === 'all' ? null : city });
   };
   const handleSortChange = (sort: string) => {
+    isUserAction.current = true;
     setSortBy(sort);
-    pushUrl({ sort });
+    replaceUrl({ sort });
   };
   const handleDateFromChange = (date: string) => {
+    isUserAction.current = true;
     setDateFrom(date);
-    pushUrl({ from: date || null });
+    replaceUrl({ from: date || null });
   };
   const handleDateToChange = (date: string) => {
+    isUserAction.current = true;
     setDateTo(date);
-    pushUrl({ to: date || null });
+    replaceUrl({ to: date || null });
   };
 
   const clearAllFilters = () => {
+    isUserAction.current = true;
     setSearchQuery('');
     setSelectedType('all');
     setSelectedCity('all');
     setSortBy('createdAt');
     setDateFrom('');
     setDateTo('');
-    router.push('/resources/vacancies', { scroll: false });
+    router.replace('/resources/vacancies', { scroll: false });
   };
 
   const hasActiveFilters = searchQuery.trim() !== '' || selectedType !== 'all' || selectedCity !== 'all' || sortBy !== 'createdAt' || dateFrom !== '' || dateTo !== '';
+
+  const filterBadges: FilterBadge[] = useMemo(() => {
+    const badges: FilterBadge[] = []
+    if (searchQuery.trim()) {
+      badges.push({
+        id: 'search', label: 'Axtarış', value: searchQuery,
+        onRemove: () => { isUserAction.current = true; setSearchQuery(''); replaceUrl({ q: null }); },
+        colorScheme: 'blue',
+      })
+    }
+    if (selectedType !== 'all') {
+      badges.push({
+        id: 'type', label: 'İş növü', value: VACANCY_TYPE_LABELS_AZ[selectedType] || selectedType,
+        onRemove: () => { isUserAction.current = true; setSelectedType('all'); replaceUrl({ type: null }); },
+        colorScheme: 'green',
+      })
+    }
+    if (selectedCity !== 'all') {
+      badges.push({
+        id: 'city', label: 'Şəhər', value: selectedCity,
+        onRemove: () => { isUserAction.current = true; setSelectedCity('all'); replaceUrl({ city: null }); },
+        colorScheme: 'teal',
+      })
+    }
+    if (sortBy !== 'createdAt') {
+      const sortLabel = SORT_OPTIONS.find(o => o.value === sortBy)?.label || sortBy
+      badges.push({
+        id: 'sort', label: 'Sıralama', value: sortLabel,
+        onRemove: () => { isUserAction.current = true; setSortBy('createdAt'); replaceUrl({ sort: null }); },
+        colorScheme: 'indigo',
+      })
+    }
+    if (dateFrom) {
+      badges.push({
+        id: 'dateFrom', label: 'Tarixdən', value: dateFrom,
+        onRemove: () => { isUserAction.current = true; setDateFrom(''); replaceUrl({ from: null }); },
+        colorScheme: 'amber',
+      })
+    }
+    if (dateTo) {
+      badges.push({
+        id: 'dateTo', label: 'Tarixə', value: dateTo,
+        onRemove: () => { isUserAction.current = true; setDateTo(''); replaceUrl({ to: null }); },
+        colorScheme: 'amber',
+      })
+    }
+    return badges
+  }, [searchQuery, selectedType, selectedCity, sortBy, dateFrom, dateTo, replaceUrl])
 
   const vacancies = (vacanciesQuery.data?.items || [])
     .filter((v: any) => Boolean(v?.slug))
@@ -272,16 +334,13 @@ export default function VacanciesPage() {
                 </div>
               </div>
             }
-            activeFilters={hasActiveFilters && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearAllFilters}
-                className="rounded-full text-xs font-black bg-white"
-              >
-                Filtrləri təmizlə
-              </Button>
-            )}
+            activeFilters={hasActiveFilters ? (
+              <ActiveFilterBadges
+                badges={filterBadges}
+                onClearAll={clearAllFilters}
+                showClearAll={filterBadges.length > 1}
+              />
+            ) : undefined}
           />
         }
         content={

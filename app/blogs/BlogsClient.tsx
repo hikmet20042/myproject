@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react'
 import Script from 'next/script'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Button, ButtonLink, SearchBar } from '@/components/ui'
 import { Select } from '@/components/ui/Select'
-import { EmptyState, ResourceFilterContainer } from '@/components/shared'
+import { EmptyState, ResourceFilterContainer, ActiveFilterBadges } from '@/components/shared'
+import type { FilterBadge } from '@/components/shared/ActiveFilterBadges'
 import { ListPageLayout } from '@/components/layout'
 import { Sparkles } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
@@ -56,6 +57,11 @@ const generateExcerpt = (content: any): string => {
   return words.slice(0, 30).join(' ') + '...';
 }
 
+const TAG_LABEL_MAP: Record<string, string> = {}
+ARTICLE_TAGS.forEach(tag => {
+  TAG_LABEL_MAP[tag] = tag.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+})
+
 export default function CommunityBlogs() {
   const localePath = useLocalizedPath();
   const router = useRouter();
@@ -70,22 +76,31 @@ export default function CommunityBlogs() {
   const [sortBy, setSortBy] = useState('newest');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [page, setPage] = useState(1);
+  const isUserAction = useRef(false);
 
   useEffect(() => {
+    if (isUserAction.current) {
+      isUserAction.current = false;
+      return;
+    }
     if (!searchParams) return;
     const q = searchParams.get('q') || '';
     const tag = searchParams.get('tag') || 'all';
     const sort = searchParams.get('sort') || 'newest';
     const from = searchParams.get('from') || '';
     const to = searchParams.get('to') || '';
+    const p = searchParams.get('page');
+    const pageNum = p ? (Number.isFinite(Number.parseInt(p, 10)) ? Math.max(1, Number.parseInt(p, 10)) : 1) : 1;
     setSearchQuery(q);
     setSelectedTag(tag);
     setSortBy(sort);
     setDateFrom(from);
     setDateTo(to);
+    setPage(pageNum);
   }, [searchParams]);
 
-  const pushUrl = useCallback((updates: Record<string, string | null>) => {
+  const replaceUrl = useCallback((updates: Record<string, string | null>) => {
     if (!searchParams) return;
     const params = new URLSearchParams(searchParams.toString());
     Object.entries(updates).forEach(([key, value]) => {
@@ -96,60 +111,131 @@ export default function CommunityBlogs() {
       }
     });
     const qs = params.toString();
-    router.push(qs ? `/blogs?${qs}` : '/blogs', { scroll: false });
+    router.replace(qs ? `/blogs?${qs}` : '/blogs', { scroll: false });
   }, [router, searchParams]);
 
   const queryFilters = useMemo(() => ({
-    page: 1,
+    page,
     limit: blogsLimit,
     search: searchQuery.trim() || undefined,
     tags: selectedTag !== 'all' ? selectedTag : undefined,
     sortBy: sortBy as 'newest' | 'oldest' | 'most-viewed' | 'most-liked',
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
-  }), [searchQuery, selectedTag, sortBy, dateFrom, dateTo, blogsLimit])
+  }), [searchQuery, selectedTag, sortBy, dateFrom, dateTo, page, blogsLimit])
 
   const blogsQuery = useQuery({
     queryKey: blogQueryKeys.list(queryFilters),
     queryFn: () => fetchBlogs(queryFilters)
   })
 
+  const goToPage = (newPage: number) => {
+    isUserAction.current = true;
+    setPage(newPage);
+    replaceUrl({ page: newPage > 1 ? String(newPage) : null });
+  };
+
   const handleSearch = (query: string) => {
+    isUserAction.current = true;
     setSearchQuery(query);
-    pushUrl({ q: query || null });
+    setPage(1);
+    replaceUrl({ q: query || null, page: null });
   };
   const handleClearSearch = () => {
+    isUserAction.current = true;
     setSearchQuery('');
-    pushUrl({ q: null });
+    setPage(1);
+    replaceUrl({ q: null, page: null });
   };
 
   const handleTagChange = (tag: string) => {
+    isUserAction.current = true;
     setSelectedTag(tag);
-    pushUrl({ tag: tag === 'all' ? null : tag });
+    setPage(1);
+    replaceUrl({ tag: tag === 'all' ? null : tag, page: null });
   };
   const handleSortChange = (sort: string) => {
+    isUserAction.current = true;
     setSortBy(sort);
-    pushUrl({ sort });
+    setPage(1);
+    replaceUrl({ sort, page: null });
   };
   const handleDateFromChange = (date: string) => {
+    isUserAction.current = true;
     setDateFrom(date);
-    pushUrl({ from: date || null });
+    setPage(1);
+    replaceUrl({ from: date || null, page: null });
   };
   const handleDateToChange = (date: string) => {
+    isUserAction.current = true;
     setDateTo(date);
-    pushUrl({ to: date || null });
+    setPage(1);
+    replaceUrl({ to: date || null, page: null });
   };
 
   const clearAllFilters = () => {
+    isUserAction.current = true;
     setSearchQuery('');
     setSelectedTag('all');
     setSortBy('newest');
     setDateFrom('');
     setDateTo('');
-    router.push('/blogs', { scroll: false });
+    setPage(1);
+    router.replace('/blogs', { scroll: false });
   };
 
   const hasActiveFilters = searchQuery.trim() !== '' || selectedTag !== 'all' || sortBy !== 'newest' || dateFrom !== '' || dateTo !== '';
+
+  const filterBadges: FilterBadge[] = useMemo(() => {
+    const badges: FilterBadge[] = []
+    if (searchQuery.trim()) {
+      badges.push({
+        id: 'search',
+        label: 'Axtarış',
+        value: searchQuery,
+        onRemove: () => { isUserAction.current = true; setSearchQuery(''); setPage(1); replaceUrl({ q: null, page: null }); },
+        colorScheme: 'blue',
+      })
+    }
+    if (selectedTag !== 'all') {
+      badges.push({
+        id: 'tag',
+        label: 'Mövzu',
+        value: TAG_LABEL_MAP[selectedTag] || selectedTag,
+        onRemove: () => { isUserAction.current = true; setSelectedTag('all'); setPage(1); replaceUrl({ tag: null, page: null }); },
+        colorScheme: 'green',
+      })
+    }
+    if (sortBy !== 'newest') {
+      const sortLabel = SORT_OPTIONS.find(o => o.value === sortBy)?.label || sortBy
+      badges.push({
+        id: 'sort',
+        label: 'Sıralama',
+        value: sortLabel,
+        onRemove: () => { isUserAction.current = true; setSortBy('newest'); setPage(1); replaceUrl({ sort: null, page: null }); },
+        colorScheme: 'indigo',
+      })
+    }
+    if (dateFrom) {
+      badges.push({
+        id: 'dateFrom',
+        label: 'Tarixdən',
+        value: dateFrom,
+        onRemove: () => { isUserAction.current = true; setDateFrom(''); setPage(1); replaceUrl({ from: null, page: null }); },
+        colorScheme: 'amber',
+      })
+    }
+    if (dateTo) {
+      badges.push({
+        id: 'dateTo',
+        label: 'Tarixə',
+        value: dateTo,
+        onRemove: () => { isUserAction.current = true; setDateTo(''); setPage(1); replaceUrl({ to: null, page: null }); },
+        colorScheme: 'amber',
+      })
+    }
+    return badges
+  }, [searchQuery, selectedTag, sortBy, dateFrom, dateTo, replaceUrl])
 
   const allBlogs = (blogsQuery.data?.items || [])
     .map((blog: any) => ({
@@ -167,6 +253,8 @@ export default function CommunityBlogs() {
       ownerLabel: blog.authorName || blog.author_name || 'Anonim',
       excerpt: blog.excerpt || generateExcerpt(blog.content),
     }))
+
+  const totalPages = blogsQuery.data?.pagination?.pages || 0;
 
   const itemListJsonLd = useMemo(() => {
     if (blogsQuery.isLoading || allBlogs.length === 0) return '';
@@ -269,35 +357,61 @@ export default function CommunityBlogs() {
                 </div>
               </div>
             }
-            activeFilters={hasActiveFilters && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={clearAllFilters}
-                className="rounded-full text-xs font-black bg-white"
-              >
-                Filtrləri təmizlə
-              </Button>
-            )}
+            activeFilters={
+              hasActiveFilters ? (
+                <ActiveFilterBadges
+                  badges={filterBadges}
+                  onClearAll={clearAllFilters}
+                  showClearAll={filterBadges.length > 1}
+                />
+              ) : undefined
+            }
           />
         }
         content={
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
-            {allBlogs.length > 0 ? (
-              allBlogs.map((blog) => (
-                <ContentCard key={blog.id} item={blog} />
-              ))
-            ) : (
-              <div className="col-span-full py-20">
-                <EmptyState
-                  title="Bloq tapılmadı"
-                  message={hasActiveFilters ? 'Axtarış meyarlarını dəyişərək yenidən yoxlayın.' : 'Hələlik bloq yazısı yoxdur.'}
-                  actionText="Filtrləri sıfırla"
-                  onAction={clearAllFilters}
-                />
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12">
+              {allBlogs.length > 0 ? (
+                allBlogs.map((blog) => (
+                  <ContentCard key={blog.id} item={blog} />
+                ))
+              ) : (
+                <div className="col-span-full py-20">
+                  <EmptyState
+                    title="Bloq tapılmadı"
+                    message={hasActiveFilters ? 'Axtarış meyarlarını dəyişərək yenidən yoxlayın.' : 'Hələlik bloq yazısı yoxdur.'}
+                    actionText="Filtrləri sıfırla"
+                    onAction={clearAllFilters}
+                  />
+                </div>
+              )}
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 pt-8 pb-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => goToPage(page - 1)}
+                  className="rounded-xl px-4 py-2 text-xs font-bold"
+                >
+                  Əvvəlki
+                </Button>
+                <span className="text-sm font-semibold text-slate-500 px-4">
+                  Səhifə {page} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages}
+                  onClick={() => goToPage(page + 1)}
+                  className="rounded-xl px-4 py-2 text-xs font-bold"
+                >
+                  Növbəti
+                </Button>
               </div>
             )}
-          </div>
+          </>
         }
         bottomCta={
           <div className="text-center py-10">

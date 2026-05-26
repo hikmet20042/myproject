@@ -63,30 +63,25 @@ export default function GlobalSearchPage() {
   const queryFromUrl = searchParams?.get('q') ?? '';
   const activeTypeFromUrl = resolveActiveType(searchParams?.get('type') ?? null);
   const pageFromUrl = resolvePage(searchParams?.get('page') ?? null);
-  const currentParams = searchParams?.toString() ?? '';
 
   const [query, setQuery] = useState(queryFromUrl);
+  const [submittedQuery, setSubmittedQuery] = useState(queryFromUrl);
   const [activeType, setActiveType] = useState<"all" | GlobalSearchType>(activeTypeFromUrl);
   const [page, setPage] = useState(pageFromUrl);
   const [hasSearched, setHasSearched] = useState(!!queryFromUrl.trim());
+  const isUserAction = useRef(false);
 
   useEffect(() => {
+    if (isUserAction.current) {
+      isUserAction.current = false;
+      return;
+    }
     setQuery(queryFromUrl);
+    setSubmittedQuery(queryFromUrl);
     setActiveType(activeTypeFromUrl);
     setPage(pageFromUrl);
     setHasSearched(!!queryFromUrl.trim());
   }, [queryFromUrl, activeTypeFromUrl, pageFromUrl]);
-
-  useEffect(() => {
-    if (hasSearched) {
-      const next = buildSearchQueryString({ query, activeType, page });
-      if (next === currentParams) return;
-      router.replace(
-        next ? localePath(`/search?${next}`) : localePath("/search"),
-        { scroll: false },
-      );
-    }
-  }, [activeType, currentParams, localePath, page, query, router, hasSearched]);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -98,22 +93,28 @@ export default function GlobalSearchPage() {
   );
 
   const { items, total, pages, totalsByType, loading, error } = useGlobalSearch({
-    query,
+    query: submittedQuery,
     page,
     limit: 12,
     types: selectedTypes,
-    enabled: hasSearched && query.trim().length > 0,
+    enabled: hasSearched && submittedQuery.trim().length > 0,
     debounceMs: 200,
   });
+
+  const updateUrl = useCallback((q: string, type: "all" | GlobalSearchType, p: number) => {
+    const next = buildSearchQueryString({ query: q, activeType: type, page: p });
+    router.replace(next ? localePath(`/search?${next}`) : localePath("/search"), { scroll: false });
+  }, [localePath, router]);
 
   const executeSearch = useCallback(() => {
     const trimmed = query.trim();
     if (!trimmed) return;
+    isUserAction.current = true;
+    setSubmittedQuery(trimmed);
     setHasSearched(true);
     setPage(1);
-    const next = buildSearchQueryString({ query: trimmed, activeType, page: 1 });
-    router.push(next ? localePath(`/search?${next}`) : localePath("/search"));
-  }, [query, activeType, localePath, router]);
+    updateUrl(trimmed, activeType, 1);
+  }, [query, activeType, updateUrl]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -122,25 +123,42 @@ export default function GlobalSearchPage() {
     }
   };
 
-  const clearSearch = () => {
+  const clearSearch = useCallback(() => {
+    isUserAction.current = true;
     setQuery('');
+    setSubmittedQuery('');
     setHasSearched(false);
-    router.push(localePath("/search"));
-  };
+    setActiveType('all');
+    setPage(1);
+    router.replace(localePath("/search"), { scroll: false });
+  }, [localePath, router]);
 
-  const updateType = (type: "all" | GlobalSearchType) => {
+  const updateType = useCallback((type: "all" | GlobalSearchType) => {
+    isUserAction.current = true;
     setActiveType(type);
     setPage(1);
-  };
+    if (hasSearched) {
+      updateUrl(submittedQuery, type, 1);
+    }
+  }, [submittedQuery, hasSearched, updateUrl]);
 
-  const handleSuggestionClick = (suggestion: string) => {
+  const handleSuggestionClick = useCallback((suggestion: string) => {
+    isUserAction.current = true;
     setQuery(suggestion);
+    setSubmittedQuery(suggestion);
     setHasSearched(true);
     setPage(1);
     setActiveType("all");
-    const next = buildSearchQueryString({ query: suggestion, activeType: "all", page: 1 });
-    router.push(localePath(`/search?${next}`));
-  };
+    updateUrl(suggestion, "all", 1);
+  }, [updateUrl]);
+
+  const goToPage = useCallback((newPage: number) => {
+    isUserAction.current = true;
+    setPage(newPage);
+    if (hasSearched) {
+      updateUrl(submittedQuery, activeType, newPage);
+    }
+  }, [submittedQuery, activeType, hasSearched, updateUrl]);
 
   return (
     <div className="section-padding min-h-screen bg-gradient-to-b from-slate-50 to-white py-10 text-slate-900">
@@ -161,11 +179,7 @@ export default function GlobalSearchPage() {
                 <Input
                   ref={inputRef}
                   value={query}
-                  onChange={(event) => {
-                    setQuery(event.target.value);
-                    if (!hasSearched) setHasSearched(true);
-                    setPage(1);
-                  }}
+                  onChange={(event) => setQuery(event.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Açar söz yazın..."
                   icon={Search}
@@ -224,7 +238,7 @@ export default function GlobalSearchPage() {
           </div>
         </Card>
 
-        {!hasSearched || !query.trim() ? (
+        {!hasSearched || !submittedQuery.trim() ? (
           <div className="text-center py-12">
             <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 mb-4">
               <Search className="h-7 w-7 text-blue-500" />
@@ -254,7 +268,7 @@ export default function GlobalSearchPage() {
             </div>
             <h3 className="text-lg font-black text-slate-800 mb-2">Nəticə tapılmadı</h3>
             <p className="text-sm text-slate-500 mb-6 max-w-md mx-auto">
-              &quot;{query}&quot; üçün nəticə tapılmadı. Başqa açar söz ilə yoxlayın.
+              &quot;{submittedQuery}&quot; üçün nəticə tapılmadı. Başqa açar söz ilə yoxlayın.
             </p>
             <div className="flex flex-wrap justify-center gap-2">
               {SUGGESTED_QUERIES.map((s) => (
@@ -274,9 +288,11 @@ export default function GlobalSearchPage() {
               <p className="text-sm font-bold text-slate-600">
                 {total} nəticə tapıldı
               </p>
-              <p className="text-xs font-semibold text-slate-500">
-                Səhifə {page} / {Math.max(1, pages)}
-              </p>
+              {pages > 0 && (
+                <p className="text-xs font-semibold text-slate-500">
+                  Səhifə {page} / {pages}
+                </p>
+              )}
             </div>
 
             <SearchResultsList items={items} />
@@ -287,7 +303,7 @@ export default function GlobalSearchPage() {
                   variant="outline"
                   size="sm"
                   disabled={page <= 1}
-                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                  onClick={() => goToPage(page - 1)}
                   className="rounded-xl px-4 py-2 text-xs font-bold disabled:cursor-not-allowed"
                 >
                   Əvvəlki
@@ -296,7 +312,7 @@ export default function GlobalSearchPage() {
                   variant="outline"
                   size="sm"
                   disabled={page >= pages}
-                  onClick={() => setPage((prev) => Math.min(pages, prev + 1))}
+                  onClick={() => goToPage(page + 1)}
                   className="rounded-xl px-4 py-2 text-xs font-bold disabled:cursor-not-allowed"
                 >
                   Növbəti

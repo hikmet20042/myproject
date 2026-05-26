@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
           .eq('status', status);
 
         if (search && search.trim()) {
-          queryBuilder = queryBuilder.or(`title.ilike.%${search.trim()}%,content_html.ilike.%${search.trim()}%,abstract.ilike.%${search.trim()}%`);
+          queryBuilder = queryBuilder.or(`title.ilike.%${search.trim()}%,abstract.ilike.%${search.trim()}%`);
         }
         if (tags && tags.trim()) {
           const tagArray = tags.split(',').map(tag => tag.trim());
@@ -139,34 +139,37 @@ export async function GET(request: NextRequest) {
     
     const { blogs, total } = cachedResult as { blogs: any[], total: number };
 
-    // Post-process to map count names and include author handle if needed
-    // (Note: views_count/likes_count/etc are from the view)
-    const blogsWithStats = await Promise.all(
-      blogs.map(async (blog: any) => {
-        // Map view columns to expected names
-        const mappedBlog = {
-          ...blog,
-          views: Number(blog.real_views),
-          uniqueViews: Number(blog.real_unique_views),
-          likes: Number(blog.real_likes),
-          saves: Number(blog.real_saves || 0),
-          dislikes: Number(blog.real_dislikes),
-          engagementScore: Math.max(0, Number(blog.real_views) + Number(blog.real_likes) * 3 - Number(blog.real_dislikes))
-        }
+    // Map view columns to expected names
+    const blogsMapped = blogs.map((blog: any) => ({
+      ...blog,
+      views: Number(blog.real_views),
+      uniqueViews: Number(blog.real_unique_views),
+      likes: Number(blog.real_likes),
+      saves: Number(blog.real_saves || 0),
+      dislikes: Number(blog.real_dislikes),
+      engagementScore: Math.max(0, Number(blog.real_views) + Number(blog.real_likes) * 3 - Number(blog.real_dislikes))
+    }))
 
-        // Include author handle (still N+1, but we can optimize this later if needed)
-        let authorUrlHandle = null
-        if (blog.author_id) {
-          const { data: account } = await supabase
-            .from('accounts')
-            .select('url_handle')
-            .eq('id', blog.author_id)
-            .single()
-          authorUrlHandle = account?.url_handle || null
+    // Batch-fetch author handles (single query instead of N+1)
+    const authorIds = blogsMapped
+      .map((b: any) => b.author_id)
+      .filter((id: string | null): id is string => !!id)
+    const authorHandleMap = new Map<string, string | null>()
+    if (authorIds.length > 0) {
+      const { data: accounts } = await supabase
+        .from('accounts')
+        .select('id, url_handle')
+        .in('id', authorIds)
+      if (accounts) {
+        for (const acc of accounts) {
+          authorHandleMap.set(acc.id, acc.url_handle || null)
         }
-        return { ...mappedBlog, authorUrlHandle }
-      })
-    )
+      }
+    }
+    const blogsWithStats = blogsMapped.map((blog: any) => ({
+      ...blog,
+      authorUrlHandle: blog.author_id ? (authorHandleMap.get(blog.author_id) ?? null) : null,
+    }))
 
     const successResp = successResponse(
       { items: blogsWithStats },
