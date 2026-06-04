@@ -86,7 +86,7 @@ export const useAdminActionExecutor = <T,>(
   options?: UseAdminActionExecutorOptions,
 ) => {
   const router = useRouter();
-  const { success, error: showError, info } = useGlobalFeedback();
+  const { showSuccess, showError, showInfo } = useGlobalFeedback();
   const [loadingMap, setLoadingMap] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [lastFailedAction, setLastFailedAction] = useState<LastFailedAction<T> | null>(
@@ -167,7 +167,7 @@ export const useAdminActionExecutor = <T,>(
           showError(message);
           return;
         }
-        info("Səhifəyə yönləndirilir...");
+        showInfo("Səhifəyə yönləndirilir...");
         router.push(href);
         return;
       }
@@ -248,7 +248,7 @@ export const useAdminActionExecutor = <T,>(
               ? await executeForItem(primaryItem)
               : await Promise.all(items.map((entry) => executeForItem(entry)));
 
-        success(getSuccessMessage(action.label, items.length));
+        showSuccess(getSuccessMessage(action.label, items.length));
         setLastFailedAction(null);
         try {
           if (options?.onSuccess) {
@@ -277,7 +277,7 @@ export const useAdminActionExecutor = <T,>(
         }));
       }
     },
-    [router, currentRole, getBulkLoadingKey, getLoadingKey, options, showError, success],
+    [router, currentRole, getBulkLoadingKey, getLoadingKey, options, showError, showInfo, showSuccess],
   );
 
   const retryLastAction = useCallback(async () => {

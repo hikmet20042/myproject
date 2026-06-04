@@ -4,12 +4,11 @@ import { useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { Bookmark, Calendar, Briefcase, BookOpen } from 'lucide-react'
-import { useSession } from '@/lib/auth/client'
 import { EmptyState, LoadingState } from '@/components/shared'
+import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { Button } from '@/components/ui/Button'
 import { AppContainer } from '@/components/layout'
 import { ResourceCard } from '@/components/shared'
-import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { PageHeader, SectionCard } from '@/features/profile/components/ui'
 
@@ -30,25 +29,6 @@ export default function SavedItemsPage() {
   const router = useRouter()
   const localePath = useLocalizedPath()
   const { showError } = useGlobalFeedback()
-  const { data: session, status } = useSession()
-
-  useEffect(() => {
-    if (status === 'loading') return
-
-    if (status === 'unauthenticated') {
-      router.replace(localePath('/auth/signin'))
-      return
-    }
-
-    if (session?.user?.accountType === 'organization') {
-      router.replace(localePath('/dashboard/profile'))
-    }
-  }, [status, session?.user?.accountType, router, localePath])
-
-  const shouldBlockRender =
-    status === 'loading' ||
-    status === 'unauthenticated' ||
-    session?.user?.accountType === 'organization'
 
   const savedQuery = useQuery({
     queryKey: ['saved-list'],
@@ -58,7 +38,6 @@ export default function SavedItemsPage() {
       const data = await response.json()
       return (data?.data?.items || []) as SavedItem[]
     },
-    enabled: !shouldBlockRender,
   })
 
   const savedItems = (savedQuery.data || [])
@@ -85,10 +64,6 @@ export default function SavedItemsPage() {
     }
   }, [savedQuery.isError, savedQuery.error, showError])
 
-  if (shouldBlockRender) {
-    return <LoadingState text={'Saxlanılanlar yüklənir...'} />
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 text-foreground">
       <AppContainer className="py-8 md:py-10">
@@ -114,25 +89,7 @@ export default function SavedItemsPage() {
 
           <SectionCard title="Saxlanılan məzmunlar" description="Saxladığın məzmunlar üzrə qısa xülasə və siyahı.">
             {savedQuery.isLoading ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                  {[...Array(4)].map((_, idx) => (
-                    <div key={idx} className="animate-pulse rounded-xl border border-slate-200 p-3">
-                      <div className="h-3 w-1/2 rounded bg-gray-200" />
-                      <div className="mt-2 h-5 w-1/4 rounded bg-gray-100" />
-                    </div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {[...Array(3)].map((_, idx) => (
-                    <div key={idx} className="animate-pulse rounded-xl border border-slate-200 p-4">
-                      <div className="h-4 w-2/3 rounded bg-gray-200" />
-                      <div className="mt-3 h-3 w-full rounded bg-gray-100" />
-                      <div className="mt-2 h-3 w-5/6 rounded bg-gray-100" />
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <LoadingState variant="spinner" title="Saxlanılanlar yüklənir..." />
             ) : savedItems.length === 0 ? (
               <EmptyState
                 title="Heç nə saxlamamısan"

@@ -9,7 +9,7 @@ import { Button, ButtonLink, SearchBar } from '@/components/ui';
 import { Select } from '@/components/ui/Select';
 import { useLocalizedPath } from '@/hooks/useLocalizedPath';
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback';
-import { useSession } from '@/lib/auth/client';
+import { useAccountType } from '@/hooks/useAccountType';
 import { EmptyState, ResourceFilterContainer, ActiveFilterBadges } from '@/components/shared';
 import type { FilterBadge } from '@/components/shared/ActiveFilterBadges';
 import { ListPageLayout } from '@/components/layout';
@@ -51,8 +51,8 @@ export default function VacanciesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showError } = useGlobalFeedback();
-  const { data: session } = useSession();
-  const isOrganizationUser = session?.user?.accountType === 'organization';
+  const accountType = useAccountType();
+  const isOrganizationUser = accountType === 'organization';
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState('all');

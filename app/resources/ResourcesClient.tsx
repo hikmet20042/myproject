@@ -5,13 +5,13 @@ import { Card } from '@/components/ui/Card'
 import { ButtonLink } from '@/components/ui'
 import { ListPageLayout } from '@/components/layout'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
-import { useSession } from '@/lib/auth/client'
+import { useAccountType } from '@/hooks/useAccountType'
 import Link from 'next/link'
 
 export default function ResourcesPage() {
   const localePath = useLocalizedPath()
-  const { data: session } = useSession()
-  const isOrganizationUser = session?.user?.accountType === 'organization'
+  const accountType = useAccountType()
+  const isOrganizationUser = accountType === 'organization'
 
   const resourceCategories = [
     {

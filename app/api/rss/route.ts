@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { errorResponse } from '@/lib/apiResponse'
 import { applyRateLimit } from '@/lib/rateLimit'
 
 /**
@@ -15,18 +16,11 @@ export async function GET(request: NextRequest) {
   })
 
   if (!rateLimitResult.allowed) {
-    const response = NextResponse.json(
-      {
-        success: false,
-        data: null,
-        error: {
-          code: 'RATE_LIMITED',
-          message: 'Çox sayda sorğu. Bir az sonra yenidən cəhd edin.',
-          details: {},
-        },
-        meta: {},
-      },
-      { status: 429 }
+    const response = errorResponse(
+      'Çox sayda sorğu. Bir az sonra yenidən cəhd edin.',
+      'RATE_LIMITED',
+      {},
+      429
     )
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)

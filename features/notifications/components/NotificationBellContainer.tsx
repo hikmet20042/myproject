@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Bell } from 'lucide-react'
+import EmptyState from '@/components/shared/EmptyState'
 import { Loading } from '@/components/ui/Loading'
 import { useSession } from '@/lib/auth/client'
 import { type NotificationItem, useNotificationContext } from '@/features/notifications/context/NotificationContext'
@@ -274,8 +275,8 @@ export default function NotificationBellContainer({ className = '' }: Notificati
       </Button>
 
       {/* Notifications Dropdown */}
-      {notificationsOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-md border border-blue-100 z-50 max-h-[32rem] flex flex-col">
+       {notificationsOpen && (
+         <div className="absolute right-0 mt-2 w-96 sm:w-[420px] bg-white rounded-lg shadow-md border border-blue-100 z-50 max-h-[32rem] flex flex-col">
           {/* Header */}
           <div className="px-4 py-3 border-b border-blue-100 bg-slate-50 rounded-t-lg">
             <div className="flex justify-between items-center">
@@ -325,13 +326,7 @@ export default function NotificationBellContainer({ className = '' }: Notificati
                 ))}
               </div>
             ) : notifications.length === 0 ? (
-              <div className="px-4 py-12 text-center text-gray-500 select-none">
-                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-100">
-                  <Bell className="h-8 w-8 text-blue-300" />
-                </div>
-                <p className="text-sm font-semibold text-slate-700">{'Hələ bildiriş yoxdur'}</p>
-                <p className="text-xs text-slate-400 mt-1">{'Yeni bildirişlər burada görünəcək'}</p>
-              </div>
+              <EmptyState variant="compact" icon={Bell} title="Hələ bildiriş yoxdur" message="Yeni bildirişlər burada görünəcək" />
             ) : (
               <div>
                 {visibleNotifications.map((notification) => (
@@ -354,10 +349,10 @@ export default function NotificationBellContainer({ className = '' }: Notificati
 
           {/* Footer */}
           {visibleNotifications.length > 0 && (
-            <div className="px-4 py-2 border-t border-blue-100 bg-slate-50 rounded-b-lg">
+            <div className="border-t border-slate-100">
               <Link
                 href={viewAllNotificationsPath}
-                className="text-xs text-center text-blue-600 hover:text-blue-700 font-medium block transition-colors"
+                className="block w-full px-4 py-2.5 text-left text-base font-semibold text-blue-600 hover:bg-blue-50 transition-all duration-150"
                 onClick={() => setNotificationsOpen(false)}
               >
                 {'Bütün bildirişlərə bax'}

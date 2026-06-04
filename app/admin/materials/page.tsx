@@ -21,7 +21,9 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { TextArea } from "@/components/ui/Textarea";
 import { Card } from "@/components/ui/Card";
-import { ImageUpload, PageStateGuard } from "@/components/shared";
+import ImageUploadContainer from "@/components/containers/ImageUploadContainer";
+import { PageStateGuard } from "@/components/shared";
+import EmptyState from "@/components/shared/EmptyState";
 import AdminActionModal from "@/components/admin/AdminActionModal";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import AdminListLayout from "@/components/admin/AdminListLayout";
@@ -102,11 +104,6 @@ export default function MaterialsAdminPage() {
       ? responseData.data
       : responseData;
 
-  useEffect(() => {
-    setLoading(true);
-    loadMaterials().finally(() => setLoading(false));
-  }, []);
-
   const loadMaterials = async () => {
     try {
       setTabLoading(true);
@@ -161,6 +158,12 @@ export default function MaterialsAdminPage() {
       setTabLoading(false);
     }
   };
+
+  useEffect(() => {
+    setLoading(true);
+    loadMaterials().finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCreateMaterial = () => {
     setMaterialFormData({
@@ -465,23 +468,7 @@ export default function MaterialsAdminPage() {
               </span>
             </div>
           ) : materials.length === 0 ? (
-            <div className="text-center py-16">
-              <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-slate-900 mb-2">
-                Material tapılmadı
-              </h3>
-              <p className="text-slate-500 mb-6">
-                {materialSearch || materialCategoryFilter !== "all"
-                  ? "Filtrləri dəyişərək yenidən yoxlayın"
-                  : "İlk materialınızı əlavə edərək başlayın"}
-              </p>
-              {!materialSearch && materialCategoryFilter === "all" && (
-                <Button onClick={handleCreateMaterial} variant="primary">
-                  <FileText className="w-4 h-4 mr-2" />
-                  {"İlk materialı əlavə et"}
-                </Button>
-              )}
-            </div>
+            <EmptyState variant="inline" icon={FileText} title="Material tapılmadı" message="Filterlərə uyğun material təqdimatı yoxdur." />
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -836,7 +823,7 @@ export default function MaterialsAdminPage() {
                     <label className="block text-sm font-medium text-slate-700 mb-2">
                       {"Material şəkli"}
                     </label>
-                    <ImageUpload
+                    <ImageUploadContainer
                       value={materialFormData.imageUrl || ""}
                       onChange={(url) =>
                         setMaterialFormData({

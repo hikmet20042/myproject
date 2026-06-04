@@ -5,6 +5,7 @@ import '@blocknote/mantine/style.css'
 import { BlockNoteView } from '@blocknote/mantine'
 import { useCreateBlockNote } from '@blocknote/react'
 import React from 'react'
+import EmptyState from '@/components/shared/EmptyState'
 
 type Props = {
   initialJSON?: any
@@ -35,7 +36,7 @@ export default function BlocknoteReadOnly({ initialJSON, className, context = 'g
     initialContent: normalizedInitialContent,
   })
 
-  if (!normalizedInitialContent) return <div className="text-slate-400 italic">Məzmun yoxdur</div>
+  if (!normalizedInitialContent) return <EmptyState variant="blocknote" message="Məzmun yoxdur" />
 
   return (
     <div className={`${className ?? ''} relative`} data-text-size={textSize}>

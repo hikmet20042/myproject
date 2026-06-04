@@ -258,19 +258,18 @@ export default function GlobalSearchPage() {
             </div>
           </div>
         ) : loading ? (
-          <LoadingState text="Nəticələr axtarılır..." fullPage={false} />
+          <LoadingState text="Nəticələr axtarılır..." variant="spinner" />
         ) : error ? (
-          <EmptyState title="Axtarış xətası" message={error} fullPage={false} />
+          <EmptyState title="Axtarış xətası" message={error} variant="card" />
         ) : items.length === 0 ? (
           <div className="text-center py-12">
-            <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 mb-4">
-              <Search className="h-7 w-7 text-slate-400" />
-            </div>
-            <h3 className="text-lg font-black text-slate-800 mb-2">Nəticə tapılmadı</h3>
-            <p className="text-sm text-slate-500 mb-6 max-w-md mx-auto">
-              &quot;{submittedQuery}&quot; üçün nəticə tapılmadı. Başqa açar söz ilə yoxlayın.
-            </p>
-            <div className="flex flex-wrap justify-center gap-2">
+            <EmptyState
+              variant="inline"
+              icon={Search}
+              title="Nəticə tapılmadı"
+              message={`"${submittedQuery}" üçün nəticə tapılmadı. Başqa açar söz ilə yoxlayın.`}
+            />
+            <div className="flex flex-wrap justify-center gap-2 mt-4">
               {SUGGESTED_QUERIES.map((s) => (
                 <button
                   key={s}

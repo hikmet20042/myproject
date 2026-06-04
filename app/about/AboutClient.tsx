@@ -4,7 +4,7 @@ import { ButtonLink } from '@/components/ui'
 import { Card, CardHeader, CardContent } from '@/components/ui'
 import { Badge } from '@/components/ui/Badge'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
-import { useSession } from '@/lib/auth/client'
+import { useAccountType } from '@/hooks/useAccountType'
 import { Shield,
   AlertTriangle,
   Lightbulb,
@@ -22,8 +22,8 @@ import { Shield,
   Globe } from 'lucide-react'
 
 export default function About() { const localePath = useLocalizedPath()
-  const { data: session } = useSession()
-  const isOrganizationUser = session?.user?.accountType === 'organization'
+  const accountType = useAccountType()
+  const isOrganizationUser = accountType === 'organization'
   const dataLimitations = [
     'Paylaşılan hər hekayə birgə inkişafa töhfə verir',
     'Tapılan hər fürsət yeni imkanlar açır',

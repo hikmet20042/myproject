@@ -15,7 +15,7 @@ import { NotificationsSettingsSection } from "@/features/profile/components/Noti
 import { getUserErrorMessage } from "@/lib/errorMessages";
 import { signInWithOAuth, signOut } from "@/lib/auth/client";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
-import { ImageCropper } from "@/components/shared";
+import { ImageCropper, LoadingState } from "@/components/shared";
 import Image from 'next/image'
 
 type ProfileFormState = {
@@ -689,16 +689,7 @@ export default function ProfileSettingsPage() {
           title="Hesab tənzimləmələri"
           description="Məlumatlar yüklənir..."
         />
-
-        {[0, 1, 2].map((idx) => (
-          <SectionCard key={idx} title="Yüklənir..." description="Zəhmət olmasa gözlə.">
-            <div className="space-y-3">
-              <div className="h-10 rounded-md bg-gray-100 animate-pulse" />
-              <div className="h-10 rounded-md bg-gray-100 animate-pulse" />
-              <div className="h-24 rounded-md bg-gray-100 animate-pulse" />
-            </div>
-          </SectionCard>
-        ))}
+        <LoadingState variant="spinner" title="Tənzimləmələr yüklənir..." />
       </div>
     );
   }

@@ -26,7 +26,7 @@ export function generateMetadata(): Metadata {
       'gənclər təşkilatı',
     ],
     canonical: '/',
-    ogImage: '/og-image.png',
+    ogImage: '/opengraph-image',
     ogType: 'website',
     locale: 'az_AZ',
     alternateLocales: ['az_AZ'],

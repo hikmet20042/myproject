@@ -41,7 +41,6 @@ export function generateSEOMetadata(config: SEOConfig): Metadata {
     modifiedTime,
     author,
     locale = 'az_AZ',
-    alternateLocales = ['az_AZ'],
     noindex = false,
     structuredData
   } = config
@@ -58,7 +57,6 @@ export function generateSEOMetadata(config: SEOConfig): Metadata {
     alternates: canonical ? {
       canonical: `${siteUrl}${canonical}`,
       languages: {
-        'az': `${siteUrl}${canonical}`,
         'x-default': `${siteUrl}${canonical}`,
       }
     } : undefined,
@@ -83,7 +81,6 @@ export function generateSEOMetadata(config: SEOConfig): Metadata {
     openGraph: {
       type: ogType,
       locale,
-      alternateLocale: alternateLocales,
       title,
       description,
       siteName: 'icma360',
@@ -215,11 +212,10 @@ export function generateLocalBusinessSchema() {
     url: siteUrl,
     logo: `${siteUrl}/icma360_logo.png`,
     image: `${siteUrl}/opengraph-image`,
-    telephone: '+994-XX-XXX-XX-XX', // Add your phone number
-    email: 'info@icma360.org', // Add your email
+    email: 'info@icma360.org',
     address: {
       '@type': 'PostalAddress',
-      streetAddress: 'Bakı şəhəri', // Add specific street address
+      streetAddress: 'Bakı şəhəri',
       addressLocality: 'Bakı',
       addressRegion: 'Bakı',
       postalCode: 'AZ1000', // Add your postal code

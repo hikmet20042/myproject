@@ -2,38 +2,62 @@ import { ShieldAlert } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 
+type UnauthorizedVariant = 'card' | 'inline' | 'minimal'
+
 interface UnauthorizedStateProps {
   title?: string
   message: string
+  variant?: UnauthorizedVariant
   actionText?: string
   onAction?: () => void
+  className?: string
 }
 
 export default function UnauthorizedState({
   title = 'Giriş Qadağandır',
   message,
+  variant = 'card',
   actionText,
-  onAction
+  onAction,
+  className = '',
 }: UnauthorizedStateProps) {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 flex items-center justify-center p-4">
-      <Card className="max-w-md w-full p-8 text-center animate-scale-in border-2 border-amber-200" shadow="md">
-        <div className="relative inline-flex items-center justify-center w-20 h-20 mx-auto mb-6">
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-400 to-red-500 rounded-full blur opacity-40"></div>
-          <div className="relative w-full h-full bg-gradient-to-br from-amber-500 to-red-500 rounded-full flex items-center justify-center">
-            <ShieldAlert className="w-10 h-10 text-white" />
-          </div>
-        </div>
+  if (variant === 'minimal') {
+    return (
+      <p className={`text-center py-4 text-amber-600 text-sm font-medium ${className}`}>
+        {message}
+      </p>
+    )
+  }
 
-        <h2 className="text-2xl font-black text-slate-900 mb-4">{title}</h2>
-        <p className="text-slate-600 mb-8">{message}</p>
-
+  if (variant === 'inline') {
+    return (
+      <div className={`px-6 py-12 text-center ${className}`}>
+        <ShieldAlert className="mx-auto mb-4 h-10 w-10 text-amber-500" />
+        {title && <h3 className="mb-2 text-lg font-medium text-gray-900">{title}</h3>}
+        <p className="text-slate-500">{message}</p>
         {actionText && onAction && (
-          <Button onClick={onAction} variant="primary" size="lg">
+          <Button onClick={onAction} variant="primary" size="md" className="mt-4">
             {actionText}
           </Button>
         )}
-      </Card>
-    </div>
+      </div>
+    )
+  }
+
+  return (
+    <Card className={`max-w-lg mx-auto p-8 text-center ${className}`}>
+      <div className="brand-icon-chip mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl shadow-sm bg-amber-50 text-amber-600">
+        <ShieldAlert className="h-8 w-8" />
+      </div>
+      <h2 className="text-xl font-bold text-slate-900 mb-2">{title}</h2>
+      <p className="text-slate-500 mb-6">{message}</p>
+      {actionText && onAction && (
+        <Button onClick={onAction} variant="primary" size="lg" className="min-w-[200px]">
+          {actionText}
+        </Button>
+      )}
+    </Card>
   )
 }
+
+export type { UnauthorizedVariant }

@@ -63,4 +63,6 @@ Copy `.env.example` → `.env.local`. Requires Supabase URL/anon key, Cloudinary
 
 - `opencode.json` references `docs/guidelines.md` and `docs/security.md` — these files do not exist. The actual architecture doc is `docs/architecture-guidelines.md`.
 - `pages/` directory contains legacy API routes only. All app routes use the `app/` directory.
-- No unit or e2e test framework is currently configured (`e2e/` is empty, `test-*.js` files are gitignored).
+- Playwright is configured (`playwright.config.ts`) but the `tests/` directory it expects does not exist yet — no e2e tests have been written.
+- `e2e/` directory is empty and gitignored.
+- `test-*.js` patterns are gitignored; `test-admin-audit.js` and `test-org-audit.js` exist on disk (local scripts).

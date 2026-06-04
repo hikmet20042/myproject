@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Building2, Search, UserMinus } from "lucide-react";
-import { EmptyState } from "@/components/shared";
+import { EmptyState, LoadingState } from "@/components/shared";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -93,14 +93,7 @@ export default function ProfileFollowedOrganizationsPage() {
         description={statusText || "Hələ heç bir təşkilat izləmirsən."}
       >
         {followedQuery.isLoading ? (
-          <div className="space-y-3">
-            {[...Array(3)].map((_, idx) => (
-              <div key={idx} className="animate-pulse rounded-xl border border-slate-200 p-4">
-                <div className="h-5 w-40 rounded bg-gray-200" />
-                <div className="mt-3 h-4 w-3/4 rounded bg-gray-100" />
-              </div>
-            ))}
-          </div>
+          <LoadingState variant="list" rows={3} />
         ) : followedQuery.isError ? (
           <div className="flex justify-end">
             <Button variant="outline" onClick={() => followedQuery.refetch()}>

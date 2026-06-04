@@ -10,7 +10,7 @@ import { ApiError } from '@/lib/apiClient';
 import { getUserErrorMessage } from '@/lib/errorMessages';
 import { ListPageLayout } from '@/components/layout';
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback';
-import { useSession } from '@/lib/auth/client';
+import { useAccountType } from '@/hooks/useAccountType';
 import { ContentCard } from '@/components/shared/ContentCard';
 
 interface Material { 
@@ -27,8 +27,8 @@ interface Material {
 
 export default function MaterialsPage() {
   const localePath = useLocalizedPath();
-  const { data: session } = useSession();
-  const isOrganizationUser = session?.user?.accountType === 'organization';
+  const accountType = useAccountType();
+  const isOrganizationUser = accountType === 'organization';
   const { showError } = useGlobalFeedback();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);

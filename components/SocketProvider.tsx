@@ -130,6 +130,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         setSocket(null)
       }
     }
+    // socketRef/setSocket are refs and state setters (stable refs) — not needed in deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, session?.user?.id])
 

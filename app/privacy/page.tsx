@@ -17,7 +17,7 @@ export function generateMetadata(): Metadata {
     canonical: '/privacy',
     ogType: 'website',
     locale: 'az_AZ',
-    noindex: true,
+
   })
 }
 

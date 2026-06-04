@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { LoadingState } from "@/components/shared";
+import EmptyState from "@/components/shared/EmptyState";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import { Card } from "@/components/ui/Card";
 import AdminListLayout from "@/components/admin/AdminListLayout";
@@ -59,11 +60,6 @@ export default function UsersAdminPage() {
       ? responseData.data
       : responseData;
 
-  useEffect(() => {
-    setLoading(true);
-    loadUsers().finally(() => setLoading(false));
-  }, []);
-
   const loadUsers = async () => {
     try {
       const params = new URLSearchParams({
@@ -97,6 +93,12 @@ export default function UsersAdminPage() {
       showError("İstifadəçilər yüklənmədi");
     }
   };
+
+  useEffect(() => {
+    setLoading(true);
+    loadUsers().finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleUserAction = (user: User, action: "role" | "delete") => {
     setSelectedUser(user);
@@ -280,9 +282,7 @@ export default function UsersAdminPage() {
           </div>
           <div className="px-6 py-6">
             {users.length === 0 ? (
-              <p className="text-slate-500 text-center py-8">
-                {"İstifadəçi tapılmadı"}
-              </p>
+              <EmptyState variant="minimal" message="İstifadəçi tapılmadı" />
             ) : (
               <div className="space-y-4">
                 {users.map((user) => (

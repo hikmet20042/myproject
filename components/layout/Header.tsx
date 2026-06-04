@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useSession, signOut } from '@/lib/auth/client'
+import { useAccountType } from '@/hooks/useAccountType'
 import { canAccessAdmin, canAccessDashboard, isOrganization } from '@/lib/auth/permissions'
 import { Menu, X, User, ChevronDown, Bookmark, Search } from 'lucide-react'
 import { useNotificationContext } from '@/features/notifications/context/NotificationContext'
@@ -14,6 +15,7 @@ import { useGlobalSearch } from '@/features/search/hooks/useGlobalSearch'
 import { SearchSuggestions } from '@/features/search/components/SearchSuggestions'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/Badge'
+import { emitGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import Logo from '@/components/Logo'
 import { ButtonLink, Button } from '@/components/ui'
 import { Input } from '@/components/ui/Input'
@@ -108,7 +110,7 @@ function HeaderSearchBox({
       setQuery('')
       onNavigate?.()
     },
-    [localePath, onNavigate, query, router, recentSearches],
+    [localePath, onNavigate, query, router, saveRecentSearch],
   )
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -210,13 +212,15 @@ export default function Header() {
   const router = useRouter()
   const localePath = useLocalizedPath()
   const { data: session, status } = useSession()
+  const accountType = useAccountType()
   const isAuthLoading = status === 'loading'
-  const isOrganizationUser = isOrganization(session)
+  const isOrganizationUser = accountType === 'organization'
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
   const { unreadCount } = useNotificationContext()
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const profileMenuRef = useRef<HTMLDivElement>(null)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 
   const fetchAvatar = useCallback(async () => {
@@ -230,6 +234,7 @@ export default function Header() {
       }
     } catch (error) {
       console.error('Failed to fetch avatar:', error)
+      emitGlobalFeedback('error', 'Profil şəkli yüklənə bilmədi')
     }
   }, [session?.user?.id])
 
@@ -267,6 +272,19 @@ export default function Header() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [activeDropdown])
+
+  useEffect(() => {
+    if (!userMenuOpen) return
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [userMenuOpen])
 
 return (
     <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-slate-100">
@@ -306,7 +324,10 @@ return (
                 <>
                   <button
                     type="button"
-                    onClick={() => setActiveDropdown(activeDropdown === item.name ? null : item.name)}
+                    onClick={() => {
+                      setActiveDropdown(activeDropdown === item.name ? null : item.name)
+                      if (activeDropdown !== item.name) setUserMenuOpen(false)
+                    }}
                     className="whitespace-nowrap px-4 py-2 text-base font-black text-slate-800 transition-all duration-200 hover:text-blue-600 inline-flex items-center gap-1.5"
                   >
                     {item.name}
@@ -318,13 +339,17 @@ return (
                     />
                   </button>
                   {activeDropdown === item.name && (
-                    <div className="absolute left-0 top-full z-50 mt-2 w-56 rounded-xl border border-slate-100 bg-white py-1 shadow-lg shadow-slate-200/50">
+                    <div className="absolute left-0 top-full z-50 mt-2 w-56 rounded-lg border border-blue-100 bg-white shadow-md shadow-slate-200/50">
                       {item.dropdown.map((dropdownItem) => (
                         <Link
                           key={dropdownItem.name}
                           href={dropdownItem.href}
-                          className="block px-4 py-2.5 text-base font-bold text-slate-700 transition-all duration-150 hover:bg-blue-50 hover:text-blue-600"
-                          onClick={() => setActiveDropdown(null)}
+                          className="block px-4 py-2.5 text-base font-semibold text-slate-900 transition-all duration-150 hover:bg-blue-50 hover:text-blue-600"
+                          onClick={() => {
+                            setActiveDropdown(null)
+                            setUserMenuOpen(false)
+                            setMobileMenuOpen(false)
+                          }}
                         >
                           {dropdownItem.name}
                         </Link>
@@ -361,105 +386,132 @@ return (
           ) : session ? (
             <>
               <NotificationBellContainer />
-              <div className="relative">
+              <div className="relative" ref={profileMenuRef}>
                 <Button
-                  variant="outline"
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="gap-2 rounded-xl px-4 py-2 text-base font-black"
-                >
-                  <div className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-black text-white shadow-md">
-                    {avatarUrl ? (
-                      <Image src={avatarUrl} alt="Profil şəkli" fill className="object-cover" />
-                    ) : (
-                      session.user?.name?.charAt(0).toUpperCase() || <User className="h-4 w-4" />
-                    )}
-                  </div>
-                  <span className="sr-only">{session.user?.name || 'İstifadəçi'}</span>
-                  <ChevronDown
-                    className={cn(
-                      'h-4 w-4 text-slate-500 transition-transform duration-200',
-                      userMenuOpen && 'rotate-180',
-                    )}
-                  />
-                </Button>
+                    variant="outline"
+                    onClick={() => {
+                      setActiveDropdown(null)
+                      setUserMenuOpen((prev) => !prev)
+                    }}
+                    className="gap-2 rounded-full px-3 py-2 text-base font-semibold"
+                  >
+                    <div className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-semibold text-white shadow-md">
+                      {avatarUrl ? (
+                        <Image src={avatarUrl} alt="Profil şəkli" fill className="object-cover" />
+                      ) : (
+                        session.user?.name?.charAt(0).toUpperCase() || <User className="h-4 w-4" />
+                      )}
+                    </div>
+                    <span className="sr-only">{session.user?.name || 'İstifadəçi'}</span>
+                    <ChevronDown
+                      className={cn(
+                        'h-4 w-4 text-slate-500 transition-transform duration-200',
+                        userMenuOpen && 'rotate-180',
+                      )}
+                    />
+                  </Button>
 
                 {userMenuOpen && (
-                  <div className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-xl border border-slate-100 bg-white py-1 shadow-lg shadow-slate-200/50">
-                    <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
-                      <p className="truncate text-base font-black text-slate-900">{session.user?.name}</p>
+                  <div className="absolute right-0 z-50 mt-2 w-64 rounded-lg border border-blue-100 bg-white shadow-md shadow-slate-200/50 flex flex-col">
+                    <div className="border-b border-blue-100 bg-slate-50 px-4 py-3 rounded-t-lg">
+                      <p className="truncate text-base font-semibold text-gray-900">{session.user?.name}</p>
                       <p className="mt-0.5 truncate text-sm text-slate-600">{session.user?.email}</p>
                     </div>
-                    {!isOrganizationUser && (
-                      <Link
-                        href={localePath('/profile')}
-                        className="block px-4 py-2.5 text-base font-bold text-slate-700 transition-all duration-150 hover:bg-blue-50 hover:text-blue-600"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        Mənim Profilim
-                      </Link>
-                    )}
-                    {!isOrganizationUser && (
-                      <Link
-                        href={localePath('/saved')}
-                        className="flex items-center gap-2 px-4 py-2.5 text-base font-bold text-slate-700 transition-all duration-150 hover:bg-blue-50 hover:text-blue-600"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        <Bookmark className="h-4 w-4" />
-                        Saxlanılmışlar
-                      </Link>
-                    )}
-                    {canAccessAdmin(session) && (
-                      <Link
-                        href={localePath('/admin')}
-                        className="block px-4 py-2.5 text-base font-bold text-slate-700 transition-all duration-150 hover:bg-blue-50 hover:text-blue-600"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        İdarəetmə Paneli
-                      </Link>
-                    )}
-                    {canAccessDashboard(session) && (
-                      <Link
-                        href={localePath('/dashboard')}
-                        className="block px-4 py-2.5 text-base font-bold text-slate-700 transition-all duration-150 hover:bg-blue-50 hover:text-blue-600"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        Təşkilat Paneli
-                      </Link>
-                    )}
-                    {!isOrganizationUser ? (
-                      <Link
-                        href={localePath('/submit/blog')}
-                        className="block px-4 py-2.5 text-base font-bold text-slate-700 transition-all duration-150 hover:bg-blue-50 hover:text-blue-600"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        Bloq Paylaş
-                      </Link>
-                    ) : (
-                      <>
+                    <div className="flex-1 overflow-y-auto max-h-80">
+                      {!isOrganizationUser && (
                         <Link
-                          href={localePath('/dashboard/events/create')}
-                          className="block px-4 py-2.5 text-base font-bold text-slate-700 transition-all duration-150 hover:bg-blue-50 hover:text-blue-600"
-                          onClick={() => setUserMenuOpen(false)}
+                          href={localePath('/profile')}
+                          className="block px-4 py-2.5 text-base font-semibold text-slate-900 transition-all duration-150 hover:bg-blue-50 hover:text-blue-600"
+                          onClick={() => {
+                            setActiveDropdown(null)
+                            setUserMenuOpen(false)
+                          }}
                         >
-                          Tədbir Paylaş
+                          Mənim Profilim
                         </Link>
+                      )}
+                      {!isOrganizationUser && (
                         <Link
-                          href={localePath('/dashboard/vacancies/create')}
-                          className="block px-4 py-2.5 text-base font-bold text-slate-700 transition-all duration-150 hover:bg-blue-50 hover:text-blue-600"
-                          onClick={() => setUserMenuOpen(false)}
+                          href={localePath('/saved')}
+                          className="flex items-center gap-2 px-4 py-2.5 text-base font-semibold text-slate-900 transition-all duration-150 hover:bg-blue-50 hover:text-blue-600"
+                          onClick={() => {
+                            setActiveDropdown(null)
+                            setUserMenuOpen(false)
+                          }}
                         >
-                          Vakansiya Paylaş
+                          <Bookmark className="h-4 w-4" />
+                          Saxlanılmışlar
                         </Link>
-                      </>
-                    )}
+                      )}
+                      {canAccessAdmin(session) && (
+                        <Link
+                          href={localePath('/admin')}
+                          className="block px-4 py-2.5 text-base font-semibold text-slate-900 transition-all duration-150 hover:bg-blue-50 hover:text-blue-600"
+                          onClick={() => {
+                            setActiveDropdown(null)
+                            setUserMenuOpen(false)
+                          }}
+                        >
+                          İdarəetmə Paneli
+                        </Link>
+                      )}
+                      {canAccessDashboard(session) && (
+                        <Link
+                          href={localePath('/dashboard')}
+                          className="block px-4 py-2.5 text-base font-semibold text-slate-900 transition-all duration-150 hover:bg-blue-50 hover:text-blue-600"
+                          onClick={() => {
+                            setActiveDropdown(null)
+                            setUserMenuOpen(false)
+                          }}
+                        >
+                          Təşkilat Paneli
+                        </Link>
+                      )}
+                      {!isOrganizationUser ? (
+                        <Link
+                          href={localePath('/submit/blog')}
+                          className="block px-4 py-2.5 text-base font-semibold text-slate-900 transition-all duration-150 hover:bg-blue-50 hover:text-blue-600"
+                          onClick={() => {
+                            setActiveDropdown(null)
+                            setUserMenuOpen(false)
+                          }}
+                        >
+                          Bloq Paylaş
+                        </Link>
+                      ) : (
+                        <>
+                          <Link
+                            href={localePath('/dashboard/events/create')}
+                            className="block px-4 py-2.5 text-base font-semibold text-slate-900 transition-all duration-150 hover:bg-blue-50 hover:text-blue-600"
+                            onClick={() => {
+                              setActiveDropdown(null)
+                              setUserMenuOpen(false)
+                            }}
+                          >
+                            Tədbir Paylaş
+                          </Link>
+                          <Link
+                            href={localePath('/dashboard/vacancies/create')}
+                            className="block px-4 py-2.5 text-base font-semibold text-slate-900 transition-all duration-150 hover:bg-blue-50 hover:text-blue-600"
+                            onClick={() => {
+                              setActiveDropdown(null)
+                              setUserMenuOpen(false)
+                            }}
+                          >
+                            Vakansiya Paylaş
+                          </Link>
+                        </>
+                      )}
+                    </div>
                     <div className="border-t border-slate-100">
                       <Button
                         variant="ghost"
                         onClick={() => {
-                          signOut((path) => router.replace(path))
+                          setActiveDropdown(null)
                           setUserMenuOpen(false)
+                          signOut((path) => router.replace(path))
                         }}
-                        className="w-full px-4 py-2.5 text-left text-base font-bold text-red-600 hover:bg-red-50"
+                        className="w-full px-4 py-2.5 text-left text-base font-semibold text-red-600 hover:bg-red-50"
                       >
                         Çıxış
                       </Button>
@@ -561,26 +613,30 @@ return (
                       <div className="h-12 w-full animate-pulse rounded-xl bg-slate-200" />
                       <div className="h-12 w-full animate-pulse rounded-xl bg-slate-200" />
                     </div>
-                  ) : session ? (
+                   ) : session ? (
                     <div className="space-y-2">
-                        <div className="mb-4 flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-4">
-                          <div className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-lg font-black text-white shadow-md">
-                          {avatarUrl ? (
-                            <Image src={avatarUrl} alt="Profil şəkli" fill className="object-cover" />
-                          ) : (
-                            session.user?.name?.charAt(0).toUpperCase()
-                          )}
+                      <div className="mb-4 flex items-center gap-3 rounded-lg border border-blue-100 bg-slate-50 px-4 py-3">
+                          <div className="relative flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-lg font-semibold text-white shadow-md">
+                            {avatarUrl ? (
+                              <Image src={avatarUrl} alt="Profil şəkli" fill className="object-cover" />
+                            ) : (
+                              session.user?.name?.charAt(0).toUpperCase()
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">{session.user?.name}</p>
+                            <p className="text-xs text-slate-600">{session.user?.email}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-black text-slate-900">{session.user?.name}</p>
-                          <p className="text-xs text-slate-600">{session.user?.email}</p>
-                        </div>
-                      </div>
                       {!isOrganizationUser && (
                         <Link
                           href={localePath('/profile')}
-                          className="-mx-3 flex items-center justify-between rounded-xl px-4 py-3 text-base font-semibold leading-7 text-slate-900 transition-all hover:bg-slate-50"
-                          onClick={() => setMobileMenuOpen(false)}
+                          className="-mx-3 flex items-center justify-between rounded-lg px-4 py-3 text-base font-semibold leading-7 text-slate-900 transition-all hover:bg-blue-50 hover:text-blue-600"
+                          onClick={() => {
+                            setActiveDropdown(null)
+                            setUserMenuOpen(false)
+                            setMobileMenuOpen(false)
+                          }}
                         >
                           Mənim Profilim
                           {unreadCount > 0 && (
@@ -591,8 +647,12 @@ return (
                       {!isOrganizationUser && (
                         <Link
                           href={localePath('/saved')}
-                          className="-mx-3 flex items-center gap-2 rounded-xl px-4 py-3 text-base font-semibold leading-7 text-slate-900 transition-all hover:bg-slate-50"
-                          onClick={() => setMobileMenuOpen(false)}
+                          className="-mx-3 flex items-center gap-2 rounded-lg px-4 py-3 text-base font-semibold leading-7 text-slate-900 transition-all hover:bg-blue-50 hover:text-blue-600"
+                          onClick={() => {
+                            setActiveDropdown(null)
+                            setUserMenuOpen(false)
+                            setMobileMenuOpen(false)
+                          }}
                         >
                           <Bookmark className="h-5 w-5 text-slate-500" />
                           Saxlanılmışlar
@@ -601,8 +661,12 @@ return (
                       {canAccessAdmin(session) && (
                         <Link
                           href={localePath('/admin')}
-                          className="-mx-3 block rounded-xl px-4 py-3 text-base font-semibold leading-7 text-slate-900 transition-all hover:bg-slate-50"
-                          onClick={() => setMobileMenuOpen(false)}
+                          className="-mx-3 block rounded-lg px-4 py-3 text-base font-semibold leading-7 text-slate-900 transition-all hover:bg-blue-50 hover:text-blue-600"
+                          onClick={() => {
+                            setActiveDropdown(null)
+                            setUserMenuOpen(false)
+                            setMobileMenuOpen(false)
+                          }}
                         >
                           İdarəetmə Paneli
                         </Link>
@@ -610,8 +674,12 @@ return (
                       {canAccessDashboard(session) && (
                         <Link
                           href={localePath('/dashboard')}
-                          className="-mx-3 block rounded-xl px-4 py-3 text-base font-semibold leading-7 text-slate-900 transition-all hover:bg-slate-50"
-                          onClick={() => setMobileMenuOpen(false)}
+                          className="-mx-3 block rounded-lg px-4 py-3 text-base font-semibold leading-7 text-slate-900 transition-all hover:bg-blue-50 hover:text-blue-600"
+                          onClick={() => {
+                            setActiveDropdown(null)
+                            setUserMenuOpen(false)
+                            setMobileMenuOpen(false)
+                          }}
                         >
                           Təşkilat Paneli
                         </Link>
@@ -619,8 +687,12 @@ return (
                       {!isOrganizationUser ? (
                         <Link
                           href={localePath('/submit/blog')}
-                          className="-mx-3 block rounded-xl px-4 py-3 text-base font-semibold leading-7 text-slate-900 transition-all hover:bg-slate-50"
-                          onClick={() => setMobileMenuOpen(false)}
+                          className="-mx-3 block rounded-lg px-4 py-3 text-base font-semibold leading-7 text-slate-900 transition-all hover:bg-blue-50 hover:text-blue-600"
+                          onClick={() => {
+                            setActiveDropdown(null)
+                            setUserMenuOpen(false)
+                            setMobileMenuOpen(false)
+                          }}
                         >
                           Bloq Paylaş
                         </Link>
@@ -628,15 +700,23 @@ return (
                         <>
                           <Link
                             href={localePath('/dashboard/events/create')}
-                            className="-mx-3 block rounded-xl px-4 py-3 text-base font-semibold leading-7 text-slate-900 transition-all hover:bg-slate-50"
-                            onClick={() => setMobileMenuOpen(false)}
+                            className="-mx-3 block rounded-lg px-4 py-3 text-base font-semibold leading-7 text-slate-900 transition-all hover:bg-blue-50 hover:text-blue-600"
+                            onClick={() => {
+                              setActiveDropdown(null)
+                              setUserMenuOpen(false)
+                              setMobileMenuOpen(false)
+                            }}
                           >
                             Tədbir Paylaş
                           </Link>
                           <Link
                             href={localePath('/dashboard/vacancies/create')}
-                            className="-mx-3 block rounded-xl px-4 py-3 text-base font-semibold leading-7 text-slate-900 transition-all hover:bg-slate-50"
-                            onClick={() => setMobileMenuOpen(false)}
+                            className="-mx-3 block rounded-lg px-4 py-3 text-base font-semibold leading-7 text-slate-900 transition-all hover:bg-blue-50 hover:text-blue-600"
+                            onClick={() => {
+                              setActiveDropdown(null)
+                              setUserMenuOpen(false)
+                              setMobileMenuOpen(false)
+                            }}
                           >
                             Vakansiya Paylaş
                           </Link>
@@ -645,10 +725,12 @@ return (
                       <Button
                         variant="ghost"
                         onClick={() => {
-                          signOut((path) => router.replace(path))
+                          setActiveDropdown(null)
+                          setUserMenuOpen(false)
                           setMobileMenuOpen(false)
+                          signOut((path) => router.replace(path))
                         }}
-                        className="-mx-3 mt-2 block w-full rounded-xl px-4 py-3 text-left text-base font-bold leading-7 text-red-600 hover:bg-red-50"
+                        className="-mx-3 mt-2 block w-full px-4 py-3 text-left text-base font-semibold leading-7 text-red-600 hover:bg-red-50"
                       >
                         Çıxış
                       </Button>

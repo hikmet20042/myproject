@@ -12,7 +12,7 @@ import { Tabs } from '@/components/ui/Tabs'
 import { LoadingState, EmptyState } from '@/components/shared'
 import { fetchOrganizations } from '@/lib/organizationQueries'
 import { FOCUS_AREA_LABELS_AZ } from '@/lib/organizationTypes'
-import { useSession } from '@/lib/auth/client'
+import { useAccountType } from '@/hooks/useAccountType'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { logError } from '@/lib/logger'
@@ -160,7 +160,7 @@ const localizeVacancyType = (value?: string): string => {
 
 export default function HomePage() {
   const localePath = useLocalizedPath()
-  const { data: session, status } = useSession()
+  const accountType = useAccountType()
   const { showError } = useGlobalFeedback()
 
   const [mounted, setMounted] = useState(false)
@@ -180,7 +180,7 @@ export default function HomePage() {
     totalBlogs: 0,
   })
 
-  const isOrganizationUser = session?.user?.accountType === 'organization'
+  const isOrganizationUser = accountType === 'organization'
 
   useEffect(() => {
     setMounted(true)
@@ -507,7 +507,7 @@ export default function HomePage() {
     },
   ]
 
-  if (!mounted || (loading && status === 'loading')) {
+  if (!mounted || loading) {
     return <LoadingState text="Ana səhifə yüklənir..." />
   }
 
@@ -532,11 +532,11 @@ export default function HomePage() {
         />
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {loading ? (
-            Array.from({ length: 3 }).map((_, i) => <LoadingState key={i} fullPage={false} />)
+            Array.from({ length: 3 }).map((_, i) => <LoadingState key={i} variant="card" />)
           ) : highlightFeed.length > 0 ? (
             highlightFeed.map((item) => <ContentCard key={`${item.kind}-${item.id}`} item={item} />)
           ) : (
-            <EmptyState title="İmkan tapılmadı" message="Yaxın zamanda yeni imkanlar olacaq." fullPage={false} />
+            <EmptyState title="İmkan tapılmadı" message="Yaxın zamanda yeni imkanlar olacaq." variant="card" />
           )}
         </div>
       </section>
@@ -551,14 +551,14 @@ export default function HomePage() {
           />
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {loading ? (
-              Array.from({ length: 4 }).map((_, i) => <LoadingState key={i} fullPage={false} />)
+              Array.from({ length: 4 }).map((_, i) => <LoadingState key={i} variant="card" />)
             ) : vacancyFeed.length > 0 ? (
               vacancyFeed.slice(0, 4).map((item) => <ContentCard key={item.id} item={item} />)
             ) : (
               <EmptyState
                 title="Vakansiya tapılmadı"
                 message="Hazırda göstəriləcək vakansiya yoxdur. Bir az sonra yenidən yoxlayın."
-                fullPage={false}
+                variant="card"
               />
             )}
           </div>
@@ -575,14 +575,14 @@ export default function HomePage() {
           />
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {loading ? (
-              Array.from({ length: 4 }).map((_, i) => <LoadingState key={i} fullPage={false} />)
+              Array.from({ length: 4 }).map((_, i) => <LoadingState key={i} variant="card" />)
             ) : eventFeed.length > 0 ? (
               eventFeed.slice(0, 4).map((item) => <ContentCard key={item.id} item={item} />)
             ) : (
               <EmptyState
                 title="Tədbir tapılmadı"
                 message="Hazırda göstəriləcək tədbir yoxdur. Yaxın zamanda yeni elanlar əlavə oluna bilər."
-                fullPage={false}
+                variant="card"
               />
             )}
           </div>
@@ -635,7 +635,7 @@ export default function HomePage() {
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
 
             {loading ? (
-              Array.from({ length: 4 }).map((_, i) => <LoadingState key={i} fullPage={false} />)
+              Array.from({ length: 4 }).map((_, i) => <LoadingState key={i} variant="card" />)
             ) : filteredOrganizations.length > 0 ? (
               filteredOrganizations.slice(0, 8).map((org) => (
                 <OrganizationCard 
@@ -646,8 +646,8 @@ export default function HomePage() {
                 />
               ))
             ) : (
-              <div className="col-span-full py-12 text-center">
-                 <p className="text-slate-500 font-bold">Bu sahədə təşkilat tapılmadı.</p>
+              <div className="col-span-full">
+                <EmptyState variant="inline" message="Bu sahədə təşkilat tapılmadı. Filtri dəyişərək yenidən yoxlayın." />
               </div>
             )}
           </div>
@@ -664,14 +664,14 @@ export default function HomePage() {
           />
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {loading ? (
-              Array.from({ length: 3 }).map((_, i) => <LoadingState key={i} fullPage={false} />)
+            Array.from({ length: 3 }).map((_, i) => <LoadingState key={i} variant="card" />)
             ) : blogFeed.length > 0 ? (
               blogFeed.slice(0, 3).map((item) => <ContentCard key={item.id} item={item} />)
             ) : (
               <EmptyState
                 title="Bloq tapılmadı"
                 message="Hazırda göstəriləcək bloq yazısı yoxdur. Daha sonra yenidən baxın."
-                fullPage={false}
+                variant="card"
               />
             )}
           </div>
@@ -681,7 +681,6 @@ export default function HomePage() {
       {/* How It Works - Restored Abstract Design */}
       <section className="relative z-10 py-32 container mx-auto px-4">
         <div className="relative overflow-hidden rounded-[4rem] bg-slate-900 p-10 md:p-20 shadow-2xl border border-white/10">
-            <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.1] mix-blend-overlay" />
           
           {/* Abstract glows inside dark container */}
           <div className="absolute -left-[10%] -top-[10%] h-[500px] w-[500px] rounded-full bg-blue-600 opacity-20 blur-[120px]" />

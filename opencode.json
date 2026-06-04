@@ -5,6 +5,7 @@
     "docs/security.md",
     ".opencode/instructions/ctx-host-first.md"
   ],
+  "plugin": ["superpowers@git+https://github.com/obra/superpowers.git"],
   "mcp": {
     "ctx": {
       "command": [

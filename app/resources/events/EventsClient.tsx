@@ -15,7 +15,7 @@ import { eventQueryKeys, fetchEvents } from '@/lib/eventQueries';
 import { getUserErrorMessage } from '@/lib/errorMessages';
 import { logError } from '@/lib/logger';
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback';
-import { useSession } from '@/lib/auth/client';
+import { useAccountType } from '@/hooks/useAccountType';
 import { AZERBAIJAN_CITIES, EVENT_TYPE_LABELS, EVENT_TYPE_VALUES, type EventTypeValue } from '@/lib/events/eventConfig';
 import { ContentCard } from '@/components/shared/ContentCard';
 import { generateItemListSchema } from '@/lib/seo';
@@ -29,8 +29,8 @@ const SORT_OPTIONS = [
 export default function EventsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session } = useSession();
-  const isOrganizationUser = session?.user?.accountType === 'organization';
+  const accountType = useAccountType();
+  const isOrganizationUser = accountType === 'organization';
   const { showError } = useGlobalFeedback();
   const localePath = useLocalizedPath()
 

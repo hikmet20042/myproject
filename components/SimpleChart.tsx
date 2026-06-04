@@ -12,6 +12,7 @@ import { Chart as ChartJS,
   Legend,
   ArcElement, } from 'chart.js';
 import { Line, Bar, Pie } from 'react-chartjs-2';
+import EmptyState from '@/components/shared/EmptyState';
 
 ChartJS.register(
   CategoryScale,
@@ -60,7 +61,7 @@ export default function SimpleChart({ type, data, options }: SimpleChartProps) {
       return (
         <div style={{ position: 'relative', height: '400px', width: '100%' }}>
           {!hasData ? (
-            <div className="flex items-center justify-center h-80 text-slate-500">{'Məlumat yoxdur'}</div>
+            <EmptyState variant="chart" message="Məlumat yoxdur" />
           ) : (
             <Line {...commonProps} />
           )}
@@ -70,7 +71,7 @@ export default function SimpleChart({ type, data, options }: SimpleChartProps) {
       return (
         <div style={{ position: 'relative', height: '400px', width: '100%' }}>
           {!hasData ? (
-            <div className="flex items-center justify-center h-80 text-slate-500">{'Məlumat yoxdur'}</div>
+            <EmptyState variant="chart" message="Məlumat yoxdur" />
           ) : (
             <Bar {...commonProps} />
           )}
@@ -80,7 +81,7 @@ export default function SimpleChart({ type, data, options }: SimpleChartProps) {
       return (
         <div style={{ position: 'relative', height: '400px', width: '100%' }}>
           {!hasData ? (
-            <div className="flex items-center justify-center h-80 text-slate-500">{'Məlumat yoxdur'}</div>
+            <EmptyState variant="chart" message="Məlumat yoxdur" />
           ) : (
             <Pie {...commonProps} />
           )}

@@ -24,20 +24,20 @@ import BlogReactionsContainer from '@/features/blogs/components/BlogReactionsCon
 import { LoadingState, ErrorState } from '@/components/shared'
 import SaveItemButtonContainer from '@/components/containers/SaveItemButtonContainer'
 import ViewTracker from '@/components/ViewTracker'
-import { useSession } from '@/lib/auth/client'
+import { useAccountType } from '@/hooks/useAccountType'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { blogQueryKeys, fetchBlogById, resolveBlogIdentifier } from '@/lib/blogQueries'
 
 function BlogContentSkeleton() {
   return (
-    <div className="animate-pulse space-y-6">
-      <div className="h-6 w-1/4 rounded bg-gray-200" />
-      <div className="space-y-4">
-        <div className="h-4 w-full rounded bg-gray-100" />
-        <div className="h-4 w-[95%] rounded bg-gray-100" />
-        <div className="h-4 w-[92%] rounded bg-gray-100" />
-        <div className="h-4 w-[88%] rounded bg-gray-100" />
+    <div className="animate-pulse space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-6">
+      <div className="h-6 w-1/3 rounded bg-slate-300" />
+      <div className="space-y-3">
+        <div className="h-4 w-full rounded bg-slate-200" />
+        <div className="h-4 w-[95%] rounded bg-slate-200" />
+        <div className="h-4 w-[92%] rounded bg-slate-200" />
+        <div className="h-4 w-[88%] rounded bg-slate-200" />
       </div>
     </div>
   )
@@ -105,7 +105,7 @@ type Blog = {
 
 export default function BlogDetailPage({ params }: { params: { slug: string } }) {
   const localePath = useLocalizedPath()
-  const { data: session } = useSession()
+  const accountType = useAccountType()
   const { showError } = useGlobalFeedback()
   const contentRef = useRef<HTMLDivElement>(null)
   const [readingProgress, setReadingProgress] = useState(0)
@@ -160,7 +160,7 @@ export default function BlogDetailPage({ params }: { params: { slug: string } })
 
   const publishedDate = blog?.submittedAt || blog?.date || ''
   const formattedDate = formatDate(publishedDate)
-  const canAccessReactions = session?.user?.accountType !== 'organization'
+  const canAccessReactions = accountType !== 'organization'
   const backHref = localePath('/blogs')
 
   const safeHtml = blog?.contentHtml ? DOMPurify.sanitize(blog.contentHtml) : ''

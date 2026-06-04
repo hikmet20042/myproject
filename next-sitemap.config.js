@@ -170,27 +170,5 @@ module.exports = {
     return paths
   },
   
-  robotsTxtOptions: {
-    policies: [
-      {
-        userAgent: '*',
-        allow: '/',
-        disallow: ['/admin', '/api', '/auth', '/dashboard', '/edit', '/submit', '/profile', '/onboarding', '/notifications', '/saved']
-      },
-      {
-        userAgent: 'Googlebot',
-        allow: '/',
-        disallow: ['/admin', '/api', '/auth', '/dashboard', '/edit', '/submit', '/profile', '/onboarding', '/notifications', '/saved'],
-        crawlDelay: 0
-      },
-      {
-        userAgent: 'bingbot',
-        allow: '/',
-        disallow: ['/admin', '/api', '/auth', '/dashboard', '/edit', '/submit', '/profile', '/onboarding', '/notifications', '/saved'],
-        crawlDelay: 0
-      }
-    ]
-    // additionalSitemaps removed: next-sitemap generates the main sitemap automatically
-    // Adding it here creates a circular reference
-  },
+
 }

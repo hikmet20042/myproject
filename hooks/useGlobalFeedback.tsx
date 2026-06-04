@@ -2,14 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-export type GlobalFeedbackType = "success" | "error" | "info";
-
-export type GlobalFeedbackMessage = {
-  id: string;
-  type: GlobalFeedbackType;
-  message: string;
-  createdAt: number;
-};
+export type GlobalFeedbackType = "success" | "error" | "info" | "warning";
 
 const GLOBAL_FEEDBACK_EVENT = "app:global-feedback";
 
@@ -27,14 +20,19 @@ export const emitGlobalFeedback = (type: GlobalFeedbackType, message: string) =>
   );
 };
 
+export type GlobalFeedbackMessage = {
+  id: string;
+  type: GlobalFeedbackType;
+  message: string;
+  createdAt: number;
+};
+
 type GlobalFeedbackContextValue = {
   messages: GlobalFeedbackMessage[];
   showSuccess: (message: string) => void;
   showError: (message: string) => void;
   showInfo: (message: string) => void;
-  success: (message: string) => void;
-  error: (message: string) => void;
-  info: (message: string) => void;
+  showWarning: (message: string) => void;
   clear: (id?: string) => void;
 };
 
@@ -50,7 +48,7 @@ export const GlobalFeedbackProvider = ({
   const push = useCallback((type: GlobalFeedbackType, message: string) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     setMessages((prev) => [
-      ...prev,
+      ...prev.slice(-4),
       { id, type, message, createdAt: Date.now() },
     ]);
   }, []);
@@ -75,6 +73,10 @@ export const GlobalFeedbackProvider = ({
     push("info", message);
   }, [push]);
 
+  const showWarning = useCallback((message: string) => {
+    push("warning", message);
+  }, [push]);
+
   useEffect(() => {
     const onGlobalFeedback = (event: Event) => {
       const customEvent = event as CustomEvent<GlobalFeedbackEventPayload>;
@@ -95,12 +97,10 @@ export const GlobalFeedbackProvider = ({
       showSuccess,
       showError,
       showInfo,
-      success: showSuccess,
-      error: showError,
-      info: showInfo,
+      showWarning,
       clear,
     }),
-    [messages, showSuccess, showError, showInfo, clear],
+    [messages, showSuccess, showError, showInfo, showWarning, clear],
   );
 
   return (

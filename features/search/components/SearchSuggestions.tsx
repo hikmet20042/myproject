@@ -1,10 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRight, Calendar, Briefcase, Building2, BookOpen, Loader2 } from 'lucide-react'
+import { ArrowRight, Calendar, Briefcase, Building2, BookOpen, Loader2, Search } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { cn } from '@/lib/utils'
+import EmptyState from '@/components/shared/EmptyState'
 import type { GlobalSearchItem, GlobalSearchType } from '@/features/search/types/search.types'
 import { SEARCH_TYPE_LABELS } from '@/features/search/utils/searchPresentation'
 
@@ -71,10 +72,7 @@ export function SearchSuggestions({
           <span className="text-sm font-medium text-slate-500">Axtarılır...</span>
         </div>
       ) : items.length === 0 ? (
-        <div className="px-5 py-6 text-center">
-          <p className="text-sm font-semibold text-slate-600">Nəticə tapılmadı</p>
-          <p className="mt-1 text-xs text-slate-400">Başqa açar söz ilə yoxlayın</p>
-        </div>
+        <EmptyState variant="compact" icon={Search} title="Nəticə tapılmadı" message="Başqa açar söz ilə yoxlayın" />
       ) : (
         <>
           <div className="max-h-80 overflow-y-auto">

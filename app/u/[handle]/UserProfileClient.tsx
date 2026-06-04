@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from '@/lib/auth/client'
+import { useAccountType } from '@/hooks/useAccountType'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { LoadingState, ErrorState } from '@/components/shared'
+import EmptyState from '@/components/shared/EmptyState'
 import {
   ArrowLeft,
   Calendar,
@@ -45,6 +47,7 @@ export default function PublicUserProfilePage() {
   const router = useRouter()
   const localePath = useLocalizedPath()
   const { data: session } = useSession()
+  const accountType = useAccountType()
   const handle = params?.handle as string
 
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -263,9 +266,7 @@ export default function PublicUserProfilePage() {
                       </div>
                     </Link>
                   ) : (
-                    <div className="p-4 rounded-lg bg-slate-50 text-slate-500 text-sm">
-                      Hazırda bloq yazısı yoxdur.
-                    </div>
+                    <EmptyState variant="sidebar" message="Hazırda bloq yazısı yoxdur." />
                   )}
                 </div>
               </div>

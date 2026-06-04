@@ -1,46 +1,13 @@
 "use client"
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useSession } from '@/lib/auth/client'
-import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { LoadingState } from '@/components/shared'
 
 export default function BlogSubmissionLayout({ children }: { children: React.ReactNode }) {
-  const { data: session, status } = useSession()
-  const router = useRouter()
-  const localePath = useLocalizedPath()
-  const [isRedirecting, setIsRedirecting] = useState(false)
+  const { isReady } = useAuthGuard({ allowedAccountTypes: ['user'] })
 
-  useEffect(() => {
-    if (status === 'loading') return
-
-    // Unauthenticated users should sign in first
-    if (status === 'unauthenticated') {
-      setIsRedirecting(true)
-      router.replace(localePath('/auth/signin'))
-      return
-    }
-
-    // /submit/blog is a regular-user-only route
-    // Organizations should use /dashboard instead
-    if (session?.user?.accountType === 'organization') {
-      setIsRedirecting(true)
-      router.push(localePath('/dashboard'))
-      return
-    }
-
-    setIsRedirecting(false)
-  }, [status, session?.user?.accountType, router, localePath])
-
-  const shouldBlockRender =
-    status === 'loading' ||
-    isRedirecting ||
-    status === 'unauthenticated' ||
-    session?.user?.accountType === 'organization'
-
-  if (shouldBlockRender) {
+  if (!isReady) {
     return <LoadingState text={'Yüklənir...'} />
   }
 

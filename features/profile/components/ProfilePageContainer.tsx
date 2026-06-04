@@ -30,7 +30,7 @@ export default function ProfilePageContainer({ variant = "dashboard" }: ProfileP
   useEffect(() => {
     setMounted(true);
     return () => undefined;
-    // Mount-only lifecycle.
+    // Mount-only lifecycle — empty deps intentional
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/Card'
 import { ButtonLink } from '@/components/ui'
 import { useSession } from "@/lib/auth/client";
 import { canAccessAdmin } from "@/lib/auth/permissions";
-import { ErrorBoundary, UnauthorizedState } from "@/components/shared";
+import { UnauthorizedState } from "@/components/shared";
 import { AdminRoleProvider } from "@/components/admin/AdminRoleProvider";
 import { usePathname } from "next/navigation";
 import {
@@ -106,14 +106,9 @@ export default function AdminLayout({
             </Card>
           </aside>
           <main className="flex-1 min-w-0">
-            <ErrorBoundary
-              title="İdarəetmə panelində xəta baş verdi"
-              message="Zəhmət olmasa yenidən cəhd edin və ya idarəetmə səhifəsini yeniləyin."
-            >
-              <AdminRoleProvider role={session?.user?.role}>
-                {children}
-              </AdminRoleProvider>
-            </ErrorBoundary>
+            <AdminRoleProvider role={session?.user?.role}>
+              {children}
+            </AdminRoleProvider>
           </main>
         </div>
       </div>

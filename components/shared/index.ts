@@ -18,11 +18,10 @@ export { default as SuccessState } from './SuccessState'
 export { default as SectionHeader } from './SectionHeader'
 export { default as InfoCard } from './InfoCard'
 export { default as ActionButton } from './ActionButton'
-export { default as ImageUpload } from './ImageUpload'
 export { default as ImageCropper } from './ImageCropper'
 
 // Resource Filter Components
-export { ResourceFilterContainer } from './ResourceFilterContainer'
+export { ResourceFilterContainer } from '@/components/containers/ResourceFilterContainer'
 export { ActiveFilterBadges } from './ActiveFilterBadges'
 export { ResourceCard } from './ResourceCard'
 export { ContentCard } from './ContentCard'

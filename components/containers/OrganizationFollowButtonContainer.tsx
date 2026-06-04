@@ -7,6 +7,7 @@ import { Users } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { useSession } from '@/lib/auth/client'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { trackOrganizationFollow } from '@/lib/analytics'
 import { fetchOrganizationFollowState, toggleOrganizationFollow } from '@/lib/organizationQueries'
@@ -110,13 +111,12 @@ export default function OrganizationFollowButtonContainer({
     return `${followerCount.toLocaleString('az-AZ')} izləyici`
   }, [followerCount, showFollowerCount])
 
+  const requireAuth = useRequireAuth()
+
   const handleToggle = () => {
     if (status === 'loading') return
 
-    if (!session?.user?.id) {
-      router.push(localePath('/auth/signin'))
-      return
-    }
+    if (!requireAuth()) return
 
     if (!isRegularUser) {
       showInfo('Yalnız fərdi hesablar təşkilatları izləyə bilər')

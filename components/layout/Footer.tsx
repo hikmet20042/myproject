@@ -2,15 +2,15 @@
 
 import Link from 'next/link'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
-import { useSession } from '@/lib/auth/client'
+import { useAccountType } from '@/hooks/useAccountType'
 import { Mail, ArrowUpRight } from 'lucide-react'
 import Logo from '@/components/Logo'
 import { ButtonLink, SocialLink } from '@/components/ui'
 
 export default function Footer() {
   const localePath = useLocalizedPath()
-  const { data: session } = useSession()
-  const isOrganizationUser = session?.user?.accountType === 'organization'
+  const accountType = useAccountType()
+  const isOrganizationUser = accountType === 'organization'
   const currentYear = new Date().getFullYear()
 
   const footerSections = [

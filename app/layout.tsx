@@ -184,19 +184,19 @@ export default function RootLayout({
             <AuthProvider>
               <SocketProvider>
                 <SSENotificationProvider>
-                  <NotificationProvider>
-                    <GlobalFeedbackProvider>
-                      <ErrorBoundary>
-                        <EventsRealtimeSyncContainer />
+                    <NotificationProvider>
+                      <GlobalFeedbackProvider>
+                        <ErrorBoundary>
+                          <EventsRealtimeSyncContainer />
+                          <Header />
+                          <main className="min-h-screen">
+                            {children}
+                          </main>
+                          <Footer />
+                        </ErrorBoundary>
                         <GlobalFeedback />
-                        <Header />
-                        <main className="min-h-screen">
-                          {children}
-                        </main>
-                        <Footer />
-                      </ErrorBoundary>
-                    </GlobalFeedbackProvider>
-                  </NotificationProvider>
+                      </GlobalFeedbackProvider>
+                    </NotificationProvider>
                 </SSENotificationProvider>
               </SocketProvider>
             </AuthProvider>

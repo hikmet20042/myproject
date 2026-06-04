@@ -17,6 +17,7 @@ import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
 import { TextArea } from "@/components/ui/Textarea";
 import { PageStateGuard } from "@/components/shared";
+import EmptyState from "@/components/shared/EmptyState";
 import AdminActionModal from "@/components/admin/AdminActionModal";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import { Card } from "@/components/ui/Card";
@@ -76,11 +77,6 @@ export default function NotificationsAdminPage() {
       ? responseData.data
       : responseData;
 
-  useEffect(() => {
-    setLoading(true);
-    loadNotifications().finally(() => setLoading(false));
-  }, []);
-
   const loadNotifications = async () => {
     try {
       const params = new URLSearchParams({
@@ -114,6 +110,12 @@ export default function NotificationsAdminPage() {
       console.error("Error loading notifications:", error);
     }
   };
+
+  useEffect(() => {
+    setLoading(true);
+    loadNotifications().finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const sendAnnouncement = async () => {
     if (!announcementForm.title.trim() || !announcementForm.message.trim()) {
@@ -445,13 +447,7 @@ export default function NotificationsAdminPage() {
           </div>
           <div className="px-6 py-6">
             {notifications.length === 0 ? (
-              <div className="text-center py-12">
-                <Bell className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-                <p className="text-slate-500">{"Hələ elan yoxdur"}</p>
-                <p className="text-slate-400 text-sm mt-2">
-                  {"İlk Elanı Yarat"}
-                </p>
-              </div>
+              <EmptyState variant="inline" icon={Bell} title="Hələ elan yoxdur" message="İlk Elanı Yarat" />
             ) : (
               <div className="space-y-4">
                 {notifications.map((notification) => (

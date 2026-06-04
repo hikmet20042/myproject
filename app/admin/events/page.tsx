@@ -15,7 +15,8 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { TextArea } from "@/components/ui/Textarea";
-import { LoadingState } from "@/components/shared";
+import { ErrorState, LoadingState } from "@/components/shared";
+import EmptyState from "@/components/shared/EmptyState";
 import AdminActionModal from "@/components/admin/AdminActionModal";
 import { useLocalizedPath } from "@/hooks/useLocalizedPath";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
@@ -276,11 +277,12 @@ export default function EventsAdminPage() {
     return (
       <AdminListLayout title="Tədbir İdarəetməsi" description="Tədbir təqdimatlarını moderasiya edin və statuslarını idarə edin.">
         <div className="py-6">
-          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
-            {eventsQuery.error instanceof Error
-              ? eventsQuery.error.message
-              : "Tədbirləri yükləmək mümkün olmadı."}
-          </div>
+          <ErrorState
+            title="Tədbirlər yüklənmədi"
+            message={eventsQuery.error instanceof Error ? eventsQuery.error.message : "Tədbirləri yükləmək mümkün olmadı."}
+            fullPage={false}
+            onRetry={() => eventsQuery.refetch()}
+          />
         </div>
       </AdminListLayout>
     );
@@ -419,15 +421,7 @@ export default function EventsAdminPage() {
           </div>
           <div className="divide-y divide-gray-200">
             {events.length === 0 ? (
-              <div className="px-6 py-12 text-center">
-                <Calendar className="mx-auto h-12 w-12 text-slate-400" />
-                <h3 className="mt-2 text-sm font-medium text-slate-900">
-                  {"Tədbir tapılmadı"}
-                </h3>
-                <p className="mt-1 text-sm text-slate-500">
-                  {"Filterlərə uyğun tədbir təqdimatı yoxdur."}
-                </p>
-              </div>
+              <EmptyState variant="inline" icon={Calendar} title="Tədbir tapılmadı" message="Filterlərə uyğun tədbir təqdimatı yoxdur." />
             ) : (
               events.map((event) => {
                 const status = event.status || "pending";

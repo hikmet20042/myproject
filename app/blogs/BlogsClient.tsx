@@ -11,7 +11,7 @@ import type { FilterBadge } from '@/components/shared/ActiveFilterBadges'
 import { ListPageLayout } from '@/components/layout'
 import { Sparkles } from 'lucide-react'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
-import { useSession } from '@/lib/auth/client'
+import { useAccountType } from '@/hooks/useAccountType'
 import { blogQueryKeys, fetchBlogs } from '@/lib/blogQueries'
 import { getUserErrorMessage } from '@/lib/errorMessages'
 import { logError } from '@/lib/logger'
@@ -66,8 +66,8 @@ export default function CommunityBlogs() {
   const localePath = useLocalizedPath();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session } = useSession()
-  const isOrganizationUser = session?.user?.accountType === 'organization'
+  const accountType = useAccountType()
+  const isOrganizationUser = accountType === 'organization'
   const { showError } = useGlobalFeedback()
   const blogsLimit = 50
 

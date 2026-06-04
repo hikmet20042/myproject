@@ -11,6 +11,8 @@ import {
   type ReactNode,
 } from "react";
 import { useSession } from "@/lib/auth/client";
+import UnauthorizedState from "@/components/shared/UnauthorizedState";
+import { emitGlobalFeedback } from "@/hooks/useGlobalFeedback";
 import type { VacancyItem } from "@/features/vacancies/types/items";
 
 type DashboardDataContextValue = {
@@ -19,7 +21,7 @@ type DashboardDataContextValue = {
   vacanciesError: string | null;
   vacanciesLastFetchedAt: number | null;
   vacanciesDirty: boolean;
-  refreshVacancies: () => Promise<void>;
+  refreshVacancies: () => Promise<void | JSX.Element>;
   ensureFreshVacancies: (maxAgeMs?: number) => Promise<void>;
   markVacanciesDirty: () => void;
   removeVacancyById: (id: string) => void;
@@ -68,7 +70,7 @@ export function DashboardVacancyDataContainer({ children }: { children: ReactNod
 
       if (response.status === 401 || response.status === 403) {
         safeResetVacancies();
-        return;
+        return <UnauthorizedState variant="minimal" message="Vakansiyaları yükləmək üçün icazəniz yoxdur." />;
       }
 
       if (!response.ok) {
@@ -92,6 +94,7 @@ export function DashboardVacancyDataContainer({ children }: { children: ReactNod
       setVacanciesDirty(false);
     } catch {
       setVacanciesError("Vakansiyaları yükləmək mümkün olmadı.");
+      emitGlobalFeedback('error', 'Vakansiyaları yükləmək mümkün olmadı');
     } finally {
       setVacanciesLoading(false);
     }

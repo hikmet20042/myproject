@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { LoadingState, ErrorState } from '@/components/shared'
+import EmptyState from '@/components/shared/EmptyState'
 import {
   ArrowLeft,
   CheckCircle,
@@ -275,9 +276,7 @@ export default function PublicOrgProfilePage() {
                       </div>
                     </Link>
                   ) : (
-                    <div className="p-4 rounded-lg bg-slate-50 text-slate-500 text-sm">
-                      Hazırda aktiv tədbir yoxdur.
-                    </div>
+                    <EmptyState variant="sidebar" message="Hazırda aktiv tədbir yoxdur." />
                   )}
 
                   {org.vacancyCount > 0 ? (
@@ -298,9 +297,7 @@ export default function PublicOrgProfilePage() {
                       </div>
                     </Link>
                   ) : (
-                    <div className="p-4 rounded-lg bg-slate-50 text-slate-500 text-sm">
-                      Hazırda açıq vakansiya yoxdur.
-                    </div>
+                    <EmptyState variant="sidebar" message="Hazırda açıq vakansiya yoxdur." />
                   )}
                 </div>
               </div>

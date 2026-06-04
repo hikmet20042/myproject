@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Edit3, Eye, History, Trash2, ThumbsDown, ThumbsUp, Bookmark } from "lucide-react";
 import { Modal } from '@/components/ui/Modal'
-import { EmptyState } from "@/components/shared";
+import { EmptyState, LoadingState } from "@/components/shared";
 import { Button } from "@/components/ui/Button";
 import { Tabs } from "@/components/ui/Tabs";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
@@ -156,7 +156,7 @@ export default function ProfileBlogsPage() {
     deleteBlogMutation.mutate(id);
   };
 
-  const blogs = userBlogsQuery.data?.items || [];
+  const blogs = useMemo(() => userBlogsQuery.data?.items || [], [userBlogsQuery.data?.items]);
   const summary = useMemo(() => {
     const approved = blogs.filter((blog: any) => blog.status === "approved").length;
     const pending = blogs.filter((blog: any) => blog.status === "pending").length;
@@ -267,14 +267,7 @@ export default function ProfileBlogsPage() {
         )}
 
         {userBlogsQuery.isLoading ? (
-          <div className="space-y-3">
-            {[...Array(3)].map((_, idx) => (
-              <div key={idx} className="animate-pulse rounded-xl border border-slate-200 p-4">
-                <div className="h-4 w-32 bg-gray-200 rounded" />
-                <div className="mt-3 h-4 w-2/3 bg-gray-100 rounded" />
-              </div>
-            ))}
-          </div>
+          <LoadingState variant="list" rows={3} />
         ) : userBlogsQuery.isError ? (
           <div className="flex justify-end">
             <Button variant="outline" onClick={() => userBlogsQuery.refetch()}>Yenidən cəhd et</Button>

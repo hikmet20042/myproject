@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Bookmark, Eye } from 'lucide-react'
-import { ErrorState } from '@/components/shared'
+import { ErrorState, UnauthorizedState } from '@/components/shared'
 import { SectionLoading } from '@/features/ui-state'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
 import { useSession } from '@/lib/auth/client'
@@ -131,11 +131,11 @@ export default function EditVacancyPage() {
 
   if (!ownerOrAdmin) {
     return (
-      <ErrorState
+      <UnauthorizedState
         title="Giriş rədd edildi"
         message="Bu vakansiyanı redaktə etmək üçün icazəniz yoxdur."
-        retryText="Vakansiyalara qayıt"
-        onRetry={() => router.push(localePath('/dashboard/vacancies'))}
+        actionText="Vakansiyalara qayıt"
+        onAction={() => router.push(localePath('/dashboard/vacancies'))}
       />
     )
   }

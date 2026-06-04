@@ -5,6 +5,7 @@ import { Upload, X } from 'lucide-react'
 import { Loading } from '@/components/ui/Loading'
 import { Button } from '@/components/ui/Button'
 import Image from 'next/image'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 
 interface ImageUploadContainerProps {
   value?: string
@@ -27,6 +28,7 @@ export default function ImageUploadContainer({
   const [error, setError] = useState<string | null>(null)
   const [preview, setPreview] = useState<string | null>(value || null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { showError: showFeedbackError } = useGlobalFeedback()
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -74,6 +76,7 @@ export default function ImageUploadContainer({
     } catch (uploadErr: any) {
       console.error('Upload error:', uploadErr)
       setError(uploadErr.message || 'Şəkili yükləmək alınmadı')
+      showFeedbackError(uploadErr.message || 'Şəkili yükləmək alınmadı')
       setPreview(null)
     } finally {
       setUploading(false)

@@ -3,9 +3,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/auth/client'
-import { SaveItemButton } from '@/components/ui/SaveItemButton'
-import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { SaveItemButton } from '@/components/ui/SaveItemButton'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
+import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 
 interface SaveItemButtonContainerProps {
   itemId: string
@@ -91,12 +92,10 @@ export default function SaveItemButtonContainer({
   const hasSaved = Boolean(saveStatusQuery.data?.hasSaved)
   const totalSaves = Number(saveStatusQuery.data?.totalSaves || 0)
   const loadingState = toggleMutation.isPending
+  const requireAuth = useRequireAuth()
 
   const handleSave = async () => {
-    if (!session?.user?.id) {
-      router.push(localePath('/auth/signin'))
-      return
-    }
+    if (!requireAuth()) return
 
     if (!isRegularUser) {
       showInfo('Yalnız fərdi hesablar yadda saxlaya bilər')

@@ -1,7 +1,6 @@
 'use client'
 import React from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
 
@@ -22,6 +21,7 @@ export interface DropdownProps {
   className?: string;
   dropdownClassName?: string;
   disabled?: boolean;
+  onNavigate?: (item: DropdownItem) => void;
 }
 
 export const Dropdown: React.FC<DropdownProps> = ({
@@ -30,10 +30,9 @@ export const Dropdown: React.FC<DropdownProps> = ({
   position = 'right',
   className,
   dropdownClassName,
-  disabled = false
+  disabled = false,
+  onNavigate,
 }) => {
-  const router = useRouter();
-
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild disabled={disabled}>
@@ -77,18 +76,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
                   event.preventDefault()
                   if (item.disabled) return
                   if (item.onClick) item.onClick()
-                  if (item.href) {
-                    try {
-                      const targetUrl = new URL(item.href, window.location.origin)
-                      if (targetUrl.origin === window.location.origin) {
-                        router.push(`${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}`)
-                        return
-                      }
-                    } catch {
-                      // Fallback to hard navigation below for malformed URLs.
-                    }
-
-                    window.location.href = item.href
+                  if (item.href || onNavigate) {
+                    onNavigate?.(item)
                   }
                 }}
                 className={cn(

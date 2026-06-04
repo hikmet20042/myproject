@@ -5,15 +5,16 @@ import { useRouter, useParams } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSession } from '@/lib/auth/client'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
-import { LoadingState, SuccessState } from '@/components/shared'
+import { LoadingState, SuccessState, UnauthorizedState } from '@/components/shared'
 import { Button, ButtonLink, Input } from '@/components/ui'
 import { FormLayout } from '@/components/forms'
-import { AlertCircle, FileText, Send, Sparkles, User } from 'lucide-react'
+import { FileText, Send, Sparkles, User } from 'lucide-react'
 import { blogQueryKeys, editBlog, fetchBlogById } from '@/lib/blogQueries'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 import { getEditDraftKey, readLocalDraft, removeLocalDraft, writeLocalDraft } from '@/lib/blogDraftStorage'
 import { Card } from '@/components/ui/Card'
 import BlocknoteEditor from '@/components/BlocknoteEditor'
+import { Alert } from '@/components/feedback/Alert'
 
 type EditBlogData = {
   id: string
@@ -114,6 +115,7 @@ export default function EditBlogPage() {
   const [isAnonymous, setIsAnonymous] = useState(false)
   const [blogStatus, setBlogStatus] = useState<'pending' | 'approved' | 'rejected'>('pending')
   const [init, setInit] = useState(false)
+  const [unauthorized, setUnauthorized] = useState(false)
   const redirectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const blogQuery = useQuery({
@@ -148,7 +150,7 @@ export default function EditBlogPage() {
     // Check ownership
     const authorId = (blogQuery.data as any)?.author_id || (blogQuery.data as any)?.author
     if (authorId && session?.user?.id && authorId !== session.user.id) {
-      showError('Bu bloqu redaktə etmək icazəniz yoxdur')
+      setUnauthorized(true)
       setInit(true)
       return
     }
@@ -168,6 +170,10 @@ export default function EditBlogPage() {
       if (redirectTimeoutRef.current) clearTimeout(redirectTimeoutRef.current)
     }
   }, [])
+
+  if (unauthorized) {
+    return <UnauthorizedState variant="inline" title="Giriş rədd edildi" message="Bu bloqu redaktə etmək icazəniz yoxdur." />
+  }
 
   if (status === 'loading' || !init) {
     return <LoadingState text="Bloq məlumatları yüklənir..." />
@@ -385,14 +391,9 @@ export default function EditBlogPage() {
 
       {/* Error State */}
       {error && (
-        <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-              <AlertCircle className="w-5 h-5 text-red-600" />
-            </div>
-            <p className="text-sm font-semibold text-red-700">{error}</p>
-          </div>
-        </div>
+        <Alert variant="error" className="mt-6">
+          {error}
+        </Alert>
       )}
 
       {/* Submit Button */}

@@ -25,6 +25,12 @@
   --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
   --shadow-md: 0 8px 20px rgba(15, 23, 42, 0.08);
   --shadow-lg: 0 18px 40px rgba(15, 23, 42, 0.12);
+  --border-color: #e2e8f0;
+  --color-muted: #64748b;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
   --h1-size: clamp(2rem, 3.4vw, 3.25rem);
   --h2-size: clamp(1.5rem, 2.3vw, 2.25rem);
   --h3-size: clamp(1.25rem, 1.8vw, 1.5rem);

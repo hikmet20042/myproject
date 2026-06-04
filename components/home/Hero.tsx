@@ -23,7 +23,6 @@ export const Hero = ({ localePath, isOrganizationUser, stats }: HeroProps) => {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl">
           <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-blue-300 opacity-20 blur-[120px] animate-pulse" />
           <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-purple-300 opacity-20 blur-[120px]" />
-          <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.2] mix-blend-overlay" />
         </div>
       </div>
 

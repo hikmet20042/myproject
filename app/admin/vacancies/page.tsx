@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { TextArea } from "@/components/ui/Textarea";
 import { PageStateGuard } from "@/components/shared";
+import EmptyState from "@/components/shared/EmptyState";
 import AdminActionModal from "@/components/admin/AdminActionModal";
 import { useLocalizedPath } from "@/hooks/useLocalizedPath";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
@@ -86,11 +87,6 @@ export default function VacanciesAdminPage() {
       ? responseData.data
       : responseData;
 
-  useEffect(() => {
-    setLoading(true);
-    loadVacancies().finally(() => setLoading(false));
-  }, []);
-
   const loadVacancies = async () => {
     try {
       const params = new URLSearchParams({
@@ -131,6 +127,12 @@ export default function VacanciesAdminPage() {
       console.error("Error loading vacancies:", error);
     }
   };
+
+  useEffect(() => {
+    setLoading(true);
+    loadVacancies().finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleVacancyAction = (vacancy: any, action: "approve" | "reject") => {
     setSelectedVacancy(vacancy);
@@ -338,15 +340,7 @@ export default function VacanciesAdminPage() {
           </div>
           <div className="divide-y divide-gray-200">
             {vacancies.length === 0 ? (
-              <div className="px-6 py-12 text-center">
-                <Briefcase className="mx-auto h-12 w-12 text-slate-400" />
-                <h3 className="mt-2 text-sm font-medium text-slate-900">
-                  {"Vakansiya tapılmadı"}
-                </h3>
-                <p className="mt-1 text-sm text-slate-500">
-                  {"Filterlərə uyğun vakansiya təqdimatı yoxdur."}
-                </p>
-              </div>
+              <EmptyState variant="inline" icon={Briefcase} title="Vakansiya tapılmadı" message="Filterlərə uyğun vakansiya təqdimatı yoxdur." />
             ) : (
               vacancies.map((vacancy) => {
                 const status = vacancy.status || "pending";

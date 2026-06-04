@@ -32,7 +32,6 @@ export default function ViewTracker({
     // Client-side: skip if already tracked in this tab
     const storageKey = `view_tracked_${itemType}_${itemId}`
     if (oncePerSession && sessionStorage.getItem(storageKey)) {
-      console.log(`[ViewTracker] Already tracked ${itemType} ${itemId} in this session`)
       hasTrackedRef.current = true
       return
     }
@@ -42,7 +41,6 @@ export default function ViewTracker({
       console.warn(`[ViewTracker] Target element not found for ${itemType} ${itemId}, selector: "${selector}"`)
       return
     }
-    console.log(`[ViewTracker] Initialized observer for ${itemType} ${itemId}, selector: "${selector}"`)
 
     // IntersectionObserver: only count when content is actually visible
     const observer = new IntersectionObserver(
@@ -52,7 +50,6 @@ export default function ViewTracker({
           if (hasTrackedRef.current || timerRef.current) return
           
           if (entry.isIntersecting) {
-            console.log(`[ViewTracker] Content intersecting for ${itemType} ${itemId}, starting ${minTimeMs}ms timer`)
             // Start the minimum time-on-page timer
             const viewStartTime = Date.now()
             timerRef.current = setTimeout(() => {
@@ -68,7 +65,6 @@ export default function ViewTracker({
                 itemType === 'blog' ? 'blogs' : itemType === 'event' ? 'events' : 'vacancies'
               }/${itemId}/view`
 
-              console.log(`[ViewTracker] Sending POST to ${endpoint}`)
               fetch(endpoint, {
                 method: 'POST',
                 headers: { 
@@ -78,15 +74,12 @@ export default function ViewTracker({
                 credentials: 'include',
               })
                 .then((res) => {
-                  console.log(`[ViewTracker] POST ${endpoint} response: ${res.status} ${res.statusText}`)
                   if (!res.ok) {
                     return res.text().then((text) => {
                       console.error(`[ViewTracker] POST error response: ${text}`)
                     })
                   }
-                  return res.json().then((data) => {
-                    console.log(`[ViewTracker] POST success:`, data)
-                  })
+                  return res.json()
                 })
                 .catch((err) => {
                   console.error(`[ViewTracker] POST failed:`, err)
@@ -94,7 +87,6 @@ export default function ViewTracker({
             }, minTimeMs)
           } else {
             // Reset timer if content goes out of view
-            console.log(`[ViewTracker] Content out of view for ${itemType} ${itemId}, resetting timer`)
             if (timerRef.current) {
               clearTimeout(timerRef.current)
               timerRef.current = null
@@ -106,7 +98,6 @@ export default function ViewTracker({
     )
 
     observer.observe(target)
-    console.log(`[ViewTracker] Observer attached for ${itemType} ${itemId}`)
 
     return () => {
       observer.disconnect()
@@ -114,7 +105,6 @@ export default function ViewTracker({
         clearTimeout(timerRef.current)
         timerRef.current = null
       }
-      console.log(`[ViewTracker] Cleanup for ${itemType} ${itemId}`)
     }
   }, [itemType, itemId, minTimeMs, oncePerSession, selector])
 

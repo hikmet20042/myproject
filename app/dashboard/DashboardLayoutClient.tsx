@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useMemo, type ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Calendar, Briefcase, Settings } from 'lucide-react';
-import { useSession } from '@/lib/auth/client';
+import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { useLocalizedPath } from '@/hooks/useLocalizedPath';
-import { LoadingState, ErrorBoundary } from '@/components/shared';
+import { LoadingState } from '@/components/shared';
 import { Card } from '@/components/ui/Card';
 import { ButtonLink } from '@/components/ui';
 import { AppContainer } from '@/components/layout';
@@ -23,38 +23,12 @@ const NAV_ITEMS = [
 ] as const;
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { data: session, status } = useSession();
+  const { isReady } = useAuthGuard({
+    allowedAccountTypes: ['organization'],
+    blockPendingOrganizations: true,
+  });
   const pathname = usePathname();
-  const router = useRouter();
   const localePath = useLocalizedPath();
-  const [isRedirecting, setIsRedirecting] = useState(false);
-
-  useEffect(() => {
-    if (status === 'loading') return;
-
-    // Block regular users from accessing dashboard
-    if (status === 'unauthenticated') {
-      setIsRedirecting(true);
-      router.replace(localePath('/auth/signin'));
-      return;
-    }
-
-    // Regular users cannot access dashboard
-    if (session?.user?.accountType === 'user') {
-      setIsRedirecting(true);
-      router.replace(localePath('/'));
-      return;
-    }
-
-    // Pending organizations should be on /organization/pending
-    if (session?.user?.accountType === 'organization' && session?.user?.organizationStatus === 'pending') {
-      setIsRedirecting(true);
-      router.replace(localePath('/organization/pending'));
-      return;
-    }
-
-    setIsRedirecting(false);
-  }, [status, session?.user?.accountType, session?.user?.organizationStatus, router, localePath]);
 
   const navItems = useMemo(
     () =>
@@ -65,18 +39,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     [localePath],
   );
 
-  const shouldBlockRender = status === 'loading' || isRedirecting || status === 'unauthenticated';
-
-  if (shouldBlockRender) {
+  if (!isReady) {
     return <LoadingState text="Rəhbər paneli yüklənir..." />;
   }
 
   return (
-    <ErrorBoundary
-      title="Rəhbər panelində xəta baş verdi"
-      message="Zəhmət olmasa yenidən cəhd edin və ya səhifəni yeniləyin."
-    >
-      <DashboardVacancyDataContainer>
+    <DashboardVacancyDataContainer>
         <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-100 text-foreground">
           <AppContainer className="py-8 md:py-10 space-y-6">
             {/* Navigation Tabs */}
@@ -117,6 +85,5 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </AppContainer>
         </div>
       </DashboardVacancyDataContainer>
-    </ErrorBoundary>
   );
 }

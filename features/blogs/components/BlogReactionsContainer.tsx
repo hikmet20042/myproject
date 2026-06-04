@@ -8,6 +8,7 @@ import { ThumbsUp, ThumbsDown } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Loading } from '@/components/ui/Loading'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
 import { blogQueryKeys, dislikeBlog, fetchBlogReactions, likeBlog } from '@/lib/blogQueries'
 import { useGlobalFeedback } from '@/hooks/useGlobalFeedback'
 
@@ -41,42 +42,11 @@ export default function BlogReactionsContainer({ blogSlug,
     initialData: defaultReactionState
   })
 
+  const requireAuth = useRequireAuth()
+
   const likeMutation = useMutation({
     mutationFn: () => likeBlog(blogSlug),
-    onMutate: async () => {
-      const queryKey = blogQueryKeys.reactions(blogSlug)
-      await queryClient.cancelQueries({ queryKey })
-      const previous = queryClient.getQueryData<typeof defaultReactionState>(queryKey) || defaultReactionState
-      const next = previous.hasLiked
-        ? {
-            ...previous,
-            likes: Math.max(0, previous.likes - 1),
-            hasLiked: false
-          }
-        : {
-            ...previous,
-            likes: previous.likes + 1,
-            dislikes: previous.hasDisliked ? Math.max(0, previous.dislikes - 1) : previous.dislikes,
-            hasLiked: true,
-            hasDisliked: false
-          }
-      queryClient.setQueryData(queryKey, next)
-      return { previous }
-    },
-    onError: (_error, _vars, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(blogQueryKeys.reactions(blogSlug), context.previous)
-      }
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(blogQueryKeys.reactions(blogSlug), {
-        likes: data.likes || 0,
-        dislikes: data.dislikes || 0,
-        hasLiked: !!data.hasLiked,
-        hasDisliked: !!data.hasDisliked
-      })
-    },
-    onSettled: () => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: blogQueryKeys.reactions(blogSlug) })
       queryClient.invalidateQueries({ queryKey: blogQueryKeys.detail(blogSlug) })
       queryClient.invalidateQueries({ queryKey: blogQueryKeys.all })
@@ -85,40 +55,7 @@ export default function BlogReactionsContainer({ blogSlug,
 
   const dislikeMutation = useMutation({
     mutationFn: () => dislikeBlog(blogSlug),
-    onMutate: async () => {
-      const queryKey = blogQueryKeys.reactions(blogSlug)
-      await queryClient.cancelQueries({ queryKey })
-      const previous = queryClient.getQueryData<typeof defaultReactionState>(queryKey) || defaultReactionState
-      const next = previous.hasDisliked
-        ? {
-            ...previous,
-            dislikes: Math.max(0, previous.dislikes - 1),
-            hasDisliked: false
-          }
-        : {
-            ...previous,
-            dislikes: previous.dislikes + 1,
-            likes: previous.hasLiked ? Math.max(0, previous.likes - 1) : previous.likes,
-            hasDisliked: true,
-            hasLiked: false
-          }
-      queryClient.setQueryData(queryKey, next)
-      return { previous }
-    },
-    onError: (_error, _vars, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(blogQueryKeys.reactions(blogSlug), context.previous)
-      }
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(blogQueryKeys.reactions(blogSlug), {
-        likes: data.likes || 0,
-        dislikes: data.dislikes || 0,
-        hasLiked: !!data.hasLiked,
-        hasDisliked: !!data.hasDisliked
-      })
-    },
-    onSettled: () => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: blogQueryKeys.reactions(blogSlug) })
       queryClient.invalidateQueries({ queryKey: blogQueryKeys.detail(blogSlug) })
       queryClient.invalidateQueries({ queryKey: blogQueryKeys.all })
@@ -128,16 +65,14 @@ export default function BlogReactionsContainer({ blogSlug,
   const reactionState = reactionsQuery.data || defaultReactionState
   const isLoading = likeMutation.isPending || dislikeMutation.isPending
 
-  const handleLike = () => { if (!session?.user?.id) { showError('Bəyənmək üçün daxil olun')
-      router.push(localePath('/auth/signin'))
-      return }
+  const handleLike = () => {
+    if (!requireAuth()) return
     if (!isRegularUser) { showError('Yalnız fərdi hesablar reaksiya verə bilər')
       return }
     likeMutation.mutate() }
 
-  const handleDislike = () => { if (!session?.user?.id) { showError('Bəyənməmək üçün daxil olun')
-      router.push(localePath('/auth/signin'))
-      return }
+  const handleDislike = () => {
+    if (!requireAuth()) return
     if (!isRegularUser) { showError('Yalnız fərdi hesablar reaksiya verə bilər')
       return }
     dislikeMutation.mutate() }

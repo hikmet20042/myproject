@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useMemo } from 'react';
+import { usePathname } from 'next/navigation';
 import { FileText, Settings, User, Users } from 'lucide-react';
-import { useSession } from '@/lib/auth/client';
+import { useAuthGuard } from '@/hooks/useAuthGuard';
 import { useLocalizedPath } from '@/hooks/useLocalizedPath';
 import { LoadingState } from '@/components/shared';
 import { AppContainer } from '@/components/layout';
@@ -18,37 +18,9 @@ const NAV_ITEMS = [
 ] as const;
 
 export default function ProfileLayout({ children }: { children: React.ReactNode }) {
-  const { data: session, status } = useSession();
+  const { isReady } = useAuthGuard({ allowedAccountTypes: ['user'], blockedRedirectTo: '/dashboard/profile' });
   const pathname = usePathname();
-  const router = useRouter();
   const localePath = useLocalizedPath();
-  const [isRedirecting, setIsRedirecting] = useState(false);
-
-  useEffect(() => {
-    if (status === 'loading') return;
-
-    if (status === 'unauthenticated') {
-      setIsRedirecting(true);
-      router.replace(localePath('/auth/signin'));
-      return;
-    }
-
-    // /profile and all subpages are regular-user-only routes
-    // Organizations should use /dashboard/profile instead
-    if (session?.user?.accountType === 'organization') {
-      setIsRedirecting(true);
-      router.push(localePath('/dashboard/profile'));
-      return;
-    }
-
-    setIsRedirecting(false);
-  }, [status, session?.user?.accountType, router, localePath]);
-
-  const shouldBlockRender =
-    status === 'loading' ||
-    isRedirecting ||
-    status === 'unauthenticated' ||
-    session?.user?.accountType === 'organization';
 
   const navItems = useMemo(
     () =>
@@ -59,7 +31,7 @@ export default function ProfileLayout({ children }: { children: React.ReactNode 
     [localePath],
   );
 
-  if (shouldBlockRender) {
+  if (!isReady) {
     return <LoadingState text={'Profil yüklənir...'} />;
   }
 

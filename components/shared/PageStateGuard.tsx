@@ -39,7 +39,7 @@ export default function PageStateGuard({
   fullPage = true,
 }: PageStateGuardProps) {
   if (isLoading) {
-    return <LoadingState title={loadingTitle} text={loadingText} fullPage={fullPage} />;
+    return <LoadingState title={loadingTitle} text={loadingText} variant={fullPage ? 'page' : 'spinner'} />;
   }
 
   if (isError) {
@@ -61,7 +61,7 @@ export default function PageStateGuard({
         message={emptyMessage}
         actionText={emptyActionText}
         onAction={onEmptyAction}
-        fullPage={fullPage}
+        variant="card"
       />
     );
   }

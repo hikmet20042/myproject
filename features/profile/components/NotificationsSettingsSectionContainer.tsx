@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Bell, Save } from "lucide-react";
 import { Loading } from '@/components/ui/Loading'
+import { Alert } from '@/components/feedback/Alert'
 import { Button } from "@/components/ui/Button";
 import { SectionCard } from "@/features/profile/components/ui";
 import { useGlobalFeedback } from "@/hooks/useGlobalFeedback";
@@ -111,7 +112,7 @@ export function NotificationsSettingsSectionContainer() {
   if (!preferences) {
     return (
       <SectionCard title="Bildirimlərin Tercihlər" description="Hansı bildirişləri almağınızı idarə edin">
-        <p className="text-sm text-red-600">Tercihlər yüklənə bilmədi</p>
+        <Alert variant="error" size="sm">Tercihlər yüklənə bilmədi</Alert>
       </SectionCard>
     );
   }

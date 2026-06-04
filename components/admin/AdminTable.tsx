@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { adminConfig, AdminResourceKey } from "@/lib/admin-config";
+import EmptyState from "@/components/shared/EmptyState";
 
 export type AdminTableColumn<T> = {
   key: string;
@@ -54,9 +55,7 @@ export default function AdminTable<T extends { _id?: string; id?: string }>({
   if (!data.length) {
     return (
       <Card className="p-6">
-        {emptyState || (
-          <p className="text-slate-500 text-center py-8">{"Məlumat tapılmadı"}</p>
-        )}
+        {emptyState || <EmptyState variant="minimal" message="Məlumat tapılmadı" />}
       </Card>
     );
   }

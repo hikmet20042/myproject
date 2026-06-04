@@ -12,15 +12,15 @@ import { ORGANIZATION_TYPE_LABELS, ORGANIZATION_TYPE_VALUES, isOrganizationType 
 import { fetchOrganizations } from '@/lib/organizationQueries';
 import { logError } from '@/lib/logger';
 import { ListPageLayout } from '@/components/layout';
-import { useSession } from '@/lib/auth/client';
+import { useAccountType } from '@/hooks/useAccountType';
 import { OrganizationCard } from '@/components/shared/OrganizationCard';
 import { FOCUS_AREA_LABELS_AZ } from '@/lib/organizationTypes';
 import { generateItemListSchema } from '@/lib/seo';
 
 export default function OrganizationsPage() { 
   const localePath = useLocalizedPath();
-  const { data: session } = useSession();
-  const isOrganizationUser = session?.user?.accountType === 'organization';
+  const accountType = useAccountType();
+  const isOrganizationUser = accountType === 'organization';
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrganizationType, setSelectedOrganizationType] = useState('all');
   const [organizations, setOrganizations] = useState<any[]>([]);

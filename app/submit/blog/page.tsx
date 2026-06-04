@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from '@/lib/auth/client'
+import { useAccountType } from '@/hooks/useAccountType'
 import { apiFetch, ApiError } from '@/lib/apiClient'
 import { getUserErrorMessage } from '@/lib/errorMessages'
 import { useLocalizedPath } from '@/hooks/useLocalizedPath'
@@ -67,6 +68,7 @@ function getCharacterCount(content: any, contentHtml: string) {
 
 export default function SubmitBlogPage() {
   const { data: session, status } = useSession()
+  const accountType = useAccountType()
   const router = useRouter()
   const localePath = useLocalizedPath()
   const { showError, showSuccess, showInfo } = useGlobalFeedback()
@@ -110,14 +112,14 @@ export default function SubmitBlogPage() {
   }, [])
 
   useEffect(() => {
-    if (session?.user?.accountType === 'organization') {
+    if (accountType === 'organization') {
       showInfo('Təşkilat hesabları bloq paylaşa bilməz')
     }
-  }, [session?.user?.accountType, showInfo])
+  }, [accountType, showInfo])
 
   if (status === 'loading') return <LoadingState text="Yüklənir..." />
 
-  if (session?.user?.accountType === 'organization') {
+  if (accountType === 'organization') {
     return (
       <UnauthorizedState
         title="Bloq paylaşımı məhduddur"

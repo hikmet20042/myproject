@@ -8,7 +8,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { TextArea } from "@/components/ui/Textarea";
-import { PageStateGuard } from "@/components/shared";
+import { PageStateGuard, EmptyState } from "@/components/shared";
 import AdminListLayout from "@/components/admin/AdminListLayout";
 import AdminFilters from "@/components/admin/AdminFilters";
 import AdminTable, { AdminTableColumn } from "@/components/admin/AdminTable";
@@ -218,11 +218,14 @@ export default function BlogsAdminPage() {
     setBulkComment("");
     setSelectedItems([]);
   }, [
+    blogActions.bulkApprove.key,
+    blogActions.bulkReject.key,
     bulkAction,
     bulkComment,
     buildOptimisticContext,
     executeAction,
     selectedBlogs,
+    showInfo,
   ]);
 
   const toggleItemSelection = useCallback((id: string) => {
@@ -531,11 +534,7 @@ export default function BlogsAdminPage() {
           executeAction={executeAction}
           isActionLoading={isActionLoading}
           actions={tableActions}
-          emptyState={
-            <div className="text-center py-12">
-              <p className="text-slate-500">{"Bloq tapılmadı"}</p>
-            </div>
-          }
+          emptyState={<EmptyState variant="inline" message="Bloq tapılmadı" />}
         />
       </div>
 
