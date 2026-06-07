@@ -1,27 +1,23 @@
 import { test, expect } from '@playwright/test'
+import { setupUnauthMock } from '../helpers/auth'
 
 test.describe('Events — Listing and Discovery', () => {
   test.beforeEach(async ({ page }) => {
-    await page.route(/auth\/v1/, async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: null }) })
-    })
+    await setupUnauthMock(page)
   })
 
   test('displays events listing with Azerbaijani heading', async ({ page }) => {
     await page.goto('/resources/events')
-    await page.waitForLoadState('networkidle')
     await expect(page.getByRole('heading', { name: /^Tədbirlər$/i })).toBeVisible({ timeout: 10000 })
   })
 
   test('shows search input with Azerbaijani placeholder', async ({ page }) => {
     await page.goto('/resources/events')
-    await page.waitForLoadState('networkidle')
     await expect(page.locator('input[placeholder*="Tədbir adı"]').first()).toBeVisible({ timeout: 10000 })
   })
 
   test('shows filter controls with Azerbaijani labels', async ({ page }) => {
     await page.goto('/resources/events')
-    await page.waitForLoadState('networkidle')
     await expect(page.getByText(/Məkan/i)).toBeVisible({ timeout: 10000 })
     await expect(page.getByText(/Tədbir növü/i).or(page.getByText(/Növ/i))).toBeVisible()
     await expect(page.getByText(/Sıralama/i)).toBeVisible()
@@ -41,13 +37,11 @@ test.describe('Events — Listing and Discovery', () => {
       }
     })
     await page.goto('/resources/events')
-    await page.waitForLoadState('networkidle')
     await expect(page.getByText(/Tədbir tapılmadı/i)).toBeVisible({ timeout: 10000 })
   })
 
   test('shows CTA section at bottom for non-org users', async ({ page }) => {
     await page.goto('/resources/events')
-    await page.waitForLoadState('networkidle')
     await expect(page.getByRole('heading', { name: /Tədbiriniz var/i })).toBeVisible({ timeout: 10000 })
     await expect(page.getByRole('link', { name: /Tədbir əlavə et/i })).toBeVisible()
   })
@@ -55,9 +49,7 @@ test.describe('Events — Listing and Discovery', () => {
 
 test.describe('Events — Detail and External Handoff', () => {
   test.beforeEach(async ({ page }) => {
-    await page.route(/auth\/v1/, async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: null }) })
-    })
+    await setupUnauthMock(page)
     await page.route('**/api/events/resolve/test-event', async (route) => {
       await route.fulfill({
         status: 200,
@@ -88,8 +80,6 @@ test.describe('Events — Detail and External Handoff', () => {
       })
     })
     await page.goto('/resources/events/test-event')
-    await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(2000)
     await expect(page.getByRole('link', { name: /Ana Səhifə/i }).or(page.getByText(/Ana Səhifə/i))).toBeVisible({ timeout: 10000 })
     await expect(page.getByRole('link', { name: /Tədbirlər/i }).or(page.getByText(/Tədbirlər/))).toBeVisible()
   })
@@ -115,7 +105,6 @@ test.describe('Events — Detail and External Handoff', () => {
       })
     })
     await page.goto('/resources/events/test-event')
-    await page.waitForLoadState('networkidle')
     const ctaButton = page.getByRole('link', { name: /Müraciət et/i })
     await expect(ctaButton).toBeVisible({ timeout: 10000 })
     const href = await ctaButton.getAttribute('href')
@@ -142,7 +131,6 @@ test.describe('Events — Detail and External Handoff', () => {
       })
     })
     await page.goto('/resources/events/test-event')
-    await page.waitForLoadState('networkidle')
     await expect(page.getByText(/Müraciət linki tapılmadı/i)).toBeVisible({ timeout: 10000 })
   })
 
@@ -166,14 +154,12 @@ test.describe('Events — Detail and External Handoff', () => {
       })
     })
     await page.goto('/resources/events/test-event')
-    await page.waitForLoadState('networkidle')
     await expect(page.getByText(/iştirakçı/i)).not.toBeVisible({ timeout: 10000 })
     await expect(page.getByText(/yer/i)).not.toBeVisible()
   })
 
   test('shows error state for non-existent event', async ({ page }) => {
     await page.goto('/resources/events/non-existent-event')
-    await page.waitForLoadState('networkidle')
     await expect(page.getByText(/Tədbir tapılmadı/i)).toBeVisible({ timeout: 15000 })
   })
 })

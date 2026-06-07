@@ -1,10 +1,9 @@
 import { test, expect } from '@playwright/test'
+import { setupUnauthMock } from '../helpers/auth'
 
 test.describe('Blogs — Moderation Lifecycle', () => {
   test.beforeEach(async ({ page }) => {
-    await page.route(/auth\/v1/, async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: null }) })
-    })
+    await setupUnauthMock(page)
   })
 
   test('pending blog does not appear in public listing', async ({ page }) => {

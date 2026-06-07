@@ -1,10 +1,9 @@
 import { test, expect } from '@playwright/test'
+import { mockTestRoleAuth } from '../helpers/auth'
 
 test.describe('Blogs — Interactions (views, upvote/downvote, saves)', () => {
   test.beforeEach(async ({ page }) => {
-    await page.route(/auth\/v1/, async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: null }) })
-    })
+    await mockTestRoleAuth(page, 'user')
     await page.route('**/api/blogs/resolve/interactive-blog', async (route) => {
       await route.fulfill({
         status: 200,

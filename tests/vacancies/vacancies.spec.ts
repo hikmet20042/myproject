@@ -1,27 +1,23 @@
 import { test, expect } from '@playwright/test'
+import { setupUnauthMock } from '../helpers/auth'
 
 test.describe('Vacancies — Listing with strict heading anchors', () => {
   test.beforeEach(async ({ page }) => {
-    await page.route(/auth\/v1/, async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: null }) })
-    })
+    await setupUnauthMock(page)
   })
 
   test('displays vacancies listing with exact Azerbaijani heading', async ({ page }) => {
     await page.goto('/resources/vacancies')
-    await page.waitForLoadState('networkidle')
     await expect(page.getByRole('heading', { name: /^Vakansiyalar$/i })).toBeVisible({ timeout: 10000 })
   })
 
   test('shows search input with Azerbaijani placeholder', async ({ page }) => {
     await page.goto('/resources/vacancies')
-    await page.waitForLoadState('networkidle')
     await expect(page.locator('input[placeholder*="Vakansiya adı"]').first()).toBeVisible({ timeout: 10000 })
   })
 
   test('shows filter controls with Azerbaijani labels', async ({ page }) => {
     await page.goto('/resources/vacancies')
-    await page.waitForLoadState('networkidle')
     await expect(page.getByText(/İş növü/i)).toBeVisible({ timeout: 10000 })
     await expect(page.getByText(/Şəhər/i)).toBeVisible()
     await expect(page.getByText(/Sıralama/i)).toBeVisible()
@@ -42,13 +38,11 @@ test.describe('Vacancies — Listing with strict heading anchors', () => {
       }
     })
     await page.goto('/resources/vacancies')
-    await page.waitForLoadState('networkidle')
     await expect(page.getByText(/Vakansiya tapılmadı/i)).toBeVisible({ timeout: 10000 })
   })
 
   test('shows CTA section at bottom for non-org users', async ({ page }) => {
     await page.goto('/resources/vacancies')
-    await page.waitForLoadState('networkidle')
     await expect(page.getByRole('heading', { name: /İşçi axtarırsınız/i })).toBeVisible({ timeout: 10000 })
     await expect(page.getByRole('link', { name: /Vakansiya yerləşdir/i })).toBeVisible()
   })
@@ -76,7 +70,6 @@ test.describe('Vacancies — Listing with strict heading anchors', () => {
       }
     })
     await page.goto('/resources/vacancies')
-    await page.waitForLoadState('networkidle')
     const headings = page.getByRole('heading', { name: /^Vakansiyalar$/i })
     await expect(headings).toHaveCount(1, { timeout: 10000 })
   })
@@ -84,9 +77,7 @@ test.describe('Vacancies — Listing with strict heading anchors', () => {
 
 test.describe('Vacancies — Detail and External Handoff', () => {
   test.beforeEach(async ({ page }) => {
-    await page.route(/auth\/v1/, async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: null }) })
-    })
+    await setupUnauthMock(page)
     await page.route('**/api/vacancies/resolve/test-vacancy', async (route) => {
       await route.fulfill({
         status: 200,
@@ -117,7 +108,6 @@ test.describe('Vacancies — Detail and External Handoff', () => {
       })
     })
     await page.goto('/resources/vacancies/test-vacancy')
-    await page.waitForLoadState('networkidle')
     await expect(page.getByText(/Tam ştat/i)).toBeVisible({ timeout: 10000 })
   })
 
@@ -140,7 +130,6 @@ test.describe('Vacancies — Detail and External Handoff', () => {
       })
     })
     await page.goto('/resources/vacancies/test-vacancy')
-    await page.waitForLoadState('networkidle')
     const ctaButton = page.getByRole('link', { name: /Dərhal müraciət et/i })
     await expect(ctaButton).toBeVisible({ timeout: 10000 })
     const href = await ctaButton.getAttribute('href')
@@ -166,7 +155,6 @@ test.describe('Vacancies — Detail and External Handoff', () => {
       })
     })
     await page.goto('/resources/vacancies/test-vacancy')
-    await page.waitForLoadState('networkidle')
     await expect(page.getByRole('link', { name: /E-poçt ilə müraciət et/i })).toBeVisible({ timeout: 10000 })
   })
 
@@ -189,7 +177,6 @@ test.describe('Vacancies — Detail and External Handoff', () => {
       })
     })
     await page.goto('/resources/vacancies/test-vacancy')
-    await page.waitForLoadState('networkidle')
     await expect(page.getByRole('link', { name: /Zəng ilə müraciət et/i })).toBeVisible({ timeout: 10000 })
   })
 
@@ -214,7 +201,6 @@ test.describe('Vacancies — Detail and External Handoff', () => {
       })
     })
     await page.goto('/resources/vacancies/test-vacancy')
-    await page.waitForLoadState('networkidle')
     await expect(page.getByRole('heading', { name: /İş təsviri/i })).toBeVisible({ timeout: 10000 })
     await expect(page.getByRole('heading', { name: /Tələblər/i })).toBeVisible()
     await expect(page.getByRole('heading', { name: /Məsuliyyətlər/i })).toBeVisible()
