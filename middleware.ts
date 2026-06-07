@@ -285,7 +285,9 @@ function handleTestModeAuth(
     if (isDashboardRoute) return NextResponse.redirect(new URL('/', req.url))
     if (isAdminRoute) return NextResponse.redirect(new URL('/', req.url))
     if (isOrganizationRoute) return NextResponse.redirect(new URL('/', req.url))
-    if (isOnboardingRoute) return NextResponse.redirect(new URL('/', req.url))
+    // Onboarding routes are the user-flow for choosing an account type; the
+    // page itself redirects authenticated users with an existing accountType
+    // back to /. Allow access here so the user-flow can be exercised in tests.
   }
 
   if (testRole === 'organization') {
