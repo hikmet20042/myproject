@@ -115,10 +115,10 @@ export async function GET(request: NextRequest) {
       limit, 
       results: blogs,
       filters: {
-        authors: blogs
-          .map((blog: any) => blog.author_id)
-          .filter((author: any) => author && author.id)
-          .map((author: any) => ({
+        authors: (blogs as { author_id?: { id: string; name?: string; email?: string } }[])
+          .map((blog) => blog.author_id)
+          .filter((author): author is { id: string; name?: string; email?: string } => !!(author && author.id))
+          .map((author) => ({
             id: author.id.toString(),
             name: author.name || author.email || author.id.toString()
           }))

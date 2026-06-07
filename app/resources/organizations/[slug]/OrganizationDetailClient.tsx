@@ -50,8 +50,8 @@ interface Organization {
     name: string
     email: string
   }
-  createdAt: string
-  updatedAt: string
+  createdAt: string | null
+  updatedAt: string | null
   followerCount?: number
 }
 
@@ -71,7 +71,8 @@ export default function OrganizationDetailPage() {
         const resolved = await resolveOrganizationIdentifier(slug)
         if (!resolved.id) throw new Error('Təşkilat tapılmadı')
         const result = await fetchOrganizationById(resolved.id)
-        setOrganization(result.organization)
+        const org = result.organization
+        setOrganization(org ? { ...org, _id: org.id || resolved.id, createdAt: org.createdAt || null, updatedAt: org.updatedAt || null } : null)
       } catch (err) {
         logError('Organization detail API error', err)
         setError('Məlumatları yükləyərkən problem baş verdi')
@@ -478,8 +479,8 @@ export default function OrganizationDetailPage() {
                         <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
                         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Qoşulma</p>
                       </div>
-                      <p className="text-slate-900 font-semibold text-sm">
-                        {new Date(organization.createdAt).toLocaleDateString('az-AZ')}
+<p className="text-slate-900 font-semibold text-sm">
+                         {organization.createdAt ? new Date(organization.createdAt).toLocaleDateString('az-AZ') : '-'}
                       </p>
                     </div>
                     <div className="p-4 rounded-lg bg-slate-50">
@@ -487,8 +488,8 @@ export default function OrganizationDetailPage() {
                         <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
                         <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Yenilənmə</p>
                       </div>
-                      <p className="text-slate-900 font-semibold text-sm">
-                        {new Date(organization.updatedAt).toLocaleDateString('az-AZ')}
+<p className="text-slate-900 font-semibold text-sm">
+                         {organization.updatedAt ? new Date(organization.updatedAt).toLocaleDateString('az-AZ') : '-'}
                       </p>
                     </div>
                   </div>

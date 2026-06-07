@@ -62,8 +62,10 @@ test.describe('Sign Up — validation, short password, duplicate email', () => {
         body: JSON.stringify({ error: 'Bu e-poçt ünvanı artıq qeydiyyatdan keçib.' }),
       })
     })
+    const passwordInputs = page.locator('input[type="password"]')
     await page.locator('input[type="email"]').fill('existing@example.com')
-    await page.locator('input[type="password"]').first().fill('ValidPass1')
+    await passwordInputs.nth(0).fill('ValidPass1')
+    await passwordInputs.nth(1).fill('ValidPass1')
     await submitForm(page)
     await expect(page.getByText(/artıq qeydiyyatdan keçib/i)).toBeVisible({ timeout: 10000 })
   })

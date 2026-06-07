@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { isAdmin } from '@/lib/auth/permissions'
@@ -6,13 +7,13 @@ import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { mapEventToResponse } from '@/lib/events/mapEventToResponse'
 import { applyRateLimit } from '@/lib/rateLimit'
 
-const hydrateEventRowsWithOrganizationHandles = async (supabase: any, rows: any[]) => {
+const hydrateEventRowsWithOrganizationHandles = async (supabase: SupabaseClient, rows: any[]) => {
   const organizationIds = Array.from(
     new Set(
       rows
         .map((row: any) => row?.created_by_organization?.id || row?.created_by_organization)
         .filter(Boolean)
-        .map((id: any) => String(id))
+        .map((id: string) => String(id))
     )
   )
 
@@ -26,7 +27,7 @@ const hydrateEventRowsWithOrganizationHandles = async (supabase: any, rows: any[
     .in('account_id', organizationIds)
 
   const profileByAccountId = new Map(
-    (profiles || []).map((profile: any) => [String(profile.account_id), profile])
+    (profiles || []).map((profile: { account_id: string }) => [String(profile.account_id), profile])
   )
 
   return rows.map((row: any) => {

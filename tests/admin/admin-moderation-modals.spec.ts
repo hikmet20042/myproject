@@ -14,7 +14,7 @@ test.describe('Admin — Blog Review Modal', () => {
         }),
       })
     })
-    await page.goto('/admin/blogs')
+    await page.goto('/admin/blogs', { waitUntil: 'domcontentloaded' })
     const reviewBtn = page.getByRole('button', { name: /Bax|Review|İncələ/i })
     if (await reviewBtn.first().isVisible({ timeout: 5000 }).catch(() => false)) {
       await reviewBtn.first().click()
@@ -34,7 +34,7 @@ test.describe('Admin — Blog Review Modal', () => {
         }),
       })
     })
-    await page.goto('/admin/blogs')
+    await page.goto('/admin/blogs', { waitUntil: 'domcontentloaded' })
     const reviewBtn = page.getByRole('button', { name: /Bax|Review|İncələ/i })
     if (await reviewBtn.first().isVisible({ timeout: 5000 }).catch(() => false)) {
       await reviewBtn.first().click()
@@ -62,7 +62,7 @@ test.describe('Admin — Blog Review Modal', () => {
         await route.continue()
       }
     })
-    await page.goto('/admin/blogs')
+    await page.goto('/admin/blogs', { waitUntil: 'domcontentloaded' })
   })
 
   test('approve action sends correct PUT body', async ({ page }) => {
@@ -86,7 +86,7 @@ test.describe('Admin — Blog Review Modal', () => {
         await route.continue()
       }
     })
-    await page.goto('/admin/blogs')
+    await page.goto('/admin/blogs', { waitUntil: 'domcontentloaded' })
     const approveBtn = page.getByRole('button', { name: /Təsdiqlə|Approve|Qəbul/i })
     if (await approveBtn.first().isVisible({ timeout: 5000 }).catch(() => false)) {
       await approveBtn.first().click()
@@ -107,7 +107,7 @@ test.describe('Admin — Delete Confirmation Modal', () => {
         }),
       })
     })
-    await page.goto('/admin/blogs')
+    await page.goto('/admin/blogs', { waitUntil: 'domcontentloaded' })
     const deleteBtn = page.getByRole('button', { name: /Sil|Delete|Remove/i })
     if (await deleteBtn.first().isVisible({ timeout: 5000 }).catch(() => false)) {
       await deleteBtn.first().click()
@@ -132,7 +132,7 @@ test.describe('Admin — Bulk Actions', () => {
         }),
       })
     })
-    await page.goto('/admin/blogs')
+    await page.goto('/admin/blogs', { waitUntil: 'domcontentloaded' })
     // Check if there's a select-all checkbox
     const checkboxes = page.locator('input[type="checkbox"]')
     const count = await checkboxes.count()

@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { canAccessAdmin } from '@/lib/auth/permissions'
@@ -10,7 +11,7 @@ import {
   validateLifecycleState,
 } from '@/app/api/events/helpers'
 
-const hydrateEventRowWithOrganizationHandles = async (supabase: any, row: any) => {
+const hydrateEventRowWithOrganizationHandles = async (supabase: SupabaseClient, row: any) => {
   const orgId = row?.created_by_organization?.id || row?.created_by_organization
   if (!orgId) {
     return row

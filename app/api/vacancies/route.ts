@@ -157,9 +157,9 @@ export async function GET(request: NextRequest) {
 
         const vacancies = (vacancyRows || []).map(mapVacancyRow)
         
-        const orgIds = vacancyRows
-          .filter((v: any) => v.created_by_organization)
-          .map((v: any) => v.created_by_organization.id)
+        const orgIds = (vacancyRows as { created_by_organization?: { id: string } }[])
+          .filter((v) => v.created_by_organization)
+          .map((v) => v.created_by_organization!.id)
         
         let orgNames: any[] = []
         if (orgIds.length > 0) {

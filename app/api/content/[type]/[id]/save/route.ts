@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
@@ -16,7 +17,7 @@ type ContentType = keyof typeof CONTENT_TABLE_BY_TYPE
 
 const isContentType = (value: string): value is ContentType => value in CONTENT_TABLE_BY_TYPE
 
-async function resolveApprovedContentId(supabase: any, contentType: ContentType, identifier: string) {
+async function resolveApprovedContentId(supabase: SupabaseClient, contentType: ContentType, identifier: string) {
   const tableName = CONTENT_TABLE_BY_TYPE[contentType]
   const { data, error } = await resolveEntityBySlugOrId(supabase, tableName, identifier, 'id, status')
   if (error || !data?.id || data.status !== 'approved') {
@@ -25,7 +26,7 @@ async function resolveApprovedContentId(supabase: any, contentType: ContentType,
   return String(data.id)
 }
 
-async function getContentOwnerAndTitle(supabase: any, contentType: ContentType, contentId: string) {
+async function getContentOwnerAndTitle(supabase: SupabaseClient, contentType: ContentType, contentId: string) {
   if (contentType === 'blog') {
     const { data } = await supabase
       .from('blogs')

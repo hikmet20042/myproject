@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
@@ -12,7 +13,7 @@ const isValidType = (value: string): value is SavedType =>
   ALLOWED_TYPES.includes(value as SavedType)
 
 async function resolveContentBySlugOrId(
-  supabase: any,
+  supabase: SupabaseClient,
   itemType: SavedType,
   itemId: string,
   options?: { requireApproved?: boolean }

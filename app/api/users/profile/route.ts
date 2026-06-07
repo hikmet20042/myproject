@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { isAdmin, isApprovedOrganization } from '@/lib/auth/permissions'
@@ -9,7 +10,7 @@ import { applyRateLimit } from '@/lib/rateLimit'
 export const dynamic = 'force-dynamic'
 
 async function ensureUserRow(
-  supabase: any,
+  supabase: SupabaseClient,
   session: Awaited<ReturnType<typeof getServerSession>>
 ) {
   if (!session?.user?.id) return null

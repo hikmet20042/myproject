@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     }
 
     const organizationIds = Array.from(
-      new Set((followRows || []).map((row: any) => String(row.organization_id)).filter(Boolean))
+      new Set((followRows || []).map((row: { organization_id: string }) => String(row.organization_id)).filter(Boolean))
     )
 
     if (organizationIds.length === 0) {
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
     }
 
     const followedAtByOrganization = new Map<string, string>(
-      (followRows || []).map((row: any) => [String(row.organization_id), row.created_at])
+      (followRows || []).map((row: { organization_id: string; created_at: string }) => [String(row.organization_id), row.created_at])
     )
 
     const allItemsRaw = await Promise.all(

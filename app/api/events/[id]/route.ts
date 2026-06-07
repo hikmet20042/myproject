@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { getServerSession } from "@/lib/auth/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isAdmin, isAdminOrOwner, isOwner } from "@/lib/auth/permissions";
@@ -17,7 +18,7 @@ import { applyRateLimit } from '@/lib/rateLimit'
 
 const rlh = (r: Response, h: Record<string, string>) => { for (const [k,v] of Object.entries(h)) r.headers.set(k,v); return r }
 
-const hydrateEventRowWithOrganizationHandles = async (supabase: any, eventRow: any) => {
+const hydrateEventRowWithOrganizationHandles = async (supabase: SupabaseClient, eventRow: any) => {
   const orgId = eventRow?.created_by_organization
     ? String(
         typeof eventRow.created_by_organization === 'object'

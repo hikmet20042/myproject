@@ -21,7 +21,6 @@ test.describe('Session Interruption — 401 on Blog Interactions', () => {
       }
     })
     await page.goto('/blogs')
-    await page.waitForLoadState('networkidle')
     await expect(page.getByRole('heading', { name: /İcma Bloqları/i })).toBeVisible({ timeout: 10000 })
   })
 })
@@ -32,7 +31,6 @@ test.describe('Session Interruption — 401 on Save', () => {
       await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ success: false, error: { message: 'Authentication required', code: 'AUTH_REQUIRED' } }) })
     })
     await page.goto('/blogs')
-    await page.waitForLoadState('networkidle')
     await expect(page.getByRole('heading', { name: /İcma Bloqları/i })).toBeVisible({ timeout: 10000 })
   })
 })

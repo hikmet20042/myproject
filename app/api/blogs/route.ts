@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
     // Batch-fetch author handles (single query instead of N+1)
     const authorIds = blogsMapped
       .map((b: any) => b.author_id)
-      .filter((id: string | null): id is string => !!id)
+      .filter((id: string | null | undefined): id is string => !!id)
     const authorHandleMap = new Map<string, string | null>()
     if (authorIds.length > 0) {
       const { data: accounts } = await supabase

@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { cache } from '@/lib/cache'
@@ -11,7 +12,7 @@ import { applyRateLimit } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
 
-async function getAuthorUrlHandle(supabase: any, authorId: string | null): Promise<string | null> {
+async function getAuthorUrlHandle(supabase: SupabaseClient, authorId: string | null): Promise<string | null> {
   if (!authorId) return null
   const { data } = await supabase
     .from('accounts')

@@ -159,13 +159,13 @@ export async function GET(request: NextRequest) {
     const rows = eventRows
 
     const creatorUserIds = Array.from(
-      new Set(rows.map((e: any) => e.created_by).filter(Boolean))
+      new Set(rows.map((e: { created_by?: string }) => e.created_by).filter(Boolean))
     )
     const organizationIds = Array.from(
-      new Set(rows.map((e: any) => e.created_by_organization).filter(Boolean))
+      new Set(rows.map((e: { created_by_organization?: string }) => e.created_by_organization).filter(Boolean))
     )
     const approverIds = Array.from(
-      new Set(rows.map((e: any) => e.approved_by).filter(Boolean))
+      new Set(rows.map((e: { approved_by?: string }) => e.approved_by).filter(Boolean))
     )
 
     const [creatorsResult, approversResult, organizationsResult] = await Promise.all([
@@ -194,13 +194,13 @@ export async function GET(request: NextRequest) {
     }
 
     const creatorsById = new Map<string, CreatorUser>(
-      (creatorsResult.data || []).map((u: any) => [String(u.id), u as CreatorUser])
+      (creatorsResult.data || []).map((u: CreatorUser) => [String(u.id), u])
     )
     const approversById = new Map<string, ApproverUser>(
-      (approversResult.data || []).map((u: any) => [String(u.id), u as ApproverUser])
+      (approversResult.data || []).map((u: ApproverUser) => [String(u.id), u])
     )
     const orgsByAccountId = new Map<string, OrganizationProfile>(
-      (organizationsResult.data || []).map((o: any) => [String(o.account_id), o as OrganizationProfile])
+      (organizationsResult.data || []).map((o: OrganizationProfile) => [String(o.account_id), o])
     )
 
     const hydratedRows = rows.map((row: any) => {

@@ -26,7 +26,6 @@ test.describe('Sign In — validation, wrong credentials, email verification gua
     await page.locator('input[type="email"]').fill('')
     await page.locator('input[type="password"]').fill('somepass')
     await submitForm(page)
-    await page.waitForLoadState('networkidle')
     await expect(page.getByText(/e-poçt formatı yanlışdır/i).or(page.getByText(/tələb olunur/i))).toBeVisible({ timeout: 10000 })
   })
 
@@ -34,7 +33,6 @@ test.describe('Sign In — validation, wrong credentials, email verification gua
     await page.locator('input[type="email"]').fill('test@example.com')
     await page.locator('input[type="password"]').fill('Ab1')
     await submitForm(page)
-    await page.waitForLoadState('networkidle')
     await expect(page.getByText(/şifrə ən azı 6 simvol/i)).toBeVisible({ timeout: 10000 })
   })
 
@@ -49,7 +47,6 @@ test.describe('Sign In — validation, wrong credentials, email verification gua
     await page.locator('input[type="email"]').fill('wrong@example.com')
     await page.locator('input[type="password"]').fill('wrongpassword')
     await submitForm(page)
-    await page.waitForLoadState('networkidle')
     await expect(page.getByText(/Invalid login credentials/i)).toBeVisible({ timeout: 10000 })
   })
 
@@ -67,20 +64,17 @@ test.describe('Sign In — validation, wrong credentials, email verification gua
     await page.locator('input[type="email"]').fill('unverified@example.com')
     await page.locator('input[type="password"]').fill('ValidPass1')
     await submitForm(page)
-    await page.waitForLoadState('networkidle')
     await expect(page.getByText(/Email not confirmed/i)).toBeVisible({ timeout: 10000 })
     await expect(page.getByText(/təsdiq e-poçtunu yenidən göndər/i).or(page.getByText(/Email not confirmed/i))).toBeVisible()
   })
 
   test('navigates to registration page', async ({ page }) => {
     await page.getByRole('link', { name: 'Buradan yarat' }).click()
-    await page.waitForLoadState('networkidle')
     await expect(page).toHaveURL(/\/auth\/register/)
   })
 
   test('navigates to forgot password page', async ({ page }) => {
     await page.getByRole('link', { name: 'Şifrəni unutmusunuz' }).click()
-    await page.waitForLoadState('networkidle')
     await expect(page).toHaveURL(/\/auth\/forgot-password/)
   })
 

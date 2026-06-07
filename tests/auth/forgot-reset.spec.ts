@@ -24,7 +24,6 @@ test.describe('Forgot Password', () => {
   test('shows validation for empty email field', async ({ page }) => {
     await page.locator('input[type="email"]').fill('')
     await submitForm(page)
-    await page.waitForLoadState('networkidle')
     await expect(page.getByText(/e-poçt tələb olunur/i)).toBeVisible({ timeout: 10000 })
   })
 
@@ -38,13 +37,11 @@ test.describe('Forgot Password', () => {
     })
     await page.locator('input[type="email"]').fill('test@example.com')
     await submitForm(page)
-    await page.waitForLoadState('networkidle')
     await expect(page.getByText(/hesab varsa, şifrə sıfırlama keçidi göndərilib/i)).toBeVisible({ timeout: 10000 })
   })
 
   test('navigates back to sign-in page', async ({ page }) => {
     await page.getByRole('link', { name: /Girişə qayıt/i }).click()
-    await page.waitForLoadState('networkidle')
     await expect(page).toHaveURL(/\/auth\/signin/)
   })
 })
@@ -58,18 +55,15 @@ test.describe('Reset Password', () => {
 
   test('displays invalid link state for expired recovery session', async ({ page }) => {
     await page.goto('/auth/reset-password')
-    await page.waitForLoadState('networkidle')
     await expect(page.getByText(/Etibarsız sıfırlama keçidi/i).first()).toBeVisible({ timeout: 15000 })
     await expect(page.getByText(/Yeni şifrə sıfırlama tələb edin/i).first()).toBeVisible()
   })
 
   test('navigates to forgot-password from invalid reset page', async ({ page }) => {
     await page.goto('/auth/reset-password')
-    await page.waitForLoadState('networkidle')
     const link = page.getByRole('link', { name: /yeni şifrə sıfırlama tələb edin/i })
     await expect(link).toBeVisible({ timeout: 15000 })
     await link.click()
-    await page.waitForLoadState('networkidle')
     await expect(page).toHaveURL(/\/auth\/forgot-password/)
   })
 })

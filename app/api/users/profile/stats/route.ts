@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { getServerSession } from '@/lib/auth/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { cache, generateCacheKey, withCache } from '@/lib/cache'
@@ -8,8 +9,11 @@ import { applyRateLimit } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
 
+type BlogRow = { id: string; status: string }
+type IdRow = { id: string }
+
 async function ensureUserRow(
-  supabase: any,
+  supabase: SupabaseClient,
   session: Awaited<ReturnType<typeof getServerSession>>
 ) {
   if (!session?.user?.id) return null
@@ -102,7 +106,7 @@ export async function GET(request: NextRequest) {
 
         const blogRows = blogs || [];
         const approvedStories = blogRows.filter(blog => blog.status === 'approved').length;
-        const blogIds = blogRows.map((blog: any) => blog.id).filter(Boolean);
+        const blogIds = (blogRows as BlogRow[]).map(blog => blog.id).filter(Boolean);
 
         let totalViews = 0;
         let totalUniqueViews = 0;
@@ -156,8 +160,8 @@ export async function GET(request: NextRequest) {
             .or(`created_by.eq.${session.user.id},created_by_organization.eq.${session.user.id}`),
         ]);
 
-        const eventIds = (userEvents || []).map((e: any) => e.id).filter(Boolean);
-        const vacancyIds = (userVacancies || []).map((v: any) => v.id).filter(Boolean);
+        const eventIds = (userEvents || []).map((e: IdRow) => e.id).filter(Boolean);
+        const vacancyIds = (userVacancies || []).map((v: IdRow) => v.id).filter(Boolean);
 
         if (eventIds.length > 0) {
           const [eventViewsRes, eventUniqueViewsRes, eventSavesRes] = await Promise.all([
