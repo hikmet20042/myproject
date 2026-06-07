@@ -3,12 +3,6 @@ import { mockTestRoleAuth, submitForm } from '../helpers/auth'
 
 test.describe('Authorization — API error states for various user types', () => {
   test.describe('Blog creation guard', () => {
-    test.beforeEach(async ({ page }) => {
-      await page.route(/auth\/v1\/user/, async (route) => {
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) })
-      })
-    })
-
     test('shows blog listing for unauthenticated users (no creation form)', async ({ page }) => {
       await page.route('**/api/blogs*', async (route) => {
         const body = JSON.stringify({ success: true, data: { items: [] }, meta: { pagination: { page: 1, pages: 1, total: 0 } } })
@@ -47,12 +41,6 @@ test.describe('Authorization — API error states for various user types', () =>
   })
 
   test.describe('API error states on public pages', () => {
-    test.beforeEach(async ({ page }) => {
-      await page.route(/auth\/v1\/user/, async (route) => {
-        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) })
-      })
-    })
-
     test('handles rate limit error on auth endpoints', async ({ page }) => {
       await page.route('**/api/auth/forgot-password', async (route) => {
         await route.fulfill({ status: 429, contentType: 'application/json', body: JSON.stringify({ error: { message: 'Çox sayda sorğu. Bir az sonra yenidən cəhd edin.' } }) })

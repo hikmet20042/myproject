@@ -12,10 +12,7 @@ async function submitForm(page: any) {
 
 test.describe('Sign Up — validation, short password, duplicate email', () => {
   test.beforeEach(async ({ page }) => {
-    await page.route(/auth\/v1\/user/, async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) })
-    })
-    await page.goto('/auth/register', { waitUntil: 'networkidle' })
+    await page.goto('/auth/register')
   })
 
   test('displays the registration form with Azerbaijani headings', async ({ page }) => {
@@ -31,7 +28,6 @@ test.describe('Sign Up — validation, short password, duplicate email', () => {
     await page.locator('input[type="password"]').first().fill('')
     await page.locator('input[type="password"]').nth(1).fill('')
     await submitForm(page)
-    await page.waitForLoadState('networkidle')
     await expect(page.locator('p:has-text("E-poçt tələb olunur")')).toBeVisible({ timeout: 10000 })
     await expect(page.locator('p:has-text("Şifrə tələb olunur")')).toBeVisible({ timeout: 10000 })
   })
@@ -40,7 +36,6 @@ test.describe('Sign Up — validation, short password, duplicate email', () => {
     await page.locator('input[type="email"]').fill('not-an-email')
     await page.locator('input[type="password"]').first().fill('ValidPass1')
     await submitForm(page)
-    await page.waitForLoadState('networkidle')
     await expect(page.getByText(/etibarlı e-poçt/i)).toBeVisible({ timeout: 10000 })
   })
 
@@ -48,7 +43,6 @@ test.describe('Sign Up — validation, short password, duplicate email', () => {
     await page.locator('input[type="email"]').fill('test@example.com')
     await page.locator('input[type="password"]').first().fill('Ab1')
     await submitForm(page)
-    await page.waitForLoadState('networkidle')
     await expect(page.getByText(/ən azı 6 simvol/i)).toBeVisible({ timeout: 10000 })
   })
 
@@ -57,7 +51,6 @@ test.describe('Sign Up — validation, short password, duplicate email', () => {
     await passwordInputs.nth(0).fill('ValidPass1')
     await passwordInputs.nth(1).fill('DifferentPass1')
     await submitForm(page)
-    await page.waitForLoadState('networkidle')
     await expect(page.getByText(/şifrələr uyğun gəlmir/i)).toBeVisible({ timeout: 10000 })
   })
 
@@ -72,13 +65,11 @@ test.describe('Sign Up — validation, short password, duplicate email', () => {
     await page.locator('input[type="email"]').fill('existing@example.com')
     await page.locator('input[type="password"]').first().fill('ValidPass1')
     await submitForm(page)
-    await page.waitForLoadState('networkidle')
     await expect(page.getByText(/artıq qeydiyyatdan keçib/i)).toBeVisible({ timeout: 10000 })
   })
 
   test('navigates to sign-in page via link', async ({ page }) => {
     await page.getByRole('link', { name: 'Daxil ol' }).click()
-    await page.waitForLoadState('networkidle')
     await expect(page).toHaveURL(/\/auth\/signin/)
   })
 

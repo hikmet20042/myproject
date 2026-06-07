@@ -1,12 +1,6 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('Blog Listing — Comprehensive', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.route(/auth\/v1/, async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: null }) })
-    })
-  })
-
   test('blog listing page has heading', async ({ page }) => {
     await page.goto('/blogs')
     await expect(page.getByRole('heading', { name: /Bloq|bloqlar|İcma/i })).toBeVisible({ timeout: 10000 })
@@ -47,12 +41,6 @@ test.describe('Blog Listing — Comprehensive', () => {
 })
 
 test.describe('Blog Detail — Comprehensive', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.route(/auth\/v1/, async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: null }) })
-    })
-  })
-
   test('shows blog content with author info', async ({ page }) => {
     await page.route('**/api/blogs/resolve/**', async (route) => {
       await route.fulfill({
@@ -81,7 +69,7 @@ test.describe('Blog Detail — Comprehensive', () => {
       })
     })
     await page.goto('/blogs/comprehensive-test')
-    await expect(page.getByText('Comprehensive Blog Test')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Comprehensive Blog Test').first()).toBeVisible({ timeout: 10000 })
     await expect(page.getByText('Jane Doe')).toBeVisible()
   })
 
@@ -111,7 +99,7 @@ test.describe('Blog Detail — Comprehensive', () => {
       })
     })
     await page.goto('/blogs/stats-blog')
-    await expect(page.getByText('Stats Blog')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Stats Blog').first()).toBeVisible({ timeout: 10000 })
     await expect(page.getByText(/baxış|views/i)).toBeVisible()
   })
 
@@ -141,7 +129,7 @@ test.describe('Blog Detail — Comprehensive', () => {
       })
     })
     await page.goto('/blogs/tagged-blog')
-    await expect(page.getByText('Tagged Blog')).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText('Tagged Blog').first()).toBeVisible({ timeout: 10000 })
   })
 
   test('shows sharing options', async ({ page }) => {

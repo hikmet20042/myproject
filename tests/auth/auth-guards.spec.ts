@@ -42,7 +42,7 @@ test.describe('Auth Guards — route protection and role-based access', () => {
     // users are NOT redirected from public routes.
     const publicRoutes = ['/', '/auth/signin', '/auth/register', '/blogs', '/resources/events', '/resources/vacancies', '/search']
     for (const route of publicRoutes) {
-      await page.goto(route, { waitUntil: 'load' })
+      await page.goto(route, { waitUntil: 'domcontentloaded' })
       await expect(page).not.toHaveURL(/\/auth\/signin\?/)
     }
   })
