@@ -38,7 +38,7 @@ test.describe('Admin — Blog Moderation Queue', () => {
     await mockTestRoleAuth(page, 'admin')
     await mockAdminBlogsList(page, [])
     await page.goto('/admin/blogs')
-    await expect(page.getByText(/Bloqlar|Moderasiya/i).first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByRole('heading', { name: /Bloq/i })).toBeVisible({ timeout: 10000 })
   })
 
   test('shows filter controls with status and author selection', async ({ page }) => {
@@ -108,7 +108,7 @@ test.describe('Admin — Event Moderation', () => {
     await mockTestRoleAuth(page, 'admin')
     await mockAdminEventsList(page, [])
     await page.goto('/admin/events')
-    await expect(page.getByPlaceholder(/Axtar|Search/i).first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByPlaceholder(/tədbir axtar|Başlıq.*tədbir/i).first()).toBeVisible({ timeout: 10000 })
   })
 })
 
@@ -138,6 +138,6 @@ test.describe('Admin — Vacancy Moderation', () => {
     await mockTestRoleAuth(page, 'admin')
     await mockAdminVacanciesList(page, [])
     await page.goto('/admin/vacancies')
-    await expect(page.getByPlaceholder(/Axtar|Search/i).first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByPlaceholder(/vakansiya axtar|Başlıq.*vakansiya/i).first()).toBeVisible({ timeout: 10000 })
   })
 })
