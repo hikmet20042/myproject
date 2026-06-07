@@ -40,22 +40,22 @@ test.describe('Dashboard — Navigation and Layout', () => {
 
   test('displays dashboard with welcome message', async ({ page }) => {
     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' })
-    await expect(page.getByText(/Xoş gəldin|Dashboard|İdarəetmə/i)).toBeVisible({ timeout: 10000 })
+    await expect(page.getByRole('heading', { name: /Rəhbər paneli/i })).toBeVisible({ timeout: 10000 })
   })
 
   test('shows quick action cards', async ({ page }) => {
     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' })
-    await expect(page.getByText(/Bloq yaz|Tədbir yarat|Vakansiya/i).first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText(/Tədbir yarat|Vakansiya/i).first()).toBeVisible({ timeout: 10000 })
   })
 
-  test('shows saved items section', async ({ page }) => {
+  test('shows stats cards', async ({ page }) => {
     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' })
-    await expect(page.getByText(/Yadda saxlanmış|Saxlanılan/i)).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText(/Tədbirlər|Vakansiyalar|İzləyicilər|Baxışlar/i).first()).toBeVisible({ timeout: 10000 })
   })
 
-  test('shows followed organizations section', async ({ page }) => {
+  test('shows quick actions section', async ({ page }) => {
     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' })
-    await expect(page.getByText(/İzlədiyim təşkilatlar/i)).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText(/Sürətli əməliyyatlar/i)).toBeVisible({ timeout: 10000 })
   })
 })
 
@@ -108,9 +108,9 @@ test.describe('Dashboard — Organization User View', () => {
     await expect(page.getByText(/Tədbir yarat|Vakansiya/i).first()).toBeVisible({ timeout: 10000 })
   })
 
-  test('shows published content counts', async ({ page }) => {
+  test('shows stats cards with counts', async ({ page }) => {
     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' })
-    await expect(page.getByText(/Nəşr olunmuş|Yayımlanmış/i).first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText(/Tədbirlər|Vakansiyalar/i).first()).toBeVisible({ timeout: 10000 })
   })
 
   test('has link to profile settings', async ({ page }) => {
