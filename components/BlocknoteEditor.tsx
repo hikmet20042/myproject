@@ -21,8 +21,11 @@ type Props = {
 export default function BlocknoteEditor({ initialJSON, onChange, className, context = 'general' }: Props) {
   const [isEmpty, setIsEmpty] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
-  const editor = useCreateBlockNote({
-    initialContent: initialJSON ?? undefined,
+  const normalizedContent = initialJSON && typeof initialJSON === 'object' && Array.isArray((initialJSON as any).blocks)
+    ? (initialJSON as any).blocks
+    : initialJSON
+const editor = useCreateBlockNote({
+    initialContent: Array.isArray(normalizedContent) ? normalizedContent : undefined,
     uploadFile: async (file: File) => {
       const form = new FormData()
       form.append('file', file)

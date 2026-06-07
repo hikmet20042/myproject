@@ -41,45 +41,38 @@ test.describe('Blogs — Interactions (views, upvote/downvote, saves)', () => {
 
   test('shows view count with Azerbaijani label', async ({ page }) => {
     await page.goto('/blogs/interactive-blog')
-    await page.waitForLoadState('networkidle')
     await expect(page.getByText(/100 baxış/i)).toBeVisible({ timeout: 10000 })
   })
 
   test('shows like/dislike counts', async ({ page }) => {
     await page.goto('/blogs/interactive-blog')
-    await page.waitForLoadState('networkidle')
-    await expect(page.getByText(/25/)).toBeVisible({ timeout: 10000 })
-    await expect(page.getByText(/5/)).toBeVisible()
+    await expect(page.getByText(/25/).first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByText(/5/).first()).toBeVisible()
   })
 
   test('shows reactions section heading', async ({ page }) => {
     await page.goto('/blogs/interactive-blog')
-    await page.waitForLoadState('networkidle')
     await expect(page.getByRole('heading', { name: /Bu məqalə sənə necə gəldi/i })).toBeVisible({ timeout: 10000 })
   })
 
   test('shows reading time in Azerbaijani', async ({ page }) => {
     await page.goto('/blogs/interactive-blog')
-    await page.waitForLoadState('networkidle')
     await expect(page.getByText(/\d+ dəq/i)).toBeVisible({ timeout: 10000 })
   })
 
   test('shows author name as a link', async ({ page }) => {
     await page.goto('/blogs/interactive-blog')
-    await page.waitForLoadState('networkidle')
-    await expect(page.getByRole('link', { name: 'Author User' }).or(page.getByText('Müəllif'))).toBeVisible({ timeout: 10000 })
+    await expect(page.getByRole('link', { name: 'Author User' })).toBeVisible({ timeout: 10000 })
   })
 
   test('shows share button', async ({ page }) => {
     await page.goto('/blogs/interactive-blog')
-    await page.waitForLoadState('networkidle')
     await expect(page.getByRole('button', { name: /Paylaş/i })).toBeVisible({ timeout: 10000 })
   })
 
   test('shows breadcrumb navigation', async ({ page }) => {
     await page.goto('/blogs/interactive-blog')
-    await page.waitForLoadState('networkidle')
-    await expect(page.getByRole('link', { name: /Ana səhifə/i })).toBeVisible({ timeout: 10000 })
-    await expect(page.getByRole('link', { name: /Bloqlar/i })).toBeVisible()
+    await expect(page.getByRole('link', { name: /Ana səhifə/i }).first()).toBeVisible({ timeout: 10000 })
+    await expect(page.getByRole('link', { name: /Bloqlar/i }).first()).toBeVisible()
   })
 })
