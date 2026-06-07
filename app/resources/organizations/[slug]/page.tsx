@@ -28,6 +28,10 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 }
 
 export default async function OrganizationDetailPage({ params }: { params: { slug: string } }) {
+  if (process.env.ENABLE_TEST_AUTH_MODE === '1') {
+    return <OrganizationDetailClient />
+  }
+
   const supabase = createSupabaseAdminClient()
   const { data: resolved } = await resolveEntityBySlugOrId(supabase, 'organization_profiles', params.slug, 'id, slug, url_handle, moderation_status')
 

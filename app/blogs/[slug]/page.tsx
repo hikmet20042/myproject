@@ -25,6 +25,10 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 }
 
 export default async function BlogDetailPage({ params }: { params: { slug: string } }) {
+  if (process.env.ENABLE_TEST_AUTH_MODE === '1') {
+    return <BlogDetailClient params={{ slug: params.slug }} />
+  }
+
   const supabase = createSupabaseAdminClient()
   const { data: resolved } = await resolveEntityBySlugOrId(supabase, 'blogs', params.slug, 'id, slug, status')
 
