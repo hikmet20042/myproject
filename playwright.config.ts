@@ -31,6 +31,18 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+    {
+      // Mobile-sized viewport on chromium. The 'iPhone 13' device requires
+      // webkit (Safari mobile) which has additional system dependencies; we
+      // get the same viewport behavior (390x844, touch enabled) on chromium.
+      name: 'mobile-chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 390, height: 844 },
+        hasTouch: true,
+        isMobile: true,
+      },
+    },
   ],
   webServer: {
     command: CI
