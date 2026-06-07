@@ -69,14 +69,32 @@ Copy `.env.example` → `.env.local`. Requires Supabase URL/anon key, Cloudinary
 
 - `opencode.json` references `docs/guidelines.md` and `docs/security.md` — these files do not exist. The actual architecture doc is `docs/architecture-guidelines.md`.
 - `pages/` directory contains legacy API routes only. All app routes use the `app/` directory.
-- Playwright is configured (`playwright.config.ts`) but the `tests/` directory it expects does not exist yet — no e2e tests have been written.
 - `e2e/` directory is empty and gitignored.
 - `test-*.js` patterns are gitignored; `test-admin-audit.js` and `test-org-audit.js` exist on disk (local scripts).
 
 ## Playwright Test Architecture
 
 - **Auth bypass:** `middleware.ts` checks `ENABLE_TEST_AUTH_MODE=1` and short-circuits Supabase auth using `X-Test-Role` / `X-Test-User-Id` / `X-Test-Org-Status` headers (only when env var is set, so production is unaffected). `playwright.config.ts` sets the env var on the webServer automatically.
+- **Client-side auth mirror:** `mockTestRoleAuth` injects `window.__TEST_AUTH__` via `addInitScript` so `useAuthSync` skips the Supabase PostgREST account lookup (which has no mock in tests) and returns a session immediately. Without this, `AdminLayoutClient` renders `null` (empty main) because `useSession()` stays null.
+- **Headers must be context-level:** `page.setExtraHTTPHeaders` doesn't reach the middleware on the first navigation. `mockTestRoleAuth` uses `page.context().setExtraHTTPHeaders` so the headers are sent on the very first request.
 - **Auth helper:** Use `mockTestRoleAuth(page, 'admin' | 'user' | 'organization', { orgStatus })` from `tests/helpers/auth.ts`. Combines the header bypass with `/auth/v1/user` and (for org) `/api/organizations/me` route mocks.
-- **API mocking:** `tests/helpers/api.ts` exports `mockApi`, `mockApiRoute`, `mockBlogsList`, `mockEventsList`, `mockVacanciesList`, `mockProfileStats`, etc.
-- **Fixtures:** `tests/fixtures/{blog,event,vacancy,organization,notification}.ts` export `makeX(overrides)` and `makeXList(n, overrides)` factories.
-- **New coverage:** `tests/specs/notifications.spec.ts`, `i18n.spec.ts`, `seo-meta.spec.ts`, `mobile-viewport.spec.ts` (mobile project must be added to `playwright.config.ts` to enable the last one).
+- **API mocking:** `tests/helpers/api.ts` exports `mockApi`, `mockApiRoute`, `ok`, `list`, `mockBlogsList`, `mockEventsList`, `mockVacanciesList`, `mockOrganizationsList`, `mockAdminBlogsList`, `mockAdminEventsList`, `mockAdminVacanciesList` (per-resource response shapes — admin endpoints differ from public ones).
+- **Fixtures:** `tests/fixtures/{blog,event,vacancy,organization,notification,users}.ts` + `tests/fixtures/index.ts` barrel export `makeX(overrides)`, `makeXList(n, overrides)`, and `makeAdminX(overrides)` factories.
+- **Projects:** `chromium` (Desktop Chrome) and `mobile-chromium` (Desktop Chrome with 390x844 + touch). The `iPhone 13` device profile requires webkit (extra system dependencies); chromium with a mobile viewport gives equivalent behaviour.
+- **SSE caveat:** The notifications SSE stream keeps pages from reaching the `load` event. Use `page.goto(url, { waitUntil: 'domcontentloaded' })` for any page that connects to `/api/notifications/stream`.
+- **Coverage:** `tests/admin/*`, `tests/auth/*`, `tests/blogs/*`, `tests/dashboard/*`, `tests/events/*`, `tests/profile/*`, `tests/search/*`, `tests/vacancies/*`, `tests/pages/*`, `tests/specs/{notifications,i18n,seo-meta,mobile-viewport,accessibility,rate-limit-error-boundary}.spec.ts`.
+
+## Playwright Stabilization History (June 2026)
+
+A multi-phase stabilization pass was completed in commits `66dd118..858631c`:
+
+| Commit | What |
+|---|---|
+| `66dd118` | Fixed admin auth bypass: `useAuthSync` reads `window.__TEST_AUTH__` so `AdminLayoutClient` renders content in tests. Added `mockTestRoleAuth`, admin mock helpers, admin fixture factories. |
+| `37970e7` | Fixed 6 test-expectation bugs in authorization, onboarding, notifications specs. Removed dead `/onboarding/*` user redirect in test-mode middleware. |
+| `f87bc96` | Added `mobile-chromium` project (chromium + 390x844 + touch) since iPhone 13 device needs webkit. |
+| `699fde3` | Added `@axe-core/playwright` a11y spec for 6 public routes; critical-only gate, color-contrast disabled. |
+| `41c83fc` | Added rate-limit (429) and error-boundary (abort) resilience spec. |
+| `858631c` | Refactor: `tests/auth/auth-guards.spec.ts` now uses `mockTestRoleAuth`. |
+
+Remaining mechanical refactor (replacing inline `page.route` calls across the other ~30 spec files with `mockApi`/`mockBlogsList`/etc.) is straightforward and can be done incrementally.
