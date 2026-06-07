@@ -8,6 +8,24 @@ import type { AccountSnapshot } from '@/hooks/useAccountCache'
 
 const DEBUG_AUTH_CLIENT = process.env.NEXT_PUBLIC_DEBUG_AUTH === 'true'
 
+// Test-mode session: when Playwright sets window.__TEST_AUTH__ via addInitScript,
+// skip the Supabase account lookup and return the provided identity directly.
+// The middleware test-auth branch already short-circuits server redirects, so
+// the client just needs a matching session to avoid useSession() returning null.
+type TestAuthPayload = {
+  id: string
+  email: string
+  name: string
+  role: 'admin' | 'user'
+  accountType: 'user' | 'organization' | null
+  organizationStatus: 'pending' | 'approved' | 'rejected' | null
+}
+function readTestAuth(): TestAuthPayload | null {
+  if (typeof window === 'undefined') return null
+  const w = window as unknown as { __TEST_AUTH__?: TestAuthPayload }
+  return w.__TEST_AUTH__ || null
+}
+
 function areUsersEqual(a: ClientSessionUser, b: ClientSessionUser) {
   return (
     a.id === b.id &&
@@ -56,6 +74,24 @@ export function useAuthSync({ supabase, getAccountSnapshot, clearCache }: UseAut
       authUser?: User | null,
       options?: { forceAccountRefresh?: boolean },
     ) => {
+      // Test-mode short-circuit: trust the identity injected by Playwright.
+      const testAuth = readTestAuth()
+      if (testAuth) {
+        const nextSession: ClientSession = {
+          user: {
+            id: testAuth.id,
+            email: testAuth.email,
+            name: testAuth.name,
+            role: testAuth.role,
+            accountType: testAuth.accountType,
+            organizationStatus: testAuth.organizationStatus,
+            isActive: true,
+          },
+        }
+        applyAuthState(nextSession, 'authenticated')
+        return
+      }
+
       if (!supabase) {
         applyAuthState(null, 'unauthenticated')
         return

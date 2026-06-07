@@ -50,6 +50,13 @@ async function checkAuthorization(pathWithoutLanguage: string, pathname: string,
     return NextResponse.redirect(new URL(newPathname, req.url))
   }
 
+  // Test-mode auth bypass: enabled by ENABLE_TEST_AUTH_MODE=1 env var (set by Playwright).
+  // Mirrors the redirect rules of the real flow using X-Test-* headers.
+  if (process.env.ENABLE_TEST_AUTH_MODE === '1') {
+    const testResponse = handleTestModeAuth(pathWithoutLanguage, pathname, req)
+    if (testResponse !== undefined) return testResponse
+  }
+
   const shouldInspectAuth =
     pathWithoutLanguage.startsWith('/admin') ||
     pathWithoutLanguage.startsWith('/submit') ||
@@ -233,4 +240,72 @@ export const config = {
      */
     '/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap).*)',
   ],
+}
+
+// ---------------------------------------------------------------------------
+// Test-mode auth bypass
+//
+// When ENABLE_TEST_AUTH_MODE=1 is set, this short-circuits the real Supabase
+// auth flow in middleware. Tests set the following headers on every request:
+//
+//   x-test-role          'admin' | 'user' | 'organization'
+//   x-test-user-id       (optional) override the user id
+//   x-test-org-status    (optional) 'approved' | 'pending' | 'rejected'
+//
+// Returns:
+//   NextResponse.redirect(...)  — when the test user would be redirected
+//   null                        — when the request is allowed
+//   undefined                   — when no test header is present (caller falls
+//                                 through to the real Supabase auth flow)
+// ---------------------------------------------------------------------------
+
+const TEST_ROLES = ['admin', 'user', 'organization'] as const
+type TestRole = typeof TEST_ROLES[number]
+
+function handleTestModeAuth(
+  pathWithoutLanguage: string,
+  pathname: string,
+  req: NextRequest
+): NextResponse | null | undefined {
+  const rawRole = req.headers.get('x-test-role')
+  if (!rawRole) return undefined
+  if (!TEST_ROLES.includes(rawRole as TestRole)) return undefined
+  const testRole = rawRole as TestRole
+  const testOrgStatus = req.headers.get('x-test-org-status') || 'approved'
+
+  const isOnboardingRoute = pathWithoutLanguage.startsWith('/onboarding')
+  const isDashboardRoute = pathWithoutLanguage.startsWith('/dashboard')
+  const isOrganizationRoute = pathWithoutLanguage.startsWith('/organization')
+  const isAdminRoute = pathWithoutLanguage.startsWith('/admin')
+  const isRegularUserOnlyRoute =
+    pathWithoutLanguage.startsWith('/profile') ||
+    pathWithoutLanguage.startsWith('/submit/blog')
+
+  if (testRole === 'user') {
+    if (isDashboardRoute) return NextResponse.redirect(new URL('/', req.url))
+    if (isAdminRoute) return NextResponse.redirect(new URL('/', req.url))
+    if (isOrganizationRoute) return NextResponse.redirect(new URL('/', req.url))
+    if (isOnboardingRoute) return NextResponse.redirect(new URL('/', req.url))
+  }
+
+  if (testRole === 'organization') {
+    if (isOnboardingRoute) {
+      if (testOrgStatus === 'approved') {
+        return NextResponse.redirect(new URL('/dashboard', req.url))
+      }
+      return NextResponse.redirect(new URL('/organization/pending', req.url))
+    }
+    if (isRegularUserOnlyRoute) {
+      if (testOrgStatus === 'pending' || testOrgStatus === 'rejected') {
+        return NextResponse.redirect(new URL('/organization/pending', req.url))
+      }
+      return NextResponse.redirect(new URL('/dashboard', req.url))
+    }
+    if (isDashboardRoute && (testOrgStatus === 'pending' || testOrgStatus === 'rejected')) {
+      return NextResponse.redirect(new URL('/organization/pending', req.url))
+    }
+  }
+
+  // admin: allowed everywhere; user: everything else allowed
+  return null
 }

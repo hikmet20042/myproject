@@ -16,6 +16,12 @@ npm run check:ui-patterns  # Custom UI pattern check
 npm run lint:architecture  # Custom architecture boundary check
 npm run lint:system      # Full: lint + ui-patterns + architecture
 npm run hooks:install    # Install git pre-commit hooks (run once per clone)
+
+# Playwright E2E
+npm run test:e2e              # Full suite (workers=2 local, 1 in CI)
+npm run test:e2e:ui           # Playwright UI mode
+npm run test:e2e:debug        # Playwright debug mode
+SMOKE=1 npx playwright test <files...> --workers=1 --max-failures=3   # Minimal smoke run
 ```
 
 Pre-commit runs `npm run lint:system`. Hooks live in `.githooks/`.
@@ -66,3 +72,11 @@ Copy `.env.example` → `.env.local`. Requires Supabase URL/anon key, Cloudinary
 - Playwright is configured (`playwright.config.ts`) but the `tests/` directory it expects does not exist yet — no e2e tests have been written.
 - `e2e/` directory is empty and gitignored.
 - `test-*.js` patterns are gitignored; `test-admin-audit.js` and `test-org-audit.js` exist on disk (local scripts).
+
+## Playwright Test Architecture
+
+- **Auth bypass:** `middleware.ts` checks `ENABLE_TEST_AUTH_MODE=1` and short-circuits Supabase auth using `X-Test-Role` / `X-Test-User-Id` / `X-Test-Org-Status` headers (only when env var is set, so production is unaffected). `playwright.config.ts` sets the env var on the webServer automatically.
+- **Auth helper:** Use `mockTestRoleAuth(page, 'admin' | 'user' | 'organization', { orgStatus })` from `tests/helpers/auth.ts`. Combines the header bypass with `/auth/v1/user` and (for org) `/api/organizations/me` route mocks.
+- **API mocking:** `tests/helpers/api.ts` exports `mockApi`, `mockApiRoute`, `mockBlogsList`, `mockEventsList`, `mockVacanciesList`, `mockProfileStats`, etc.
+- **Fixtures:** `tests/fixtures/{blog,event,vacancy,organization,notification}.ts` export `makeX(overrides)` and `makeXList(n, overrides)` factories.
+- **New coverage:** `tests/specs/notifications.spec.ts`, `i18n.spec.ts`, `seo-meta.spec.ts`, `mobile-viewport.spec.ts` (mobile project must be added to `playwright.config.ts` to enable the last one).
