@@ -19,7 +19,7 @@ import { cache, generateCacheKey, withCache } from "@/lib/cache";
 
 export async function GET(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'publicRead',
       endpoint: '/api/events',
@@ -277,7 +277,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'write',
       endpoint: '/api/events',

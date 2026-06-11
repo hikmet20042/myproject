@@ -69,11 +69,19 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Manual trigger for testing (admin only - no auth check for now, protect with firewall)
+// Manual trigger for testing (admin only - requires CRON_SECRET)
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
   
   try {
+    const authHeader = request.headers.get('authorization')
+    const cronSecret = process.env.CRON_SECRET
+    
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+      console.warn('Unauthorized cron GET request - invalid or missing authorization header')
+      return errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401)
+    }
+
     console.log('[Manual] Starting vacancy deadline notification check...')
     const result = await executeWithRetry()
     const duration = Date.now() - startTime

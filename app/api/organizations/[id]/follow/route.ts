@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { NotificationService } from '@/features/notifications/services/notificationService'
 import { applyRateLimit } from '@/lib/rateLimit'
+import { isValidUUID } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,13 +34,19 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/organizations/[id]/follow' })
+    const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/organizations/[id]/follow' })
     if (!rlResult.allowed) {
       const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
     const supabase = createSupabaseAdminClient()
+
+    if (!isValidUUID(params.id)) {
+      const r = errorResponse('Yanlış təşkilat ID-si', "API_ERROR", {}, 400)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
+    }
 
     const { data: profile } = await supabase
       .from('organization_profiles')
@@ -86,7 +93,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'write', endpoint: '/api/organizations/[id]/follow' })
+    const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'write', endpoint: '/api/organizations/[id]/follow' })
     if (!rlResult.allowed) {
       const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)

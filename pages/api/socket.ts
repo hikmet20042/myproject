@@ -1,3 +1,6 @@
+// NOTE: Legacy Socket.IO handler. The canonical setup is in lib/socket.ts (initSocketIO).
+// This pages/ route is still called by SocketProvider.tsx for backward compatibility
+// and can be removed once the client switches to the app/ directory setup.
 import { Server as NetServer } from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { NextApiRequest } from "next";

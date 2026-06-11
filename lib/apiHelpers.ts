@@ -80,7 +80,7 @@ export async function handleApiRequest(
     : rateLimit
   const preset = typeof rateLimit === 'string' ? rateLimit : 'api'
   
-  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+  const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
     request,
     userId,
     preset,

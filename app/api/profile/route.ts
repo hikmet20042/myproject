@@ -11,24 +11,24 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'authenticatedRead',
       endpoint: '/api/profile',
     })
 
-    const session = await getServerSession()
-    
-    if (!session?.user?.id) {
-      const response = errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401)
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
       return response
     }
 
-    if (!rateLimitResult.allowed) {
-      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
+    const session = await getServerSession()
+    
+    if (!session?.user?.id) {
+      const response = errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }

@@ -8,11 +8,12 @@ import { buildVacancyDbPayload, mapVacancyRow, validateVacancyPayload } from '@/
 import { applyRateLimit } from '@/lib/rateLimit'
 import { submitVacancyToIndexNow } from '@/lib/indexnow'
 import { cache, generateCacheKey, withCache } from '@/lib/cache'
+import { escapeIlike, isValidUUID } from '@/lib/utils'
 
 // GET /api/vacancies - Get vacancies with filtering
 export async function GET(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'publicRead',
       endpoint: '/api/vacancies',
@@ -35,8 +36,10 @@ export async function GET(request: NextRequest) {
     
     const { searchParams } = new URL(request.url)
     
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
+    const pageParam = parseInt(searchParams.get('page') || '1')
+    const limitParam = parseInt(searchParams.get('limit') || '10')
+    const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1
+    const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 50) : 10
     const type = searchParams.get('type')
     const search = searchParams.get('search')
     const city = searchParams.get('city')
@@ -98,7 +101,7 @@ export async function GET(request: NextRequest) {
     const orderField = sortFieldMap[sortBy] || 'created_at'
     const ascending = sortOrder === 'asc'
 
-    const cacheKey = generateCacheKey.vacancies(page, limit, search || undefined, type || undefined, city || undefined, sortBy, sortOrder, dateFrom || undefined, dateTo || undefined);
+    const cacheKey = generateCacheKey.vacancies(page, limit, search || undefined, type || undefined, city || undefined, sortBy, sortOrder, dateFrom || undefined, dateTo || undefined, adminView || undefined, status || undefined, actualCreatedBy || undefined, organizationId || undefined);
 
     const cachedResult = await withCache(
       cache.vacancies,
@@ -126,7 +129,7 @@ export async function GET(request: NextRequest) {
         }
 
         if (city) {
-          query = query.ilike('city', `%${city}%`)
+          query = query.ilike('city', `%${escapeIlike(city)}%`)
         }
 
         if (dateFrom) {
@@ -136,7 +139,7 @@ export async function GET(request: NextRequest) {
           query = query.lte('application_deadline', `${dateTo}T23:59:59`)
         }
 
-        if (actualCreatedBy) {
+        if (actualCreatedBy && isValidUUID(actualCreatedBy)) {
           query = query.or(`created_by.eq.${actualCreatedBy},created_by_organization.eq.${actualCreatedBy}`)
         }
 
@@ -145,7 +148,8 @@ export async function GET(request: NextRequest) {
         }
 
         if (search) {
-          const searchFilter = `title.ilike.%${search}%,description.ilike.%${search}%`
+          const safeSearch = escapeIlike(search)
+          const searchFilter = `title.ilike.%${safeSearch}%,description.ilike.%${safeSearch}%`
           query = query.or(searchFilter)
         }
 
@@ -237,7 +241,7 @@ export async function GET(request: NextRequest) {
 // POST /api/vacancies - Create new vacancy
 export async function POST(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'write',
       endpoint: '/api/vacancies',

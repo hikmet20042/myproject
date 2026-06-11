@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { UUID_REGEX } from '@/lib/identifier';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -28,6 +29,14 @@ export function formatDateTime(date: Date | string): string {
 export function truncateText(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
   return text.slice(0, maxLength) + '...';
+}
+
+export function escapeIlike(value: string): string {
+  return value.replace(/%/g, '\\%').replace(/_/g, '\\_');
+}
+
+export function isValidUUID(value: string): boolean {
+  return UUID_REGEX.test(value);
 }
 
 export function generateSlug(text: string): string {

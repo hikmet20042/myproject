@@ -10,7 +10,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { slug: string } },
 ) {
-  const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/events/resolve/[slug]' })
+  const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/events/resolve/[slug]' })
   if (!rlResult.allowed) {
     return rlh(errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 429), rlHeaders)
   }
@@ -26,6 +26,6 @@ export async function GET(
 
     return rlh(successResponse({ id: data.id, slug: data.slug || slug }), rlHeaders)
   } catch (error) {
-    return errorResponse("Tədbir həll edilə bilmədi", 500)
+    return rlh(errorResponse("Tədbir həll edilə bilmədi", 500), rlHeaders)
   }
 }

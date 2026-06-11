@@ -6,6 +6,7 @@ import { cache, invalidateUserCache } from '@/lib/cache';
 import { NotificationService } from '@/features/notifications/services/notificationService';
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { applyRateLimit } from '@/lib/rateLimit'
+import { escapeIlike, isValidUUID } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +14,7 @@ const MAX_PAGE_SIZE = 100;
 
 export async function GET(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'admin',
       endpoint: '/api/admin/blogs',
@@ -92,7 +93,8 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      queryBuilder = queryBuilder.or(`title.ilike.%${search}%,abstract.ilike.%${search}%,content_html.ilike.%${search}%`);
+      const safeSearch = escapeIlike(search)
+      queryBuilder = queryBuilder.or(`title.ilike.%${safeSearch}%,abstract.ilike.%${safeSearch}%,content_html.ilike.%${safeSearch}%`);
     }
 
     if (dateFrom) queryBuilder = queryBuilder.gte('created_at', new Date(dateFrom).toISOString());
@@ -136,7 +138,7 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'admin',
       endpoint: '/api/admin/blogs',
@@ -218,7 +220,7 @@ export async function PUT(request: NextRequest) {
 
     const statusChanged = blog.status !== status;
 
-    await supabase
+    const { error: updateError } = await supabase
       .from('blogs')
       .update({
         status,
@@ -228,6 +230,14 @@ export async function PUT(request: NextRequest) {
         reviewed_by: session.user.id,
       })
       .eq('id', id);
+
+    if (updateError) {
+      const r = errorResponse('Bloq yenilənə bilmədi', 'UPDATE_BLOG_FAILED', {}, 500)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        r.headers.set(key, value)
+      }
+      return r
+    }
     
     // Invalidate caches
     cache.blogs.invalidateAll();
@@ -255,6 +265,8 @@ export async function PUT(request: NextRequest) {
     }
     return successResp
   } catch (error) {
+    // NOTE: rateLimitHeaders is scoped inside the try block and not accessible here.
+    // This is acceptable for unexpected errors — rate limit headers are best-effort.
     console.error('PUT /api/admin/blogs error:', error);
     return errorResponse('Daxili server xətası', "API_ERROR", {}, 500);
   }
@@ -262,7 +274,7 @@ export async function PUT(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'admin',
       endpoint: '/api/admin/blogs',
@@ -319,6 +331,13 @@ export async function PATCH(request: NextRequest) {
     const normalizedAdminComment = typeof adminComment === 'string' ? adminComment.trim() : '';
     const uniqueStoryIds = Array.from(new Set(storyIds));
 
+    const invalidIds = uniqueStoryIds.filter((id: string) => !isValidUUID(id));
+    if (invalidIds.length > 0) {
+      const response = errorResponse(`Yanlış ID-lər: ${invalidIds.slice(0, 5).join(', ')}`, "API_ERROR", {}, 400)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
+      return response
+    }
+
     if (action === 'bulk_delete') {
       const { data: existingBlogs } = await supabase
         .from('blogs')
@@ -358,16 +377,22 @@ export async function PATCH(request: NextRequest) {
         break;
       case 'bulk_reject':
         if (!normalizedAdminComment) {
-          return errorResponse('Toplu rədd üçün səbəb tələb olunur', "API_ERROR", {}, 400);
+          const r = errorResponse('Toplu rədd üçün səbəb tələb olunur', "API_ERROR", {}, 400);
+          for (const [key, value] of Object.entries(rateLimitHeaders)) r.headers.set(key, value);
+          return r;
         }
         updateData = { status: 'rejected', admin_comment: normalizedAdminComment };
         break;
       case 'bulk_status_change':
         if (!status || !['pending', 'approved', 'rejected'].includes(status)) {
-          return errorResponse('Yanlış status', "API_ERROR", {}, 400);
+          const r = errorResponse('Yanlış status', "API_ERROR", {}, 400);
+          for (const [key, value] of Object.entries(rateLimitHeaders)) r.headers.set(key, value);
+          return r;
         }
         if (status === 'rejected' && !normalizedAdminComment) {
-          return errorResponse('Toplu rədd üçün səbəb tələb olunur', "API_ERROR", {}, 400);
+          const r = errorResponse('Toplu rədd üçün səbəb tələb olunur', "API_ERROR", {}, 400);
+          for (const [key, value] of Object.entries(rateLimitHeaders)) r.headers.set(key, value);
+          return r;
         }
         updateData = {
           status,
@@ -375,7 +400,9 @@ export async function PATCH(request: NextRequest) {
         };
         break;
       default:
-        return errorResponse('Yanlış əməliyyat', "API_ERROR", {}, 400);
+        const r = errorResponse('Yanlış əməliyyat', "API_ERROR", {}, 400);
+        for (const [key, value] of Object.entries(rateLimitHeaders)) r.headers.set(key, value);
+        return r;
     }
 
     const { data: existingBlogs, error: existingError } = await supabase

@@ -5,6 +5,7 @@ import { canAccessAdmin, isAdmin } from '@/lib/auth/permissions'
 import { normalizeOrganizationProfile, validateOrganizationUpdatePayload } from '@/lib/organizationProfile'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { applyRateLimit } from '@/lib/rateLimit'
+import { isValidUUID } from '@/lib/utils'
 
 const rlh = (r: Response, h: Record<string, string>) => { for (const [k,v] of Object.entries(h)) r.headers.set(k,v); return r }
 
@@ -15,13 +16,17 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/organizations/[id]' })
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/organizations/[id]' })
     if (!rlResult.allowed) {
-      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      return rlh(errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429), rlHeaders)
     }
-    const supabase = createSupabaseAdminClient()
 
+    if (!isValidUUID(params.id)) {
+      return rlh(errorResponse('Yanlış təşkilat ID-si', "API_ERROR", {}, 400), rlHeaders)
+    }
+
+    const supabase = createSupabaseAdminClient()
     const { data: profile, error: profileError } = await supabase
       .from('organization_profiles')
       .select('*')
@@ -30,7 +35,7 @@ export async function GET(
       .maybeSingle()
 
     if (profileError || !profile) {
-      return errorResponse('Təşkilat tapılmadı', "API_ERROR", {}, 404)
+      return rlh(errorResponse('Təşkilat tapılmadı', "API_ERROR", {}, 404), rlHeaders)
     }
 
     const [followerCountResult, featuredEventResult, featuredVacancyResult] = await Promise.all([
@@ -63,7 +68,7 @@ export async function GET(
     return rlh(successResponse({ organization: normalizeOrganizationProfile({ ...profile, follower_count: followerCountResult.count || 0, }), featuredEvent: featuredEventResult.data ? { id: featuredEventResult.data.id, title: featuredEventResult.data.title, eventDate: featuredEventResult.data.event_date, applicationLink: featuredEventResult.data.application_link, createdAt: featuredEventResult.data.created_at, } : null, featuredVacancy: featuredVacancyResult.data ? { id: featuredVacancyResult.data.id, title: featuredVacancyResult.data.title, applicationDeadline: featuredVacancyResult.data.application_deadline, applicationMethod: featuredVacancyResult.data.application_method, applicationValue: featuredVacancyResult.data.application_value, createdAt: featuredVacancyResult.data.created_at, } : null, }), rlHeaders)
   } catch (error) {
     console.error('Error fetching organization:', error)
-    return errorResponse('Daxili server xətası', "API_ERROR", {}, 500)
+    return rlh(errorResponse('Daxili server xətası', "API_ERROR", {}, 500), rlHeaders)
   }
 }
 
@@ -72,13 +77,17 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'write', endpoint: '/api/organizations/[id]' })
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/organizations/[id]' })
     if (!rlResult.allowed) {
-      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      return rlh(errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429), rlHeaders)
     }
-    const supabase = createSupabaseAdminClient()
 
+    if (!isValidUUID(params.id)) {
+      return rlh(errorResponse('Yanlış təşkilat ID-si', "API_ERROR", {}, 400), rlHeaders)
+    }
+
+    const supabase = createSupabaseAdminClient()
     const { data: organization, error: fetchError } = await supabase
       .from('organization_profiles')
       .select('*')
@@ -86,20 +95,20 @@ export async function PUT(
       .maybeSingle()
 
     if (fetchError || !organization) {
-      return errorResponse('Təşkilat tapılmadı', "API_ERROR", {}, 404)
+      return rlh(errorResponse('Təşkilat tapılmadı', "API_ERROR", {}, 404), rlHeaders)
     }
 
     const session = await getServerSession()
     const admin = isAdmin(session)
     if (!admin) {
-      return errorResponse('Təşkilat öz redaktəsi üçün /api/organizations/me istifadə edin. ID əsaslı yeniləmələr üçün admin girişi tələb olunur.', "API_ERROR", {}, 403)
+      return rlh(errorResponse('Təşkilat öz redaktəsi üçün /api/organizations/me istifadə edin. ID əsaslı yeniləmələr üçün admin girişi tələb olunur.', "API_ERROR", {}, 403), rlHeaders)
     }
 
     const body = await request.json()
     const { status } = body
     const validation = validateOrganizationUpdatePayload(body)
     if (validation.error || !validation.data) {
-      return errorResponse(validation.error || 'Yanlış məlumat', "API_ERROR", {}, 400)
+      return rlh(errorResponse(validation.error || 'Yanlış məlumat', "API_ERROR", {}, 400), rlHeaders)
     }
 
     if (validation.data.organizationName !== organization.organization_name) {
@@ -111,7 +120,7 @@ export async function PUT(
         .maybeSingle()
 
       if (existingOrganization) {
-        return errorResponse('Bu adla təşkilat artıq mövcuddur', "API_ERROR", {}, 400)
+        return rlh(errorResponse('Bu adla təşkilat artıq mövcuddur', "API_ERROR", {}, 400), rlHeaders)
       }
     }
 
@@ -130,6 +139,10 @@ export async function PUT(
     }
 
     if (admin && status) {
+      const allowedStatuses = ['approved', 'rejected', 'pending']
+      if (!allowedStatuses.includes(status)) {
+        return rlh(errorResponse('Yanlış status dəyəri', "API_ERROR", {}, 400), rlHeaders)
+      }
       profileUpdateData.moderation_status = status
       if (status === 'approved') {
         profileUpdateData.reviewed_by = session?.user?.id
@@ -150,13 +163,13 @@ export async function PUT(
       .single()
 
     if (updateError || !updatedOrganization) {
-      return errorResponse(updateError?.message || 'Yeniləmə uğursuz oldu', "API_ERROR", {}, 500)
+      return rlh(errorResponse(updateError?.message || 'Yeniləmə uğursuz oldu', "API_ERROR", {}, 500), rlHeaders)
     }
 
     return rlh(successResponse({ message: 'Təşkilat uğurla yeniləndi', organization: normalizeOrganizationProfile(updatedOrganization) }), rlHeaders)
   } catch (error) {
     console.error('Error updating organization:', error)
-    return errorResponse('Daxili server xətası', "API_ERROR", {}, 500)
+    return rlh(errorResponse('Daxili server xətası', "API_ERROR", {}, 500), rlHeaders)
   }
 }
 
@@ -165,18 +178,23 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'write', endpoint: '/api/organizations/[id]' })
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/organizations/[id]' })
     if (!rlResult.allowed) {
-      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      return rlh(errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429), rlHeaders)
     }
+
+    if (!isValidUUID(params.id)) {
+      return rlh(errorResponse('Yanlış təşkilat ID-si', "API_ERROR", {}, 400), rlHeaders)
+    }
+
     const session = await getServerSession()
     if (!session?.user?.id) {
-      return errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401)
+      return rlh(errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401), rlHeaders)
     }
 
     if (!canAccessAdmin(session)) {
-      return errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403)
+      return rlh(errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403), rlHeaders)
     }
 
     const supabase = createSupabaseAdminClient()
@@ -187,18 +205,29 @@ export async function DELETE(
       .eq('account_id', params.id)
       .maybeSingle()
 
-    if (organization) {
-      await supabase
-        .from('organization_profiles')
-        .delete()
-        .eq('account_id', organization.account_id)
-
-      await supabase.auth.admin.deleteUser(organization.account_id)
+    if (!organization) {
+      return rlh(errorResponse('Təşkilat tapılmadı', "API_ERROR", {}, 404), rlHeaders)
     }
 
-    return successResponse({ message: 'Təşkilat uğurla silindi' })
+    const { error: profileDeleteError } = await supabase
+      .from('organization_profiles')
+      .delete()
+      .eq('account_id', organization.account_id)
+
+    if (profileDeleteError) {
+      console.error('Failed to delete organization profile:', profileDeleteError)
+      return rlh(errorResponse('Təşkilat profili silinə bilmədi', "API_ERROR", {}, 500), rlHeaders)
+    }
+
+    const { error: userDeleteError } = await supabase.auth.admin.deleteUser(organization.account_id)
+    if (userDeleteError) {
+      console.error('Failed to delete auth user:', userDeleteError)
+      return rlh(errorResponse('Təşkilat istifadəçisi silinə bilmədi', "API_ERROR", {}, 500), rlHeaders)
+    }
+
+    return rlh(successResponse({ message: 'Təşkilat uğurla silindi' }), rlHeaders)
   } catch (error) {
     console.error('Error deleting organization:', error)
-    return errorResponse('Daxili server xətası', "API_ERROR", {}, 500)
+    return rlh(errorResponse('Daxili server xətası', "API_ERROR", {}, 500), rlHeaders)
   }
 }

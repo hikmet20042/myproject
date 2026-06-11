@@ -128,7 +128,7 @@ export default function OrganizationsAdminPage() {
     setLoading(true);
     loadOrganizations().finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [contentSearch, statusFilter, organizationPagination.page]);
 
   const handleOrganizationAction = (
     organization: any,

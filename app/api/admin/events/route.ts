@@ -6,6 +6,7 @@ import { isAdmin } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { mapEventToResponse } from '@/lib/events/mapEventToResponse'
 import { applyRateLimit } from '@/lib/rateLimit'
+import { escapeIlike } from '@/lib/utils'
 
 const hydrateEventRowsWithOrganizationHandles = async (supabase: SupabaseClient, rows: any[]) => {
   const organizationIds = Array.from(
@@ -72,7 +73,7 @@ export const dynamic = 'force-dynamic'
 // GET /api/admin/events - Get all events for admin management
 export async function GET(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'admin',
       endpoint: '/api/admin/events',
@@ -98,8 +99,10 @@ export async function GET(request: NextRequest) {
     }
     
     const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '10')
+    const pageParam = parseInt(searchParams.get('page') || '1')
+    const limitParam = parseInt(searchParams.get('limit') || '10')
+    const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1
+    const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 100) : 10
     const status = searchParams.get('status')
     const search = searchParams.get('search')
     const category = searchParams.get('category')
@@ -112,61 +115,9 @@ export async function GET(request: NextRequest) {
     
     const skip = (page - 1) * limit
     
-    // Build query object
-    const query: {
-      status?: string
-      eventDate?: { $gte?: Date; $lte?: Date }
-      [key: string]: unknown
-    } = {}
-    
-    // Status filtering
-    if (status === 'pending') {
-      query.status = 'pending'
-    } else if (status === 'approved') {
-      query.status = 'approved'
-    } else if (status === 'rejected') {
-      query.status = 'rejected'
-    }
-    
-    // Search filtering
-    if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { tags: { $in: [new RegExp(search, 'i')] } }
-      ]
-    }
-    
-    // Category filtering
-    if (category && category !== 'all') {
-      query.category = category
-    }
-    
-    // Event type filtering
-    if (eventType && eventType !== 'all') {
-      if (eventType.includes(',')) {
-        query.eventType = { $in: eventType.split(',') }
-      } else {
-        query.eventType = eventType
-      }
-    }
-    
-    // Location filtering
-    if (location && location !== 'all') {
-      if (location === 'online') {
-        query['location.type'] = { $in: ['online', 'hybrid'] }
-      } else if (location === 'physical') {
-        query['location.type'] = { $in: ['physical', 'hybrid'] }
-      } else {
-        query['location.city'] = { $regex: location, $options: 'i' }
-      }
-    }
-    
-    // Date range filtering
-    if (dateFrom || dateTo) {
-      query.eventDate = {}
-      if (dateFrom) query.eventDate.$gte = new Date(dateFrom)
-      if (dateTo) query.eventDate.$lte = new Date(dateTo)
+    let statusFilter: string | null = null
+    if (status === 'pending' || status === 'approved' || status === 'rejected') {
+      statusFilter = status
     }
     
     const sortFieldMap: Record<string, string> = {
@@ -183,8 +134,8 @@ export async function GET(request: NextRequest) {
       .order(orderField, { ascending })
       .range(skip, skip + limit - 1)
 
-    if (query.status) {
-      queryBuilder = queryBuilder.eq('status', query.status)
+    if (statusFilter) {
+      queryBuilder = queryBuilder.eq('status', statusFilter)
     }
 
     if (category && category !== 'all') {
@@ -205,7 +156,7 @@ export async function GET(request: NextRequest) {
       } else if (location === 'physical') {
         queryBuilder = queryBuilder.or('location->>type.eq.physical,location->>type.eq.hybrid')
       } else {
-        queryBuilder = queryBuilder.or(`location->>city.ilike.%${location}%`)
+        queryBuilder = queryBuilder.or(`location->>city.ilike.%${escapeIlike(location)}%`)
       }
     }
 
@@ -215,7 +166,8 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      queryBuilder = queryBuilder.or(`title.ilike.%${search}%,description.ilike.%${search}%`)
+      const safeSearch = escapeIlike(search)
+      queryBuilder = queryBuilder.or(`title.ilike.%${safeSearch}%,description.ilike.%${safeSearch}%`)
     }
 
     const { data: eventRows, error, count } = await queryBuilder

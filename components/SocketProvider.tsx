@@ -135,12 +135,18 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   }, [enabled, session?.user?.id])
 
   // Join/leave room when session changes
+  const prevUserIdRef = useRef<string | null>(null)
   useEffect(() => {
-    if (socket && socket.connected) {
-      if (session?.user?.id) {
-        socket.emit('join', session.user.id)
-      }
+    if (!socket || !socket.connected) return
+    const prevUserId = prevUserIdRef.current
+    const nextUserId = session?.user?.id ?? null
+    if (prevUserId && prevUserId !== nextUserId) {
+      socket.emit('leave', prevUserId)
     }
+    if (nextUserId) {
+      socket.emit('join', nextUserId)
+    }
+    prevUserIdRef.current = nextUserId
   }, [session?.user?.id, socket])
 
   return (

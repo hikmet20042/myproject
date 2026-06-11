@@ -16,7 +16,7 @@ export function useAuthGuard(opts: AuthGuardOptions = {}): {
   isReady: boolean
   session: ClientSession
 } {
-  const { data: session, status } = useSession()
+  const { data: session, status, isSessionReady } = useSession()
   const router = useRouter()
   const localePath = useLocalizedPath()
   const [isReady, setIsReady] = useState(false)
@@ -26,7 +26,7 @@ export function useAuthGuard(opts: AuthGuardOptions = {}): {
   const organizationStatus = session?.user?.organizationStatus ?? null
 
   useEffect(() => {
-    if (status === 'loading') return
+    if (status === 'loading' || !isSessionReady) return
 
     if (status === 'unauthenticated') {
       const callback = encodeURIComponent(window.location.pathname)
@@ -66,7 +66,7 @@ export function useAuthGuard(opts: AuthGuardOptions = {}): {
     }
 
     setIsReady(true)
-  }, [status, accountType, organizationStatus, allowedAccountTypes, blockPendingOrganizations, blockedRedirectTo, router, localePath])
+  }, [status, isSessionReady, accountType, organizationStatus, allowedAccountTypes, blockPendingOrganizations, blockedRedirectTo, router, localePath])
 
   return { isReady, session }
 }

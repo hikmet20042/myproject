@@ -13,7 +13,7 @@ export async function getBlogStats(
   userId?: string | null,
 ): Promise<BlogStatsResult> {
   try {
-    console.log(`[getBlogStats] Fetching stats: blogId="${blogId}", userId="${userId || 'anonymous'}"`)
+    console.debug(`[getBlogStats] Fetching stats: blogId="${blogId}", userId="${userId || 'anonymous'}"`)
     
     const { data, error } = await supabase.rpc('get_blog_stats_v2', {
       p_blog_id: blogId,
@@ -32,7 +32,7 @@ export async function getBlogStats(
       }
     }
 
-    console.log('[getBlogStats] RPC success:', data)
+    console.debug('[getBlogStats] RPC success:', data)
     return {
       views: Number(data.views),
       likes: Number(data.likes),

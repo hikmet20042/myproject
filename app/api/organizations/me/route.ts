@@ -12,18 +12,18 @@ export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export async function GET(request: NextRequest) {
+  const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'authenticatedRead', endpoint: '/api/organizations/me' })
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'authenticatedRead', endpoint: '/api/organizations/me' })
     if (!rlResult.allowed) {
-      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      return rlh(errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429), rlHeaders)
     }
     const session = await getServerSession()
     if (!session?.user?.id) {
-      return errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401)
+      return rlh(errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401), rlHeaders)
     }
 
     if (!isOrganization(session)) {
-      return errorResponse('Təşkilat hesabı tələb olunur', "API_ERROR", {}, 403)
+      return rlh(errorResponse('Təşkilat hesabı tələb olunur', "API_ERROR", {}, 403), rlHeaders)
     }
 
     const supabase = createSupabaseAdminClient()
@@ -34,11 +34,7 @@ export async function GET(request: NextRequest) {
       .maybeSingle()
 
     if (!organizationProfile) {
-      return errorResponse('Təşkilat tapılmadı', "API_ERROR", {}, 404)
-    }
-
-    if (organizationProfile.account_id !== session.user.id) {
-      return errorResponse('İcazəsiz giriş', "API_ERROR", {}, 403)
+      return rlh(errorResponse('Təşkilat tapılmadı', "API_ERROR", {}, 404), rlHeaders)
     }
 
     const { count: followerCount } = await supabase
@@ -49,23 +45,23 @@ export async function GET(request: NextRequest) {
     return rlh(successResponse({ organization: { ...normalizeOrganizationProfile({ ...organizationProfile, follower_count: followerCount || 0, }), urlHandle: organizationProfile.url_handle || null, }, }), rlHeaders)
   } catch (error) {
     console.error('Organization profile fetch error:', error)
-    return errorResponse('Daxili server xətası', "API_ERROR", {}, 500)
+    return rlh(errorResponse('Daxili server xətası', "API_ERROR", {}, 500), rlHeaders)
   }
 }
 
 export async function PUT(request: NextRequest) {
+  const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'authenticatedRead', endpoint: '/api/organizations/me' })
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'authenticatedRead', endpoint: '/api/organizations/me' })
     if (!rlResult.allowed) {
-      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      return rlh(errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429), rlHeaders)
     }
     const session = await getServerSession()
     if (!session?.user?.id) {
-      return errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401)
+      return rlh(errorResponse('İcazəsiz giriş', "API_ERROR", {}, 401), rlHeaders)
     }
 
     if (!isOrganization(session)) {
-      return errorResponse('Təşkilat hesabı tələb olunur', "API_ERROR", {}, 403)
+      return rlh(errorResponse('Təşkilat hesabı tələb olunur', "API_ERROR", {}, 403), rlHeaders)
     }
 
     const supabase = createSupabaseAdminClient()
@@ -76,11 +72,7 @@ export async function PUT(request: NextRequest) {
       .maybeSingle()
 
     if (!organizationProfile) {
-      return errorResponse('Təşkilat tapılmadı', "API_ERROR", {}, 404)
-    }
-
-    if (organizationProfile.account_id !== session.user.id) {
-      return errorResponse('İcazəsiz giriş', "API_ERROR", {}, 403)
+      return rlh(errorResponse('Təşkilat tapılmadı', "API_ERROR", {}, 404), rlHeaders)
     }
 
     const body = await request.json()
@@ -102,7 +94,7 @@ export async function PUT(request: NextRequest) {
 
     const validation = validateOrganizationUpdatePayload(mergedPayload)
     if (validation.error || !validation.data) {
-      return errorResponse(validation.error || 'Yanlış məlumat', "API_ERROR", {}, 400)
+      return rlh(errorResponse(validation.error || 'Yanlış məlumat', "API_ERROR", {}, 400), rlHeaders)
     }
 
     const updateData: Record<string, any> = {}
@@ -127,9 +119,9 @@ export async function PUT(request: NextRequest) {
       if (handleError) {
         const msg = handleError.message || ''
         if (msg.includes('reserved') || msg.includes('Handle') || msg.includes('duplicate') || msg.includes('unique')) {
-          return errorResponse(msg, 'HANDLE_UNAVAILABLE', {}, 400)
+          return rlh(errorResponse(msg, 'HANDLE_UNAVAILABLE', {}, 400), rlHeaders)
         }
-        return errorResponse('Handle yenilənə bilmədi', 'HANDLE_UPDATE_FAILED', {}, 500)
+        return rlh(errorResponse('Handle yenilənə bilmədi', 'HANDLE_UPDATE_FAILED', {}, 500), rlHeaders)
       }
     }
 
@@ -147,12 +139,12 @@ export async function PUT(request: NextRequest) {
       .single()
 
     if (updateError || !updatedOrganization) {
-      return errorResponse(updateError?.message || 'Təşkilat profili yenilənə bilmədi', "API_ERROR", {}, 500)
+      return rlh(errorResponse(updateError?.message || 'Təşkilat profili yenilənə bilmədi', "API_ERROR", {}, 500), rlHeaders)
     }
 
     return rlh(successResponse({ message: 'Təşkilat profili uğurla yeniləndi', organization: { ...normalizeOrganizationProfile(updatedOrganization), urlHandle: updatedOrganization.url_handle || null, }, }), rlHeaders)
   } catch (error) {
     console.error('Organization profile update error:', error)
-    return errorResponse('Daxili server xətası', "API_ERROR", {}, 500)
+    return rlh(errorResponse('Daxili server xətası', "API_ERROR", {}, 500), rlHeaders)
   }
 }

@@ -14,7 +14,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+  const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
     request,
     preset: 'write',
     endpoint: '/api/vacancies/[id]/save',
@@ -39,7 +39,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+  const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
     request,
     preset: 'write',
     endpoint: '/api/vacancies/[id]/save',

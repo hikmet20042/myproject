@@ -11,9 +11,9 @@ const CACHE_OPTIONS = {
 
 // Create cache instances for different data types
 const userStatsCache = new LRUCache(CACHE_OPTIONS);
-const storiesCache = new LRUCache({
+const blogsCache = new LRUCache({
   ...CACHE_OPTIONS,
-  ttl: 1000 * 60 * 2, // 2 minutes for stories (more dynamic)
+  ttl: 1000 * 60 * 2, // 2 minutes for blogs (more dynamic)
 });
 const searchCache = new LRUCache({
   ...CACHE_OPTIONS,
@@ -52,7 +52,7 @@ export const generateCacheKey = {
     params.set('limit', String(limit));
     return `search_${params.toString()}`;
   },
-  vacancies: (page: number, limit: number, search?: string, type?: string, city?: string, sortBy?: string, sortOrder?: string, dateFrom?: string, dateTo?: string) => {
+  vacancies: (page: number, limit: number, search?: string, type?: string, city?: string, sortBy?: string, sortOrder?: string, dateFrom?: string, dateTo?: string, adminView?: boolean, status?: string, createdBy?: string, organizationId?: string) => {
     const params = new URLSearchParams();
     params.set('page', page.toString());
     params.set('limit', limit.toString());
@@ -63,9 +63,13 @@ export const generateCacheKey = {
     if (sortOrder) params.set('sortOrder', sortOrder);
     if (dateFrom) params.set('dateFrom', dateFrom);
     if (dateTo) params.set('dateTo', dateTo);
+    if (adminView) params.set('adminView', 'true');
+    if (status) params.set('status', status);
+    if (createdBy) params.set('createdBy', createdBy);
+    if (organizationId) params.set('organizationId', organizationId);
     return `vacancies_${params.toString()}`;
   },
-  events: (page: number, limit: number, search?: string, eventType?: string, city?: string, category?: string, sortBy?: string, dateFrom?: string, dateTo?: string) => {
+  events: (page: number, limit: number, search?: string, eventType?: string, city?: string, category?: string, sortBy?: string, dateFrom?: string, dateTo?: string, status?: string, createdBy?: string, organizationId?: string, adminView?: boolean, sortOrder?: string) => {
     const params = new URLSearchParams();
     params.set('page', page.toString());
     params.set('limit', limit.toString());
@@ -76,6 +80,11 @@ export const generateCacheKey = {
     if (sortBy) params.set('sortBy', sortBy);
     if (dateFrom) params.set('dateFrom', dateFrom);
     if (dateTo) params.set('dateTo', dateTo);
+    if (status) params.set('status', status);
+    if (createdBy) params.set('createdBy', createdBy);
+    if (organizationId) params.set('organizationId', organizationId);
+    if (adminView) params.set('adminView', 'true');
+    if (sortOrder) params.set('sortOrder', sortOrder);
     return `events_${params.toString()}`;
   },
 
@@ -91,14 +100,14 @@ export const cache = {
     clear: () => userStatsCache.clear(),
   },
   
-  // Stories cache
+  // Blogs cache
   blogs: {
-    get: (key: string) => storiesCache.get(key),
-    set: (key: string, value: any) => storiesCache.set(key, value),
-    delete: (key: string) => storiesCache.delete(key),
-    clear: () => storiesCache.clear(),
-    // Clear all stories cache when new story is added/updated
-    invalidateAll: () => storiesCache.clear(),
+    get: (key: string) => blogsCache.get(key),
+    set: (key: string, value: any) => blogsCache.set(key, value),
+    delete: (key: string) => blogsCache.delete(key),
+    clear: () => blogsCache.clear(),
+    // Clear all blogs cache when new blog is added/updated
+    invalidateAll: () => blogsCache.clear(),
   },
   search: {
     get: (key: string) => searchCache.get(key),
@@ -145,12 +154,13 @@ export const withCache = async <T>(
   }
   
   // If not in cache, fetch from database
-  const result = await fetchFunction();
-  
-  // Store in cache
-  cacheInstance.set(key, result);
-  
-  return result;
+  try {
+    const result = await fetchFunction();
+    cacheInstance.set(key, result);
+    return result;
+  } catch (error) {
+    throw error;
+  }
 };
 
 export default cache;

@@ -13,10 +13,6 @@ const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 const PROFILE_BUCKET = process.env.SUPABASE_PROFILE_IMAGES_BUCKET || 'profile-images';
 const PROFILE_AVATAR_SIZE = 256;
 
-const sanitizeFileName = (name: string): string => {
-  return name.replace(/[^a-zA-Z0-9._-]/g, '_');
-};
-
 const buildStoragePath = (userId: string, originalName: string): string => {
   void originalName;
   const timestamp = Date.now();
@@ -89,7 +85,7 @@ const optimizeProfileImage = async (buffer: Buffer, mimeType: string) => {
 // POST /api/profile/image
 export async function POST(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'write',
       endpoint: '/api/profile/image',
@@ -105,7 +101,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429);
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -187,7 +183,12 @@ export async function POST(request: NextRequest) {
           },
           updated_at: new Date().toISOString(),
         })
-        .eq('account_id', session.user.id);
+        .eq('account_id', session.user.id)
+        .then(({ error: dbError }) => {
+          if (dbError) {
+            console.error('Failed to update org profile image in DB:', dbError);
+          }
+        });
     } else {
       const { data: userProfile } = await supabase
         .from('user_profiles')
@@ -198,7 +199,7 @@ export async function POST(request: NextRequest) {
       oldStoragePath = extractStoragePathFromUserMetadata(userProfile?.avatar_metadata);
 
       if (userProfile?.id) {
-        await supabase
+        const { error: dbError } = await supabase
           .from('user_profiles')
           .update({
             avatar: imageUrl,
@@ -206,14 +207,20 @@ export async function POST(request: NextRequest) {
             updated_at: new Date().toISOString(),
           })
           .eq('id', userProfile.id);
+        if (dbError) {
+          console.error('Failed to update user profile image in DB:', dbError);
+        }
       } else {
-        await supabase
+        const { error: dbError } = await supabase
           .from('user_profiles')
           .insert({
             user_id: session.user.id,
             avatar: imageUrl,
             avatar_metadata: { path: storagePath, bucket: PROFILE_BUCKET, storage: 'supabase_storage' },
           });
+        if (dbError) {
+          console.error('Failed to insert user profile image in DB:', dbError);
+        }
       }
     }
 
@@ -246,7 +253,7 @@ export async function POST(request: NextRequest) {
 // DELETE /api/profile/image
 export async function DELETE(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'write',
       endpoint: '/api/profile/image',
@@ -262,7 +269,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429);
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
@@ -323,7 +330,7 @@ export async function DELETE(request: NextRequest) {
 // GET /api/profile/image
 export async function GET(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'authenticatedRead',
       endpoint: '/api/profile/image',
@@ -339,7 +346,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429);
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }

@@ -14,7 +14,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'publicRead',
       endpoint: '/api/events/[id]/view',
@@ -101,7 +101,7 @@ export async function POST(
 
     if (stats.viewIncremented) {
       const milestones = [50, 100, 500, 1000, 5000, 10000, 50000, 100000]
-      const reachedMilestone = milestones.find(m => stats.views === m)
+      const reachedMilestone = [...milestones].reverse().find(m => stats.views >= m)
       
       if (reachedMilestone) {
         try {
@@ -168,7 +168,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'publicRead',
       endpoint: '/api/events/[id]/view',

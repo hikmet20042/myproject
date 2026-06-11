@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { isApprovedOrganization } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { handleApiRequest, withRateLimitHeaders } from '@/lib/apiHelpers'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,7 +43,8 @@ export async function GET(request: NextRequest) {
     )
   } catch (error) {
     console.error('Notification preferences fetch error:', error)
-    return errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
+    const { headers: rateLimitHeaders } = await applyRateLimit({ request, preset: 'authenticatedRead', endpoint: '/api/notifications/preferences' })
+    return withRateLimitHeaders(errorResponse('Daxili server xətası', 'API_ERROR', {}, 500), rateLimitHeaders)
   }
 }
 
@@ -64,6 +66,14 @@ export async function PUT(request: NextRequest) {
     const invalidKeys = Object.keys(body).filter((key) => !validKeys.includes(key))
     if (invalidKeys.length > 0) {
       return withRateLimitHeaders(errorResponse(`Invalid preference keys: ${invalidKeys.join(', ')}`, 'API_ERROR', {}, 400), rateLimitHeaders)
+    }
+
+    // Validate values
+    if (body.engagement_enabled !== undefined && typeof body.engagement_enabled !== 'boolean') {
+      return withRateLimitHeaders(errorResponse('engagement_enabled boolean olmalıdır', 'API_ERROR', {}, 400), rateLimitHeaders)
+    }
+    if (body.frequency !== undefined && !['instant', 'daily', 'off'].includes(body.frequency)) {
+      return withRateLimitHeaders(errorResponse('frequency instant, daily və ya off olmalıdır', 'API_ERROR', {}, 400), rateLimitHeaders)
     }
 
     const isOrg = isApprovedOrganization(session!)
@@ -99,6 +109,7 @@ export async function PUT(request: NextRequest) {
     return withRateLimitHeaders(successResponse({ message: 'Bildiriş tərcihləri uğurla yeniləndi', preferences: data }), rateLimitHeaders)
   } catch (error) {
     console.error('Notification preferences update error:', error)
-    return errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
+    const { headers: rateLimitHeaders } = await applyRateLimit({ request, preset: 'write', endpoint: '/api/notifications/preferences' })
+    return withRateLimitHeaders(errorResponse('Daxili server xətası', 'API_ERROR', {}, 500), rateLimitHeaders)
   }
 }

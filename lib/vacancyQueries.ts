@@ -49,7 +49,7 @@ export const fetchVacancyById = async (id: string) => {
 }
 
 export const fetchVacancyBySlug = async (slug: string) => {
-  const { data } = await apiFetch<{ vacancy: any }>(`/api/vacancies/slug/${slug}`)
+  const { data } = await apiFetch<{ vacancy: any }>(`/api/vacancies/resolve/${slug}`)
   return data?.vacancy || null
 }
 

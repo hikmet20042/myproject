@@ -4,55 +4,17 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { applyRateLimit } from '@/lib/rateLimit'
 import { NotificationService } from '@/features/notifications/services/notificationService'
-
-type ProviderInfo = {
-  providers: string[]
-  hasPasswordProvider: boolean
-  isGoogleOnly: boolean
-}
-
-const RECENT_REAUTH_WINDOW_MS = 5 * 60 * 1000
-
-function getAuthProviderInfo(user: any): ProviderInfo {
-  const identities = Array.isArray(user?.identities) ? user.identities : []
-  const providers = new Set<string>()
-
-  for (const identity of identities) {
-    const provider = String(identity?.provider || '').trim().toLowerCase()
-    if (provider) providers.add(provider)
-  }
-
-  const appProvider = String(user?.app_metadata?.provider || '').trim().toLowerCase()
-  if (appProvider) providers.add(appProvider)
-
-  const providerList = Array.from(providers)
-  const hasPasswordProvider = providerList.includes('email')
-  const isGoogleOnly = providerList.includes('google') && !hasPasswordProvider
-
-  return {
-    providers: providerList,
-    hasPasswordProvider,
-    isGoogleOnly,
-  }
-}
-
-function hasRecentSignIn(user: any) {
-  const lastSignInAtRaw = user?.last_sign_in_at
-  if (!lastSignInAtRaw) return false
-  const lastSignInAt = new Date(lastSignInAtRaw).getTime()
-  if (Number.isNaN(lastSignInAt)) return false
-  return Date.now() - lastSignInAt <= RECENT_REAUTH_WINDOW_MS
-}
+import { getAuthProviderInfo, hasRecentSignIn } from '@/lib/auth/provider-info'
 
 export async function GET(request: NextRequest) {
-  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+  const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
     request,
     preset: 'auth',
     endpoint: '/api/auth/change-email',
   })
 
   if (!rateLimitResult.allowed) {
-    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
+    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }
@@ -95,14 +57,14 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+  const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
     request,
     preset: 'auth',
     endpoint: '/api/auth/change-email',
   })
 
   if (!rateLimitResult.allowed) {
-    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
+    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }

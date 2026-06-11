@@ -26,6 +26,14 @@ export async function apiFetch<T>(
   options?: RequestInit
 ): Promise<{ data: T; meta: any }> {
   const res = await fetch(url, options);
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    throw new ApiError(
+      res.ok ? "Uğursuz cavab: JSON gözlənilirdi" : `İstək uğursuz oldu (${res.status})`,
+      String(res.status),
+      await res.text().catch(() => '')
+    );
+  }
   const json = (await res.json()) as ApiEnvelope<T>;
 
   if (!res.ok || !json?.success) {

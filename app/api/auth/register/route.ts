@@ -8,7 +8,7 @@ import { applyRateLimit } from '@/lib/rateLimit'
 export async function POST(request: NextRequest) {
   let createdAuthUserId: string | null = null
 
-  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+  const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
     request,
     preset: 'auth',
     endpoint: '/api/auth/register',

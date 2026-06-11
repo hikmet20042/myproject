@@ -1,3 +1,5 @@
+// NOTE: This route has no frontend callers and is kept for backward compatibility.
+// It can be removed once all clients have migrated away from it.
 import { NextRequest } from 'next/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { isApprovedOrganization } from '@/lib/auth/permissions'

@@ -35,7 +35,7 @@ export default function ImageUploadContainer({
     if (!file) return
 
     if (file.size > maxSize * 1024 * 1024) {
-      setError('Fayl şəkil olmalıdır')
+      setError(`Fayl ölçüsü ${maxSize}MB-dan böyükdür`)
       return
     }
 
@@ -63,12 +63,12 @@ export default function ImageUploadContainer({
         body: formData,
       })
 
+      const result = await response.json()
+
       if (!response.ok) {
-        const uploadError = await response.json()
-        throw new Error(uploadError?.error?.message || uploadError?.error || 'Yükləmə alınmadı')
+        throw new Error(result?.error?.message || result?.error || 'Yükləmə alınmadı')
       }
 
-      const result = await response.json()
       const uploadedUrl = result?.data?.url || result?.url
       if (!uploadedUrl) throw new Error('Yükləmə alınmadı')
       onChange(uploadedUrl)

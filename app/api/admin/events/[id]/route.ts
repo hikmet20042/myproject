@@ -49,7 +49,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/events/[id]' })
+    const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/events/[id]' })
     if (!rlResult.allowed) {
       const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
@@ -60,17 +60,23 @@ export async function PATCH(
     const session = await getServerSession()
     
     if (!session || !canAccessAdmin(session)) {
-      return errorResponse('Admin girişi tələb olunur', 'ADMIN_ACCESS_REQUIRED', {}, 403)
+      const r = errorResponse('Admin girişi tələb olunur', 'ADMIN_ACCESS_REQUIRED', {}, 403)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const body = await request.json()
     const { action, adminComment, rejectionReason } = body
 
     if (!action || !['approve', 'reject'].includes(action)) {
-      return errorResponse('Yanlış əməliyyat. "approve" və ya "reject" olmalıdır', 'INVALID_ACTION', {}, 400)
+      const r = errorResponse('Yanlış əməliyyat. "approve" və ya "reject" olmalıdır', 'INVALID_ACTION', {}, 400)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
     if (action === 'reject' && (!rejectionReason || !String(rejectionReason).trim())) {
-      return errorResponse('Rədd əməliyyatı üçün rejectionReason tələb olunur', 'VALIDATION_ERROR', {}, 400)
+      const r = errorResponse('Rədd əməliyyatı üçün rejectionReason tələb olunur', 'VALIDATION_ERROR', {}, 400)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const { data: eventRow, error: eventError } = await supabase
@@ -80,12 +86,16 @@ export async function PATCH(
       .single()
     
     if (eventError || !eventRow) {
-      return errorResponse('Tədbir tapılmadı', 'EVENT_NOT_FOUND', {}, 404)
+      const r = errorResponse('Tədbir tapılmadı', 'EVENT_NOT_FOUND', {}, 404)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const lifecycleState = validateLifecycleState(eventRow)
     if (!lifecycleState.valid) {
-      return errorResponse(lifecycleState.error || 'Yanlış dövr vəziyyəti', 'INVALID_LIFECYCLE_STATE', {}, 409)
+      const r = errorResponse(lifecycleState.error || 'Yanlış dövr vəziyyəti', 'INVALID_LIFECYCLE_STATE', {}, 409)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const lifecycleResult = applyEventLifecycleRules(
@@ -132,7 +142,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/events/[id]' })
+    const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/events/[id]' })
     if (!rlResult.allowed) {
       const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
@@ -143,7 +153,9 @@ export async function GET(
     const session = await getServerSession()
     
     if (!session || !canAccessAdmin(session)) {
-      return errorResponse('Admin girişi tələb olunur', 'ADMIN_ACCESS_REQUIRED', {}, 403)
+      const r = errorResponse('Admin girişi tələb olunur', 'ADMIN_ACCESS_REQUIRED', {}, 403)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const { data: eventRow, error: eventError } = await supabase
@@ -153,7 +165,9 @@ export async function GET(
       .single()
     
     if (eventError || !eventRow) {
-      return errorResponse('Tədbir tapılmadı', 'EVENT_NOT_FOUND', {}, 404)
+      const r = errorResponse('Tədbir tapılmadı', 'EVENT_NOT_FOUND', {}, 404)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
     
     const hydratedEventRow = await hydrateEventRowWithOrganizationHandles(supabase, eventRow)

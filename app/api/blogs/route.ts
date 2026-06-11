@@ -8,6 +8,7 @@ import { NotificationService } from '@/features/notifications/services/notificat
 import { getBlogStats } from '@/lib/blogStats';
 import { applyRateLimit, RATE_LIMIT_PRESETS } from '@/lib/rateLimit';
 import { validateRequestBody } from '@/lib/validation';
+import { escapeIlike } from '@/lib/utils';
 import { submitBlogToIndexNow } from '@/lib/indexnow';
 
 const MAX_PAGE_SIZE = 50;
@@ -47,7 +48,7 @@ function normalizeMediaUrls(media: any): Array<{ type: string; url: string; alt?
 
 export async function GET(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'publicRead',
       endpoint: '/api/blogs',
@@ -102,7 +103,8 @@ export async function GET(request: NextRequest) {
           .eq('status', status);
 
         if (search && search.trim()) {
-          queryBuilder = queryBuilder.or(`title.ilike.%${search.trim()}%,abstract.ilike.%${search.trim()}%`);
+          const safeSearch = escapeIlike(search.trim())
+          queryBuilder = queryBuilder.or(`title.ilike.%${safeSearch}%,abstract.ilike.%${safeSearch}%`);
         }
         if (tags && tags.trim()) {
           const tagArray = tags.split(',').map(tag => tag.trim());
@@ -131,7 +133,11 @@ export async function GET(request: NextRequest) {
 
         queryBuilder = queryBuilder.range(skip, skip + limit - 1);
 
-        const { data: blogs, count: total } = await queryBuilder;
+        const { data: blogs, count: total, error: queryError } = await queryBuilder;
+
+        if (queryError) {
+          throw new Error(queryError.message);
+        }
 
         return { blogs: blogs || [], total: total || 0 };
       }
@@ -194,7 +200,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'write',
       endpoint: '/api/blogs',

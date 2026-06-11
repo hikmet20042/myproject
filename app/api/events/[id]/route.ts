@@ -64,10 +64,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/events/[id]' })
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/events/[id]' })
     if (!rlResult.allowed) {
-      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 429)
+      return rlh(errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 429), rlHeaders)
     }
     const supabase = createSupabaseAdminClient();
     const eventId = String(params.id || '').trim()
@@ -79,12 +79,12 @@ export async function GET(
       .single();
 
     if (error || !eventRow) {
-      return errorResponse("Tədbir tapılmadı", 404)
+      return rlh(errorResponse("Tədbir tapılmadı", 404), rlHeaders)
     }
 
     const session = await getServerSession();
     if (!canViewEventRecord(session, eventRow)) {
-      return errorResponse("İcazəsiz giriş", 403)
+      return rlh(errorResponse("İcazəsiz giriş", 403), rlHeaders)
     }
 
     const stats = await getContentViewCounts(supabase, 'event', eventRow.id);
@@ -100,7 +100,7 @@ export async function GET(
     return successResponse({ event: { ...event, views: stats.views, uniqueViews: stats.uniqueViews, saves: savesCount || 0, analytics: { ...event.analytics, views: stats.views, uniqueViews: stats.uniqueViews } } })
   } catch (error) {
     console.error('GET /api/events/[id] error:', error);
-    return errorResponse("Tədbir yüklənə bilmədi", 500)
+    return rlh(errorResponse("Tədbir yüklənə bilmədi", 500), rlHeaders)
   }
 }
 
@@ -108,14 +108,14 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'write', endpoint: '/api/events/[id]' })
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/events/[id]' })
     if (!rlResult.allowed) {
-      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 429)
+      return rlh(errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 429), rlHeaders)
     }
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return errorResponse("Autentifikasiya tələb olunur", 401)
+      return rlh(errorResponse("Autentifikasiya tələb olunur", 401), rlHeaders)
     }
 
     const supabase = createSupabaseAdminClient();
@@ -128,36 +128,36 @@ export async function PUT(
       .single();
 
     if (eventError || !eventRow) {
-      return errorResponse("Tədbir tapılmadı", 404)
+      return rlh(errorResponse("Tədbir tapılmadı", 404), rlHeaders)
     }
 
     const owner = isOwner(session, eventRow);
     const admin = isAdmin(session);
 
     if (!owner && !admin) {
-      return errorResponse("İcazə rədd edildi", 403)
+      return rlh(errorResponse("İcazə rədd edildi", 403), rlHeaders)
     }
 
     const lifecycleState = validateLifecycleState(eventRow);
     if (!lifecycleState.valid) {
-      return errorResponse(lifecycleState.error || "Yanlış dövr vəziyyəti", 409)
+      return rlh(errorResponse(lifecycleState.error || "Yanlış dövr vəziyyəti", 409), rlHeaders)
     }
 
     const body = await request.json();
     const validation = validateEventInput(body, { partial: true });
     if (!validation.valid) {
-      return errorResponse(validation.error || "Yanlış tədbir məlumatı", 400)
+      return rlh(errorResponse(validation.error || "Yanlış tədbir məlumatı", 400), rlHeaders)
     }
 
     const updateData = mapEventInputToDbPayload(body, { partial: true }) as Record<string, any>;
     const nextApplicationLink = updateData.application_link ?? eventRow.application_link;
     if (!nextApplicationLink) {
-      return errorResponse("applicationLink tələb olunur", 400)
+      return rlh(errorResponse("applicationLink tələb olunur", 400), rlHeaders)
     }
     if (eventRow.status === "approved" && eventRow.is_published === true && owner) {
       const lifecycleResult = applyEventLifecycleRules(eventRow, "ownerEditApproved", { role: "owner", id: session.user.id });
       if (!lifecycleResult.ok) {
-        return errorResponse(lifecycleResult.error || "Yanlış dövr keçidi", 409)
+        return rlh(errorResponse(lifecycleResult.error || "Yanlış dövr keçidi", 409), rlHeaders)
       }
       Object.assign(updateData, lifecycleResult.updateData);
     }
@@ -172,14 +172,14 @@ export async function PUT(
       .single();
 
     if (updateError || !updatedRow) {
-      return errorResponse("Tədbir yenilənə bilmədi", 500)
+      return rlh(errorResponse("Tədbir yenilənə bilmədi", 500), rlHeaders)
     }
 
     const hydratedUpdatedRow = await hydrateEventRowWithOrganizationHandles(supabase, updatedRow)
 
     return rlh(successResponse( { event: mapEventToResponse(hydratedUpdatedRow) }, { message: "Tədbir uğurla yeniləndi" } ), rlHeaders)
   } catch (error) {
-    return errorResponse("Tədbir yenilənə bilmədi", 500)
+    return rlh(errorResponse("Tədbir yenilənə bilmədi", 500), rlHeaders)
   }
 }
 
@@ -187,14 +187,14 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'write', endpoint: '/api/events/[id]' })
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/events/[id]' })
     if (!rlResult.allowed) {
-      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 429)
+      return rlh(errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 429), rlHeaders)
     }
     const session = await getServerSession();
     if (!session?.user?.id) {
-      return errorResponse("Autentifikasiya tələb olunur", 401)
+      return rlh(errorResponse("Autentifikasiya tələb olunur", 401), rlHeaders)
     }
 
     const supabase = createSupabaseAdminClient();
@@ -207,11 +207,11 @@ export async function DELETE(
       .single();
 
     if (eventError || !eventRow) {
-      return errorResponse("Tədbir tapılmadı", 404)
+      return rlh(errorResponse("Tədbir tapılmadı", 404), rlHeaders)
     }
 
     if (!isAdminOrOwner(session, eventRow)) {
-      return errorResponse("İcazə rədd edildi", 403)
+      return rlh(errorResponse("İcazə rədd edildi", 403), rlHeaders)
     }
 
     const { error: deleteError } = await supabase
@@ -220,11 +220,11 @@ export async function DELETE(
       .eq("id", eventId);
 
     if (deleteError) {
-      return errorResponse("Tədbir silinə bilmədi", 500)
+      return rlh(errorResponse("Tədbir silinə bilmədi", 500), rlHeaders)
     }
 
-    return successResponse( { id: eventId }, { message: "Tədbir uğurla silindi" } )
+    return rlh(successResponse( { id: eventId }, { message: "Tədbir uğurla silindi" } ), rlHeaders)
   } catch (error) {
-    return errorResponse("Tədbir silinə bilmədi", 500)
+    return rlh(errorResponse("Tədbir silinə bilmədi", 500), rlHeaders)
   }
 }

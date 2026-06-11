@@ -93,7 +93,7 @@ export async function recordBlogView(
   sessionId: string,
   userId: string | null,
 ): Promise<{ views: number; uniqueViews: number; viewIncremented: boolean }> {
-  console.log(`[recordBlogView] Calling RPC: blogId="${blogId}", sessionId="${sessionId}", userId="${userId}"`)
+  console.debug(`[recordBlogView] Calling RPC: blogId="${blogId}", sessionId="${sessionId}", userId="${userId}"`)
   
   const { data, error } = await supabase.rpc('record_blog_view', {
     p_blog_id: blogId,
@@ -107,7 +107,7 @@ export async function recordBlogView(
     return { views: 0, uniqueViews: 0, viewIncremented: false }
   }
 
-  console.log('[recordBlogView] RPC success:', data)
+  console.debug('[recordBlogView] RPC success:', data)
   return {
     views: Number(data.views),
     uniqueViews: Number(data.unique_views),
@@ -119,7 +119,7 @@ export async function getBlogViewCounts(
   supabase: SupabaseClient,
   blogId: string,
 ): Promise<{ views: number; uniqueViews: number }> {
-  console.log(`[getBlogViewCounts] Fetching stats for blogId="${blogId}"`)
+  console.debug(`[getBlogViewCounts] Fetching stats for blogId="${blogId}"`)
   
   const { data, error } = await supabase.rpc('get_blog_stats_v2', {
     p_blog_id: blogId,
@@ -130,7 +130,7 @@ export async function getBlogViewCounts(
     return { views: 0, uniqueViews: 0 }
   }
 
-  console.log('[getBlogViewCounts] RPC success:', data)
+  console.debug('[getBlogViewCounts] RPC success:', data)
   return {
     views: Number(data.views),
     uniqueViews: Number(data.unique_views),

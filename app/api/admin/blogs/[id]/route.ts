@@ -5,6 +5,7 @@ import { NotificationService } from '@/features/notifications/services/notificat
 import { isAdmin } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { cache, invalidateUserCache } from '@/lib/cache'
+import { isValidUUID } from '@/lib/utils'
 import { applyRateLimit } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
@@ -14,10 +15,15 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/blogs/[id]' })
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/blogs/[id]' })
     if (!rlResult.allowed) {
       const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
+    }
+    if (!isValidUUID(params.id)) {
+      const r = errorResponse('Yanlış ID formatı', 'VALIDATION_ERROR', {}, 400)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
@@ -25,7 +31,9 @@ export async function GET(
     
     const session = await getServerSession()
     if (!session || !isAdmin(session)) {
-      return errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403)
+      const r = errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
     
     const { data: blog, error } = await supabase
@@ -34,13 +42,17 @@ export async function GET(
       .eq('id', params.id)
       .single()
     if (error || !blog) {
-      return errorResponse('Hekayə tapılmadı', "API_ERROR", {}, 404)
+      const r = errorResponse('Hekayə tapılmadı', "API_ERROR", {}, 404)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
     
     return successResponse({ blog })
   } catch (error) {
-    console.error('PUT /api/admin/blogs/[id] error:', error)
-    return errorResponse('Bloq yenilənə bilmədi', "API_ERROR", {}, 500)
+    console.error('GET /api/admin/blogs/[id] error:', error)
+    const r = errorResponse('Bloq yüklənə bilmədi', "API_ERROR", {}, 500)
+    for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+    return r
   }
 }
 
@@ -49,10 +61,15 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/blogs/[id]' })
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/blogs/[id]' })
     if (!rlResult.allowed) {
       const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
+    }
+    if (!isValidUUID(params.id)) {
+      const r = errorResponse('Yanlış ID formatı', 'VALIDATION_ERROR', {}, 400)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
@@ -60,7 +77,9 @@ export async function DELETE(
     
     const session = await getServerSession()
     if (!session || !isAdmin(session)) {
-      return errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403)
+      const r = errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
     
     const { data: blog, error } = await supabase
@@ -71,7 +90,9 @@ export async function DELETE(
       .single()
     
     if (error || !blog) {
-      return errorResponse('Hekayə tapılmadı', "API_ERROR", {}, 404)
+      const r = errorResponse('Hekayə tapılmadı', "API_ERROR", {}, 404)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     cache.blogs.invalidateAll()
@@ -84,7 +105,9 @@ export async function DELETE(
     })
   } catch (error) {
     console.error('DELETE /api/admin/blogs/[id] error:', error)
-    return errorResponse('Bloq silinə bilmədi', "API_ERROR", {}, 500)
+    const r = errorResponse('Bloq silinə bilmədi', "API_ERROR", {}, 500)
+    for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+    return r
   }
 }
 
@@ -93,10 +116,15 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/blogs/[id]' })
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/blogs/[id]' })
     if (!rlResult.allowed) {
       const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
+    }
+    if (!isValidUUID(params.id)) {
+      const r = errorResponse('Yanlış ID formatı', 'VALIDATION_ERROR', {}, 400)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
       return r
     }
@@ -104,28 +132,38 @@ export async function PUT(
     
     const session = await getServerSession()
     if (!session || !isAdmin(session)) {
-      return errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403)
+      const r = errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
     
     let body: any
     try {
       body = await request.json()
     } catch {
-      return errorResponse('Yanlış JSON sorğu gövdəsi', "API_ERROR", {}, 400)
+      const r = errorResponse('Yanlış JSON sorğu gövdəsi', "API_ERROR", {}, 400)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
     const { status, adminComment } = body
     
     if (!status) {
-      return errorResponse('Status tələb olunur', "API_ERROR", {}, 400)
+      const r = errorResponse('Status tələb olunur', "API_ERROR", {}, 400)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
     
     if (!['approved', 'rejected', 'pending'].includes(status)) {
-      return errorResponse('Yanlış status', "API_ERROR", {}, 400)
+      const r = errorResponse('Yanlış status', "API_ERROR", {}, 400)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const normalizedAdminComment = typeof adminComment === 'string' ? adminComment.trim() : ''
     if (status === 'rejected' && !normalizedAdminComment) {
-      return errorResponse('Rədd səbəbi tələb olunur', "API_ERROR", {}, 400)
+      const r = errorResponse('Rədd səbəbi tələb olunur', "API_ERROR", {}, 400)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const { data: existingBlog, error: existingBlogError } = await supabase
@@ -135,7 +173,9 @@ export async function PUT(
       .single()
 
     if (existingBlogError || !existingBlog) {
-      return errorResponse('Hekayə tapılmadı', "API_ERROR", {}, 404)
+      const r = errorResponse('Hekayə tapılmadı', "API_ERROR", {}, 404)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const previousComment = typeof existingBlog.admin_comment === 'string' ? existingBlog.admin_comment.trim() : ''
@@ -173,7 +213,9 @@ export async function PUT(
         .single()
 
       if (originalBlogError || !originalBlog) {
-        return errorResponse('Yeniləmə sorğusu orijinal bloqa tətbiq edilə bilmədi', "API_ERROR", {}, 500)
+        const r = errorResponse('Yeniləmə sorğusu orijinal bloqa tətbiq edilə bilmədi', "API_ERROR", {}, 500)
+        for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+        return r
       }
 
       const { error: deleteRequestError } = await supabase
@@ -182,7 +224,9 @@ export async function PUT(
         .eq('id', existingBlog.id)
 
       if (deleteRequestError) {
-        return errorResponse('Yeniləmə sorğusunun təsdiqi tamamlana bilmədi', "API_ERROR", {}, 500)
+        const r = errorResponse('Yeniləmə sorğusunun təsdiqi tamamlana bilmədi', "API_ERROR", {}, 500)
+        for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+        return r
       }
 
       cache.blogs.invalidateAll()
@@ -236,7 +280,9 @@ export async function PUT(
       .single()
     
     if (error || !blog) {
-      return errorResponse('Hekayə tapılmadı', "API_ERROR", {}, 404)
+      const r = errorResponse('Hekayə tapılmadı', "API_ERROR", {}, 404)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     cache.blogs.invalidateAll()
@@ -281,6 +327,8 @@ export async function PUT(
     })
   } catch (error) {
     console.error('PUT /api/admin/blogs/[id] error:', error)
-    return errorResponse('Bloq yenilənə bilmədi', "API_ERROR", {}, 500)
+    const r = errorResponse('Bloq yenilənə bilmədi', "API_ERROR", {}, 500)
+    for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+    return r
   }
 }

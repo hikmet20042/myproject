@@ -35,9 +35,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
   }, [value, storageKey])
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && storageKey) {
+    if (typeof window === 'undefined' || !storageKey) return
+    const timer = setTimeout(() => {
       localStorage.setItem(storageKey, query)
-    }
+    }, 500)
+    return () => clearTimeout(timer)
   }, [query, storageKey])
 
   const doSearch = useCallback(() => {

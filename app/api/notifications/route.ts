@@ -18,7 +18,7 @@ const ALLOWED_TYPES = [
 
 export async function GET(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'authenticatedRead',
       endpoint: '/api/notifications',
@@ -55,10 +55,8 @@ export async function GET(request: NextRequest) {
     const isOrg = isApprovedOrganization(session);
     
     if (isOrg) {
-      console.debug(`[notifications.GET] Organization query for ID: ${session.user.id}`)
       query = query.eq('organization_id', session.user.id);
     } else {
-      console.debug(`[notifications.GET] User query for ID: ${session.user.id}`)
       query = query.eq('user_id', session.user.id);
     }
     
@@ -74,8 +72,6 @@ export async function GET(request: NextRequest) {
       for (const [key, value] of Object.entries(rateLimitHeaders)) response.headers.set(key, value)
       return response
     }
-    
-    console.debug(`[notifications.GET] Retrieved ${notifications?.length || 0} notifications for ${isOrg ? 'organization' : 'user'}: ${session.user.id}`)
     
     let unreadCountQuery = supabase
       .from('notifications')
@@ -112,7 +108,7 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'write',
       endpoint: '/api/notifications',
@@ -181,7 +177,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'write',
       endpoint: '/api/notifications',

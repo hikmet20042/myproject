@@ -14,7 +14,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'publicRead',
       endpoint: '/api/vacancies/[id]/view',
@@ -168,7 +168,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'publicRead',
       endpoint: '/api/vacancies/[id]/view',

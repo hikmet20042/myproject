@@ -5,48 +5,26 @@ import { isAdmin } from '@/lib/auth/permissions';
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { NotificationService } from '@/features/notifications/services/notificationService'
 import { applyRateLimit } from '@/lib/rateLimit'
-
-type OrganizationProfileRow = {
-  account_id: string;
-  organization_name: string | null;
-  email: string | null;
-  description: string | null;
-  moderation_status: 'pending' | 'approved' | 'rejected' | null;
-  reviewed_at: string | null;
-  reviewed_by: string | null;
-  admin_comment: string | null;
-  created_at: string;
-  updated_at: string;
-  contact_person: string | null;
-};
-
-type OrganizationListRow = {
-  account_id: string;
-  organization_name: string | null;
-};
-
-type OrganizationActionBody = {
-  id?: string;
-  organizationId?: string;
-  action?: 'approve' | 'reject';
-  rejectionReason?: string;
-};
-
-type OrganizationBulkActionBody = {
-  action?: 'approve' | 'reject';
-  organizationIds?: string[];
-  rejectionReason?: string;
-};
+import { escapeIlike } from '@/lib/utils'
+import type { OrganizationProfileRow, OrganizationListRow, OrganizationActionBody, OrganizationBulkActionBody } from '@/features/admin/types/organization'
 
 
 // GET - Fetch all organization registrations for admin review
 export async function GET(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'admin',
       endpoint: '/api/admin/organizations',
     })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
 
     const session = await getServerSession();
     
@@ -61,15 +39,23 @@ export async function GET(request: NextRequest) {
     const supabase = createSupabaseAdminClient();
     
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const pageParam = parseInt(searchParams.get('page') || '1');
+    const limitParam = parseInt(searchParams.get('limit') || '10');
+    const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
+    const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 100) : 10;
     const status = searchParams.get('status') || 'all';
     const search = searchParams.get('search') || '';
     const sortBy = searchParams.get('sortBy') || 'createdAt';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
 
     const skip = (page - 1) * limit;
-    const sortColumn = sortBy === 'organizationName' ? 'organization_name' : sortBy === 'createdAt' ? 'created_at' : sortBy;
+    const allowedSortColumns: Record<string, string> = {
+      organizationName: 'organization_name',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      moderation_status: 'moderation_status',
+    };
+    const sortColumn = allowedSortColumns[sortBy] || 'created_at';
 
     let query = supabase
       .from('organization_profiles')
@@ -82,8 +68,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
+      const safeSearch = escapeIlike(search)
       query = query.or(
-        `organization_name.ilike.%${search}%,email.ilike.%${search}%,description.ilike.%${search}%`
+        `organization_name.ilike.%${safeSearch}%,email.ilike.%${safeSearch}%,description.ilike.%${safeSearch}%`
       );
     }
 
@@ -151,11 +138,19 @@ export async function GET(request: NextRequest) {
 // PUT - Approve or reject organization registration
 export async function PUT(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'admin',
       endpoint: '/api/admin/organizations',
     })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', "RATE_LIMIT_EXCEEDED", {}, 429);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response;
+    }
 
     const session = await getServerSession();
     
@@ -280,7 +275,8 @@ export async function PUT(request: NextRequest) {
         email: updatedOrganization.email,
         status: updatedOrganization.moderation_status,
         approvedAt: updatedOrganization.reviewed_at,
-        approvedBy: updatedOrganization.reviewed_by
+        approvedBy: updatedOrganization.reviewed_by,
+        ...(action === 'reject' && { rejectionReason: rejectionReasonText })
       }
     });
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
@@ -297,7 +293,7 @@ export async function PUT(request: NextRequest) {
 // PATCH - Bulk operations on organizations
 export async function PATCH(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'admin',
       endpoint: '/api/admin/organizations',

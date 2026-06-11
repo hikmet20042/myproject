@@ -8,6 +8,7 @@ import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { getBlogStats } from '@/lib/blogStats'
 import { NotificationService } from '@/features/notifications/services/notificationService'
 import { processContentImages, isCloudinaryUrl } from '@/lib/utils/imageUtils'
+import { isValidUUID } from '@/lib/utils'
 import { applyRateLimit } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
@@ -27,10 +28,17 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/blogs/[id]' })
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/blogs/[id]' })
     if (!rlResult.allowed) {
-      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
+    }
+    if (!isValidUUID(params.id)) {
+      const r = errorResponse('Yanlış ID formatı', 'VALIDATION_ERROR', {}, 400)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
     const supabase = createSupabaseAdminClient()
 
@@ -40,7 +48,9 @@ export async function GET(
       .eq('id', params.id)
       .single()
     if (error || !blog) {
-      return errorResponse('Hekayə tapılmadı', 'BLOG_NOT_FOUND', {}, 404)
+      const r = errorResponse('Hekayə tapılmadı', 'BLOG_NOT_FOUND', {}, 404)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     if (blog.status === 'approved') {
@@ -52,19 +62,25 @@ export async function GET(
 
     const session = await getServerSession()
     if (!session?.user) {
-      return errorResponse('Hekayə tapılmadı', 'BLOG_NOT_FOUND', {}, 404)
+      const r = errorResponse('Hekayə tapılmadı', 'BLOG_NOT_FOUND', {}, 404)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     if (!isAdminOrOwner(session, { author_id: blog.author_id })) {
-      return errorResponse('Hekayə tapılmadı', 'BLOG_NOT_FOUND', {}, 404)
+      const r = errorResponse('Hekayə tapılmadı', 'BLOG_NOT_FOUND', {}, 404)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const stats = await getBlogStats(supabase, blog.id, session?.user?.id)
     const authorUrlHandle = await getAuthorUrlHandle(supabase, blog.author_id)
-    const r = successResponse({ blog: { ...blog, ...stats, authorUrlHandle } })
+    return successResponse({ blog: { ...blog, ...stats, authorUrlHandle } })
   } catch (error) {
     console.error('GET /api/blogs/[id] error:', error)
-    return errorResponse('Bloq yüklənə bilmədi', 'FETCH_BLOG_FAILED', {}, 500)
+    const r = errorResponse('Bloq yüklənə bilmədi', 'FETCH_BLOG_FAILED', {}, 500)
+    for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+    return r
   }
 }
 
@@ -73,31 +89,46 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'write', endpoint: '/api/blogs/[id]' })
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'write', endpoint: '/api/blogs/[id]' })
     if (!rlResult.allowed) {
-      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
+    }
+    if (!isValidUUID(params.id)) {
+      const r = errorResponse('Yanlış ID formatı', 'VALIDATION_ERROR', {}, 400)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
     const supabase = createSupabaseAdminClient()
     const session = await getServerSession()
     if (!session?.user?.id) {
-      return errorResponse('Autentifikasiya tələb olunur', 'AUTH_REQUIRED', {}, 401)
+      const r = errorResponse('Autentifikasiya tələb olunur', 'AUTH_REQUIRED', {}, 401)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     if (session.user.accountType === 'organization') {
-      return errorResponse('Təşkilat hesabları bloqları idarə edə bilməz', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+      const r = errorResponse('Təşkilat hesabları bloqları idarə edə bilməz', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const blogId = params.id
     if (!blogId) {
-      return errorResponse('Hekayə ID-si tələb olunur', 'VALIDATION_ERROR', {}, 400)
+      const r = errorResponse('Hekayə ID-si tələb olunur', 'VALIDATION_ERROR', {}, 400)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     let body: any
     try {
       body = await request.json()
     } catch {
-      return errorResponse('Yanlış JSON sorğu gövdəsi', 'VALIDATION_ERROR', {}, 400)
+      const r = errorResponse('Yanlış JSON sorğu gövdəsi', 'VALIDATION_ERROR', {}, 400)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
     const { title, content, contentHtml, tags, abstract, isAnonymous, authorName, media, featuredImage, status: reqStatus, requestUpdate } = body
 
@@ -109,13 +140,17 @@ export async function PATCH(
       .single()
 
     if (!existingStory) {
-      return errorResponse('Hekayə tapılmadı və ya onu redaktə etməyə icazəniz yoxdur', 'BLOG_NOT_FOUND', {}, 404)
+      const r = errorResponse('Hekayə tapılmadı və ya onu redaktə etməyə icazəniz yoxdur', 'BLOG_NOT_FOUND', {}, 404)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const isApprovedUpdateRequest = existingStory.status === 'approved' && reqStatus === 'pending' && requestUpdate === true
 
     if (existingStory.status === 'approved' && !isApprovedUpdateRequest) {
-      return errorResponse('Təsdiqlənmiş bloqlar birbaşa redaktə edilə bilməz. Bunun əvəzinə yeniləmə sorğusu göndərin.', 'FORBIDDEN', {}, 403)
+      const r = errorResponse('Təsdiqlənmiş bloqlar birbaşa redaktə edilə bilməz. Bunun əvəzinə yeniləmə sorğusu göndərin.', 'FORBIDDEN', {}, 403)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     if (content !== undefined || contentHtml !== undefined) {
@@ -136,20 +171,26 @@ export async function PATCH(
       }
 
       if (!textContent || textContent.trim().length < 100) {
-        return errorResponse('Hekayə məzmunu ən azı 100 simvol olmalıdır', 'VALIDATION_ERROR', {}, 400)
+        const r = errorResponse('Hekayə məzmunu ən azı 100 simvol olmalıdır', 'VALIDATION_ERROR', {}, 400)
+        for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+        return r
       }
 
       if (content !== undefined) {
         const { imageReferences } = processContentImages(content)
         const hasNonCloudinaryImage = imageReferences.some((ref) => ref.url && !isCloudinaryUrl(ref.url))
         if (hasNonCloudinaryImage) {
-          return errorResponse('Bloq məzmun şəkilləri Cloudinary URL-ləri olmalıdır.', 'VALIDATION_ERROR', {}, 400)
+          const r = errorResponse('Bloq məzmun şəkilləri Cloudinary URL-ləri olmalıdır.', 'VALIDATION_ERROR', {}, 400)
+          for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+          return r
         }
       }
     }
 
     if (tags !== undefined && !Array.isArray(tags)) {
-      return errorResponse('Teqlər sətir massivi olmalıdır', 'VALIDATION_ERROR', {}, 400)
+      const r = errorResponse('Teqlər sətir massivi olmalıdır', 'VALIDATION_ERROR', {}, 400)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const updateData: any = {
@@ -159,7 +200,9 @@ export async function PATCH(
     if (title !== undefined) {
       const trimmedTitle = title.trim()
       if (trimmedTitle.length < 5 || trimmedTitle.length > 200) {
-        return errorResponse('Başlıq 5-200 simvol arasında olmalıdır', 'VALIDATION_ERROR', {}, 400)
+        const r = errorResponse('Başlıq 5-200 simvol arasında olmalıdır', 'VALIDATION_ERROR', {}, 400)
+        for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+        return r
       }
       updateData.title = trimmedTitle
     }
@@ -168,12 +211,10 @@ export async function PATCH(
     if (tags !== undefined) updateData.tags = tags
     if (abstract !== undefined) updateData.abstract = abstract
     if (isAnonymous !== undefined) updateData.is_anonymous = isAnonymous
-    if (authorName !== undefined) {
-      if (isAnonymous) {
-        updateData.author_name = 'Anonim'
-      } else if (authorName && authorName.trim()) {
-        updateData.author_name = authorName.trim()
-      } else if (session?.user?.name) {
+    if (isAnonymous !== undefined && isAnonymous) {
+      updateData.author_name = 'Anonim'
+    } else if (authorName !== undefined) {
+      if (session?.user?.name) {
         updateData.author_name = session.user.name
       } else {
         updateData.author_name = 'Anonim'
@@ -181,25 +222,33 @@ export async function PATCH(
     }
     if (media !== undefined) {
       if (!Array.isArray(media)) {
-        return errorResponse('Media massiv olmalıdır.', 'VALIDATION_ERROR', {}, 400)
+        const r = errorResponse('Media massiv olmalıdır.', 'VALIDATION_ERROR', {}, 400)
+        for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+        return r
       }
 
       const hasInvalidMediaUrl = media.some((item: any) => !item?.url || !isCloudinaryUrl(String(item.url)))
       if (hasInvalidMediaUrl) {
-        return errorResponse('Bloq media URL-ləri Cloudinary URL-ləri olmalıdır.', 'VALIDATION_ERROR', {}, 400)
+        const r = errorResponse('Bloq media URL-ləri Cloudinary URL-ləri olmalıdır.', 'VALIDATION_ERROR', {}, 400)
+        for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+        return r
       }
 
       updateData.media = media
     }
     if (featuredImage !== undefined) {
       if (featuredImage && !isCloudinaryUrl(String(featuredImage))) {
-        return errorResponse('Ön şəkil Cloudinary URL-i olmalıdır.', 'VALIDATION_ERROR', {}, 400)
+        const r = errorResponse('Ön şəkil Cloudinary URL-i olmalıdır.', 'VALIDATION_ERROR', {}, 400)
+        for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+        return r
       }
       updateData.featured_image = featuredImage
     }
     if (reqStatus !== undefined) {
       if (reqStatus !== 'pending') {
-        return errorResponse('İstifadəçi redaktələrindən yalnız gözləmə statusu tələb oluna bilər', 'FORBIDDEN', {}, 403)
+        const r = errorResponse('İstifadəçi redaktələrindən yalnız gözləmə statusu tələb oluna bilər', 'FORBIDDEN', {}, 403)
+        for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+        return r
       }
       updateData.status = 'pending'
     }
@@ -213,14 +262,18 @@ export async function PATCH(
         .single()
 
       if (originalBlogError || !originalBlog) {
-        return errorResponse('Orijinal təsdiqlənmiş bloq tapılmadı', 'BLOG_NOT_FOUND', {}, 404)
+        const r = errorResponse('Orijinal təsdiqlənmiş bloq tapılmadı', 'BLOG_NOT_FOUND', {}, 404)
+        for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+        return r
       }
 
-      const mergedMedia = {
-        ...(originalBlog.media && typeof originalBlog.media === 'object' ? originalBlog.media : {}),
-        ...(media && typeof media === 'object' ? media : {}),
-        updateRequestFor: originalBlog.id,
-      }
+      const originalMedia = Array.isArray(originalBlog.media) ? originalBlog.media : []
+      const newMedia = Array.isArray(media) ? media : []
+      const mergedMedia = [
+        ...originalMedia,
+        ...newMedia,
+        { updateRequestFor: originalBlog.id },
+      ]
 
       const requestPayload: any = {
         title: title !== undefined ? updateData.title : originalBlog.title,
@@ -255,7 +308,9 @@ export async function PATCH(
           .single()
 
         if (updateRequestError || !updatedRequest) {
-          return errorResponse('Bloq sorğusu yenilənə bilmədi', 'UPDATE_BLOG_FAILED', {}, 500)
+          const r = errorResponse('Bloq sorğusu yenilənə bilmədi', 'UPDATE_BLOG_FAILED', {}, 500)
+          for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+          return r
         }
         requestBlog = updatedRequest
       } else {
@@ -271,7 +326,9 @@ export async function PATCH(
           .single()
 
         if (insertRequestError || !insertedRequest) {
-          return errorResponse('Bloq yeniləmə sorğusu yaradıla bilmədi', 'CREATE_BLOG_FAILED', {}, 500)
+          const r = errorResponse('Bloq yeniləmə sorğusu yaradıla bilmədi', 'CREATE_BLOG_FAILED', {}, 500)
+          for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+          return r
         }
         requestBlog = insertedRequest
       }
@@ -300,14 +357,18 @@ export async function PATCH(
       .single()
 
     if (updateError || !blog) {
-      return errorResponse('Bloq yenilənə bilmədi', 'UPDATE_BLOG_FAILED', {}, 500)
+      const r = errorResponse('Bloq yenilənə bilmədi', 'UPDATE_BLOG_FAILED', {}, 500)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     cache.blogs.clear()
     return successResponse({ blog }, { message: 'Hekayə uğurla yeniləndi' })
   } catch (error) {
     console.error('PATCH /api/blogs/[id] error:', error)
-    return errorResponse('Bloq yenilənə bilmədi', 'UPDATE_BLOG_FAILED', {}, 500)
+    const r = errorResponse('Bloq yenilənə bilmədi', 'UPDATE_BLOG_FAILED', {}, 500)
+    for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+    return r
   }
 }
 
@@ -316,23 +377,36 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'write', endpoint: '/api/blogs/[id]' })
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'write', endpoint: '/api/blogs/[id]' })
     if (!rlResult.allowed) {
-      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
+    }
+    if (!isValidUUID(params.id)) {
+      const r = errorResponse('Yanlış ID formatı', 'VALIDATION_ERROR', {}, 400)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
     const session = await getServerSession()
     if (!session?.user) {
-      return errorResponse('İcazəsiz giriş', 'AUTH_REQUIRED', {}, 401)
+      const r = errorResponse('İcazəsiz giriş', 'AUTH_REQUIRED', {}, 401)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     if (session.user.accountType === 'organization') {
-      return errorResponse('Təşkilat hesabları bloqları idarə edə bilməz', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+      const r = errorResponse('Təşkilat hesabları bloqları idarə edə bilməz', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const blogId = params.id
     if (!blogId) {
-      return errorResponse('Hekayə ID-si tələb olunur', 'VALIDATION_ERROR', {}, 400)
+      const r = errorResponse('Hekayə ID-si tələb olunur', 'VALIDATION_ERROR', {}, 400)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const supabase = createSupabaseAdminClient()
@@ -343,11 +417,15 @@ export async function DELETE(
       .eq('id', blogId)
       .single()
     if (error || !blog) {
-      return errorResponse('Hekayə tapılmadı', 'BLOG_NOT_FOUND', {}, 404)
+      const r = errorResponse('Hekayə tapılmadı', 'BLOG_NOT_FOUND', {}, 404)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     if (!isAdminOrOwner(session, { author_id: blog.author_id })) {
-      return errorResponse('İcazəsiz giriş', 'FORBIDDEN', {}, 403)
+      const r = errorResponse('İcazəsiz giriş', 'FORBIDDEN', {}, 403)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     await supabase
@@ -356,9 +434,11 @@ export async function DELETE(
       .eq('id', blog.id)
 
     cache.blogs.clear()
-    const _r = successResponse({ id: blog.id }, { message: 'Hekayə uğurla silindi' })
+    return successResponse({ id: blog.id }, { message: 'Hekayə uğurla silindi' })
   } catch (error) {
     console.error('DELETE /api/blogs/[id] error:', error)
-    return errorResponse('Daxili server xətası', 'INTERNAL_SERVER_ERROR', {}, 500)
+    const r = errorResponse('Daxili server xətası', 'INTERNAL_SERVER_ERROR', {}, 500)
+    for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+    return r
   }
 }

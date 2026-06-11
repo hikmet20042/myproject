@@ -10,12 +10,23 @@ const nextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 60,
-    dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: 'res.cloudinary.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'icma360.org',
       },
       {
         protocol: 'http',
@@ -66,10 +77,7 @@ const nextConfig = {
             key: 'X-Content-Type-Options',
             value: 'nosniff'
           },
-          {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block'
-          },
+
           {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin'
@@ -81,13 +89,9 @@ const nextConfig = {
           // Content Security Policy (CSP) for security and SEO trust
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://*.supabase.co wss://*.supabase.co ws://localhost:3000 wss://localhost:3000; frame-ancestors 'self'; base-uri 'self'; form-action 'self';"
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://*.supabase.co wss://*.supabase.co ws://localhost:3000 wss://localhost:3000; frame-ancestors 'self'; base-uri 'self'; form-action 'self';"
           },
-          // Performance and crawling headers
-          {
-            key: 'X-UA-Compatible',
-            value: 'IE=edge'
-          },
+          // Crawling headers
           {
             key: 'X-Robots-Tag',
             value: 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1'
@@ -140,16 +144,6 @@ const nextConfig = {
           {
             key: 'Cache-Control',
             value: 'public, max-age=604800, stale-while-revalidate=86400',
-          },
-        ],
-      },
-      // Cache API responses (1 minute with revalidation)
-      {
-        source: '/api/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, s-maxage=60, stale-while-revalidate=120',
           },
         ],
       },

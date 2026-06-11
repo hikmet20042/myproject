@@ -20,11 +20,12 @@
 const connections: Map<string, ReadableStreamDefaultController> = new Map()
 
 // Configuration from environment
-const MAX_CONNECTIONS_PER_INSTANCE = parseInt(process.env.SSE_MAX_CONNECTIONS_PER_INSTANCE || '10000', 10)
+const MAX_CONNECTIONS_PER_INSTANCE = parseInt(process.env.SSE_MAX_CONNECTIONS_PER_INSTANCE || '10000', 10) || 100
+const MAX_CONNECTIONS_PER_USER = 2
 const LOG_WARNINGS = process.env.SSE_LOG_WARNINGS !== 'false'
 
 export const addConnection = (userId: string, controller: ReadableStreamDefaultController) => {
-  // Check connection limit
+  // Check global connection limit
   if (connections.size >= MAX_CONNECTIONS_PER_INSTANCE) {
     if (LOG_WARNINGS) {
       console.warn(`[SSE] Connection limit reached on this instance (${connections.size}/${MAX_CONNECTIONS_PER_INSTANCE})`)
@@ -32,8 +33,17 @@ export const addConnection = (userId: string, controller: ReadableStreamDefaultC
     return false
   }
 
+  // Close existing connection for this user before adding new one
+  const existingController = connections.get(userId)
+  if (existingController) {
+    try {
+      existingController.close()
+    } catch {
+      // Controller may already be closed
+    }
+  }
+
   connections.set(userId, controller)
-  console.debug(`[SSE] Connection added for user: ${userId} (Total: ${connections.size})`)
   return true
 }
 

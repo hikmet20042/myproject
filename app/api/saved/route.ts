@@ -41,12 +41,24 @@ async function resolveContentBySlugOrId(
 }
 
 export async function POST(request: NextRequest) {
+  let rateLimitHeaders: Record<string, string> = {}
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers } = await applyRateLimit({
       request,
       preset: 'write',
       endpoint: '/api/saved',
     })
+    rateLimitHeaders = headers
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {
+        retryAfter: rateLimitResult.resetAt,
+      }, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
 
     const session = await getServerSession()
     if (!session?.user?.id) {
@@ -58,16 +70,6 @@ export async function POST(request: NextRequest) {
     }
     if (session.user.accountType === 'organization') {
       const response = errorResponse('Təşkilat hesabları məzmun saxlaya bilməz', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
-      for (const [key, value] of Object.entries(rateLimitHeaders)) {
-        response.headers.set(key, value)
-      }
-      return response
-    }
-
-    if (!rateLimitResult.allowed) {
-      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {
-        retryAfter: rateLimitResult.resetAt,
-      }, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -148,17 +150,30 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Save POST error:', error)
     const response = errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
     return response
   }
 }
 
 export async function DELETE(request: NextRequest) {
+  let rateLimitHeaders: Record<string, string> = {}
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers } = await applyRateLimit({
       request,
       preset: 'write',
       endpoint: '/api/saved',
     })
+    rateLimitHeaders = headers
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
 
     const session = await getServerSession()
     if (!session?.user?.id) {
@@ -170,14 +185,6 @@ export async function DELETE(request: NextRequest) {
     }
     if (session.user.accountType === 'organization') {
       const response = errorResponse('Təşkilat hesabları məzmun saxlaya bilməz', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
-      for (const [key, value] of Object.entries(rateLimitHeaders)) {
-        response.headers.set(key, value)
-      }
-      return response
-    }
-
-    if (!rateLimitResult.allowed) {
-      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -243,17 +250,30 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     console.error('Save DELETE error:', error)
     const response = errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
     return response
   }
 }
 
 export async function GET(request: NextRequest) {
+  let rateLimitHeaders: Record<string, string> = {}
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers } = await applyRateLimit({
       request,
       preset: 'authenticatedRead',
       endpoint: '/api/saved',
     })
+    rateLimitHeaders = headers
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
 
     const session = await getServerSession()
     if (!session?.user?.id) {
@@ -265,14 +285,6 @@ export async function GET(request: NextRequest) {
     }
     if (session.user.accountType === 'organization') {
       const response = errorResponse('Təşkilat hesabları saxlanılmış məzmuna daxil ola bilməz', 'FORBIDDEN_ACCOUNT_TYPE', {}, 403)
-      for (const [key, value] of Object.entries(rateLimitHeaders)) {
-        response.headers.set(key, value)
-      }
-      return response
-    }
-
-    if (!rateLimitResult.allowed) {
-      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -441,6 +453,9 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Save GET error:', error)
     const response = errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
+    for (const [key, value] of Object.entries(rateLimitHeaders)) {
+      response.headers.set(key, value)
+    }
     return response
   }
 }

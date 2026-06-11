@@ -158,7 +158,7 @@ export function useAuthSync({ supabase, getAccountSnapshot, clearCache }: UseAut
         if (DEBUG_AUTH_CLIENT) {
           console.error('[auth] Sync error:', error)
         }
-        setSyncError('Auth session erroru. Səhifəni yeniləyin.')
+        setSyncError('Auth session xətası. Səhifəni yeniləyin.')
         if (isInitialMountRef.current) {
           setIsSessionReady(false)
         }

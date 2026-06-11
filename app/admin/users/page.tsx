@@ -98,7 +98,7 @@ export default function UsersAdminPage() {
     setLoading(true);
     loadUsers().finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [userSearch, userRoleFilter, userPagination.page]);
 
   const handleUserAction = (user: User, action: "role" | "delete") => {
     setSelectedUser(user);

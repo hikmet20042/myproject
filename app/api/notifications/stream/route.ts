@@ -2,6 +2,7 @@
 import { NextRequest } from 'next/server'
 import { getServerSession } from '@/lib/auth/server'
 import { addConnection, removeConnection } from '@/lib/sse'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -9,6 +10,11 @@ export const dynamic = 'force-dynamic'
 // Connections are managed in lib/sse
 
 export async function GET(request: NextRequest) {
+  const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'authenticatedRead', endpoint: '/api/notifications/stream' })
+  if (!rlResult.allowed) {
+    return new Response('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', { status: 429, headers: rlHeaders })
+  }
+
   const session = await getServerSession()
   
   if (!session?.user?.id) {
@@ -25,8 +31,8 @@ export async function GET(request: NextRequest) {
   // Store connection
   addConnection(userId, controller)
 
-      // Send initial connection message
-      const data = `data: ${JSON.stringify({ type: 'connected', userId })}\n\n`
+      // Send initial connection message (no userId leak)
+      const data = `data: ${JSON.stringify({ type: 'connected' })}\n\n`
       controller.enqueue(encoder.encode(data))
 
       // Keep-alive ping every 30 seconds

@@ -32,7 +32,7 @@ type UserUpdatePayload = {
 // Get all users with pagination, search, and filtering
 export async function GET(request: NextRequest) {
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/users' })
+    const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/users' })
     if (!rlResult.allowed) {
       const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
@@ -45,8 +45,10 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const pageParam = parseInt(searchParams.get('page') || '1');
+    const limitParam = parseInt(searchParams.get('limit') || '10');
+    const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
+    const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 100) : 10;
     const search = searchParams.get('search') || '';
     const role = searchParams.get('role');
     const sortBy = searchParams.get('sortBy') || 'createdAt';
@@ -54,6 +56,8 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Build query
+    // NOTE: The `role` column in the `users` table is NOT the canonical admin source.
+    // `accounts.is_admin` is the source of truth. Role is derived from accounts below.
     let query = supabase
       .from('users')
       .select('id, name, email, created_at, updated_at', { count: 'exact' })
@@ -61,7 +65,8 @@ export async function GET(request: NextRequest) {
       .range(skip, skip + limit - 1);
 
     if (search) {
-      query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`);
+      const safeSearch = search.replace(/%/g, '\\%').replace(/_/g, '\\_');
+      query = query.or(`name.ilike.%${safeSearch}%,email.ilike.%${safeSearch}%`);
     }
 
     const { data: users, count: total, error } = await query;
@@ -173,7 +178,7 @@ export async function GET(request: NextRequest) {
 // Update user (role, status, etc.)
 export async function PUT(request: NextRequest) {
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/users' })
+    const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/users' })
     if (!rlResult.allowed) {
       const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
@@ -224,7 +229,7 @@ export async function PUT(request: NextRequest) {
           .from('accounts')
           .update({ is_admin: updates.role === 'admin', updated_at: new Date().toISOString() })
           .eq('id', userId);
-        notificationMessage = `Your account role has been updated to ${updates.role}`;
+        notificationMessage = `Hesabınızın rolu ${updates.role === 'admin' ? 'admin' : 'istifadəçi'} olaraq yeniləndi`;
         result = { message: `User role updated to ${updates.role}` };
         break;
 
@@ -268,7 +273,7 @@ export async function PUT(request: NextRequest) {
 // Delete user (soft delete)
 export async function DELETE(request: NextRequest) {
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/users' })
+    const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'admin', endpoint: '/api/admin/users' })
     if (!rlResult.allowed) {
       const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
@@ -294,6 +299,29 @@ export async function DELETE(request: NextRequest) {
 
     if (userId === adminUserId) {
       return errorResponse('Öz hesabınızı silə bilməzsiniz', "API_ERROR", {}, 400);
+    }
+
+    // Check if user is an organization account — these must be managed through organization API
+    const { data: targetAccount } = await supabase
+      .from('accounts')
+      .select('account_type')
+      .eq('id', userId)
+      .single();
+
+    if (targetAccount?.account_type === 'organization') {
+      return errorResponse(
+        'Təşkilat hesabları bu endpoint vasitəsilə silinə bilməz. Zəhmət olmasa təşkilat idarəetmə panelindən istifadə edin.',
+        'FORBIDDEN', {}, 403
+      );
+    }
+
+    // Require explicit confirmation
+    const confirmDelete = searchParams.get('confirmDelete');
+    if (confirmDelete !== 'true') {
+      return errorResponse(
+        'Silməni təsdiq etmək üçün confirmDelete=true parametrini əlavə edin',
+        'CONFIRMATION_REQUIRED', {}, 400
+      );
     }
 
     const { data: user, error: userError } = await supabase

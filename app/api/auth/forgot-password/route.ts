@@ -6,14 +6,14 @@ import { applyRateLimit } from '@/lib/rateLimit'
 const GENERIC_SUCCESS_MESSAGE = 'If an account with that email exists, a password reset link has been sent.'
 
 export async function POST(request: NextRequest) {
-  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+  const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
     request,
     preset: 'auth',
     endpoint: '/api/auth/forgot-password',
   })
 
   if (!rateLimitResult.allowed) {
-    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
+    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }

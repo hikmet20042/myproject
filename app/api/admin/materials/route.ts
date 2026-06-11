@@ -10,7 +10,7 @@ export const revalidate = 0;
 // GET: Fetch all materials for admin (including unpublished)
 export async function GET(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'admin',
       endpoint: '/api/admin/materials',

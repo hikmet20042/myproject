@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic'
 // GET /api/organizations - Get organizations
 export async function GET(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'publicRead',
       endpoint: '/api/organizations',
@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
 // POST - Create new organization (This endpoint is deprecated for independent organizations)
 export async function POST(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'auth',
       endpoint: '/api/organizations',

@@ -29,7 +29,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     description,
     error,
     options,
-    placeholder = 'Select an option...',
+    placeholder = 'Seçin...',
     variant = 'default',
     selectSize = 'md',
     id,

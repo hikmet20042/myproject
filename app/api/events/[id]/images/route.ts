@@ -15,9 +15,11 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/events/[id]/images' })
+    const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'write', endpoint: '/api/events/[id]/images' })
     if (!rlResult.allowed) {
-      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
     const session = await getServerSession();
 
@@ -124,7 +126,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/events/[id]/images' })
+    const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'write', endpoint: '/api/events/[id]/images' })
     if (!rlResult.allowed) {
       return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     }
@@ -196,7 +198,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/events/[id]/images' })
+    const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'write', endpoint: '/api/events/[id]/images' })
     if (!rlResult.allowed) {
       return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     }
@@ -249,7 +251,15 @@ export async function PATCH(
         });
       }
 
-      Object.assign(updatedImages[imageIndex], updates);
+      const allowedFields = ['alt', 'isPrimary'];
+      const safeUpdates: Record<string, any> = {};
+      for (const key of allowedFields) {
+        if (key in updates) {
+          safeUpdates[key] = updates[key];
+        }
+      }
+
+      Object.assign(updatedImages[imageIndex], safeUpdates);
 
       let updatedImageUrl = event.image_url;
       if (updates.isPrimary) {

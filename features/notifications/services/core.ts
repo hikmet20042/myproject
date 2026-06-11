@@ -102,7 +102,7 @@ async function checkAndGroupNotification(
   const existingData = (existing.data as any) || {}
   const newCount = (existingData.groupCount || 1) + 1
 
-  await supabase
+  const { error: updateError } = await supabase
     .from('notifications')
     .update({
       message: existingData.groupMessage,
@@ -113,6 +113,11 @@ async function checkAndGroupNotification(
       },
     })
     .eq('id', existing.id)
+
+  if (updateError) {
+    console.error('Failed to update grouped notification:', updateError)
+    return { shouldCreate: true }
+  }
 
   return {
     shouldCreate: false,

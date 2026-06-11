@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { cache, generateCacheKey, withCache } from '@/lib/cache'
 import { applyRateLimit } from '@/lib/rateLimit'
+import { escapeIlike } from '@/lib/utils'
 
 type SearchType = 'event' | 'vacancy' | 'blog' | 'organization'
 
@@ -87,14 +88,14 @@ const parsePage = (raw: string | null): number => {
 }
 
 export async function GET(request: NextRequest) {
-  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+  const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
     request,
     preset: 'publicRead',
     endpoint: '/api/search',
   })
 
   if (!rateLimitResult.allowed) {
-    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
+    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }
@@ -132,8 +133,8 @@ export async function GET(request: NextRequest) {
     const cacheKey = generateCacheKey.search(query, types, page, limit)
 
     const payload = await withCache(cache.search, cacheKey, async () => {
-      const wildcard = `%${query}%`
-      const perTypeFetchLimit = Math.max(200, limit * 10)
+      const wildcard = `%${escapeIlike(query)}%`
+      const perTypeFetchLimit = Math.max(50, limit * 3)
 
       const eventPromise = types.includes('event')
         ? supabase

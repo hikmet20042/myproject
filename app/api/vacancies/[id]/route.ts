@@ -4,6 +4,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { NotificationService } from '@/features/notifications/services/notificationService'
 import { isAdmin, isAdminOrOwner, isOwner } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
+import { isValidUUID } from '@/lib/utils'
 import { buildVacancyDbPayload, mapVacancyRow, validateVacancyPayload } from '@/app/api/vacancies/helpers'
 import { getContentViewCounts } from '@/lib/viewTracking'
 import { applyRateLimit } from '@/lib/rateLimit'
@@ -14,12 +15,21 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/vacancies/[id]' })
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/vacancies/[id]' })
     if (!rlResult.allowed) {
-      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
     const vacancyId = String(params.id || '').trim()
+
+    if (!isValidUUID(vacancyId)) {
+      const r = errorResponse('Yanlış vakansiya ID-si', "API_ERROR", {}, 400)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
+    }
+
     const supabase = createSupabaseAdminClient()
 
     const { data: vacancyRow, error } = await supabase
@@ -29,37 +39,45 @@ export async function GET(
       .single()
 
     if (error || !vacancyRow) {
-      return errorResponse('Vakansiya tapılmadı', "API_ERROR", {}, 404)
+      const r = errorResponse('Vakansiya tapılmadı', "API_ERROR", {}, 404)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
-    const stats = await getContentViewCounts(supabase, 'vacancy', vacancyRow.id)
-    const { count: savesCount } = await supabase
-      .from('content_saves')
-      .select('*', { count: 'exact', head: true })
-      .eq('content_type', 'vacancy')
-      .eq('content_id', vacancyRow.id)
+    if (vacancyRow.status !== 'approved' || vacancyRow.is_published === false) {
+      const session = await getServerSession()
+      if (!isAdminOrOwner(session, {
+        created_by: vacancyRow.created_by,
+        created_by_organization: vacancyRow.created_by_organization,
+      })) {
+        const r = errorResponse('İcazəsiz giriş', "API_ERROR", {}, 403)
+        for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+        return r
+      }
+    }
+
+    const [stats, savesResult] = await Promise.all([
+      getContentViewCounts(supabase, 'vacancy', vacancyRow.id),
+      supabase
+        .from('content_saves')
+        .select('*', { count: 'exact', head: true })
+        .eq('content_type', 'vacancy')
+        .eq('content_id', vacancyRow.id),
+    ])
 
     const vacancy = { 
       ...mapVacancyRow(vacancyRow),
       views: stats.views,
       uniqueViews: stats.uniqueViews,
-      saves: savesCount || 0,
-    }
-
-    if (vacancy.status !== 'approved' || vacancy.isPublished === false) {
-      const session = await getServerSession()
-      if (!isAdminOrOwner(session, {
-        created_by: vacancy.createdBy?._id ?? vacancy.createdBy,
-        created_by_organization: vacancy.createdByOrganization?._id ?? vacancy.createdByOrganization,
-      })) {
-        return errorResponse('İcazəsiz giriş', "API_ERROR", {}, 403)
-      }
+      saves: savesResult.count || 0,
     }
 
     return successResponse({ vacancy })
   } catch (error) {
     console.error('Error fetching vacancy:', error)
-    return errorResponse('Vakansiya yüklənə bilmədi', "API_ERROR", {}, 500)
+    const r = errorResponse('Vakansiya yüklənə bilmədi', "API_ERROR", {}, 500)
+    for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+    return r
   }
 }
 
@@ -67,16 +85,27 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'write', endpoint: '/api/vacancies/[id]' })
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/vacancies/[id]' })
     if (!rlResult.allowed) {
-      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
     const vacancyId = String(params.id || '').trim()
+
+    if (!isValidUUID(vacancyId)) {
+      const r = errorResponse('Yanlış vakansiya ID-si', "API_ERROR", {}, 400)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
+    }
+
     const session = await getServerSession()
 
     if (!session?.user?.id) {
-      return errorResponse('Autentifikasiya tələb olunur', "API_ERROR", {}, 401)
+      const r = errorResponse('Autentifikasiya tələb olunur', "API_ERROR", {}, 401)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const supabase = createSupabaseAdminClient()
@@ -87,27 +116,34 @@ export async function PUT(
       .eq('id', vacancyId)
       .single()
     if (vacancyError || !vacancyRow) {
-      return errorResponse('Vakansiya tapılmadı', "API_ERROR", {}, 404)
+      const r = errorResponse('Vakansiya tapılmadı', "API_ERROR", {}, 404)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const owner = isOwner(session, vacancyRow)
     const admin = isAdmin(session)
 
     if (!owner && !admin) {
-      return errorResponse('İcazə rədd edildi', "API_ERROR", {}, 403)
+      const r = errorResponse('İcazə rədd edildi', "API_ERROR", {}, 403)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const body = await request.json()
 
     const validation = validateVacancyPayload(body)
     if (!validation.valid) {
-      return errorResponse(validation.error, "API_ERROR", {}, 400)
+      const r = errorResponse(validation.error, "API_ERROR", {}, 400)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const updateData: any = buildVacancyDbPayload(body)
 
     if (!admin && owner) {
       updateData.status = 'pending'
+      updateData.is_published = false
       updateData.approved_at = null
       updateData.approved_by = null
       updateData.rejected_at = null
@@ -126,7 +162,9 @@ export async function PUT(
 
     if (updateError || !updatedRow) {
       console.error('Error updating vacancy:', updateError)
-      return errorResponse('Vakansiya yenilənə bilmədi', "API_ERROR", {}, 500)
+      const r = errorResponse('Vakansiya yenilənə bilmədi', "API_ERROR", {}, 500)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const updatedVacancy = mapVacancyRow(updatedRow)
@@ -134,7 +172,9 @@ export async function PUT(
     return successResponse({ message: 'Vakansiya uğurla yeniləndi', vacancy: updatedVacancy })
   } catch (error) {
     console.error('Error updating vacancy:', error)
-    return errorResponse('Vakansiya yenilənə bilmədi', "API_ERROR", {}, 500)
+    const r = errorResponse('Vakansiya yenilənə bilmədi', "API_ERROR", {}, 500)
+    for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+    return r
   }
 }
 
@@ -142,22 +182,35 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'write', endpoint: '/api/vacancies/[id]' })
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/vacancies/[id]' })
     if (!rlResult.allowed) {
-      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
     const vacancyId = String(params.id || '').trim()
+
+    if (!isValidUUID(vacancyId)) {
+      const r = errorResponse('Yanlış vakansiya ID-si', "API_ERROR", {}, 400)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
+    }
+
     const session = await getServerSession()
 
     if (!session?.user?.id) {
-      return errorResponse('Autentifikasiya tələb olunur', "API_ERROR", {}, 401)
+      const r = errorResponse('Autentifikasiya tələb olunur', "API_ERROR", {}, 401)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const supabase = createSupabaseAdminClient()
 
     if (!isAdmin(session)) {
-      return errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403)
+      const r = errorResponse('Admin girişi tələb olunur', "API_ERROR", {}, 403)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const { data: vacancyRow, error: vacancyError } = await supabase
@@ -167,17 +220,23 @@ export async function PATCH(
       .single()
 
     if (vacancyError || !vacancyRow) {
-      return errorResponse('Vakansiya tapılmadı', "API_ERROR", {}, 404)
+      const r = errorResponse('Vakansiya tapılmadı', "API_ERROR", {}, 404)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const { action, rejectionReason } = await request.json()
 
     if (!action || !['approve', 'reject'].includes(action)) {
-      return errorResponse('Yanlış əməliyyat. "approve" və ya "reject" olmalıdır', "API_ERROR", {}, 400)
+      const r = errorResponse('Yanlış əməliyyat. "approve" və ya "reject" olmalıdır', "API_ERROR", {}, 400)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     if (action === 'reject' && !rejectionReason?.trim()) {
-      return errorResponse('Rədd səbəbi tələb olunur', "API_ERROR", {}, 400)
+      const r = errorResponse('Rədd səbəbi tələb olunur', "API_ERROR", {}, 400)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const updateData: any = {}
@@ -207,7 +266,9 @@ export async function PATCH(
 
     if (updateError || !updatedRow) {
       console.error('Error updating vacancy status:', updateError)
-      return errorResponse(updateError?.message || 'Vakansiya statusu yenilənə bilmədi', "API_ERROR", {}, 500)
+      const r = errorResponse(updateError?.message || 'Vakansiya statusu yenilənə bilmədi', "API_ERROR", {}, 500)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const notificationTitle = action === 'approve'
@@ -244,7 +305,9 @@ export async function PATCH(
     return successResponse({ message: `Vacancy ${action}d successfully`, vacancy: updatedVacancy })
   } catch (error) {
     console.error('Error updating vacancy status:', error)
-    return errorResponse('Vakansiya statusu yenilənə bilmədi', "API_ERROR", {}, 500)
+    const r = errorResponse('Vakansiya statusu yenilənə bilmədi', "API_ERROR", {}, 500)
+    for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+    return r
   }
 }
 
@@ -252,16 +315,27 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const { result: rlResult, headers: rlHeaders } = await applyRateLimit({ request, preset: 'write', endpoint: '/api/vacancies/[id]' })
   try {
-    const { result: rlResult, headers: rlHeaders } = applyRateLimit({ request, preset: 'publicRead', endpoint: '/api/vacancies/[id]' })
     if (!rlResult.allowed) {
-      return errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      const r = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
     const vacancyId = String(params.id || '').trim()
+
+    if (!isValidUUID(vacancyId)) {
+      const r = errorResponse('Yanlış vakansiya ID-si', "API_ERROR", {}, 400)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
+    }
+
     const session = await getServerSession()
 
     if (!session?.user?.id) {
-      return errorResponse('Autentifikasiya tələb olunur', "API_ERROR", {}, 401)
+      const r = errorResponse('Autentifikasiya tələb olunur', "API_ERROR", {}, 401)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const supabase = createSupabaseAdminClient()
@@ -272,11 +346,15 @@ export async function DELETE(
       .eq('id', vacancyId)
       .single()
     if (vacancyError || !vacancyRow) {
-      return errorResponse('Vakansiya tapılmadı', "API_ERROR", {}, 404)
+      const r = errorResponse('Vakansiya tapılmadı', "API_ERROR", {}, 404)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     if (!isAdminOrOwner(session, vacancyRow)) {
-      return errorResponse('İcazə rədd edildi', "API_ERROR", {}, 403)
+      const r = errorResponse('İcazə rədd edildi', "API_ERROR", {}, 403)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     const { error: deleteError } = await supabase
@@ -285,12 +363,16 @@ export async function DELETE(
       .eq('id', vacancyId)
 
     if (deleteError) {
-      return errorResponse('Vakansiya silinə bilmədi', "API_ERROR", {}, 500)
+      const r = errorResponse('Vakansiya silinə bilmədi', "API_ERROR", {}, 500)
+      for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+      return r
     }
 
     return successResponse({ message: 'Vakansiya uğurla silindi' })
   } catch (error) {
     console.error('Error deleting vacancy:', error)
-    return errorResponse('Vakansiya silinə bilmədi', "API_ERROR", {}, 500)
+    const r = errorResponse('Vakansiya silinə bilmədi', "API_ERROR", {}, 500)
+    for (const [k,v] of Object.entries(rlHeaders)) r.headers.set(k,v)
+    return r
   }
 }

@@ -4,29 +4,38 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { isAdmin } from '@/lib/auth/permissions'
 import { applyRateLimit } from '@/lib/rateLimit'
+import { isValidUUID } from '@/lib/utils'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'authenticatedRead',
       endpoint: '/api/users/[id]',
     })
 
-    const session = await getServerSession();
-    if (!session?.user) {
-      const response = errorResponse('Autentifikasiya tələb olunur', 'AUTH_REQUIRED', {}, 401);
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }
       return response;
     }
 
-    if (!rateLimitResult.allowed) {
-      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429);
+    if (!isValidUUID(params.id)) {
+      const response = errorResponse('Yanlış istifadəçi ID formatı', 'VALIDATION_ERROR', {}, 400);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value);
+      }
+      return response;
+    }
+
+    const session = await getServerSession();
+    if (!session?.user) {
+      const response = errorResponse('Autentifikasiya tələb olunur', 'AUTH_REQUIRED', {}, 401);
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value);
       }

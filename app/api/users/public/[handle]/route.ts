@@ -11,14 +11,14 @@ export async function GET(
   { params }: { params: { handle: string } }
 ) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'publicRead',
       endpoint: '/api/users/public/[handle]',
     })
 
     if (!rateLimitResult.allowed) {
-      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }

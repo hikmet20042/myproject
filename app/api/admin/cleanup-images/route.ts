@@ -7,7 +7,7 @@ import { applyRateLimit } from '@/lib/rateLimit'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
-  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+  const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
     request,
     preset: 'admin',
     endpoint: '/api/admin/cleanup-images',
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+  const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
     request,
     preset: 'admin',
     endpoint: '/api/admin/cleanup-images',

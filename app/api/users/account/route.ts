@@ -6,60 +6,29 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { isApprovedOrganization } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { applyRateLimit } from '@/lib/rateLimit'
+import { getAuthProviderInfo, hasRecentSignIn } from '@/lib/auth/provider-info'
 
-const RECENT_REAUTH_WINDOW_MS = 5 * 60 * 1000
 const PROFILE_BUCKET = process.env.SUPABASE_PROFILE_IMAGES_BUCKET || 'profile-images'
-
-function getAuthProviderInfo(user: any) {
-  const identities = Array.isArray(user?.identities) ? user.identities : []
-  const providers = new Set<string>()
-
-  for (const identity of identities) {
-    const provider = String(identity?.provider || '').trim().toLowerCase()
-    if (provider) providers.add(provider)
-  }
-
-  const appProvider = String(user?.app_metadata?.provider || '').trim().toLowerCase()
-  if (appProvider) providers.add(appProvider)
-
-  const providerList = Array.from(providers)
-  const hasPasswordProvider = providerList.includes('email')
-  const isGoogleOnly = providerList.includes('google') && !hasPasswordProvider
-
-  return {
-    providers: providerList,
-    hasPasswordProvider,
-    isGoogleOnly,
-  }
-}
-
-function hasRecentSignIn(user: any) {
-  const lastSignInAtRaw = user?.last_sign_in_at
-  if (!lastSignInAtRaw) return false
-  const lastSignInAt = new Date(lastSignInAtRaw).getTime()
-  if (Number.isNaN(lastSignInAt)) return false
-  return Date.now() - lastSignInAt <= RECENT_REAUTH_WINDOW_MS
-}
 
 export async function GET(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'authenticatedRead',
       endpoint: '/api/users/account',
     })
 
-    const session = await getServerSession()
-    if (!session?.user?.id) {
-      const response = errorResponse('Autentifikasiya tələb olunur', 'API_ERROR', {}, 401)
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
       return response
     }
 
-    if (!rateLimitResult.allowed) {
-      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
+    const session = await getServerSession()
+    if (!session?.user?.id) {
+      const response = errorResponse('Autentifikasiya tələb olunur', 'API_ERROR', {}, 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -102,23 +71,23 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
       request,
       preset: 'write',
       endpoint: '/api/users/account',
     })
 
-    const session = await getServerSession()
-    if (!session?.user?.id) {
-      const response = errorResponse('Autentifikasiya tələb olunur', 'API_ERROR', {}, 401)
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
       return response
     }
 
-    if (!rateLimitResult.allowed) {
-      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
+    const session = await getServerSession()
+    if (!session?.user?.id) {
+      const response = errorResponse('Autentifikasiya tələb olunur', 'API_ERROR', {}, 401)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
       }
@@ -137,7 +106,7 @@ export async function DELETE(request: NextRequest) {
     const confirmText = String(body?.confirmText || '').trim().toUpperCase()
     const currentPassword = String(body?.currentPassword || '').trim()
 
-    if (confirmText !== 'DELETE') {
+    if (confirmText !== 'DELETE' && confirmText !== 'SİL') {
       const response = errorResponse('Təsdiq mətni yanlışdır', 'API_ERROR', {}, 400)
       for (const [key, value] of Object.entries(rateLimitHeaders)) {
         response.headers.set(key, value)
@@ -206,10 +175,16 @@ export async function DELETE(request: NextRequest) {
     const supabase = createSupabaseAdminClient()
     const userId = session.user.id
     
-    await supabase.from('blog_reactions').delete().eq('user_id', userId)
-    await supabase.from('content_saves').delete().eq('user_id', userId)
-    await supabase.from('organization_followers').delete().eq('user_id', userId)
-    await supabase.from('notifications').delete().eq('user_id', userId)
+    const deletionErrors: string[] = []
+
+    const { error: e1 } = await supabase.from('blog_reactions').delete().eq('user_id', userId)
+    if (e1) deletionErrors.push('blog_reactions')
+    const { error: e2 } = await supabase.from('content_saves').delete().eq('user_id', userId)
+    if (e2) deletionErrors.push('content_saves')
+    const { error: e3 } = await supabase.from('organization_followers').delete().eq('user_id', userId)
+    if (e3) deletionErrors.push('organization_followers')
+    const { error: e4 } = await supabase.from('notifications').delete().eq('user_id', userId)
+    if (e4) deletionErrors.push('notifications')
 
     const { data: userProfile } = await supabase
       .from('user_profiles')
@@ -234,16 +209,28 @@ export async function DELETE(request: NextRequest) {
     if (userBlogs && userBlogs.length > 0) {
       const blogIds = userBlogs.map(b => b.id)
       
-      await supabase.from('blog_reactions').delete().in('blog_id', blogIds)
-      await supabase.from('blog_views').delete().in('blog_id', blogIds)
-      await supabase.from('content_saves').delete().in('content_id', blogIds).eq('content_type', 'blog')
-      await supabase.from('blogs').delete().eq('author_id', userId)
+      const { error: e5 } = await supabase.from('blog_reactions').delete().in('blog_id', blogIds)
+      if (e5) deletionErrors.push('blog_reactions (blogs)')
+      const { error: e6 } = await supabase.from('blog_views').delete().in('blog_id', blogIds)
+      if (e6) deletionErrors.push('blog_views')
+      const { error: e7 } = await supabase.from('content_saves').delete().in('content_id', blogIds).eq('content_type', 'blog')
+      if (e7) deletionErrors.push('content_saves (blogs)')
+      const { error: e8 } = await supabase.from('blogs').delete().eq('author_id', userId)
+      if (e8) deletionErrors.push('blogs')
     }
 
-    await supabase.from('user_profiles').delete().eq('user_id', userId)
-    await supabase.from('events').delete().eq('created_by', userId)
-    await supabase.from('vacancies').delete().eq('created_by', userId)
-    await supabase.from('materials').delete().eq('created_by', userId)
+    const { error: e9 } = await supabase.from('user_profiles').delete().eq('user_id', userId)
+    if (e9) deletionErrors.push('user_profiles')
+    const { error: e10 } = await supabase.from('events').delete().eq('created_by', userId)
+    if (e10) deletionErrors.push('events')
+    const { error: e11 } = await supabase.from('vacancies').delete().eq('created_by', userId)
+    if (e11) deletionErrors.push('vacancies')
+    const { error: e12 } = await supabase.from('materials').delete().eq('created_by', userId)
+    if (e12) deletionErrors.push('materials')
+
+    if (deletionErrors.length > 0) {
+      console.error('Partial deletion failures for user', userId, ':', deletionErrors)
+    }
 
     const { error: deleteError } = await supabase.auth.admin.deleteUser(userId)
     if (deleteError) {

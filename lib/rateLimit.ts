@@ -2,9 +2,14 @@
  * Unified rate limiting system for API endpoints.
  * Supports per-endpoint, per-user, and per-IP rate limiting.
  * Uses sliding window approach with configurable limits.
- * 
- * For production with multiple instances, replace Map with Redis.
+ *
+ * BACKEND:
+ *   - If UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are set,
+ *     uses Upstash Redis for persistent rate limiting across serverless invocations.
+ *   - Otherwise, falls back to an in-memory Map (best-effort; resets on cold start).
  */
+
+import { checkRateLimitRedis } from './rateLimit.redis'
 
 type RateLimitWindow = {
   count: number
@@ -12,7 +17,9 @@ type RateLimitWindow = {
 }
 
 // In-memory store (will reset on server restart)
+// SAFETY: Bounded to prevent unbounded memory growth in long-running processes.
 const rateLimitStore = new Map<string, RateLimitWindow>()
+const MAX_STORE_SIZE = 10_000
 
 // Cleanup interval: 5 minutes
 const CLEANUP_INTERVAL = 5 * 60 * 1000
@@ -63,6 +70,12 @@ export interface RateLimitResult {
 
 /**
  * Extract client IP from request headers
+ *
+ * SECURITY NOTE: x-forwarded-for, x-real-ip, and cf-connecting-ip are all
+ * client-spoofable headers. An attacker can forge these to bypass IP-based
+ * rate limiting. This is acceptable when the app sits behind a trusted reverse
+ * proxy (e.g. Cloudflare, Netlify) that overwrites these headers, but would
+ * need hardening (e.g. picking the rightmost untrusted hop) if exposed directly.
  */
 export function getClientIp(headers: Headers): string {
   // Check common proxy headers in order of preference
@@ -98,8 +111,22 @@ export function buildRateLimitKey(options: {
 
 /**
  * Check if a request is within rate limits.
+ * Tries Redis first; falls back to in-memory Map if Redis is not configured.
  */
-export function checkRateLimit(options: RateLimitOptions): RateLimitResult {
+export async function checkRateLimit(options: RateLimitOptions & { preset?: RateLimitPreset }): Promise<RateLimitResult> {
+  // Try Redis-backed rate limiting first
+  const redisResult = await checkRateLimitRedis(options)
+  if (redisResult !== null) return redisResult
+
+  // Fall back to in-memory (best-effort in serverless)
+  return checkRateLimitInMemory(options)
+}
+
+/**
+ * In-memory rate limit check (original implementation).
+ * Effective within a single serverless invocation but NOT across invocations.
+ */
+function checkRateLimitInMemory(options: RateLimitOptions): RateLimitResult {
   // Lazy cleanup for serverless environments
   cleanupRateLimitStore()
   
@@ -146,13 +173,13 @@ export function checkRateLimit(options: RateLimitOptions): RateLimitResult {
  * Apply rate limiting to an API request.
  * Returns rate limit result with headers to add to response.
  */
-export function applyRateLimit(options: {
+export async function applyRateLimit(options: {
   request: Request
   userId?: string
   preset?: RateLimitPreset
   customLimit?: { maxRequests: number; windowMs: number }
   endpoint?: string
-}): { result: RateLimitResult; headers: Record<string, string> } {
+}): Promise<{ result: RateLimitResult; headers: Record<string, string> }> {
   const { request, userId, preset = 'api', customLimit, endpoint } = options
   
   const ip = getClientIp(request.headers)
@@ -160,13 +187,18 @@ export function applyRateLimit(options: {
   const key = buildRateLimitKey({ ip, userId, endpoint: endpointPath })
   
   const limits = customLimit || RATE_LIMIT_PRESETS[preset]
-  const result = checkRateLimit({
+  const result = await checkRateLimit({
     key,
     maxRequests: limits.maxRequests,
     windowMs: limits.windowMs,
+    preset,
   })
   
   // Build rate limit headers
+  // NOTE: This is the canonical rate-limit header shape for the codebase.
+  // All API routes should use applyRateLimit() to get these headers.
+  // Some routes use shorter variable names (e.g. `rlHeaders`) but the
+  // header keys are the same everywhere.
   const headers: Record<string, string> = {
     'X-RateLimit-Limit': String(result.limit),
     'X-RateLimit-Remaining': String(result.remaining),
@@ -187,6 +219,13 @@ export function cleanupRateLimitStore(): void {
   if (now - lastCleanup < CLEANUP_INTERVAL) return
   lastCleanup = now
   
+  // Evict all entries if the store exceeds the safety cap.
+  // This prevents unbounded memory growth in long-running non-serverless processes.
+  if (rateLimitStore.size > MAX_STORE_SIZE) {
+    rateLimitStore.clear()
+    return
+  }
+
   rateLimitStore.forEach((window, key) => {
     if (now >= window.resetAt) {
       rateLimitStore.delete(key)

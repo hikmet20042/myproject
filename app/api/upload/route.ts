@@ -85,7 +85,7 @@ async function optimizeImage(buffer: Buffer, mimeType: string, context: string):
 }
 
 export async function POST(request: Request) {
-  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+  const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
     request,
     preset: 'upload',
     endpoint: '/api/upload',

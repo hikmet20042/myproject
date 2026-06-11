@@ -5,14 +5,14 @@ import { applyRateLimit } from '@/lib/rateLimit'
 
 // GET: Fetch all materials (with optional filters)
 export async function GET(request: Request) {
-  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+  const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
     request,
     preset: 'publicRead',
     endpoint: '/api/materials',
   })
 
   if (!rateLimitResult.allowed) {
-    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
+    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }
@@ -87,10 +87,28 @@ export async function GET(request: Request) {
 // POST: Create new material (Admin only)
 export async function POST(request: Request) {
   try {
+    const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
+      request,
+      preset: 'admin',
+      endpoint: '/api/materials',
+    })
+
+    if (!rateLimitResult.allowed) {
+      const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response
+    }
+
     const session = await getServerSession();
 
     if (!session || session.user?.role !== 'admin') {
-      return errorResponse('İcazəsiz giriş. Admin girişi tələb olunur.', "API_ERROR", {}, 403);
+      const response = errorResponse('İcazəsiz giriş. Admin girişi tələb olunur.', "API_ERROR", {}, 403);
+      for (const [key, value] of Object.entries(rateLimitHeaders)) {
+        response.headers.set(key, value)
+      }
+      return response;
     }
 
     const supabase = createSupabaseAdminClient();

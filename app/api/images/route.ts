@@ -5,14 +5,14 @@ import { applyRateLimit } from '@/lib/rateLimit'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
-  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+  const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
     request,
     preset: 'publicRead',
     endpoint: '/api/images',
   })
 
   if (!rateLimitResult.allowed) {
-    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
+    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }
@@ -27,14 +27,14 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+  const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
     request,
     preset: 'publicRead',
     endpoint: '/api/images',
   })
 
   if (!rateLimitResult.allowed) {
-    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMITED', {}, 429)
+    const response = errorResponse('Çox sayda sorğu. Bir az sonra yenidən cəhd edin.', 'RATE_LIMIT_EXCEEDED', {}, 429)
     for (const [key, value] of Object.entries(rateLimitHeaders)) {
       response.headers.set(key, value)
     }

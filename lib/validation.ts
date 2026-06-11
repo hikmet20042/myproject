@@ -1,9 +1,11 @@
 /**
  * Centralized input validation utility for API endpoints.
  * Provides schema-based validation with standardized error responses.
+ * Supports localized validation messages (default: Azerbaijani).
  */
 
 import { errorResponse } from '@/lib/apiResponse'
+import { validationMessages, type Locale, type LocaleMessages } from '@/lib/validation-messages'
 
 /**
  * Validation error structure
@@ -46,10 +48,10 @@ export type Schema = Record<string, FieldRule>
 /**
  * Validate a single field against its rules
  */
-function validateField(name: string, value: unknown, rules: FieldRule): ValidationError | null {
+function validateField(name: string, value: unknown, rules: FieldRule, msgs: LocaleMessages): ValidationError | null {
   // Required check
   if (rules.required && (value === undefined || value === null || value === '')) {
-    return { field: name, message: `${name} is required`, code: 'REQUIRED' }
+    return { field: name, message: msgs.required(name), code: 'REQUIRED' }
   }
   
   // Skip further validation if value is not provided and not required
@@ -63,44 +65,44 @@ function validateField(name: string, value: unknown, rules: FieldRule): Validati
     
     if (rules.type === 'email') {
       if (typeof value !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-        return { field: name, message: `${name} must be a valid email address`, code: 'INVALID_EMAIL' }
+        return { field: name, message: msgs.invalidEmail(name), code: 'INVALID_EMAIL' }
       }
     } else if (rules.type === 'url') {
       if (typeof value !== 'string') {
-        return { field: name, message: `${name} must be a string`, code: 'INVALID_TYPE' }
+        return { field: name, message: msgs.invalidType(name), code: 'INVALID_TYPE' }
       }
       try {
         new URL(value)
       } catch {
-        return { field: name, message: `${name} must be a valid URL`, code: 'INVALID_URL' }
+        return { field: name, message: msgs.invalidUrl(name), code: 'INVALID_URL' }
       }
     } else if (rules.type === 'date') {
       if (typeof value !== 'string' || Number.isNaN(Date.parse(value))) {
-        return { field: name, message: `${name} must be a valid date`, code: 'INVALID_DATE' }
+        return { field: name, message: msgs.invalidDate(name), code: 'INVALID_DATE' }
       }
     } else if (rules.type === 'uuid') {
       if (typeof value !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
-        return { field: name, message: `${name} must be a valid UUID`, code: 'INVALID_UUID' }
+        return { field: name, message: msgs.invalidUuid(name), code: 'INVALID_UUID' }
       }
     } else if (rules.type === 'number') {
       if (typeof value !== 'number' || Number.isNaN(value)) {
-        return { field: name, message: `${name} must be a number`, code: 'INVALID_NUMBER' }
+        return { field: name, message: msgs.invalidNumber(name), code: 'INVALID_NUMBER' }
       }
     } else if (rules.type === 'boolean') {
       if (typeof value !== 'boolean') {
-        return { field: name, message: `${name} must be a boolean`, code: 'INVALID_BOOLEAN' }
+        return { field: name, message: msgs.invalidBoolean(name), code: 'INVALID_BOOLEAN' }
       }
     } else if (rules.type === 'array') {
       if (!Array.isArray(value)) {
-        return { field: name, message: `${name} must be an array`, code: 'INVALID_ARRAY' }
+        return { field: name, message: msgs.invalidArray(name), code: 'INVALID_ARRAY' }
       }
     } else if (rules.type === 'object') {
       if (typeof value !== 'object' || Array.isArray(value)) {
-        return { field: name, message: `${name} must be an object`, code: 'INVALID_OBJECT' }
+        return { field: name, message: msgs.invalidObject(name), code: 'INVALID_OBJECT' }
       }
     } else if (rules.type === 'string') {
       if (typeof value !== 'string') {
-        return { field: name, message: `${name} must be a string`, code: 'INVALID_TYPE' }
+        return { field: name, message: msgs.invalidType(name), code: 'INVALID_TYPE' }
       }
     }
   }
@@ -108,44 +110,44 @@ function validateField(name: string, value: unknown, rules: FieldRule): Validati
   // String length checks
   if (typeof value === 'string') {
     if (rules.minLength !== undefined && value.length < rules.minLength) {
-      return { field: name, message: `${name} must be at least ${rules.minLength} characters`, code: 'TOO_SHORT' }
+      return { field: name, message: msgs.tooShort(name, rules.minLength), code: 'TOO_SHORT' }
     }
     if (rules.maxLength !== undefined && value.length > rules.maxLength) {
-      return { field: name, message: `${name} must be at most ${rules.maxLength} characters`, code: 'TOO_LONG' }
+      return { field: name, message: msgs.tooLong(name, rules.maxLength), code: 'TOO_LONG' }
     }
   }
   
   // Number range checks
   if (typeof value === 'number') {
     if (rules.min !== undefined && value < rules.min) {
-      return { field: name, message: `${name} must be at least ${rules.min}`, code: 'TOO_SMALL' }
+      return { field: name, message: msgs.tooSmall(name, rules.min), code: 'TOO_SMALL' }
     }
     if (rules.max !== undefined && value > rules.max) {
-      return { field: name, message: `${name} must be at most ${rules.max}`, code: 'TOO_LARGE' }
+      return { field: name, message: msgs.tooLarge(name, rules.max), code: 'TOO_LARGE' }
     }
   }
   
   // Array length checks
   if (Array.isArray(value)) {
     if (rules.min !== undefined && value.length < rules.min) {
-      return { field: name, message: `${name} must have at least ${rules.min} items`, code: 'TOO_FEW_ITEMS' }
+      return { field: name, message: msgs.tooFewItems(name, rules.min), code: 'TOO_FEW_ITEMS' }
     }
     if (rules.max !== undefined && value.length > rules.max) {
-      return { field: name, message: `${name} must have at most ${rules.max} items`, code: 'TOO_MANY_ITEMS' }
+      return { field: name, message: msgs.tooManyItems(name, rules.max), code: 'TOO_MANY_ITEMS' }
     }
   }
   
   // Pattern check
   if (rules.pattern && typeof value === 'string') {
     if (!rules.pattern.test(value)) {
-      return { field: name, message: `${name} has invalid format`, code: 'INVALID_FORMAT' }
+      return { field: name, message: msgs.invalidFormat(name), code: 'INVALID_FORMAT' }
     }
   }
   
   // Enum check
   if (rules.enum) {
     if (!rules.enum.includes(value as string | number)) {
-      return { field: name, message: `${name} must be one of: ${rules.enum.join(', ')}`, code: 'INVALID_ENUM' }
+      return { field: name, message: msgs.invalidEnum(name, rules.enum.map(String)), code: 'INVALID_ENUM' }
     }
   }
   
@@ -166,14 +168,15 @@ function validateField(name: string, value: unknown, rules: FieldRule): Validati
 export function validateSchema<T = Record<string, unknown>>(
   data: unknown,
   schema: Schema,
-  options?: { allowUnknownFields?: boolean }
+  options?: { allowUnknownFields?: boolean; locale?: Locale }
 ): ValidationResult<T> {
   const errors: ValidationError[] = []
+  const msgs = validationMessages[options?.locale || 'az']
   
   if (typeof data !== 'object' || data === null || Array.isArray(data)) {
     return {
       success: false,
-      errors: [{ field: 'body', message: 'Request body must be a JSON object', code: 'INVALID_BODY' }],
+      errors: [{ field: 'body', message: msgs.invalidBody(), code: 'INVALID_BODY' }],
     }
   }
   
@@ -182,7 +185,7 @@ export function validateSchema<T = Record<string, unknown>>(
   // Validate each field in the schema
   for (const [fieldName, rules] of Object.entries(schema)) {
     const value = record[fieldName]
-    const error = validateField(fieldName, value, rules)
+    const error = validateField(fieldName, value, rules, msgs)
     if (error) {
       errors.push(error)
     }
@@ -193,7 +196,7 @@ export function validateSchema<T = Record<string, unknown>>(
     const schemaFields = new Set(Object.keys(schema))
     for (const key of Object.keys(record)) {
       if (!schemaFields.has(key)) {
-        errors.push({ field: key, message: `Unknown field: ${key}`, code: 'UNKNOWN_FIELD' })
+        errors.push({ field: key, message: msgs.unknownField(key), code: 'UNKNOWN_FIELD' })
       }
     }
   }
@@ -231,7 +234,7 @@ export function validationErrorResponse(errors: ValidationError[]) {
 export function validateRequestBody<T = Record<string, unknown>>(
   body: unknown,
   schema: Schema,
-  options?: { allowUnknownFields?: boolean }
+  options?: { allowUnknownFields?: boolean; locale?: Locale }
 ): Response | null {
   const result = validateSchema<T>(body, schema, options)
   if (!result.success) {

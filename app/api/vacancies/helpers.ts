@@ -108,9 +108,11 @@ export const validateVacancyPayload = (payload: any): ValidationResult => {
 export const buildVacancyDbPayload = (payload: any) => {
   const type = payload.type
   const payment = payload.payment || {}
+  const application = payload.application || {}
+  const ageRange = payload.ageRange || {}
 
-  const method = payload.application.method
-  const value = String(payload.application.value || '').trim()
+  const method = application.method
+  const value = String(application.value || '').trim()
 
   return {
     title: payload.title.trim(),
@@ -122,8 +124,8 @@ export const buildVacancyDbPayload = (payload: any) => {
     requirements: Array.isArray(payload.requirements) ? payload.requirements : [],
     responsibilities: Array.isArray(payload.responsibilities) ? payload.responsibilities : [],
     image_url: payload.imageUrl || null,
-    age_min: Number(payload.ageRange.min),
-    age_max: Number(payload.ageRange.max),
+    age_min: Number(ageRange.min),
+    age_max: Number(ageRange.max),
     is_paid: Boolean(payment.isPaid),
     payment_mode: payment.isPaid ? payment.mode : null,
     payment_amount: payment.isPaid && payment.mode === 'fixed' ? Number(payment.amount) : null,

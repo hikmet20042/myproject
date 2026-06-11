@@ -16,8 +16,9 @@ const APPROVED_ORGANIZATION_ONLY_PREFIXES = [
   '/dashboard',
 ]
 
-// Regular users should NOT access these organization-only routes
-const ORGANIZATION_ONLY_PREFIXES = [
+// Regular users should NOT access these organization-only routes.
+// Renamed from ORGANIZATION_ONLY_PREFIXES for clarity.
+const REGULAR_USER_BLOCKED_PREFIXES = [
   '/dashboard',
 ]
 
@@ -51,8 +52,8 @@ async function checkAuthorization(pathWithoutLanguage: string, pathname: string,
   }
 
   // Test-mode auth bypass: enabled by ENABLE_TEST_AUTH_MODE=1 env var (set by Playwright).
-  // Mirrors the redirect rules of the real flow using X-Test-* headers.
-  if (process.env.ENABLE_TEST_AUTH_MODE === '1') {
+  // Defense-in-depth: also requires NODE_ENV !== 'production' to prevent accidental production bypass.
+  if (process.env.ENABLE_TEST_AUTH_MODE === '1' && process.env.NODE_ENV !== 'production') {
     const testResponse = handleTestModeAuth(pathWithoutLanguage, pathname, req)
     if (testResponse !== undefined) return testResponse
   }
@@ -72,7 +73,8 @@ async function checkAuthorization(pathWithoutLanguage: string, pathname: string,
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      return NextResponse.next()
+      console.error('CRITICAL: Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY — auth check bypassed')
+      return NextResponse.redirect(new URL('/auth/error?error=server_configuration', req.url))
     }
 
     const response = NextResponse.next()
@@ -181,7 +183,7 @@ async function checkAuthorization(pathWithoutLanguage: string, pathname: string,
         }
 
       // Organization-only routes: block regular users and redirect to home
-      const isOrganizationOnlyRoute = ORGANIZATION_ONLY_PREFIXES.some(prefix =>
+      const isOrganizationOnlyRoute = REGULAR_USER_BLOCKED_PREFIXES.some(prefix =>
         pathWithoutLanguage.startsWith(prefix)
       )
 

@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { isApprovedOrganization } from '@/lib/auth/permissions'
 import { successResponse, errorResponse } from '@/lib/apiResponse'
 import { handleApiRequest, withRateLimitHeaders } from '@/lib/apiHelpers'
+import { applyRateLimit } from '@/lib/rateLimit'
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
     return withRateLimitHeaders(successResponse({ message: 'Bildiriş oxundu olaraq işarələndi', notification }), rateLimitHeaders)
   } catch (error) {
     console.error('Notification read error:', error)
-    return errorResponse('Daxili server xətası', 'API_ERROR', {}, 500)
+    const { headers: rateLimitHeaders } = await applyRateLimit({ request, preset: 'write', endpoint: '/api/notifications/read' })
+    return withRateLimitHeaders(errorResponse('Daxili server xətası', 'API_ERROR', {}, 500), rateLimitHeaders)
   }
 }

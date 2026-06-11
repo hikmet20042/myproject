@@ -8,8 +8,17 @@ import { applyRateLimit } from '@/lib/rateLimit'
  * Increases content distribution and helps with SEO
  * Access at: /api/rss
  */
+
+/**
+ * Escape user-provided content for safe inclusion inside a CDATA section.
+ * Replaces `]]>` with `]]]]><![CDATA[>` so the parser treats the `>` as
+ * character data rather than the closing marker of the CDATA section.
+ */
+function escapeCdata(str: string): string {
+  return str.replace(/\]\]>/g, ']]]]><![CDATA[>')
+}
 export async function GET(request: NextRequest) {
-  const { result: rateLimitResult, headers: rateLimitHeaders } = applyRateLimit({
+  const { result: rateLimitResult, headers: rateLimitHeaders } = await applyRateLimit({
     request,
     preset: 'publicRead',
     endpoint: '/api/rss',
@@ -18,7 +27,7 @@ export async function GET(request: NextRequest) {
   if (!rateLimitResult.allowed) {
     const response = errorResponse(
       'Çox sayda sorğu. Bir az sonra yenidən cəhd edin.',
-      'RATE_LIMITED',
+      'RATE_LIMIT_EXCEEDED',
       {},
       429
     )
@@ -108,15 +117,15 @@ export async function GET(request: NextRequest) {
     </image>
     ${(blogs || []).map((blog: any) => `
     <item>
-      <title><![CDATA[${blog.title}]]></title>
+      <title><![CDATA[${escapeCdata(blog.title)}]]></title>
       <link>${siteUrl}/blogs/${blog.slug}</link>
       <guid isPermaLink="true">${siteUrl}/blogs/${blog.slug}</guid>
-      <description><![CDATA[${blog.abstract || ''}]]></description>
-      <content:encoded><![CDATA[${blog.content_html || ''}]]></content:encoded>
+      <description><![CDATA[${escapeCdata(blog.abstract || '')}]]></description>
+      <content:encoded><![CDATA[${escapeCdata(blog.content_html || '')}]]></content:encoded>
       <pubDate>${new Date(blog.created_at).toUTCString()}</pubDate>
       ${blog.updated_at ? `<dc:date>${new Date(blog.updated_at).toISOString()}</dc:date>` : ''}
-      ${blog.author_name ? `<dc:creator><![CDATA[${blog.author_name}]]></dc:creator>` : ''}
-      ${blog.tags?.map((tag: string) => `<category><![CDATA[${tag}]]></category>`).join('\n      ') || ''}
+      ${blog.author_name ? `<dc:creator><![CDATA[${escapeCdata(blog.author_name)}]]></dc:creator>` : ''}
+      ${blog.tags?.map((tag: string) => `<category><![CDATA[${escapeCdata(tag)}]]></category>`).join('\n      ') || ''}
     </item>`).join('\n')}
   </channel>
 </rss>`

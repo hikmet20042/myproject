@@ -135,41 +135,49 @@ export const NotificationProvider = ({ children }: { children: React.ReactNode }
   }, [refreshNotifications])
 
   const toggleNotificationRead = useCallback(async (notificationId: string, isRead: boolean) => {
-    if (isRead) {
-      const response = await fetch('/api/notifications/read', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notificationId }),
-      })
-      if (!response.ok) {
-        throw new Error('Failed to update notification')
+    try {
+      if (isRead) {
+        const response = await fetch('/api/notifications/read', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notificationId }),
+        })
+        if (!response.ok) {
+          throw new Error('Failed to update notification')
+        }
+      } else {
+        const response = await fetch('/api/notifications', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notificationId, isRead }),
+        })
+        if (!response.ok) {
+          throw new Error('Failed to update notification')
+        }
       }
-    } else {
-      const response = await fetch('/api/notifications', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notificationId, isRead }),
-      })
-      if (!response.ok) {
-        throw new Error('Failed to update notification')
-      }
-    }
 
-    await refreshNotifications({ force: true })
+      await refreshNotifications({ force: true })
+    } catch (err) {
+      setError('Bildiriş yenilənə bilmədi')
+    }
   }, [refreshNotifications])
 
   const markAllAsRead = useCallback(async () => {
-    const response = await fetch('/api/notifications/read', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ markAllAsRead: true }),
-    })
+    try {
+      const response = await fetch('/api/notifications/read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markAllAsRead: true }),
+      })
 
-    if (!response.ok) {
-      throw new Error('Failed to mark all as read')
+      if (!response.ok) {
+        throw new Error('Failed to mark all as read')
+      }
+
+      await refreshNotifications({ force: true })
+    } catch (err) {
+      setError('Bildirişlər oxundu kimi qeyd edilə bilmədi')
     }
-
-    await refreshNotifications({ force: true })
   }, [refreshNotifications])
 
   return (

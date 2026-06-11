@@ -1,36 +1,61 @@
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
 
-CREATE TABLE public.accounts (
+CREATE TABLE public.users (
   id uuid NOT NULL,
-  account_type text CHECK (account_type IS NULL OR (account_type = ANY (ARRAY['user'::text, 'organization'::text]))),
-  is_admin boolean NOT NULL DEFAULT false,
-  is_active boolean NOT NULL DEFAULT true,
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  updated_at timestamp with time zone NOT NULL DEFAULT now(),
-  url_handle text,
-  CONSTRAINT accounts_pkey PRIMARY KEY (id),
-  CONSTRAINT accounts_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
+  name text NOT NULL,
+  email text NOT NULL,
+  role text NOT NULL DEFAULT 'user'::text CHECK (role = ANY (ARRAY['user'::text, 'admin'::text])),
+  auth_provider text NOT NULL DEFAULT 'credentials'::text CHECK (auth_provider = ANY (ARRAY['credentials'::text, 'google'::text])),
+  social_media jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT users_pkey PRIMARY KEY (id),
+  CONSTRAINT users_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
 );
-CREATE TABLE public.blog_reactions (
+CREATE TABLE public.organizations (
+  id uuid NOT NULL,
+  mongo_id text UNIQUE,
+  organization_name text NOT NULL,
+  organization_type text NOT NULL,
+  email text NOT NULL,
+  profile_image jsonb,
+  description text NOT NULL,
+  website text,
+  contact_phone text,
+  address text,
+  registration_number text,
+  focus_areas ARRAY DEFAULT '{}'::text[],
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text])),
+  approved_at timestamp with time zone,
+  approved_by uuid,
+  admin_comment text,
+  contact_person jsonb NOT NULL,
+  social_media jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT organizations_pkey PRIMARY KEY (id),
+  CONSTRAINT organizations_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id),
+  CONSTRAINT organizations_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.users(id)
+);
+CREATE TABLE public.user_profiles (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  blog_id uuid NOT NULL,
   user_id uuid NOT NULL,
-  reaction_type text NOT NULL CHECK (reaction_type = ANY (ARRAY['like'::text, 'dislike'::text])),
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT blog_reactions_pkey PRIMARY KEY (id),
-  CONSTRAINT blog_reactions_blog_id_fkey FOREIGN KEY (blog_id) REFERENCES public.blogs(id),
-  CONSTRAINT blog_reactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
-);
-CREATE TABLE public.blog_views (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  blog_id uuid NOT NULL,
-  session_id text NOT NULL,
-  user_id uuid,
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT blog_views_pkey PRIMARY KEY (id),
-  CONSTRAINT blog_views_blog_id_fkey FOREIGN KEY (blog_id) REFERENCES public.blogs(id),
-  CONSTRAINT blog_views_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+  bio text,
+  location text,
+  website text,
+  phone text,
+  date_of_birth date,
+  gender text,
+  occupation text,
+  organization text,
+  interests text,
+  avatar text,
+  social_links jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT user_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.blogs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -54,25 +79,6 @@ CREATE TABLE public.blogs (
   CONSTRAINT blogs_pkey PRIMARY KEY (id),
   CONSTRAINT blogs_author_id_fkey FOREIGN KEY (author_id) REFERENCES public.users(id),
   CONSTRAINT blogs_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.content_saves (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  content_type text NOT NULL CHECK (content_type = ANY (ARRAY['blog'::text, 'event'::text, 'vacancy'::text])),
-  content_id uuid NOT NULL,
-  user_id uuid NOT NULL,
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT content_saves_pkey PRIMARY KEY (id),
-  CONSTRAINT content_saves_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
-);
-CREATE TABLE public.content_views (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  content_type text NOT NULL CHECK (content_type = ANY (ARRAY['event'::text, 'vacancy'::text])),
-  content_id uuid NOT NULL,
-  session_id text NOT NULL,
-  user_id uuid,
-  created_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT content_views_pkey PRIMARY KEY (id),
-  CONSTRAINT content_views_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.events (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -118,6 +124,55 @@ CREATE TABLE public.events (
   CONSTRAINT events_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.users(id),
   CONSTRAINT events_created_by_organization_fkey FOREIGN KEY (created_by_organization) REFERENCES public.accounts(id)
 );
+CREATE TABLE public.vacancies (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  description text NOT NULL,
+  type text NOT NULL CHECK (type = ANY (ARRAY['volunteer'::text, 'full_time'::text, 'part_time'::text, 'intern'::text])),
+  requirements ARRAY DEFAULT '{}'::text[] CHECK (requirements IS NOT NULL AND cardinality(requirements) > 0),
+  application_deadline timestamp with time zone NOT NULL,
+  image_url text,
+  created_by uuid,
+  created_by_organization uuid,
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text])),
+  approved_at timestamp with time zone,
+  approved_by uuid,
+  rejected_at timestamp with time zone,
+  rejection_reason text,
+  admin_comment text,
+  is_published boolean DEFAULT false,
+  is_featured boolean DEFAULT false,
+  is_urgent boolean DEFAULT false,
+  application_count integer DEFAULT 0,
+  views integer DEFAULT 0,
+  unique_views integer DEFAULT 0,
+  viewed_by ARRAY DEFAULT '{}'::uuid[],
+  engagement_score integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  slug text NOT NULL UNIQUE,
+  age_min integer NOT NULL DEFAULT 18,
+  age_max integer NOT NULL DEFAULT 65,
+  is_paid boolean NOT NULL DEFAULT false,
+  payment_mode text,
+  payment_amount numeric,
+  payment_min numeric,
+  payment_max numeric,
+  benefits ARRAY NOT NULL DEFAULT '{}'::text[],
+  application_method text NOT NULL,
+  application_value text NOT NULL,
+  period_from_month integer,
+  period_from_year integer,
+  period_to_month integer,
+  period_to_year integer,
+  city text NOT NULL CHECK (length(TRIM(BOTH FROM city)) > 0),
+  address text,
+  responsibilities ARRAY DEFAULT '{}'::text[],
+  CONSTRAINT vacancies_pkey PRIMARY KEY (id),
+  CONSTRAINT vacancies_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id),
+  CONSTRAINT vacancies_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.users(id),
+  CONSTRAINT vacancies_created_by_organization_fkey FOREIGN KEY (created_by_organization) REFERENCES public.accounts(id)
+);
 CREATE TABLE public.materials (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   title text NOT NULL,
@@ -156,14 +211,23 @@ CREATE TABLE public.notifications (
   CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT notifications_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.accounts(id)
 );
-CREATE TABLE public.organization_followers (
+CREATE TABLE public.site_settings (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  organization_id uuid NOT NULL,
-  user_id uuid NOT NULL,
+  data jsonb NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT organization_followers_pkey PRIMARY KEY (id),
-  CONSTRAINT organization_followers_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organization_profiles(account_id),
-  CONSTRAINT organization_followers_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT site_settings_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.accounts (
+  id uuid NOT NULL,
+  account_type text CHECK (account_type IS NULL OR (account_type = ANY (ARRAY['user'::text, 'organization'::text]))),
+  is_admin boolean NOT NULL DEFAULT false,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  url_handle text,
+  CONSTRAINT accounts_pkey PRIMARY KEY (id),
+  CONSTRAINT accounts_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.organization_profiles (
   account_id uuid NOT NULL,
@@ -192,114 +256,51 @@ CREATE TABLE public.organization_profiles (
   CONSTRAINT organization_profiles_account_id_fkey FOREIGN KEY (account_id) REFERENCES public.accounts(id),
   CONSTRAINT organization_profiles_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.users(id)
 );
-CREATE TABLE public.organizations (
-  id uuid NOT NULL,
-  mongo_id text UNIQUE,
-  organization_name text NOT NULL,
-  organization_type text NOT NULL,
-  email text NOT NULL,
-  profile_image jsonb,
-  description text NOT NULL,
-  website text,
-  contact_phone text,
-  address text,
-  registration_number text,
-  focus_areas ARRAY DEFAULT '{}'::text[],
-  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text])),
-  approved_at timestamp with time zone,
-  approved_by uuid,
-  admin_comment text,
-  contact_person jsonb NOT NULL,
-  social_media jsonb,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT organizations_pkey PRIMARY KEY (id),
-  CONSTRAINT organizations_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id),
-  CONSTRAINT organizations_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.users(id)
-);
-CREATE TABLE public.site_settings (
+CREATE TABLE public.blog_views (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  data jsonb NOT NULL,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT site_settings_pkey PRIMARY KEY (id)
+  blog_id uuid NOT NULL,
+  session_id text NOT NULL,
+  user_id uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT blog_views_pkey PRIMARY KEY (id),
+  CONSTRAINT blog_views_blog_id_fkey FOREIGN KEY (blog_id) REFERENCES public.blogs(id),
+  CONSTRAINT blog_views_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
-CREATE TABLE public.user_profiles (
+CREATE TABLE public.blog_reactions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
+  blog_id uuid NOT NULL,
   user_id uuid NOT NULL,
-  bio text,
-  location text,
-  website text,
-  phone text,
-  date_of_birth date,
-  gender text,
-  occupation text,
-  organization text,
-  interests text,
-  avatar text,
-  social_links jsonb,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT user_profiles_pkey PRIMARY KEY (id),
-  CONSTRAINT user_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+  reaction_type text NOT NULL CHECK (reaction_type = ANY (ARRAY['like'::text, 'dislike'::text])),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT blog_reactions_pkey PRIMARY KEY (id),
+  CONSTRAINT blog_reactions_blog_id_fkey FOREIGN KEY (blog_id) REFERENCES public.blogs(id),
+  CONSTRAINT blog_reactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
-CREATE TABLE public.users (
-  id uuid NOT NULL,
-  name text NOT NULL,
-  email text NOT NULL,
-  role text NOT NULL DEFAULT 'user'::text CHECK (role = ANY (ARRAY['user'::text, 'admin'::text])),
-  auth_provider text NOT NULL DEFAULT 'credentials'::text CHECK (auth_provider = ANY (ARRAY['credentials'::text, 'google'::text])),
-  social_media jsonb,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  CONSTRAINT users_pkey PRIMARY KEY (id),
-  CONSTRAINT users_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
-);
-CREATE TABLE public.vacancies (
+CREATE TABLE public.organization_followers (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  title text NOT NULL,
-  description text NOT NULL,
-  type text NOT NULL CHECK (type = ANY (ARRAY['volunteer'::text, 'full_time'::text, 'part_time'::text, 'intern'::text])),
-  city text NOT NULL,
-  address text,
-  requirements ARRAY DEFAULT '{}'::text[],
-  responsibilities ARRAY NOT NULL DEFAULT '{}'::text[],
-  application_deadline timestamp with time zone NOT NULL,
-  image_url text,
-  created_by uuid,
-  created_by_organization uuid,
-  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text])),
-  approved_at timestamp with time zone,
-  approved_by uuid,
-  rejected_at timestamp with time zone,
-  rejection_reason text,
-  admin_comment text,
-  is_published boolean DEFAULT false,
-  is_featured boolean DEFAULT false,
-  is_urgent boolean DEFAULT false,
-  views integer DEFAULT 0,
-  unique_views integer DEFAULT 0,
-  viewed_by ARRAY DEFAULT '{}'::uuid[],
-  engagement_score integer DEFAULT 0,
+  organization_id uuid NOT NULL,
+  user_id uuid NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  slug text NOT NULL UNIQUE,
-  age_min integer NOT NULL DEFAULT 18,
-  age_max integer NOT NULL DEFAULT 65,
-  is_paid boolean NOT NULL DEFAULT false,
-  payment_mode text,
-  payment_amount numeric(12,2),
-  payment_min numeric(12,2),
-  payment_max numeric(12,2),
-  benefits ARRAY NOT NULL DEFAULT '{}'::text[],
-  application_method text NOT NULL,
-  application_value text NOT NULL,
-  period_from_month integer,
-  period_from_year integer,
-  period_to_month integer,
-  period_to_year integer,
-  CONSTRAINT vacancies_pkey PRIMARY KEY (id),
-  CONSTRAINT vacancies_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id),
-  CONSTRAINT vacancies_approved_by_fkey FOREIGN KEY (approved_by) REFERENCES public.users(id),
-  CONSTRAINT vacancies_created_by_organization_fkey FOREIGN KEY (created_by_organization) REFERENCES public.accounts(id)
+  CONSTRAINT organization_followers_pkey PRIMARY KEY (id),
+  CONSTRAINT organization_followers_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organization_profiles(account_id),
+  CONSTRAINT organization_followers_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.content_saves (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  content_type text NOT NULL CHECK (content_type = ANY (ARRAY['blog'::text, 'event'::text, 'vacancy'::text])),
+  content_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT content_saves_pkey PRIMARY KEY (id),
+  CONSTRAINT content_saves_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.content_views (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  content_type text NOT NULL CHECK (content_type = ANY (ARRAY['event'::text, 'vacancy'::text])),
+  content_id uuid NOT NULL,
+  session_id text NOT NULL,
+  user_id uuid,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT content_views_pkey PRIMARY KEY (id),
+  CONSTRAINT content_views_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
